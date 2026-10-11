@@ -100,8 +100,10 @@
   `WebBedienung` (Standard aus) UND Schlüssel (`hash_equals`, leerer Schlüssel nie gültig —
   Attribut kann nach MC-Neuladen leer sein), Positivliste Befehl/Raum/Raeume; ohne Freigabe nie
   den Schlüssel ausliefern. Prüfstand + 6 Sicherheits-Mutationen (alle gefangen).
-- Live noch nicht gesehen (Stand 11.10.2026): Darstellung in Dietmars Kachel-Visualisierung und
-  in IPSView-WebView.
+- Live 0.3.0 (21:43): beide Hooks im WebHook-Control eingetragen, `/hook/robohub54764` und
+  `/hook/robohub11377` liefern HTML + echte Daten (Nur-Anzeige, kein Schlüssel); Befehl ohne Freigabe
+  und mit geratenem Schlüssel live abgelehnt („🔒 … nicht freigegeben"). Darstellung in Dietmars
+  Kachel-Visualisierung und in IPSView noch nicht gesehen.
 
 ## Prüfen
 
