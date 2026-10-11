@@ -91,6 +91,7 @@ final class RoboHubModell
         'Zustand'            => ['Zustand', 1, '', 0, 10],
         'ZustandRoh'         => ['Zustand (Hersteller)', 3, '', 0, 11],
         'Fehler'             => ['Fehler', 3, '', 0, 12],
+        'Meldung'            => ['Letzte Meldung', 3, '', 0, 13],
         'Akku'               => ['Akku', 1, ' %', 0, 20],
         'Laedt'              => ['Lädt', 0, '', 0, 21],
         'Reinigungsmodus'    => ['Reinigungsmodus', 3, '', 0, 30],

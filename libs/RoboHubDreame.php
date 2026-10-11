@@ -269,7 +269,7 @@ class RoboHubDreame implements RoboHubTreiber
             $p['3.1'] = (int)$eintrag['battery'];
         }
 
-        $daten = $klasse === RoboHubModell::KLASSE_MAEHER ? $this->normalisiereMaeher($p) : $this->normalisiereSauger($p);
+        $daten = $klasse === RoboHubModell::KLASSE_MAEHER ? $this->normalisiereMaeher($p, $modell) : $this->normalisiereSauger($p);
         if ($klasse === RoboHubModell::KLASSE_MAEHER && $online) {
             $daten['werte'] += $this->maeherVerschleiss($buendel, $did);
         }
@@ -458,12 +458,17 @@ class RoboHubDreame implements RoboHubTreiber
         return $modus === 2 ? 0 : ($modus === 0 ? 2 : $modus);
     }
 
-    // Mäher 2.1 (ioBroker lib/specs/mower-core.js MOWER_STATUS_KEYS).
+    // Mäher 2.1. Wo sich die Quellen widersprechen, gelten die Beschriftungen
+    // der Hersteller-App (EvotecIT app_protocol.py MOWER_STATE_LABELS, en+zh,
+    // mit LiDAX-Rückmeldungen; deckt sich mit dem ioBroker-README):
+    // 3 = Pause, 4 = Pause wegen Fehler, 15/16 = Laden pausiert (Temperatur).
+    // ioBrokers Code nennt dort 3 = Mähen, 4 = Pause, 15/16 = Ortung/Anfahrt.
+    // Werte nur aus ioBroker (7–12) ohne Widerspruch übernommen.
     private const MAEHER_ZUSTAND = [
         1 => ['Mäht', RoboHubModell::ZUSTAND_REINIGT],
         2 => ['Bereit', RoboHubModell::ZUSTAND_BEREIT],
-        3 => ['Mäht', RoboHubModell::ZUSTAND_REINIGT],
-        4 => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
+        3 => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
+        4 => ['Pausiert wegen Fehler', RoboHubModell::ZUSTAND_FEHLER],
         5 => ['Fährt zur Station', RoboHubModell::ZUSTAND_ZURUECK],
         6 => ['Lädt', RoboHubModell::ZUSTAND_LAEDT],
         7 => ['Fehler', RoboHubModell::ZUSTAND_FEHLER],
@@ -474,18 +479,56 @@ class RoboHubDreame implements RoboHubTreiber
         12 => ['Mäht Kanten', RoboHubModell::ZUSTAND_REINIGT],
         13 => ['Geladen', RoboHubModell::ZUSTAND_GELADEN],
         14 => ['Firmware-Update', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
-        15 => ['Bestimmt Position', RoboHubModell::ZUSTAND_REINIGT],
-        16 => ['Fährt zum Einsatzort', RoboHubModell::ZUSTAND_REINIGT],
+        15 => ['Laden pausiert — Akku zu heiß', RoboHubModell::ZUSTAND_LAEDT],
+        16 => ['Laden pausiert — Akku zu kalt', RoboHubModell::ZUSTAND_LAEDT],
+        75 => ['Am Wartungspunkt pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
     ];
 
-    // Mäher-Fehler 2.2 (Auszug aus docs/mower-protocol.md).
-    private const MAEHER_FEHLER = [
-        0 => 'Hängt fest/angehoben', 1 => 'Gekippt', 2 => 'Festgefahren', 7 => 'Messer blockiert',
-        11 => 'Akku überhitzt', 23 => 'Not-Aus gedrückt', 24 => 'Akku schwach', 27 => 'Person erkannt',
-        56 => 'Schlechtwetter-Schutz', 61 => 'Ruhezeit — kehrt zurück', 73 => 'Haube offen',
+    // Mäher-Gerätecode 2.2: gemeinsames Register aller Dreame/MOVA-Mäher
+    // (EvotecIT/homeassistant-dreamelawnmower, device_code_semantics.py, MIT,
+    // gelesen 11.10.2026). 'f' = Fehler/Warnung/Wartung, 'i' = reine Info.
+    private const MAEHER_CODES = [
+        0 => ['i', ''],
+        1 => ['f', 'Roboter gekippt'], 2 => ['f', 'Roboter festgefahren'], 3 => ['f', 'Weg zur Station zu schmal'],
+        4 => ['f', 'Linkes Antriebsrad gestört'], 5 => ['f', 'Rechtes Antriebsrad gestört'], 6 => ['f', 'Schnitthöhen-Motor gestört'],
+        7 => ['f', 'Messerteller blockiert'], 8 => ['f', 'Messerteller-Seitenmotor gestört'], 9 => ['f', 'Stoßfänger gestört'],
+        10 => ['f', 'Ladefehler'], 11 => ['f', 'Akku zu heiß'], 12 => ['f', 'Lidar blockiert'],
+        13 => ['f', 'Lidar zu heiß (ohne Karte)'], 14 => ['f', 'Lidar zu heiß (mit Karte)'], 15 => ['f', 'Lidar zu heiß'],
+        16 => ['f', 'Lidar verschmutzt'], 17 => ['f', 'Lidar gestört'], 18 => ['f', 'Ortungssignal schwach'],
+        19 => ['f', 'Position verloren'], 20 => ['f', 'Sensor gestört'], 21 => ['f', 'Mäher in Sperrzone'],
+        22 => ['f', 'Mäher außerhalb der Karte'], 23 => ['f', 'Not-Aus gedrückt'], 24 => ['f', 'Akku kritisch schwach'],
+        25 => ['f', 'Kartendatei beschädigt'], 26 => ['f', 'Mäher zu weit von der Karte'], 27 => ['f', 'Person erkannt'],
+        37 => ['f', 'Weg blockiert'], 73 => ['f', 'Abdeckung offen'],
+        28 => ['f', 'Messer abgenutzt'], 29 => ['f', 'Stationsbürste abgenutzt'], 30 => ['f', 'Wartung fällig'],
+        31 => ['f', 'Rückkehr zur Station fehlgeschlagen'], 32 => ['f', 'Andocken fehlgeschlagen'],
+        33 => ['f', 'Ortung fehlgeschlagen (mit Karte)'], 34 => ['f', 'Ortung fehlgeschlagen (ohne Karte)'],
+        35 => ['f', 'Ortungsfehler'], 36 => ['f', 'Auftrag konnte nicht starten'], 38 => ['f', 'Lidar verschmutzt'],
+        39 => ['f', 'Kamera verschmutzt'], 40 => ['f', 'Kamera gestört'], 41 => ['f', 'Kamera verdeckt'],
+        42 => ['f', 'Laden pausiert — Akku zu heiß'], 43 => ['f', 'Laden pausiert — Akku zu kalt'],
+        44 => ['f', 'Automatische Randerkennung gestoppt'], 45 => ['f', 'Automatische Randerkennung (Seite) gestoppt'],
+        46 => ['i', 'Randerkennung abgeschlossen'], 47 => ['i', 'Neue Karte erstellt'], 48 => ['i', 'Mähauftrag abgeschlossen'],
+        49 => ['i', 'Einige Zonen nicht erreichbar'], 50 => ['i', 'Mähauftrag gestartet'], 51 => ['i', 'Patrouille gestartet'],
+        52 => ['i', 'Zielfahrt gestartet'], 53 => ['i', 'Geplantes Mähen gestartet'], 54 => ['i', 'Akku schwach — kehrt zurück'],
+        55 => ['i', 'Geplantes Mähen ausgesetzt — Akku schwach'], 56 => ['i', 'Schlechtwetter-Schutz aktiv'],
+        57 => ['i', 'Geplantes Mähen wegen Regen unterbrochen'], 58 => ['i', 'Geplantes Mähen wegen Regen ausgesetzt'],
+        59 => ['i', 'Frostschutz — kehrt zurück'], 60 => ['i', 'Geplantes Mähen wegen Frost ausgesetzt'],
+        61 => ['i', 'Ruhezeit — kehrt zurück'], 62 => ['i', 'Geplantes Mähen wegen Ruhezeit ausgesetzt'],
+        63 => ['i', 'Geplantes Mähen übersprungen — Mäher beschäftigt'], 64 => ['i', 'Geplantes Mähen wegen Fernsteuerung ausgesetzt'],
+        65 => ['i', 'Geplantes Mähen wegen Not-Aus ausgesetzt'], 66 => ['i', 'Geplantes Mähen ausgesetzt — Abdeckung offen'],
+        67 => ['i', 'Geplantes Mähen wegen Störung ausgesetzt'], 68 => ['i', 'Geplantes Mähen: Zeit abgelaufen'],
+        69 => ['i', 'Station nicht mit dem Mähbereich verbunden'], 70 => ['i', 'Setzt unterbrochenen Auftrag fort'],
+        71 => ['i', 'Leerlauf zu lang — kehrt zurück'], 72 => ['i', 'Pause zu lang — kehrt zurück'],
     ];
 
-    private function normalisiereMaeher(array $p): array
+    // LiDAX Ultra 1000/2000 und 2000 AWD belegen 0 und 55 anders (dort mit
+    // echten Geräten erfasst; ältere MOVA-Modelle bewusst NICHT einbezogen).
+    private const MAEHER_CODES_LIDAX = [
+        0 => ['f', 'Roboter angehoben'],
+        55 => ['f', 'Start nicht möglich — Akku zu schwach'],
+    ];
+    private const LIDAX_MODELLE = ['mova.mower.g2529c', 'mova.mower.g2529f', 'mova.mower.g2584a'];
+
+    private function normalisiereMaeher(array $p, string $modell): array
     {
         $w = [];
         if (isset($p['2.1'])) {
@@ -495,12 +538,23 @@ class RoboHubDreame implements RoboHubTreiber
             $w['ZustandRoh'] = $text . ' (' . $roh . ')';
             $w['Regensensor'] = $roh === 8;
         }
-        // Beim Mäher ist Fehlercode 0 belegt („hängt fest") — nur im Fehlerzustand auswerten.
+        // 2.2 ist beim Mäher ein Gerätecode: Fehler/Wartung → „Fehler",
+        // reine Infos (Auftrag fertig, Regenschutz …) → „Letzte Meldung".
         if (isset($p['2.2'])) {
             $code = (int)$p['2.2'];
-            $w['Fehler'] = (($w['Zustand'] ?? null) === RoboHubModell::ZUSTAND_FEHLER)
-                ? (self::MAEHER_FEHLER[$code] ?? 'Fehlercode ' . $code) . ' (' . $code . ')'
-                : 'kein Fehler';
+            $codes = self::MAEHER_CODES;
+            if (in_array(strtolower($modell), self::LIDAX_MODELLE, true)) {
+                $codes = self::MAEHER_CODES_LIDAX + $codes;
+            }
+            [$art, $text] = $codes[$code] ?? ['f', 'Gerätecode ' . $code];
+            if ($art === 'f') {
+                $w['Fehler'] = $text . ' (' . $code . ')';
+            } else {
+                $w['Fehler'] = 'kein Fehler';
+                if ($text !== '') {
+                    $w['Meldung'] = $text . ' (' . $code . ')';
+                }
+            }
         }
         $w['Akku'] = isset($p['3.1']) ? (int)$p['3.1'] : null;
         $w['Laedt'] = isset($p['3.2']) ? (int)$p['3.2'] === 1 : null;
@@ -541,20 +595,36 @@ class RoboHubDreame implements RoboHubTreiber
         $did = (string)$geraet['id'];
         $maeher = self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER;
 
-        // Mäher: Start 2.1, Stopp 2.2, Pause 2.4, zur Station 5.3
-        // (ioBroker main.js actionStates; 3.1 wirkt beim Mäher nicht, Issue #49).
+        // Mäher: die Quellen widersprechen sich. EvotecIT (const.py, mit
+        // LiDAX-Ultra-1000-Rückmeldung „commands") nutzt Start 5.1, Stopp
+        // 5.2, Station 5.3, Pause 5.4; ioBrokers Code nutzt 2.1/2.2/2.4
+        // (beschriftet sie aber selbst mit „5-1/5-2/5-4"). Zur Station ist in
+        // beiden 5.3 (3.1 wirkt beim Mäher nicht, ioBroker Issue #49).
+        // Deshalb: 5.x zuerst, bei Ablehnung einmal der ioBroker-Weg.
         $aktionen = $maeher
-            ? ['start' => [2, 1], 'stopp' => [2, 2], 'pause' => [2, 4], 'station' => [5, 3]]
-            : ['start' => [2, 1], 'pause' => [2, 2], 'station' => [3, 1], 'stopp' => [4, 2], 'orten' => [7, 1]];
+            ? ['start' => [[5, 1], [2, 1]], 'stopp' => [[5, 2], [2, 2]], 'pause' => [[5, 4], [2, 4]], 'station' => [[5, 3]]]
+            : ['start' => [[2, 1]], 'pause' => [[2, 2]], 'station' => [[3, 1]], 'stopp' => [[4, 2]], 'orten' => [[7, 1]]];
 
         if (isset($aktionen[$befehl])) {
-            [$siid, $aiid] = $aktionen[$befehl];
-            $this->sendCommand($buendel, $did, 'action', ['did' => $did, 'siid' => $siid, 'aiid' => $aiid, 'in' => []]);
-            return 'Befehl „' . self::befehlName($befehl) . '" gesendet.';
+            $letzterFehler = null;
+            foreach ($aktionen[$befehl] as [$siid, $aiid]) {
+                try {
+                    $this->aktion($buendel, $did, $siid, $aiid, []);
+                    $this->dbg('Befehl', self::befehlName($befehl) . ' über ' . $siid . '.' . $aiid . ' angenommen.');
+                    return 'Befehl „' . self::befehlName($befehl) . '" gesendet.';
+                } catch (RoboHubFehler $e) {
+                    if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                        throw $e;
+                    }
+                    $this->dbg('Befehl', self::befehlName($befehl) . ' über ' . $siid . '.' . $aiid . ' abgelehnt: ' . $e->getMessage());
+                    $letzterFehler = $e;
+                }
+            }
+            throw $letzterFehler;
         }
         if ($befehl === 'orten' && $maeher) {
             // Mäher „Finden" über den Konfigurationskanal (o 9).
-            $this->sendCommand($buendel, $did, 'action', ['did' => $did, 'siid' => 2, 'aiid' => 50, 'in' => [['m' => 'a', 'p' => 0, 'o' => 9]]]);
+            $this->aktion($buendel, $did, 2, 50, [['m' => 'a', 'p' => 0, 'o' => 9]]);
             return 'Befehl „Orten" gesendet.';
         }
         if ($befehl === 'raum' && !$maeher) {
@@ -585,10 +655,7 @@ class RoboHubDreame implements RoboHubTreiber
             // Fünftes Feld fest 1 — sonst bricht Gen-5 nach dem ersten Raum ab (beide Referenzen).
             $selects[] = [$seg, 1, $saug, $wasser, 1];
         }
-        $this->sendCommand($buendel, $did, 'action', [
-            'did' => $did, 'siid' => 4, 'aiid' => 1,
-            'in'  => [['piid' => 1, 'value' => 18], ['piid' => 10, 'value' => json_encode(['selects' => $selects])]],
-        ]);
+        $this->aktion($buendel, $did, 4, 1, [['piid' => 1, 'value' => 18], ['piid' => 10, 'value' => json_encode(['selects' => $selects])]]);
         return 'Raumreinigung für ' . count($raeume) . ' Raum/Räume gesendet.';
     }
 
@@ -614,6 +681,17 @@ class RoboHubDreame implements RoboHubTreiber
             return 'Reinigungsmodus gesendet.';
         }
         throw new RoboHubFehler('Einstellung „' . $feld . '" ist nicht schreibbar.');
+    }
+
+    /** action siid.aiid; wirft, wenn das Gerät die Aktion ablehnt (result.code ≠ 0). */
+    private function aktion(array $buendel, string $did, int $siid, int $aiid, array $in): array
+    {
+        $erg = $this->sendCommand($buendel, $did, 'action', ['did' => $did, 'siid' => $siid, 'aiid' => $aiid, 'in' => $in]);
+        $code = is_array($erg) ? (int)($erg['code'] ?? 0) : 0;
+        if ($code !== 0) {
+            throw new RoboHubFehler('Der Roboter hat den Befehl abgelehnt (Code ' . $code . ').');
+        }
+        return is_array($erg) ? $erg : [];
     }
 
     private function setzeProperty(array $buendel, string $did, int $siid, int $piid, $wert): void

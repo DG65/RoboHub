@@ -27,6 +27,10 @@ trait RoboHubFormular
             '• Konfigurator findet alle Roboter im Konto und legt sie mit einem Klick an.',
             '• Roboter-Instanz: Status, Akku, Reinigungsfortschritt, Verbrauchsteile, Station sowie Start/Pause/Stopp/Zur Station/Orten, Saugstufe, Wassermenge und Raumreinigung.',
         ],
+        '0.1.1' => [
+            '• Mähroboter: Gerätecodes vollständig (Fehler, Wartung, Hinweise getrennt) — reine Hinweise wie „Schlechtwetter-Schutz aktiv" erscheinen in der neuen Variable „Letzte Meldung" statt als Fehler. MOVA LiDAX Ultra 1000/2000 mit ihren abweichenden Codes 0 und 55.',
+            '• Mähroboter: Zustände nach den Beschriftungen der Hersteller-App (3 = Pausiert, 4 = Pausiert wegen Fehler); Start/Stopp/Pause mit Ausweichweg, falls der Mäher einen Befehlsweg ablehnt.',
+        ],
     ];
 
     private static $ROBOHUB_REPO_URL    = 'https://github.com/DG65/RoboHub';

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.1 (11.10.2026)
+
+- Mähroboter-Gerätecodes (2.2) vollständig nach dem Register von
+  [EvotecIT/homeassistant-dreamelawnmower](https://github.com/EvotecIT/homeassistant-dreamelawnmower)
+  (MIT): Fehler und Wartungshinweise in „Fehler", reine Hinweise (Auftrag fertig,
+  Regen-/Frostschutz, Ruhezeit …) in der neuen Variable „Letzte Meldung".
+  LiDAX Ultra 1000/2000/2000 AWD (`mova.mower.g2529c/f`, `g2584a`): Code 0 =
+  „Roboter angehoben", 55 = „Start nicht möglich — Akku zu schwach".
+- Mäher-Zustände dort, wo sich die Quellen widersprechen, nach den
+  App-Beschriftungen: 3 = Pausiert, 4 = Pausiert wegen Fehler, 15/16 = Laden
+  pausiert (Akkutemperatur), neu 75 = Am Wartungspunkt pausiert.
+- Mäher-Befehle Start/Stopp/Pause zuerst über 5.1/5.2/5.4 (bei LiDAX Ultra 1000
+  belegt), bei Ablehnung einmal über 2.1/2.2/2.4 (ioBroker). Aktionen werten jetzt
+  den Ergebniscode des Geräts aus: Ablehnung = Fehlermeldung statt „gesendet".
+
 ## 0.1.0 (11.10.2026)
 
 - Erstes Release.

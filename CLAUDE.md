@@ -41,9 +41,19 @@
   (URL-sicher) → ggf. AES-256-CBC (Schlüssel `substr(sha256(Suffix),0,32)`, IV bekannt nur
   für r2253, sonst 16 Nullbytes — **für r95475 unbelegt**) → zlib → 27-Byte-Kopf + Bild →
   JSON `seg_inf`. Scheitert die Dekodierung, gibt es einfach keine Raumvariable (Debug „Karte").
-- Mäher: Klasse am Modellnamen (`mower`), Zustand 2.1 (8 = Regenpause), Befehle Start 2.1,
-  Stopp 2.2, Pause 2.4, **Station 5.3** (3.1 wirkt nicht), Orten über 2.50 `o:9`, Messer über
-  2.50 `{"m":"g","t":"CMS"}` (Max 6000 min). Mäh-Zonen noch nicht gebaut.
+- Mäher: Klasse am Modellnamen (`mower`). **Dietmars Mäher: MOVA LiDAX Ultra 1000 =
+  `mova.mower.g2529c`** (EvotecIT supported-mowers.md, „field-reported: MOVAhome EU login,
+  commands, battery"). Dritte Quelle seit 0.1.1: EvotecIT/homeassistant-dreamelawnmower (MIT).
+  - Zustand 2.1: Widerspruch ioBroker-Code (3 Mähen, 4 Pause, 15/16 Ortung) vs. App-Beschriftungen
+    bei EvotecIT + ioBroker-README (3 Pause, 4 Pause wegen Fehler, 15/16 Laden pausiert). Gewählt:
+    App-Beschriftungen. 7–12 (Fehler, Regenpause, Kantenmähen …) nur ioBroker, übernommen.
+    **Live prüfen**, Rohwert steht in „Zustand (Hersteller)".
+  - 2.2 ist ein Gerätecode (Fehler/Wartung/Info), EvotecIT-Register; LiDAX g2529c/f, g2584a:
+    0 = angehoben, 55 = Start wegen Akku unmöglich. Infos → Variable „Meldung".
+  - Befehle: EvotecIT Start 5.1/Stopp 5.2/Pause 5.4, ioBroker-Code 2.1/2.2/2.4 → 5.x zuerst,
+    bei result.code ≠ 0 einmal 2.x. **Station 5.3** in beiden (3.1 wirkt nicht). Welcher Weg
+    griff, steht im Debug „Befehl". Orten über 2.50 `o:9`, Messer über 2.50
+    `{"m":"g","t":"CMS"}` (Max 6000 min). Mäh-Zonen noch nicht gebaut.
 - Nicht gebaut, bewusst: MQTT-Push (Ausbaustufe; TLS, user=uid, pass=access_token),
   Tasshacks Body-Signatur/TLS-Fingerprint (ioBroker funktioniert ohne).
 

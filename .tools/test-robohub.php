@@ -111,6 +111,7 @@ class FakeCloud extends RoboHubDreame
     public static $cms = null;
     public static $karte = null;        // Kartentext (mapstr[0].map)
     public static $tokenZaehler = 0;
+    public static $ablehnen = [];       // 'siid.aiid' => true: Aktion mit result.code -1 ablehnen
 
     protected function http(string $methode, string $url, array $headers, ?string $body): array
     {
@@ -154,7 +155,8 @@ class FakeCloud extends RoboHubDreame
                 if (is_array($in) && ($in['t'] ?? '') === 'CMS') {
                     return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [self::$cms]]]])];
                 }
-                return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => []]]])];
+                $k = $b['data']['params']['siid'] . '.' . $b['data']['params']['aiid'];
+                return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => !empty(self::$ablehnen[$k]) ? -1 : 0, 'out' => []]]])];
             }
         }
         if (strpos($url, 'iotfile/getDownloadUrl') !== false) {
@@ -191,7 +193,7 @@ function abschnitt(string $t): void { echo "\n[$t]\n"; }
 function variable(int $inst, string $ident) { $id = IPS_GetObjectIDByIdent($ident, $inst); return $id === false ? null : $GLOBALS['OBJ'][$id]; }
 
 $saugerRecord = ['did' => '-112663880', 'model' => 'dreame.vacuum.r95475', 'customName' => 'Aqua10', 'online' => true, 'latestStatus' => 13, 'battery' => 100, 'bindDomain' => '10000.mt.eu.iot.dreame.tech:19973', 'ver' => '4.3.9_1234'];
-$maeherRecord = ['did' => '777', 'model' => 'mova.mower.g2583a', 'customName' => '', 'deviceInfo' => ['displayName' => 'MOVA 600'], 'online' => true, 'battery' => 80];
+$maeherRecord = ['did' => '777', 'model' => 'mova.mower.g2529c', 'customName' => '', 'deviceInfo' => ['displayName' => 'MOVA 600'], 'online' => true, 'battery' => 80];
 
 // ===========================================================================
 abschnitt('Konto: Anmeldung');
@@ -376,7 +378,7 @@ check('MOVA-Login an eu.iot.mova-tech.com', strpos($login['url'], 'https://eu.io
 check('MOVA-Tenant 000002 + eigener Basic', strpos($h, 'Tenant-Id: 000002') !== false && strpos($h, 'bW92YV9hcHA6VjdLb0NoTFc4dkhBQ3FHYg==') !== false);
 
 $maeher = new RoboHubGeraet(2100);
-$maeher->props = ['GeraetID' => '777', 'Modell' => 'mova.mower.g2583a', 'Klasse' => 'maeher', 'Intervall' => 120];
+$maeher->props = ['GeraetID' => '777', 'Modell' => 'mova.mower.g2529c', 'Klasse' => 'maeher', 'Intervall' => 120];
 $maeher->Create();
 $maeher->parent = $konto2;
 $maeher->ApplyChanges();
@@ -388,17 +390,25 @@ check('Mäher-Abruf erfolgreich', strpos($t, '✅') === 0, $t);
 check('Befehlspfad dreame-iot-com-20000', FakeCloud::letzte('sendCommand') !== null && strpos(FakeCloud::letzte('sendCommand')['url'], '/dreame-iot-com-20000/') !== false);
 check('2.1=8 → Wetterpause', variable(2100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_WETTERPAUSE);
 check('Regen erkannt = true', variable(2100, 'Regensensor')['value'] === true);
-check('Fehlercode 0 außerhalb Fehlerzustand ≠ „hängt fest"', variable(2100, 'Fehler')['value'] === 'kein Fehler');
+check('LiDAX: Code 0 = „Roboter angehoben" (Modell-Abweichung)', variable(2100, 'Fehler')['value'] === 'Roboter angehoben (0)', (string)variable(2100, 'Fehler')['value']);
 check('Messer aus CMS: 1500/6000 min → 75 %', variable(2100, 'Messer')['value'] === 75);
 check('keine Sauger-Variablen beim Mäher', variable(2100, 'Staubbeutel') === null && variable(2100, 'Saugstufe') === null);
 $opts = json_decode(variable(2100, 'Zustand')['pres']['OPTIONS'], true);
 $mahtCaption = '';
 foreach ($opts as $o) { if ($o['Value'] === RoboHubModell::ZUSTAND_REINIGT) { $mahtCaption = $o['Caption']; } }
 check('Zustandsbeschriftung beim Mäher „Mäht"', $mahtCaption === 'Mäht');
-FakeCloud::$props['2.1'] = 7;
-FakeCloud::$props['2.2'] = 0;
+FakeCloud::$props['2.1'] = 3;
+FakeCloud::$props['2.2'] = 56;
 $maeher->Aktualisieren();
-check('im Fehlerzustand: Code 0 = „Hängt fest/angehoben"', strpos((string)variable(2100, 'Fehler')['value'], 'Hängt fest') === 0);
+check('Mäher 3 = Pausiert (App-Beschriftung)', variable(2100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_PAUSIERT && variable(2100, 'ZustandRoh')['value'] === 'Pausiert (3)');
+check('Info-Code 56 → Meldung, kein Fehler', variable(2100, 'Fehler')['value'] === 'kein Fehler' && variable(2100, 'Meldung')['value'] === 'Schlechtwetter-Schutz aktiv (56)');
+FakeCloud::$props['2.1'] = 4;
+FakeCloud::$props['2.2'] = 7;
+$maeher->Aktualisieren();
+check('Mäher 4 = Fehlerzustand, Code 7 Messerteller', variable(2100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_FEHLER && variable(2100, 'Fehler')['value'] === 'Messerteller blockiert (7)');
+FakeCloud::$props['2.2'] = 55;
+$maeher->Aktualisieren();
+check('LiDAX: 55 ist Fehler (Akku zu schwach zum Start)', strpos((string)variable(2100, 'Fehler')['value'], 'Start nicht möglich') === 0);
 FakeCloud::$anfragen = [];
 $maeher->ZurStation();
 $c = FakeCloud::befehle()[0];
@@ -406,7 +416,20 @@ check('Mäher zur Station = action 5.3 (nicht 3.1)', $c['params']['siid'] === 5 
 FakeCloud::$anfragen = [];
 $maeher->Anhalten();
 $c = FakeCloud::befehle()[0];
-check('Mäher Pause = action 2.4', $c['params']['siid'] === 2 && $c['params']['aiid'] === 4);
+check('Mäher Pause zuerst über 5.4 (EvotecIT)', $c['params']['siid'] === 5 && $c['params']['aiid'] === 4 && count(FakeCloud::befehle()) === 1);
+FakeCloud::$anfragen = [];
+FakeCloud::$ablehnen = ['5.1' => true];
+$t = $maeher->Starten();
+$cs = FakeCloud::befehle();
+check('Start abgelehnt über 5.1 → Ausweichweg 2.1, Ergebnis „gesendet"', count($cs) === 2 && $cs[1]['params']['siid'] === 2 && $cs[1]['params']['aiid'] === 1 && strpos($t, 'gesendet') !== false, $t);
+FakeCloud::$ablehnen = ['5.1' => true, '2.1' => true];
+$t = $maeher->Starten();
+check('beide Wege abgelehnt → klare Fehlermeldung', strpos($t, '⛔') === 0 && strpos($t, 'abgelehnt') !== false, $t);
+FakeCloud::$ablehnen = [];
+FakeCloud::$anfragen = [];
+$geraet->Orten();
+$c = FakeCloud::befehle()[0];
+check('Sauger orten = 7.1, ohne Ausweichweg', $c['params']['siid'] === 7 && $c['params']['aiid'] === 1 && count(FakeCloud::befehle()) === 1);
 check('Raumreinigung beim Mäher abgelehnt', strpos($maeher->RaeumeReinigen('1'), '⛔') === 0);
 
 abschnitt('Fehlerpfade');
