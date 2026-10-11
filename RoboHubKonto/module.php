@@ -135,6 +135,23 @@ class RoboHubKonto extends IPSModule
         return $this->melde($this->geraeteZusammenfassung($geraete));
     }
 
+    /**
+     * ROBOHUB_GeraeteListe($id): string — zuletzt geladene Geräteliste als
+     * JSON, OHNE Cloud-Anfrage. Für den Konfigurator (sammelt alle Konten)
+     * und die Roboter-Instanzen (finden darüber ihr Konto selbst).
+     */
+    public function GeraeteListe(): string
+    {
+        $hersteller = $this->ReadPropertyString('Hersteller');
+        return (string)json_encode([
+            'hersteller' => $hersteller,
+            'anzeige'    => ($hersteller === 'mova' ? 'MOVA' : 'Dreame') . ($this->ReadPropertyString('Konto') !== '' ? ' (' . $this->ReadPropertyString('Konto') . ')' : ''),
+            'angemeldet' => $this->ReadAttributeString('Buendel') !== '',
+            'stand'      => $this->ReadAttributeInteger('GeraeteStand'),
+            'geraete'    => json_decode($this->ReadAttributeString('Geraete'), true) ?: [],
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
     /** Timer: Zugangsschlüssel bei Bedarf erneuern. */
     public function Erneuern(): void
     {
@@ -385,7 +402,7 @@ class RoboHubKonto extends IPSModule
         return [
             'Anmelden: Hersteller und Region wählen, E-Mail und Passwort deines Hersteller-Kontos eintragen, „Übernehmen", dann „🔑 Jetzt anmelden". Das Passwort wird nach erfolgreicher Anmeldung sofort verworfen; gespeichert bleibt nur der Zugangsschlüssel.',
             'Sicherheit: Symcon verschlüsselt gespeicherte Werte nicht. Der Zugangsschlüssel steht nicht im Formular und nicht im Protokoll, liegt aber im Klartext in der Symcon-Datenbank — wie bei jedem Cloud-Modul.',
-            'Mehrere Konten (z. B. ein Dreamehome-Konto für den Saugroboter und ein MOVAhome-Konto für den Mäher): je Konto eine eigene Konto-Instanz anlegen.',
+            'Mehrere Konten (z. B. ein Dreamehome-Konto für den Saugroboter und ein MOVAhome-Konto für den Mäher): je Konto eine eigene Konto-Instanz anlegen. Der Konfigurator zeigt trotzdem alle Roboter in einer Liste, und jeder Roboter verbindet sich selbst mit dem Konto, zu dem er gehört.',
             'Bremst die Hersteller-Cloud (zu viele Anfragen), wartet RoboHub die angegebene Zeit automatisch ab (Status „Cloud bremst") und macht danach von selbst weiter.',
             'Läuft der Zugangsschlüssel endgültig ab, zeigt die Instanz „Anmeldung erforderlich" — dann einfach erneut Passwort eintragen und anmelden.',
         ];
@@ -442,7 +459,7 @@ class RoboHubKonto extends IPSModule
             'items' => [
                 ['type' => 'Button', 'caption' => '🔎 Geräte jetzt suchen', 'onClick' => 'echo ROBOHUB_GeraeteSuchen($id);'],
                 ['type' => 'Label', 'name' => 'GeraeteZeile', 'caption' => $this->geraeteZeile()],
-                ['type' => 'Label', 'caption' => 'Angelegt werden die Roboter über den „RoboHub Konfigurator" (Instanz hinzufügen → RoboHub Konfigurator, mit dieser Konto-Instanz verbinden).'],
+                ['type' => 'Label', 'caption' => 'Angelegt werden die Roboter über den „RoboHub Konfigurator" — ein einziger Konfigurator zeigt die Roboter aller RoboHub-Konten.'],
             ],
         ];
     }

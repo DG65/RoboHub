@@ -70,6 +70,7 @@ class RoboHubGeraet extends IPSModule
             $this->SetStatus(104);
             return;
         }
+        $this->ordneKontoZu();
         $this->SetStatus(102);
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
     }
@@ -110,6 +111,9 @@ class RoboHubGeraet extends IPSModule
     /** ROBO_Aktualisieren($id): string — Zustand sofort abrufen. */
     public function Aktualisieren(): string
     {
+        if (!$this->HasActiveParent()) {
+            $this->ordneKontoZu();
+        }
         $antwort = $this->frageKonto(['Aktion' => 'zustand', 'Geraet' => $this->ReadPropertyString('GeraetID')]);
         if (!$antwort['ok']) {
             $this->SetValue('Erreichbar', false);
@@ -183,6 +187,61 @@ class RoboHubGeraet extends IPSModule
     // -----------------------------------------------------------------
     // Intern
     // -----------------------------------------------------------------
+
+    private const KONTO_GUID = '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}';
+
+    /**
+     * Verbindet den Roboter mit dem Konto, dessen Geräteliste seine
+     * Geräte-ID enthält. Nötig, weil der Konfigurator alle Konten in einer
+     * Liste zeigt und Symcon einen neuen Roboter bei mehreren Konten nach
+     * eigenem Ermessen verbindet. Fragt keine Cloud an (nur die
+     * zwischengespeicherten Listen). Rückgabe: Klartext oder '' (nichts zu tun).
+     */
+    private function ordneKontoZu(): string
+    {
+        $gid = $this->ReadPropertyString('GeraetID');
+        if ($gid === '') {
+            return '';
+        }
+        $aktuell = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        $konten = IPS_GetInstanceListByModuleID(self::KONTO_GUID);
+        $treffer = [];
+        foreach ($konten as $kid) {
+            try {
+                $info = json_decode((string)ROBOHUB_GeraeteListe($kid), true);
+            } catch (Throwable $e) {
+                continue;
+            }
+            foreach ((array)($info['geraete'] ?? []) as $g) {
+                if ((string)($g['id'] ?? '') === $gid) {
+                    $treffer[] = (int)$kid;
+                }
+            }
+        }
+        if (in_array($aktuell, $treffer, true)) {
+            return '';
+        }
+        $ziel = 0;
+        if (count($treffer) === 1) {
+            $ziel = $treffer[0];
+        } elseif (count($treffer) === 0 && $aktuell === 0 && count($konten) === 1) {
+            // Nur ein Konto vorhanden, Liste evtl. noch nicht geladen: das ist es.
+            $ziel = (int)$konten[0];
+        }
+        if ($ziel === 0 || $ziel === $aktuell) {
+            return '';
+        }
+        if ($aktuell > 0) {
+            IPS_DisconnectInstance($this->InstanceID);
+        }
+        if (!IPS_ConnectInstance($this->InstanceID, $ziel)) {
+            $this->protokolliere('Verbinden mit Konto #' . $ziel . ' fehlgeschlagen.');
+            return '⛔ Verbinden mit Konto #' . $ziel . ' fehlgeschlagen.';
+        }
+        $text = '🔗 Mit Konto „' . IPS_GetName($ziel) . '" (#' . $ziel . ') verbunden — dort ist dieses Gerät registriert.';
+        $this->protokolliere($text);
+        return $text;
+    }
 
     private function befehlText(string $befehl, array $parameter): string
     {
@@ -426,6 +485,7 @@ class RoboHubGeraet extends IPSModule
             'caption' => '🤖  Gerät',
             'items' => [
                 ['type' => 'Label', 'caption' => '🔗 ' . $klasse . ($this->ReadPropertyString('Modell') !== '' ? ', Modell ' . $this->ReadPropertyString('Modell') : '') . ($this->ReadPropertyString('GeraetID') !== '' ? ', Geräte-ID ' . $this->ReadPropertyString('GeraetID') : '') . ' (vom Konfigurator übernommen)'],
+                $this->kontoZeile(),
                 ['type' => 'Label', 'name' => 'AbrufZeile', 'caption' => $zeile],
                 ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => 'Abfrage alle', 'suffix' => ' s', 'minimum' => 30, 'maximum' => 3600],
                 ['type' => 'Label', 'caption' => 'Während der Roboter arbeitet, fragt RoboHub automatisch alle ' . self::TAKT_AKTIV_S . ' s nach. Kürzere Abstände belasten die Hersteller-Cloud, die bei zu vielen Anfragen eine Sperrfrist verhängt.'],
@@ -438,6 +498,15 @@ class RoboHubGeraet extends IPSModule
                 ]],
             ],
         ];
+    }
+
+    private function kontoZeile(): array
+    {
+        $kid = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        if ($kid > 0) {
+            return ['type' => 'Label', 'caption' => '🔗 Konto: ' . IPS_GetName($kid) . ' (#' . $kid . ') — automatisch zugeordnet über die Geräte-ID', 'color' => 0x2E8B3D];
+        }
+        return ['type' => 'Label', 'caption' => '⛔ Kein Konto verbunden — die Geräte-ID wurde in keiner angemeldeten RoboHub-Konto-Instanz gefunden.', 'color' => 0xFF0000];
     }
 
     private function technikPanel(): array

@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.2.0' => [
+            '• Ein Konfigurator für alle Konten: Saugroboter (Dreamehome) und Mäher (MOVAhome) stehen in einer Liste, mit Spalte „Konto". Der Konfigurator braucht keine Verbindung mehr — vorhandene zweite Konfiguratoren kannst du löschen.',
+            '• Roboter verbinden sich selbst mit dem Konto, in dem ihre Geräte-ID registriert ist (auch falsch eingehängte werden umgehängt). Das Roboter-Formular zeigt das verbundene Konto.',
+        ],
         '0.1.3' => [
             '• Konfigurator: Bei mehreren Konten (z. B. Dreamehome und MOVAhome) zeigt jeder Konfigurator nur noch die Roboter seines eigenen Kontos.',
         ],

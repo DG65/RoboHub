@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 (11.10.2026)
+
+- **Ein Konfigurator für alle Konten** (Dietmars Wunsch): Der Konfigurator hat keine
+  übergeordnete Instanz mehr, sammelt die zwischengespeicherten Gerätelisten aller
+  Konto-Instanzen (neu: `ROBOHUB_GeraeteListe`, ohne Cloud-Anfrage) und zeigt sie in
+  einer Liste mit Spalte „Konto". „Jetzt neu suchen" fragt alle Konten ab.
+- **Selbstzuordnung der Roboter:** Welche von mehreren passenden übergeordneten
+  Instanzen Symcon beim Erstellen wählt, ist nicht dokumentiert. Deshalb verbindet sich
+  jeder Roboter in `ApplyChanges()` selbst mit dem Konto, dessen Liste seine Geräte-ID
+  enthält (`IPS_ConnectInstance`), und wechselt bei Bedarf. Bei unbekannter ID und
+  mehreren Konten wird nicht geraten. Das Formular zeigt das Konto (🔗 grün / ⛔ rot).
+- Doku: Der Papierkorb im Konfigurator löscht die Roboter-Instanz.
+
 ## 0.1.3 (11.10.2026)
 
 - Fix Konfigurator: Bei mehreren Konto-Instanzen erschienen die Roboter des

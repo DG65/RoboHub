@@ -11,7 +11,9 @@
   Dreame + MOVA (`libs/RoboHubDreame.php`). Neue Hersteller = neuer Treiber + Eintrag im
   Hersteller-Select des Kontos, nichts an Variablen/Idents ändern.
 - Drei Module: `RoboHubKonto` (Splitter, `ROBOHUB_`), `RoboHubGeraet` (Gerät, `ROBO_`),
-  `RoboHubKonfigurator` (Konfigurator, `ROBOCFG_`). Datenfluss Kind → Konto über
+  `RoboHubKonfigurator` (Konfigurator, `ROBOCFG_`, **seit 0.2.0 ohne Parent**: sammelt alle Konten
+  über `ROBOHUB_GeraeteListe`; Roboter verbinden sich in `ordneKontoZu()` selbst mit dem Konto,
+  das ihre Geräte-ID kennt — Dietmars Wunsch „ein Konfigurator für beide Roboter"). Datenfluss Kind → Konto über
   `SendDataToParent`/`ForwardData` (DataIDs in den module.json). Nur das Konto spricht mit
   der Cloud — ein Schlüssel je Konto, Erneuerung unter Semaphore.
 - Klassen/Präfixe/GUIDs sind eingefroren, sobald eine Instanz existiert (TOOLKIT.md-Faustregel,

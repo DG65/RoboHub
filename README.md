@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.1.3-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.2.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -27,7 +27,7 @@ Skripten oder Visualisierung etwas ändert.
 | Instanz | Aufgabe |
 |---|---|
 | **RoboHub Konto** | Anmeldung am Hersteller-Konto, verwaltet den Zugangsschlüssel, vermittelt alle Anfragen. Eine Instanz je Konto (z. B. eine fürs Dreamehome-Konto, eine fürs MOVAhome-Konto). |
-| **RoboHub Konfigurator** | Zeigt alle Roboter des Kontos und legt sie mit einem Klick an. |
+| **RoboHub Konfigurator** | Eine Liste für die Roboter **aller** Konten; legt sie mit einem Klick an. Jeder Roboter verbindet sich danach selbst mit dem Konto, in dem er registriert ist. |
 | **RoboHub Roboter** | Eine Instanz je Roboter: Variablen, Befehle, Raumreinigung. |
 
 ## Einrichtung
@@ -36,8 +36,10 @@ Skripten oder Visualisierung etwas ändert.
 2. Instanz **RoboHub Konto** anlegen, Hersteller und Region wählen (Deutschland/Österreich/
    Schweiz: „Europa"), E-Mail und Passwort des App-Kontos eintragen, „Übernehmen", dann
    „🔑 Jetzt anmelden".
-3. Instanz **RoboHub Konfigurator** anlegen, mit der Konto-Instanz verbinden, Roboter
-   auswählen, „Erstellen".
+3. Für jedes weitere Hersteller-Konto (z. B. MOVAhome für den Mäher) eine weitere
+   Konto-Instanz anlegen und anmelden.
+4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
+   auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
 ## Variablen
 

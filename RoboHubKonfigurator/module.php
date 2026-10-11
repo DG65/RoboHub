@@ -6,17 +6,24 @@ require_once __DIR__ . '/../libs/RoboHubModell.php';
 require_once __DIR__ . '/../libs/RoboHubFormular.php';
 
 // ===========================================================================
-// RoboHub Konfigurator — listet alle Roboter eines Hersteller-Kontos und
-// legt die Roboter-Instanzen mit einem Klick an (Geräte-ID, Modell und
-// Geräteklasse werden dabei gesetzt, der Nutzer muss nichts abtippen).
+// RoboHub Konfigurator — EINE Liste für die Roboter ALLER RoboHub-Konten
+// (z. B. Dreamehome-Saugroboter und MOVAhome-Mäher zusammen).
+//
+// Der Konfigurator hat bewusst keine übergeordnete Instanz: Er liest die
+// zwischengespeicherten Gerätelisten aller Konto-Instanzen
+// (ROBOHUB_GeraeteListe) und legt Roboter mit Geräte-ID/Modell/Klasse an.
+// Mit welchem Konto sich ein neuer Roboter verbindet, entscheidet der
+// Roboter danach selbst (RoboHubGeraet::ordneKontoZu) — Symcon würde einen
+// neuen Roboter bei mehreren Konten sonst nach eigenem Ermessen verbinden
+// (SDK-Doku Configurator: „wenn möglich", Auswahlregel undokumentiert).
 // ===========================================================================
 
 class RoboHubKonfigurator extends IPSModule
 {
     use RoboHubFormular;
 
-    private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
-    private const GERAET_GUID    = '{631DA85B-5985-4C25-B222-E47FDD49E302}';
+    private const KONTO_GUID  = '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}';
+    private const GERAET_GUID = '{631DA85B-5985-4C25-B222-E47FDD49E302}';
 
     public function Create()
     {
@@ -31,90 +38,112 @@ class RoboHubKonfigurator extends IPSModule
         $this->SetStatus(102);
     }
 
-    /** ROBOCFG_Suchen($id): string — Geräteliste neu von der Cloud holen. */
+    /** ROBOCFG_Suchen($id): string — Gerätelisten aller Konten neu von der Cloud holen. */
     public function Suchen(): string
     {
-        $antwort = $this->frageKonto(['Aktion' => 'geraete', 'Neu' => true]);
-        if (!$antwort['ok']) {
-            return '⛔ ' . $antwort['fehler'];
+        $zeilen = [];
+        foreach (IPS_GetInstanceListByModuleID(self::KONTO_GUID) as $kid) {
+            try {
+                $text = (string)ROBOHUB_GeraeteSuchen($kid);
+            } catch (Throwable $e) {
+                $text = '⛔ ' . $e->getMessage();
+            }
+            $zeilen[] = $this->kontoName($kid) . ': ' . strtok($text, "\n");
         }
         $this->WriteAttributeInteger('LetzteSuche', time());
-        $geraete = (array)$antwort['daten'];
-        $this->UpdateFormField('Geraete', 'values', json_encode($this->listenWerte($geraete)));
-        $this->UpdateFormField('SuchZeile', 'caption', $this->suchZeile(count($geraete)));
-        return $this->suchZeile(count($geraete));
+        $konten = $this->sammle();
+        $this->UpdateFormField('Geraete', 'values', json_encode($this->listenWerte($konten)));
+        $this->UpdateFormField('SuchZeile', 'caption', $this->suchZeile($konten));
+        $this->UpdateFormField('KontenZeile', 'caption', $this->kontenZeile($konten));
+        return count($zeilen) === 0 ? $this->suchZeile($konten) : implode("\n", $zeilen);
     }
 
-    protected function frageKonto(array $anfrage): array
+    /** Liest die zwischengespeicherten Listen aller Konten (keine Cloud-Anfrage). */
+    private function sammle(): array
     {
-        if (!$this->HasActiveParent()) {
-            return ['ok' => false, 'fehler' => 'Keine aktive RoboHub-Konto-Instanz verbunden — bitte zuerst ein Konto anlegen, anmelden und hier als übergeordnete Instanz wählen.'];
+        $konten = [];
+        foreach (IPS_GetInstanceListByModuleID(self::KONTO_GUID) as $kid) {
+            try {
+                $info = json_decode((string)ROBOHUB_GeraeteListe($kid), true);
+            } catch (Throwable $e) {
+                $info = null;
+            }
+            $konten[$kid] = is_array($info) ? $info : ['anzeige' => $this->kontoName($kid), 'angemeldet' => false, 'stand' => 0, 'geraete' => []];
         }
-        $anfrage['DataID'] = self::DATA_ZUM_KONTO;
-        try {
-            $antwort = json_decode((string)$this->SendDataToParent((string)json_encode($anfrage)), true);
-        } catch (Throwable $e) {
-            return ['ok' => false, 'fehler' => 'Konto-Instanz nicht erreichbar: ' . $e->getMessage()];
-        }
-        return is_array($antwort) && isset($antwort['ok']) ? $antwort : ['ok' => false, 'fehler' => 'Unerwartete Antwort der Konto-Instanz.'];
+        return $konten;
     }
 
-    private function listenWerte(array $geraete): array
+    private function kontoName(int $kid): string
     {
-        // Nur Roboter DIESES Kontos — bei mehreren Konten (z. B. Dreamehome
-        // + MOVAhome) erschienen sonst die Roboter des anderen Kontos als
-        // „nicht mehr im Konto" (Live-Fund 11.10.2026).
-        $konto = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        return IPS_GetName($kid) . ' #' . $kid;
+    }
+
+    private function listenWerte(array $konten): array
+    {
         $vorhanden = [];
         foreach (IPS_GetInstanceListByModuleID(self::GERAET_GUID) as $iid) {
-            if ((int)(IPS_GetInstance($iid)['ConnectionID'] ?? 0) !== $konto) {
-                continue;
-            }
+            // (string): PHP macht numerische Schlüssel zu int (Live-Fund 0.1.2).
             $vorhanden[(string)IPS_GetProperty($iid, 'GeraetID')] = $iid;
         }
         $werte = [];
-        foreach ($geraete as $g) {
-            $id = (string)($g['id'] ?? '');
-            $klasse = ($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubModell::KLASSE_MAEHER : RoboHubModell::KLASSE_SAUGER;
-            $zeile = [
-                'id'         => $id,
-                'name'       => (string)($g['name'] ?? $id),
-                'modell'     => (string)($g['modell'] ?? ''),
-                'klasse'     => $klasse === RoboHubModell::KLASSE_MAEHER ? 'Rasenmähroboter' : 'Saug-/Wischroboter',
-                'online'     => !empty($g['online']) ? 'online' : 'offline',
-                'instanceID' => $vorhanden[$id] ?? 0,
-                'create'     => [
-                    'moduleID'      => self::GERAET_GUID,
-                    'name'          => (string)($g['name'] ?? $id),
-                    'configuration' => ['GeraetID' => $id, 'Modell' => (string)($g['modell'] ?? ''), 'Klasse' => $klasse],
-                ],
-            ];
-            // Kein eigener Parent-Schlüssel nötig: Symcon verbindet neue
-            // Instanzen bevorzugt mit der übergeordneten Instanz des
-            // Konfigurators (SDK-Doku Configurator, geprüft 11.10.2026).
-            $werte[] = $zeile;
+        $bekannt = [];
+        foreach ($konten as $kid => $info) {
+            foreach ((array)($info['geraete'] ?? []) as $g) {
+                $id = (string)($g['id'] ?? '');
+                if ($id === '' || isset($bekannt[$id])) {
+                    continue;
+                }
+                $bekannt[$id] = true;
+                $klasse = ($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubModell::KLASSE_MAEHER : RoboHubModell::KLASSE_SAUGER;
+                $werte[] = [
+                    'id'         => $id,
+                    'name'       => (string)($g['name'] ?? $id),
+                    'modell'     => (string)($g['modell'] ?? ''),
+                    'klasse'     => $klasse === RoboHubModell::KLASSE_MAEHER ? 'Rasenmähroboter' : 'Saug-/Wischroboter',
+                    'konto'      => (string)($info['anzeige'] ?? ('#' . $kid)),
+                    'online'     => !empty($g['online']) ? 'online' : 'offline',
+                    'instanceID' => $vorhanden[$id] ?? 0,
+                    'create'     => [
+                        'moduleID'      => self::GERAET_GUID,
+                        'name'          => (string)($g['name'] ?? $id),
+                        'configuration' => ['GeraetID' => $id, 'Modell' => (string)($g['modell'] ?? ''), 'Klasse' => $klasse],
+                    ],
+                ];
+            }
         }
-        // Instanzen, deren Gerät nicht mehr im Konto ist, trotzdem zeigen (rot markiert vom Konfigurator).
-        $bekannt = array_column($werte, 'id');
+        // Roboter-Instanzen, deren Gerät in keinem Konto (mehr) vorkommt.
         foreach ($vorhanden as $id => $iid) {
-            // PHP macht numerische Array-Schlüssel („2066117758") zu int —
-            // ohne Rückumwandlung schlägt der strenge Vergleich fehl und
-            // jedes angelegte Gerät erschiene doppelt (Live-Fund 11.10.2026).
             $id = (string)$id;
-            if (!in_array($id, $bekannt, true) && $id !== '') {
-                $werte[] = ['id' => $id, 'name' => IPS_GetName($iid), 'modell' => (string)IPS_GetProperty($iid, 'Modell'), 'klasse' => '', 'online' => 'nicht mehr im Konto', 'instanceID' => $iid];
+            if ($id !== '' && !isset($bekannt[$id])) {
+                $werte[] = ['id' => $id, 'name' => IPS_GetName($iid), 'modell' => (string)IPS_GetProperty($iid, 'Modell'), 'klasse' => '', 'konto' => '—', 'online' => 'in keinem Konto gefunden', 'instanceID' => $iid];
             }
         }
         return $werte;
     }
 
-    private function suchZeile(int $anzahl): string
+    private function suchZeile(array $konten): string
     {
-        $ts = $this->ReadAttributeInteger('LetzteSuche');
-        if ($ts === 0) {
-            return 'ℹ️ Noch nicht gesucht.';
+        if (count($konten) === 0) {
+            return 'ℹ️ Noch keine RoboHub-Konto-Instanz vorhanden — zuerst „RoboHub Konto" anlegen und anmelden.';
         }
-        return ($anzahl > 0 ? '✅ ' : '⚠️ ') . $anzahl . ' Gerät(e) gefunden (zuletzt ' . date('H:i:s', $ts) . ' Uhr).';
+        $anzahl = 0;
+        foreach ($konten as $info) {
+            $anzahl += count((array)($info['geraete'] ?? []));
+        }
+        $ts = $this->ReadAttributeInteger('LetzteSuche');
+        return ($anzahl > 0 ? '✅ ' : '⚠️ ') . $anzahl . ' Gerät(e) in ' . count($konten) . ' Konto/Konten gefunden'
+            . ($ts > 0 ? ' (zuletzt ' . date('H:i:s', $ts) . ' Uhr).' : '.');
+    }
+
+    private function kontenZeile(array $konten): string
+    {
+        $zeilen = [];
+        foreach ($konten as $kid => $info) {
+            $n = count((array)($info['geraete'] ?? []));
+            $zeilen[] = (empty($info['angemeldet']) ? '⛔ ' : '🔗 ') . ($info['anzeige'] ?? '') . ' — Instanz #' . $kid . ': '
+                . (empty($info['angemeldet']) ? 'nicht angemeldet' : $n . ' Gerät(e)');
+        }
+        return implode("\n", $zeilen);
     }
 
     protected function robohubModulePrefix(): string
@@ -125,46 +154,62 @@ class RoboHubKonfigurator extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Der Konfigurator zeigt alle Saug-, Wisch- und Mähroboter deines Hersteller-Kontos und legt sie mit einem Klick als RoboHub-Roboter an — Geräte-ID und Modell musst du nicht abtippen.',
+            'Der Konfigurator zeigt alle Saug-, Wisch- und Mähroboter aus allen deinen RoboHub-Konten in einer Liste und legt sie mit einem Klick an — Geräte-ID und Modell musst du nicht abtippen.',
         ];
     }
 
     protected function robohubDocLines(): array
     {
         return [
-            'Voraussetzung: eine angemeldete RoboHub-Konto-Instanz als übergeordnete Instanz dieses Konfigurators.',
-            'Gerät in der Liste wählen und „Erstellen" klicken. Bereits angelegte Roboter erscheinen mit ihrer Instanz-ID; Instanzen, deren Gerät nicht mehr im Konto ist, werden zusätzlich angezeigt.',
+            'Voraussetzung: mindestens eine angemeldete RoboHub-Konto-Instanz. Der Konfigurator braucht selbst keine Verbindung — er sammelt die Roboter aller Konten.',
+            'Gerät wählen und „Erstellen" klicken. Der neue Roboter verbindet sich selbst mit dem Konto, in dem er gefunden wurde.',
+            'Der Papierkorb hinter einer Zeile LÖSCHT die Roboter-Instanz samt Variablen. Rote Zeilen sind Instanzen, deren Gerät in keinem Konto mehr vorkommt.',
             'Ein neu gekaufter Roboter erscheint nach „🔎 Jetzt neu suchen", sobald er in der Hersteller-App eingerichtet ist.',
         ];
     }
 
     public function GetConfigurationForm()
     {
-        $antwort = $this->frageKonto(['Aktion' => 'geraete']);
-        $geraete = $antwort['ok'] ? (array)$antwort['daten'] : [];
-        if ($antwort['ok'] && $this->ReadAttributeInteger('LetzteSuche') === 0) {
+        $konten = $this->sammle();
+        // Konten, die noch nie eine Liste geladen haben (z. B. nach einem
+        // Modul-Neuladen), einmal nachladen — sonst wirkt die Liste leer.
+        $nachgeladen = false;
+        foreach ($konten as $kid => $info) {
+            if (!empty($info['angemeldet']) && (int)($info['stand'] ?? 0) === 0) {
+                try {
+                    ROBOHUB_GeraeteSuchen($kid);
+                    $nachgeladen = true;
+                } catch (Throwable $e) {
+                    // Fehler zeigt die Konten-Zeile.
+                }
+            }
+        }
+        if ($nachgeladen) {
+            $konten = $this->sammle();
             $this->WriteAttributeInteger('LetzteSuche', time());
         }
-        $kopf = $antwort['ok'] ? $this->suchZeile(count($geraete)) : '⛔ ' . $antwort['fehler'];
 
         $panel = [
             'type' => 'ExpansionPanel', 'expanded' => true,
-            'caption' => '🤖  Roboter im Konto',
+            'caption' => '🤖  Roboter aller Konten',
             'items' => [
                 ['type' => 'Button', 'caption' => '🔎 Jetzt neu suchen', 'onClick' => 'echo ROBOCFG_Suchen($id);'],
-                ['type' => 'Label', 'name' => 'SuchZeile', 'caption' => $kopf],
+                ['type' => 'Label', 'name' => 'SuchZeile', 'caption' => $this->suchZeile($konten)],
                 [
                     'type' => 'Configurator', 'name' => 'Geraete', 'caption' => 'Geräte',
                     'rowCount' => 8, 'add' => false, 'delete' => true,
                     'columns' => [
                         ['caption' => 'Name', 'name' => 'name', 'width' => 'auto'],
                         ['caption' => 'Art', 'name' => 'klasse', 'width' => '180px'],
-                        ['caption' => 'Modell', 'name' => 'modell', 'width' => '220px'],
-                        ['caption' => 'Erreichbar', 'name' => 'online', 'width' => '150px'],
-                        ['caption' => 'Geräte-ID', 'name' => 'id', 'width' => '160px'],
+                        ['caption' => 'Konto', 'name' => 'konto', 'width' => '260px'],
+                        ['caption' => 'Modell', 'name' => 'modell', 'width' => '200px'],
+                        ['caption' => 'Erreichbar', 'name' => 'online', 'width' => '170px'],
                     ],
-                    'values' => $this->listenWerte($geraete),
+                    'values' => $this->listenWerte($konten),
                 ],
+                ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => 'Konten im Detail', 'items' => [
+                    ['type' => 'Label', 'name' => 'KontenZeile', 'caption' => count($konten) > 0 ? $this->kontenZeile($konten) : 'ℹ️ Keine Konten.'],
+                ]],
             ],
         ];
         return $this->robohubBuildForm([$panel], [], [['code' => 102, 'icon' => 'active', 'caption' => 'Bereit']]);

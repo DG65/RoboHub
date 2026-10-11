@@ -37,7 +37,18 @@ function IPS_LogMessage(string $s, string $m): bool { $GLOBALS['LOG'][] = "$s: $
 function IPS_GetLibrary(string $guid): array { $l = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true); return ['Version' => $l['version'] . '-beta.1', 'Build' => $l['build']]; }
 function IPS_SetProperty(int $id, string $n, $v): bool { $GLOBALS['INST'][$id]->props[$n] = $v; return true; }
 function IPS_ApplyChanges(int $id): bool { $GLOBALS['INST'][$id]->ApplyChanges(); return true; }
-function IPS_GetInstanceListByModuleID(string $g): array { $o = []; foreach ($GLOBALS['INST'] as $id => $m) { if ($m instanceof RoboHubGeraet) { $o[] = $id; } } return $o; }
+function IPS_GetInstanceListByModuleID(string $g): array
+{
+    $klasse = ['{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}' => 'RoboHubKonto', '{631DA85B-5985-4C25-B222-E47FDD49E302}' => 'RoboHubGeraet', '{5AA59E01-AFBF-4669-8899-57F5E2C24C33}' => 'RoboHubKonfigurator'][$g] ?? '';
+    $o = [];
+    foreach ($GLOBALS['INST'] as $id => $m) { if ($klasse !== '' && get_class($m) === $klasse) { $o[] = $id; } }
+    return $o;
+}
+function IPS_ConnectInstance(int $id, int $parent): bool { $GLOBALS['CONNECTS'][] = [$id, $parent]; $GLOBALS['INST'][$id]->parent = $GLOBALS['INST'][$parent]; return true; }
+function IPS_DisconnectInstance(int $id): bool { $GLOBALS['INST'][$id]->parent = null; return true; }
+function ROBOHUB_GeraeteListe(int $id): string { return $GLOBALS['INST'][$id]->GeraeteListe(); }
+function ROBOHUB_GeraeteSuchen(int $id): string { return $GLOBALS['INST'][$id]->GeraeteSuchen(); }
+$GLOBALS['CONNECTS'] = [];
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return 'Instanz ' . $id; }
 function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0]; }
@@ -107,7 +118,8 @@ class FakeCloud extends RoboHubDreame
     public static $anfragen = [];
     public static $props = [];          // 'siid.piid' => Wert, was get_properties liefert
     public static $ausfall = [];        // siid => true: Block liefert 80001
-    public static $liste = [];
+    public static $liste = [];          // Geräteliste des Dreame-Kontos
+    public static $listeMova = [];      // Geräteliste des MOVA-Kontos
     public static $refreshStatus = 200;
     public static $cms = null;
     public static $karte = null;        // Kartentext (mapstr[0].map)
@@ -129,7 +141,8 @@ class FakeCloud extends RoboHubDreame
             return [200, json_encode(['access_token' => 'AT' . self::$tokenZaehler, 'refresh_token' => 'RT' . self::$tokenZaehler, 'expires_in' => 7200, 'uid' => 'U1', 'region' => 'eu', 'country' => 'DE', 'tenant_id' => '000000'])];
         }
         if (strpos($url, 'device/listV2') !== false) {
-            return [200, json_encode(['code' => 0, 'success' => true, 'data' => ['page' => ['records' => self::$liste]]])];
+            $records = strpos($url, 'mova-tech') !== false ? self::$listeMova : self::$liste;
+            return [200, json_encode(['code' => 0, 'success' => true, 'data' => ['page' => ['records' => $records]]])];
         }
         if (strpos($url, 'device/sendCommand') !== false) {
             $b = json_decode((string)$body, true);
@@ -250,7 +263,6 @@ abschnitt('Konfigurator');
 $cfg = new RoboHubKonfigurator(3000);
 $cfg->Create();
 $cfg->ApplyChanges();
-$cfg->parent = $konto;
 $form = json_decode($cfg->GetConfigurationForm(), true);
 check('Konfigurator-Formular ist gültiges JSON', is_array($form));
 $liste = null;
@@ -372,10 +384,6 @@ $barny = new RoboHubGeraet(2300);
 $barny->props = ['GeraetID' => '2066117758', 'Modell' => 'dreame.vacuum.r9547a', 'Klasse' => 'sauger', 'Intervall' => 120];
 $barny->Create();
 $barny->parent = $konto;
-$fremd = new RoboHubGeraet(2302);
-$fremd->props = ['GeraetID' => '-115358610', 'Modell' => 'mova.mower.g2529c', 'Klasse' => 'maeher', 'Intervall' => 120];
-$fremd->Create();
-$fremd->parent = new RoboHubKonto(1999);
 $alt = new RoboHubGeraet(2301);
 $alt->props = ['GeraetID' => '999', 'Modell' => 'dreame.vacuum.x', 'Klasse' => 'sauger', 'Intervall' => 120];
 $alt->Create();
@@ -389,15 +397,17 @@ $barnyZeile = null;
 foreach ((array)$werte as $w) { if ((string)$w['id'] === '2066117758') { $barnyZeile = $w; } }
 check('… und ist seiner Instanz zugeordnet', ($barnyZeile['instanceID'] ?? 0) === 2300);
 check('wirklich verwaiste Instanz bleibt sichtbar', in_array('999', $ids, true));
-check('Roboter eines anderen Kontos erscheint nicht (Live-Fund LiDAX/Barny)', !in_array('-115358610', $ids, true), json_encode($ids));
-unset($GLOBALS['INST'][2300], $GLOBALS['INST'][2301], $GLOBALS['INST'][2302], $GLOBALS['INST'][1999]);
+$altZeile = null;
+foreach ((array)$werte as $w) { if ((string)$w['id'] === '999') { $altZeile = $w; } }
+check('verwaiste Zeile ohne create (Symcon färbt sie rot)', $altZeile !== null && !isset($altZeile['create']) && $altZeile['online'] === 'in keinem Konto gefunden');
+unset($GLOBALS['INST'][2300], $GLOBALS['INST'][2301]);
 
 abschnitt('MOVA-Mäher');
 $konto2 = new RoboHubKonto(1100);
 $konto2->props = ['Hersteller' => 'mova', 'Region' => 'eu', 'Konto' => 'n@example.org', 'Passwort' => 'geheim'];
 $konto2->Create();
 $konto2->ApplyChanges();
-FakeCloud::$liste = [$maeherRecord];
+FakeCloud::$listeMova = [$maeherRecord];
 $konto2->Anmelden();
 $login = FakeCloud::letzte('oauth/token');
 $h = implode("\n", $login['headers']);
@@ -458,6 +468,48 @@ $geraet->Orten();
 $c = FakeCloud::befehle()[0];
 check('Sauger orten = 7.1, ohne Ausweichweg', $c['params']['siid'] === 7 && $c['params']['aiid'] === 1 && count(FakeCloud::befehle()) === 1);
 check('Raumreinigung beim Mäher abgelehnt', strpos($maeher->RaeumeReinigen('1'), '⛔') === 0);
+
+abschnitt('Ein Konfigurator für alle Konten + Selbstzuordnung');
+FakeCloud::$liste = [$saugerRecord];
+$t = $cfg->Suchen();
+check('Suchen fragt beide Konten ab', substr_count($t, "\n") === 1 && strpos($t, '#1000') !== false && strpos($t, '#1100') !== false, $t);
+$werte = null;
+foreach (array_reverse($cfg->fields) as $f) { if ($f[0] === 'Geraete' && $f[1] === 'values') { $werte = json_decode($f[2], true); break; } }
+$proKonto = [];
+foreach ((array)$werte as $w) { $proKonto[(string)$w['id']] = $w['konto'] ?? ''; }
+check('Sauger und Mäher in EINER Liste', isset($proKonto['-112663880'], $proKonto['777']), json_encode($proKonto));
+check('Spalte Konto nennt Hersteller + E-Mail', strpos($proKonto['-112663880'], 'Dreame (nutzer@example.org)') === 0 && strpos($proKonto['777'], 'MOVA (n@example.org)') === 0, json_encode($proKonto, JSON_UNESCAPED_UNICODE));
+check('kein create-parent (Symcon verbindet, Roboter korrigiert)', !isset($werte[0]['create']['parent']));
+$kz = '';
+foreach (array_reverse($cfg->fields) as $f) { if ($f[0] === 'KontenZeile') { $kz = $f[2]; break; } }
+check('Konten-Detailzeile mit 🔗 je angemeldetem Konto', substr_count($kz, '🔗') === 2, $kz);
+
+$neu = new RoboHubGeraet(2400);
+$neu->props = ['GeraetID' => '777', 'Modell' => 'mova.mower.g2529c', 'Klasse' => 'maeher', 'Intervall' => 120];
+$neu->Create();
+$GLOBALS['CONNECTS'] = [];
+$neu->ApplyChanges();
+check('neuer Mäher ohne Verbindung → verbindet sich selbst mit dem MOVA-Konto', $neu->parent === $konto2 && $GLOBALS['CONNECTS'] === [[2400, 1100]]);
+$falsch = new RoboHubGeraet(2401);
+$falsch->props = ['GeraetID' => '777', 'Modell' => 'mova.mower.g2529c', 'Klasse' => 'maeher', 'Intervall' => 120];
+$falsch->Create();
+$falsch->parent = $konto;   // Symcon hat ihn ans Dreame-Konto gehängt
+$falsch->ApplyChanges();
+check('falsch verbundener Mäher → wechselt zum MOVA-Konto', $falsch->parent === $konto2);
+check('Wechsel dauerhaft protokolliert', strpos(implode("\n", $GLOBALS['LOG']), 'verbunden — dort ist dieses Gerät registriert') !== false);
+$GLOBALS['CONNECTS'] = [];
+$falsch->ApplyChanges();
+check('richtig verbunden → keine weitere Umverbindung', $GLOBALS['CONNECTS'] === []);
+$unbekannt = new RoboHubGeraet(2402);
+$unbekannt->props = ['GeraetID' => '424242', 'Modell' => '', 'Klasse' => 'sauger', 'Intervall' => 120];
+$unbekannt->Create();
+$unbekannt->ApplyChanges();
+check('unbekannte Geräte-ID bei zwei Konten → keine geratene Verbindung', $unbekannt->parent === null);
+$f = json_decode($neu->GetConfigurationForm(), true);
+check('Roboter-Formular zeigt verbundenes Konto (grün)', strpos(json_encode($f, JSON_UNESCAPED_UNICODE), '🔗 Konto: Instanz 1100 (#1100)') !== false);
+$f = json_decode($unbekannt->GetConfigurationForm(), true);
+check('Roboter ohne Konto: rote ⛔-Zeile', strpos(json_encode($f, JSON_UNESCAPED_UNICODE), '⛔ Kein Konto verbunden') !== false);
+unset($GLOBALS['INST'][2400], $GLOBALS['INST'][2401], $GLOBALS['INST'][2402]);
 
 abschnitt('Fehlerpfade');
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);
