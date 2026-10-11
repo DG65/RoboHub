@@ -148,6 +148,15 @@
   Mäher-CMS-Weg und die übrigen Sauger-Teile noch nicht live. Weiter nur auf Dietmars ausdrückliches
   Wort und an einem Teil, das er gerade wirklich gewechselt/gereinigt hat.
 
+## Nicht stören und Lautstärke (0.5.0)
+
+- Sauger: 5.4 (JSON-Fensterliste `[{"id","en","st","et","wk","ss"}]`, Tasshack-Fähigkeit `dnd_task`) hat
+  Vorrang vor 5.1/5.2/5.3; erstes Fenster nach Startzeit (Tasshack-Sortierung) ist „das" Nicht-stören.
+  Lautstärke 7.1 (Tasshack spielt danach einen Ton — RoboHub bewusst nicht).
+- Mäher: CFG über 2.50 (`DND` [an, min, min], `VOL`); eine zusätzliche Anfrage je Abruf.
+- Schreiben immer Read-Modify-Write (nichts überschreiben, was nicht geändert werden soll).
+- **Live offen:** welche Variante Barny (r9547a) nutzt (5.4 oder 5.1–5.3) und ob der LiDAX CFG beantwortet.
+
 ## Prüfen
 
 ```

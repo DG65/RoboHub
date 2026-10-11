@@ -22,6 +22,9 @@ const VARIABLETYPE_FLOAT = 2;
 const VARIABLETYPE_STRING = 3;
 const VARIABLE_PRESENTATION_VALUE_PRESENTATION = '{3319437D-7CDE-699D-750A-3C6A3841FA75}';
 const VARIABLE_PRESENTATION_ENUMERATION = '{52D9E126-D7D2-2CBB-5E62-4CF7BA7C5D82}';
+const VARIABLE_PRESENTATION_SWITCH = '{32F8C2C9-3A09-7E0C-443F-2DBBE6D86BC2}';
+const VARIABLE_PRESENTATION_SLIDER = '{6B9CAEEC-5958-C223-30F7-BD36569FC57A}';
+const VARIABLE_PRESENTATION_VALUE_INPUT = '{6F477326-1683-A2FD-D2E7-477F366ECB62}';
 
 $GLOBALS['OBJ'] = [];      // id => [ident, parent, type, value, name, pres, action]
 $GLOBALS['NEXT'] = 60000;
@@ -158,6 +161,8 @@ class FakeCloud extends RoboHubDreame
     public static $refreshStatus = 200;
     public static $cms = null;
     public static $cmsGeschrieben = null;   // was zuletzt per {"m":"s","t":"CMS"} geschrieben wurde
+    public static $cfg = null;              // Mäher-Einstellungen (Antwort auf {"m":"g","t":"CFG"}), null = keine Antwort
+    public static $cfgGeschrieben = [];     // alle {"m":"s","t":"DND"/"VOL"}-Aufträge
     public static $karte = null;        // Kartentext (mapstr[0].map)
     public static $tokenZaehler = 0;
     public static $ablehnen = [];       // 'siid.aiid' => true: Aktion mit result.code -1 ablehnen
@@ -205,6 +210,15 @@ class FakeCloud extends RoboHubDreame
                 if (is_array($in) && ($in['t'] ?? '') === 'CMS' && ($in['m'] ?? '') === 's') {
                     self::$cmsGeschrieben = $in['d']['value'] ?? null;
                     return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => []]]])];
+                }
+                if (is_array($in) && in_array($in['t'] ?? '', ['DND', 'VOL'], true) && ($in['m'] ?? '') === 's') {
+                    self::$cfgGeschrieben[] = $in;
+                    return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => []]]])];
+                }
+                if (is_array($in) && ($in['t'] ?? '') === 'CFG') {
+                    return self::$cfg === null
+                        ? [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => -1, 'out' => []]]])]
+                        : [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['d' => self::$cfg])]]]])];
                 }
                 if (is_array($in) && ($in['t'] ?? '') === 'CMS') {
                     return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [self::$cms]]]])];
@@ -357,7 +371,7 @@ check('Reststunden Sauger (Haupt/Seite/Filter/Sensoren/Mopp)', variable(2000, 'H
 check('Sensoren 0 h bleibt 0 (kein Ausblenden echter Nullwerte)', variable(2000, 'SensorenRest') !== null);
 check('Abwasserauslassfilter: 35.2 = %, 35.1 = h', variable(2000, 'Abwasserfilter')['value'] === 40 && variable(2000, 'AbwasserfilterRest')['value'] === 120.0);
 check('Schmutzwasserbehälter: 26.1 = %, 26.2 = h', variable(2000, 'Schmutzwasserbehaelter')['value'] === 75 && variable(2000, 'SchmutzwasserbehaelterRest')['value'] === 300.0);
-check('neuer Block hängt am Ende (Blocksperre-Indizes stabil)', (function () { $r = new ReflectionClass('RoboHubDreame'); $b = $r->getConstant('BLOECKE_SAUGER'); return end($b) === [[26, 1], [26, 2], [35, 1]] && $b[2][5] === [35, 2]; })());
+check('neuer Block hängt am Ende (Blocksperre-Indizes stabil)', (function () { $r = new ReflectionClass('RoboHubDreame'); $b = $r->getConstant('BLOECKE_SAUGER'); return $b[7] === [[26, 1], [26, 2], [35, 1]] && $b[8] === [[5, 1], [5, 2], [5, 3], [5, 4]] && end($b) === [[7, 1]] && $b[2][5] === [35, 2]; })());
 check('Saugstufe als schaltbare Auswahl', variable(2000, 'Saugstufe')['action'] === true && variable(2000, 'Saugstufe')['value'] === 1);
 check('Wassermenge entfällt bei Feuchte-Modell (28.1)', variable(2000, 'Wassermenge') === null);
 check('Reinigungsmodus mit Mopp-Anhebung: Leitung 0 → Saugen und Wischen (2)', variable(2000, 'Reinigungsmodus')['value'] === 2);
@@ -596,6 +610,78 @@ check('Formular: Zurücksetzen-Knopf mit Sicherheitsabfrage', strpos($formKlar, 
 check('Formular: kein Knopf für Teile ohne Variable (Messer beim Sauger)', strpos($formKlar, 'Klingen zurücksetzen') === false && strpos($formKlar, "'Messer'") === false);
 $_GET = [];
 
+abschnitt('Nicht stören und Lautstärke (Sauger)');
+function gesetzt(): array
+{
+    $o = [];
+    foreach (FakeCloud::befehle() as $b) { if ($b['method'] === 'set_properties') { foreach ($b['params'] as $q) { $o[$q['siid'] . '.' . $q['piid']] = $q['value']; } } }
+    return $o;
+}
+$merkeProps = FakeCloud::$props;
+FakeCloud::$props['5.4'] = '[{"id":1,"en":true,"st":"22:00","et":"08:00","wk":127,"ss":0},{"id":2,"en":false,"st":"12:00","et":"13:00","wk":31,"ss":0}]';
+FakeCloud::$props['7.1'] = 60;
+$geraet->Aktualisieren();
+check('5.4: frühestes Fenster maßgeblich (12:00, aus)', variable(2000, 'NichtStoeren')['value'] === false && variable(2000, 'NichtStoerenVon')['value'] === '12:00' && variable(2000, 'NichtStoerenBis')['value'] === '13:00');
+FakeCloud::$props['5.4'] = '[{"id":1,"en":true,"st":"22:00","et":"08:00","wk":127,"ss":0},{"id":2,"en":false,"st":"23:00","et":"23:30","wk":31,"ss":0}]';
+$geraet->Aktualisieren();
+check('Nicht stören aus 5.4: an, 22:00–08:00', variable(2000, 'NichtStoeren')['value'] === true && variable(2000, 'NichtStoerenVon')['value'] === '22:00' && variable(2000, 'NichtStoerenBis')['value'] === '08:00');
+check('Lautstärke 60 % aus 7.1', variable(2000, 'Lautstaerke')['value'] === 60);
+check('Darstellung: Schalter / Schieberegler 0–100 / Eingabefeld, alle schaltbar',
+    variable(2000, 'NichtStoeren')['pres']['PRESENTATION'] === VARIABLE_PRESENTATION_SWITCH
+    && variable(2000, 'Lautstaerke')['pres']['PRESENTATION'] === VARIABLE_PRESENTATION_SLIDER && variable(2000, 'Lautstaerke')['pres']['MAX'] === 100
+    && variable(2000, 'NichtStoerenVon')['pres']['PRESENTATION'] === VARIABLE_PRESENTATION_VALUE_INPUT
+    && variable(2000, 'NichtStoeren')['action'] && variable(2000, 'Lautstaerke')['action'] && variable(2000, 'NichtStoerenBis')['action']);
+$k = kachelJson($geraet->GetVisualizationTile());
+check('Kachel zeigt 🌙 Nicht stören 22:00–08:00 und 🔊 60 %', in_array('🌙 Nicht stören 22:00–08:00', $k['info'], true) && in_array('🔊 60 %', $k['info'], true), json_encode($k['info'], JSON_UNESCAPED_UNICODE));
+
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('NichtStoerenVon', '21:30');
+$neu = json_decode((string)(gesetzt()['5.4'] ?? 'null'), true);
+check('Beginn 21:30 → 5.4 nur im ersten Fenster geändert', $neu[0] == ['id' => 1, 'en' => true, 'st' => '21:30', 'et' => '08:00', 'wk' => 127, 'ss' => 0], json_encode($neu));
+check('… zweites Fenster unverändert mitgeschickt', ($neu[1] ?? null) == ['id' => 2, 'en' => false, 'st' => '23:00', 'et' => '23:30', 'wk' => 31, 'ss' => 0]);
+check('… Variable übernimmt den neuen Wert', variable(2000, 'NichtStoerenVon')['value'] === '21:30');
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('NichtStoeren', false);
+$neu = json_decode((string)(gesetzt()['5.4'] ?? 'null'), true);
+check('Ausschalten → en = false, Zeiten bleiben', ($neu[0]['en'] ?? null) === false && $neu[0]['st'] === '22:00');
+FakeCloud::$anfragen = [];
+$GLOBALS['LOG'] = [];
+$geraet->RequestAction('NichtStoerenBis', '25:00');
+check('ungültige Uhrzeit → nichts gesendet, protokolliert', count(FakeCloud::befehle()) === 0 && strpos(implode("\n", $GLOBALS['LOG']), 'HH:MM') !== false);
+$geraet->RequestAction('NichtStoerenBis', '22:00');
+check('Ende = Beginn → abgelehnt, nichts geschrieben', gesetzt() === [] && strpos(end($GLOBALS['LOG']) ?: '', 'nicht gleich') !== false, end($GLOBALS['LOG']) ?: '');
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('Lautstaerke', 80);
+check('Lautstärke 80 → set_properties 7.1 = 80', gesetzt() === ['7.1' => 80] && variable(2000, 'Lautstaerke')['value'] === 80);
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('Lautstaerke', 150);
+check('Lautstärke 150 → abgelehnt', count(FakeCloud::befehle()) === 0 && variable(2000, 'Lautstaerke')['value'] === 80);
+check('Skript-Weg über Konto prüft ebenfalls (Lautstärke −5)', strpos(json_decode($konto->ForwardData(json_encode(['Aktion' => 'befehl', 'Geraet' => '-112663880', 'Befehl' => 'einstellung', 'Parameter' => ['feld' => 'Lautstaerke', 'wert' => -5]])), true)['fehler'] ?? '', '0 und 100') !== false);
+
+FakeCloud::$props['5.4'] = '';
+$geraet->Aktualisieren();
+check('leeres 5.4 → aus, Ersatzzeiten 22:00–08:00', variable(2000, 'NichtStoeren')['value'] === false && variable(2000, 'NichtStoerenVon')['value'] === '22:00');
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('NichtStoeren', true);
+check('Einschalten ohne Fenster → Fenster id 1 täglich angelegt', json_decode((string)(gesetzt()['5.4'] ?? 'null'), true) == [['id' => 1, 'en' => true, 'st' => '22:00', 'et' => '08:00', 'wk' => 127, 'ss' => 0]], json_encode(gesetzt()));
+
+unset(FakeCloud::$props['5.4']);
+FakeCloud::$props += ['5.1' => false, '5.2' => '23:00', '5.3' => '07:00'];
+$geraet->Aktualisieren();
+check('älteres Modell: 5.1/5.2/5.3', variable(2000, 'NichtStoeren')['value'] === false && variable(2000, 'NichtStoerenVon')['value'] === '23:00' && variable(2000, 'NichtStoerenBis')['value'] === '07:00');
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('NichtStoeren', true);
+check('… Einschalten → 5.1 = true', gesetzt() === ['5.1' => true], json_encode(gesetzt()));
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('NichtStoerenBis', '06:30');
+check('… Ende → 5.3 = "06:30"', gesetzt() === ['5.3' => '06:30'], json_encode(gesetzt()));
+
+unset(FakeCloud::$props['5.1'], FakeCloud::$props['5.2'], FakeCloud::$props['5.3']);
+FakeCloud::$anfragen = [];
+check('Gerät ohne Nicht stören → klarer Fehler, nichts geschrieben', strpos(json_decode($konto->ForwardData(json_encode(['Aktion' => 'befehl', 'Geraet' => '-112663880', 'Befehl' => 'einstellung', 'Parameter' => ['feld' => 'NichtStoeren', 'wert' => true]])), true)['fehler'] ?? '', 'nicht lesbar') !== false && gesetzt() === []);
+FakeCloud::$props = $merkeProps;
+$geraet->Aktualisieren();
+
 abschnitt('MOVA-Mäher');
 $konto2 = new RoboHubKonto(1100);
 $konto2->props = ['Hersteller' => 'mova', 'Region' => 'eu', 'Konto' => 'n@example.org', 'Passwort' => 'geheim'];
@@ -691,6 +777,27 @@ $t = $maeher->VerbrauchsteilZuruecksetzen('Messer');
 check('Mäher: CMS nicht lesbar → nichts geschrieben', FakeCloud::$cmsGeschrieben === null && strpos($t, '⛔') === 0, $t);
 FakeCloud::$cms = json_encode(['d' => ['value' => [3978, 3978, 1026]]]);
 check('Mäher: Sauger-Teil (Filter) abgelehnt', strpos($maeher->VerbrauchsteilZuruecksetzen('Filter'), '⛔') === 0);
+
+FakeCloud::$cfg = ['DND' => [0, 1200, 480], 'VOL' => 80, 'WRP' => [1, 8, 0]];
+$maeher->Aktualisieren();
+check('Mäher: Nicht stören aus CFG (aus, 20:00–08:00), Lautstärke 80', variable(2100, 'NichtStoeren')['value'] === false && variable(2100, 'NichtStoerenVon')['value'] === '20:00' && variable(2100, 'NichtStoerenBis')['value'] === '08:00' && variable(2100, 'Lautstaerke')['value'] === 80);
+check('Mäher: Einstellungen schaltbar', variable(2100, 'NichtStoeren')['action'] && variable(2100, 'Lautstaerke')['action']);
+FakeCloud::$cfgGeschrieben = [];
+$maeher->RequestAction('NichtStoeren', true);
+check('Mäher einschalten → {"m":"s","t":"DND","d":{"value":1,"time":[1200,480]}}', FakeCloud::$cfgGeschrieben === [['m' => 's', 't' => 'DND', 'd' => ['value' => 1, 'time' => [1200, 480]]]], json_encode(FakeCloud::$cfgGeschrieben));
+FakeCloud::$cfgGeschrieben = [];
+$maeher->RequestAction('NichtStoerenBis', '07:15');
+check('Mäher Ende 07:15 → Minuten 435, Zustand (aus) erhalten', (FakeCloud::$cfgGeschrieben[0]['d'] ?? null) === ['value' => 0, 'time' => [1200, 435]], json_encode(FakeCloud::$cfgGeschrieben));
+FakeCloud::$cfgGeschrieben = [];
+$maeher->RequestAction('Lautstaerke', 40);
+check('Mäher Lautstärke 40 → {"t":"VOL","d":{"value":40}}', FakeCloud::$cfgGeschrieben === [['m' => 's', 't' => 'VOL', 'd' => ['value' => 40]]], json_encode(FakeCloud::$cfgGeschrieben));
+FakeCloud::$cfg = null;
+FakeCloud::$cfgGeschrieben = [];
+$maeher->RequestAction('NichtStoeren', true);
+check('Mäher: CFG nicht lesbar → nichts geschrieben', FakeCloud::$cfgGeschrieben === []);
+$maeher->Aktualisieren();
+check('Mäher: CFG fällt aus → Variablen bleiben schaltbar (Liste wird zusammengeführt)', variable(2100, 'NichtStoeren')['action'] && in_array('NichtStoeren', json_decode($maeher->ReadAttributeString('Schreibbar'), true), true));
+check('Mäher-Tagesminuten über Mitternacht korrekt (1439 → 23:59)', (function () { $m = new ReflectionMethod('RoboHubDreame', 'minutenZuUhrzeit'); return $m->invoke(null, 1439) === '23:59' && $m->invoke(null, 0) === '00:00' && $m->invoke(null, 1440) === '00:00'; })());
 
 abschnitt('Beschleunigung: unbeantwortete Blöcke überspringen');
 function getPropsSiids(): array
@@ -835,6 +942,9 @@ check('Einzelwert 4.23 → Tausch bleibt korrekt (Leitung 0 = Saugen und Wischen
 $vorher = count($geraet->visu);
 mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 6, 'piid' => 1, 'value' => 'KARTE']]]]), 0, 0));
 check('Kartendaten (6.x) werden übergangen', count($geraet->visu) === $vorher);
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 7, 'piid' => 1, 'value' => 35]]]]), 0, 0));
+check('Lautstärke aus der App geändert → per Echtzeit sofort in Symcon', variable(2000, 'Lautstaerke')['value'] === 35);
+$vorher = count($geraet->visu);
 mqttVomServer($konto, RoboHubMqttTest::publish($topic, '{"kaputt', 0, 0));
 check('abgeschnittene Nachricht (Server kürzt bei 4096 Byte) → still übergangen', count($geraet->visu) === $vorher);
 

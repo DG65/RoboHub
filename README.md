@@ -54,6 +54,8 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Seitenbürste, Filter, Mopp/Walze, Sensoren, beim Mäher Messer), Station, Frisch-/
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
+- **Nicht stören** (an/aus, Beginn, Ende) und **Lautstärke**: direkt schaltbar, bei Saug- und
+  Mährobotern.
 - **Verbrauchsteile zurücksetzen** nach Wechsel oder Reinigung — im Formular (mit
   Sicherheitsabfrage) und auf der Kachel (↺, dann bestätigen). Jede Rücksetzung steht im
   Symcon-Protokoll.

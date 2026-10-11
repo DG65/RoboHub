@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0 (11.10.2026)
+
+- Neu: **Nicht stören** (`NichtStoeren` Schalter, `NichtStoerenVon`/`NichtStoerenBis` als HH:MM-Eingabe)
+  und **Lautstärke** (`Lautstaerke`, Schieberegler 0–100 %), für Sauger und Mäher.
+  - Sauger (Tasshack types.py/device.py, ioBroker main.js): neuere Geräte führen Zeitfenster als
+    JSON-Liste in 5.4 — maßgeblich ist wie bei Tasshack das erste Fenster nach Startzeit; Ändern =
+    Read-Modify-Write dieses Fensters, weitere Fenster werden unverändert mitgeschickt; ohne Fenster
+    wird eines angelegt (id 1, täglich). Ältere Geräte: 5.1/5.2/5.3. Lautstärke 7.1.
+  - Mäher (ioBroker docs/mower-protocol.md): Einstellungen über 2.50 `{"m":"g","t":"CFG"}`,
+    `DND = [an, Start-Minute, End-Minute]`, `VOL`; schreiben per `{"m":"s","t":"DND","d":{"value","time"}}`
+    bzw. `{"m":"s","t":"VOL","d":{"value"}}`. Ist CFG nicht lesbar, wird nichts geschrieben.
+- Neue Abfrageblöcke am Ende der Sauger-Liste (Blocksperre-Indizes bleiben stabil).
+- Treiber meldet änderbare Felder unter `schreibbar`; die Instanz führt die Liste zusammen (Mäher-
+  Echtzeit-Meldungen tragen die Einstellungen nicht mit).
+- Noch nicht live geprüft.
+
 ## 0.4.4 (11.10.2026)
 
 - Neu: Verbrauchsteile zurücksetzen (`ROBO_VerbrauchsteilZuruecksetzen($id, 'Filter')`), im

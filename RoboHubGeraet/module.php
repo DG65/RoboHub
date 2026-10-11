@@ -50,6 +50,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('EchtzeitVerlauf', '[]');
         $this->RegisterAttributeInteger('RaeumeStand', 0);
         $this->RegisterAttributeString('Optionen', '{}');
+        $this->RegisterAttributeString('Schreibbar', '[]');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
         $this->RegisterAttributeString('LetzterFehler', '');
         $this->RegisterAttributeString('LetzteRohdaten', '');
@@ -112,6 +113,13 @@ class RoboHubGeraet extends IPSModule
                 $this->fuehreAus('raum', ['raeume' => array_values(array_filter(array_map('intval', explode(',', (string)$Value))))]);
                 return;
             default:
+                if (in_array($Ident, $this->schreibbar(), true)) {
+                    $wert = $this->einstellungPruefen($Ident, $Value);
+                    if ($wert !== null && $this->fuehreAus('einstellung', ['feld' => $Ident, 'wert' => $wert])) {
+                        $this->SetValue($Ident, $wert);
+                    }
+                    return;
+                }
                 $optionen = json_decode($this->ReadAttributeString('Optionen'), true) ?: [];
                 if (isset($optionen[$Ident])) {
                     if ($this->fuehreAus('setze', ['feld' => $Ident, 'wert' => (int)$Value])) {
@@ -367,11 +375,63 @@ class RoboHubGeraet extends IPSModule
         return $antwort;
     }
 
+    /** Idents, die der Treiber als frei änderbar gemeldet hat (Nicht stören, Lautstärke). */
+    private function schreibbar(): array
+    {
+        return json_decode($this->ReadAttributeString('Schreibbar'), true) ?: [];
+    }
+
+    /**
+     * Eingabe aus WebFront/Kachel/Skript prüfen, bevor etwas zum Roboter geht.
+     * Ungültig → Protokoll + Kachel-Rückmeldung, Rückgabe null (Variable bleibt).
+     */
+    private function einstellungPruefen(string $ident, $wert)
+    {
+        $fehler = null;
+        if ($ident === 'Lautstaerke') {
+            $wert = (int)$wert;
+            if ($wert < 0 || $wert > 100) {
+                $fehler = 'Lautstärke muss zwischen 0 und 100 % liegen.';
+            }
+        } elseif ($ident === 'NichtStoeren') {
+            $wert = (bool)$wert;
+        } else {
+            $wert = trim((string)$wert);
+            if (!RoboHubModell::istUhrzeit($wert)) {
+                $fehler = 'Uhrzeit bitte als HH:MM angeben (z. B. 22:00), nicht „' . $wert . '".';
+            }
+        }
+        if ($fehler !== null) {
+            $this->protokolliere($fehler);
+            $this->kachelAktualisieren('⛔ ' . $fehler);
+            return null;
+        }
+        return $wert;
+    }
+
+    /** Darstellung einer änderbaren Einstellung: Schalter, Schieberegler oder Eingabefeld. */
+    private function presSchreibbar(int $typ, string $suffix): array
+    {
+        if ($typ === VARIABLETYPE_BOOLEAN) {
+            return ['PRESENTATION' => VARIABLE_PRESENTATION_SWITCH];
+        }
+        if ($typ === VARIABLETYPE_INTEGER) {
+            return ['PRESENTATION' => VARIABLE_PRESENTATION_SLIDER, 'MIN' => 0, 'MAX' => 100, 'STEP_SIZE' => 5, 'SUFFIX' => $suffix, 'DIGITS' => 0];
+        }
+        // Freie Werte ohne Bereich brauchen die Eingabe-Darstellung (HeishaMon-Befund:
+        // die reine Wertedarstellung kann keine Eingabe).
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_INPUT, 'SUFFIX' => $suffix];
+    }
+
     /** Übernimmt einen normalisierten Treiber-Zustand in die Variablen. */
     private function uebernimm(array $daten): void
     {
         $werte    = (array)($daten['werte'] ?? []);
         $optionen = (array)($daten['optionen'] ?? []);
+        // Zusammenführen statt ersetzen: Echtzeit-Meldungen des Mähers tragen
+        // die Einstellungen (Konfigurationskanal) nicht mit.
+        $schreibbar = array_values(array_unique(array_merge($this->schreibbar(), array_map('strval', (array)($daten['schreibbar'] ?? [])))));
+        $this->WriteAttributeString('Schreibbar', (string)json_encode($schreibbar));
 
         $this->SetValue('Erreichbar', (bool)($daten['online'] ?? true));
         if (isset($daten['bild']) && (string)$daten['bild'] !== $this->ReadAttributeString('Bild')) {
@@ -390,6 +450,12 @@ class RoboHubGeraet extends IPSModule
                 $this->MaintainVariable($ident, $name, VARIABLETYPE_INTEGER, $this->presEnum($optionen[$ident]), $pos, true);
                 $this->EnableAction($ident);
                 $this->SetValue($ident, (int)$werte[$ident]);
+                continue;
+            }
+            if (in_array($ident, $schreibbar, true)) {
+                $this->MaintainVariable($ident, $name, $typ, $this->presSchreibbar($typ, $suffix), $pos, true);
+                $this->EnableAction($ident);
+                $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
                 continue;
             }
             $pres = $typ === VARIABLETYPE_BOOLEAN
@@ -659,6 +725,14 @@ class RoboHubGeraet extends IPSModule
             if ($t !== null) {
                 $info[] = $t;
             }
+        }
+        if ($this->wert('NichtStoeren') !== null) {
+            $info[] = $this->wert('NichtStoeren')
+                ? '🌙 Nicht stören ' . $this->wert('NichtStoerenVon') . '–' . $this->wert('NichtStoerenBis')
+                : '🔔 Nicht stören aus';
+        }
+        if ($this->wert('Lautstaerke') !== null) {
+            $info[] = ((int)$this->wert('Lautstaerke') === 0 ? '🔇 ' : '🔊 ') . (int)$this->wert('Lautstaerke') . ' %';
         }
         if ($this->wert('Regensensor') !== null) {
             $info[] = $this->wert('Regensensor') ? '🌧️ Regen erkannt' : '☀️ kein Regen';

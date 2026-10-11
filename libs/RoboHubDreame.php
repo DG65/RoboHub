@@ -269,6 +269,12 @@ class RoboHubDreame implements RoboHubTreiber
         // 26.2 h) und Stunden des Abwasserauslassfilters (Tasshack: 35.1 h,
         // 35.2 % steht schon in Block 2). Ebenfalls am Ende (Blocksperre).
         [[26, 1], [26, 2], [35, 1]],
+        // Nicht stören (5.1 an/aus, 5.2/5.3 Zeiten; neuere Geräte stattdessen
+        // 5.4 = JSON-Liste von Zeitfenstern) und Lautstärke 7.1 — Tasshack
+        // types.py + ioBroker main.js. Getrennte Blöcke, weil nicht jedes
+        // Modell alle kennt. Am Ende (Blocksperre, siehe oben).
+        [[5, 1], [5, 2], [5, 3], [5, 4]],
+        [[7, 1]],
     ];
     private const BLOECKE_MAEHER = [
         [[2, 1], [2, 2], [3, 1], [3, 2]],
@@ -330,6 +336,9 @@ class RoboHubDreame implements RoboHubTreiber
         $daten = $this->normalisiere($modell, $p);
         if ($klasse === RoboHubModell::KLASSE_MAEHER && $online) {
             $daten['werte'] += $this->maeherVerschleiss($buendel, $did);
+            $einstellungen = $this->maeherEinstellungen($buendel, $did);
+            $daten['werte'] += $einstellungen;
+            $daten['schreibbar'] = array_keys($einstellungen);
         }
         $daten['online'] = $online;
         $daten['bild'] = self::bildVon($eintrag);
@@ -604,7 +613,18 @@ PEM;
         $w['GesamtAnzahl'] = isset($p['12.3']) ? (int)$p['12.3'] : null;
         $w['GesamtFlaeche'] = isset($p['12.4']) ? (int)$p['12.4'] : null;
 
-        return ['werte' => $w, 'optionen' => $optionen];
+        $schreibbar = [];
+        $dnd = self::nichtStoerenLesen($p);
+        if ($dnd !== null) {
+            [$w['NichtStoeren'], $w['NichtStoerenVon'], $w['NichtStoerenBis']] = $dnd;
+            array_push($schreibbar, 'NichtStoeren', 'NichtStoerenVon', 'NichtStoerenBis');
+        }
+        if (isset($p['7.1']) && is_numeric($p['7.1'])) {
+            $w['Lautstaerke'] = (int)$p['7.1'];
+            $schreibbar[] = 'Lautstaerke';
+        }
+
+        return ['werte' => $w, 'optionen' => $optionen, 'schreibbar' => $schreibbar];
     }
 
     /**
@@ -785,6 +805,186 @@ PEM;
         ], function ($v) { return $v !== null; });
     }
 
+    // -----------------------------------------------------------------
+    // Nicht stören / Lautstärke
+    // -----------------------------------------------------------------
+
+    // Ersatzzeiten, wenn das Gerät noch kein Zeitfenster kennt (Tasshack set_dnd_tasks).
+    private const DND_VON = '22:00';
+    private const DND_BIS = '08:00';
+
+    /**
+     * Sauger: [an, von, bis] oder null. Neuere Geräte (Tasshack-Fähigkeit
+     * „dnd_task") führen Zeitfenster als JSON-Liste in 5.4
+     * ([{"id","en","st","et","wk","ss"}]); maßgeblich ist wie bei Tasshack
+     * das erste Fenster nach Startzeit. Ältere Geräte: 5.1/5.2/5.3.
+     */
+    private static function nichtStoerenLesen(array $p): ?array
+    {
+        if (array_key_exists('5.4', $p) && is_string($p['5.4'])) {
+            $fenster = self::dndFenster($p['5.4']);
+            if ($fenster === []) {
+                return [false, self::DND_VON, self::DND_BIS];
+            }
+            $f = $fenster[0];
+            return [!empty($f['en']), (string)($f['st'] ?? self::DND_VON), (string)($f['et'] ?? self::DND_BIS)];
+        }
+        if (!isset($p['5.1'])) {
+            return null;
+        }
+        return [(bool)$p['5.1'], is_string($p['5.2'] ?? null) ? $p['5.2'] : self::DND_VON, is_string($p['5.3'] ?? null) ? $p['5.3'] : self::DND_BIS];
+    }
+
+    /** 5.4 → Liste der Zeitfenster, sortiert wie Tasshack (Startzeit, bei Gleichstand höhere id zuerst). */
+    private static function dndFenster(string $json): array
+    {
+        $liste = json_decode($json, true);
+        if (!is_array($liste)) {
+            return [];
+        }
+        $liste = array_values(array_filter($liste, 'is_array'));
+        usort($liste, function (array $a, array $b): int {
+            $sa = (int)str_replace(':', '', (string)($a['st'] ?? '0'));
+            $sb = (int)str_replace(':', '', (string)($b['st'] ?? '0'));
+            return $sa <=> $sb ?: ((int)($b['id'] ?? 0) <=> (int)($a['id'] ?? 0));
+        });
+        return $liste;
+    }
+
+    private static function minutenZuUhrzeit($min): string
+    {
+        $m = ((int)$min % 1440 + 1440) % 1440;
+        return sprintf('%02d:%02d', intdiv($m, 60), $m % 60);
+    }
+
+    private static function uhrzeitZuMinuten(string $t): int
+    {
+        [$h, $m] = array_map('intval', explode(':', $t));
+        return $h * 60 + $m;
+    }
+
+    /**
+     * Mäher-Einstellungen über den Konfigurationskanal (2.50, {"m":"g","t":"CFG"},
+     * ioBroker docs/mower-protocol.md): DND = [an, Start-Minute, End-Minute],
+     * VOL = Lautstärke 0–100.
+     */
+    private function maeherKonfiguration(array $buendel, string $did): array
+    {
+        $out = $this->aktion($buendel, $did, 2, 50, [['m' => 'g', 't' => 'CFG']]);
+        $erstes = $out['out'][0] ?? null;
+        if (is_string($erstes)) {
+            $erstes = json_decode($erstes, true);
+        }
+        return is_array($erstes['d'] ?? null) ? $erstes['d'] : [];
+    }
+
+    private function maeherEinstellungen(array $buendel, string $did): array
+    {
+        try {
+            $cfg = $this->maeherKonfiguration($buendel, $did);
+        } catch (RoboHubFehler $e) {
+            if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                throw $e;
+            }
+            return [];
+        }
+        $w = [];
+        if (is_array($cfg['DND'] ?? null) && count($cfg['DND']) >= 3) {
+            $w['NichtStoeren'] = !empty($cfg['DND'][0]);
+            $w['NichtStoerenVon'] = self::minutenZuUhrzeit($cfg['DND'][1]);
+            $w['NichtStoerenBis'] = self::minutenZuUhrzeit($cfg['DND'][2]);
+        }
+        if (isset($cfg['VOL']) && is_numeric($cfg['VOL'])) {
+            $w['Lautstaerke'] = (int)$cfg['VOL'];
+        }
+        return $w;
+    }
+
+    /** Neue Einstellung prüfen: Uhrzeit „HH:MM", Lautstärke 0–100, Nicht stören bool. */
+    private static function pruefeEinstellung(string $feld, $wert)
+    {
+        if ($feld === 'Lautstaerke') {
+            if (!is_numeric($wert) || (int)$wert < 0 || (int)$wert > 100) {
+                throw new RoboHubFehler('Lautstärke muss zwischen 0 und 100 % liegen.');
+            }
+            return (int)$wert;
+        }
+        if ($feld === 'NichtStoeren') {
+            return (bool)$wert;
+        }
+        if ($feld === 'NichtStoerenVon' || $feld === 'NichtStoerenBis') {
+            $t = trim((string)$wert);
+            if (!RoboHubModell::istUhrzeit($t)) {
+                throw new RoboHubFehler('Uhrzeit bitte als HH:MM angeben (z. B. 22:00), nicht „' . $t . '".');
+            }
+            return $t;
+        }
+        throw new RoboHubFehler('Einstellung „' . $feld . '" ist nicht schreibbar.');
+    }
+
+    /** Setzt NichtStoeren/NichtStoerenVon/NichtStoerenBis/Lautstaerke. */
+    private function einstellung(array $buendel, string $did, bool $maeher, string $feld, $wert): string
+    {
+        $wert = self::pruefeEinstellung($feld, $wert);
+        if ($feld === 'Lautstaerke') {
+            if ($maeher) {
+                $this->aktion($buendel, $did, 2, 50, [['m' => 's', 't' => 'VOL', 'd' => ['value' => $wert]]]);
+            } else {
+                $this->setzeProperty($buendel, $did, 7, 1, $wert);
+            }
+            return 'Lautstärke gesendet.';
+        }
+
+        // Nicht stören: aktuellen Stand lesen, nur das eine Feld ändern, alles zurückschreiben.
+        if ($maeher) {
+            $cfg = $this->maeherKonfiguration($buendel, $did);
+            if (!is_array($cfg['DND'] ?? null) || count($cfg['DND']) < 3) {
+                throw new RoboHubFehler('Nicht-stören-Einstellung des Mähers nicht lesbar — nichts geändert.');
+            }
+            $an = !empty($cfg['DND'][0]);
+            $von = self::minutenZuUhrzeit($cfg['DND'][1]);
+            $bis = self::minutenZuUhrzeit($cfg['DND'][2]);
+        } else {
+            $p = $this->leseProperties($buendel, $did, [[5, 1], [5, 2], [5, 3], [5, 4]]);
+            $stand = self::nichtStoerenLesen($p);
+            if ($stand === null) {
+                throw new RoboHubFehler('Nicht-stören-Einstellung des Roboters nicht lesbar — nichts geändert.');
+            }
+            [$an, $von, $bis] = $stand;
+        }
+        if ($feld === 'NichtStoeren') {
+            $an = $wert;
+        } elseif ($feld === 'NichtStoerenVon') {
+            $von = $wert;
+        } else {
+            $bis = $wert;
+        }
+        if ($von === $bis) {
+            throw new RoboHubFehler('Beginn und Ende von „Nicht stören" dürfen nicht gleich sein.');
+        }
+
+        if ($maeher) {
+            $this->aktion($buendel, $did, 2, 50, [['m' => 's', 't' => 'DND', 'd' => ['value' => $an ? 1 : 0, 'time' => [self::uhrzeitZuMinuten($von), self::uhrzeitZuMinuten($bis)]]]]);
+        } elseif (array_key_exists('5.4', $p) && is_string($p['5.4'])) {
+            // Wie Tasshack set_dnd_tasks: erstes Fenster ändern (oder anlegen),
+            // weitere Fenster unverändert mitschicken.
+            $fenster = self::dndFenster($p['5.4']);
+            if ($fenster === []) {
+                $fenster[] = ['id' => 1, 'en' => $an, 'st' => $von, 'et' => $bis, 'wk' => 127, 'ss' => 0];
+            } else {
+                $fenster[0]['en'] = $an;
+                $fenster[0]['st'] = $von;
+                $fenster[0]['et'] = $bis;
+            }
+            $this->setzeProperty($buendel, $did, 5, 4, (string)json_encode($fenster, JSON_UNESCAPED_SLASHES));
+        } elseif ($feld === 'NichtStoeren') {
+            $this->setzeProperty($buendel, $did, 5, 1, $an);
+        } else {
+            $this->setzeProperty($buendel, $did, 5, $feld === 'NichtStoerenVon' ? 2 : 3, $wert);
+        }
+        return '„Nicht stören" gesendet.';
+    }
+
     // =================================================================
     // Befehle
     // =================================================================
@@ -828,6 +1028,9 @@ PEM;
         }
         if ($befehl === 'raum' && !$maeher) {
             return $this->raumReinigung($buendel, $did, array_map('intval', (array)($parameter['raeume'] ?? [])));
+        }
+        if ($befehl === 'einstellung') {
+            return $this->einstellung($buendel, $did, $maeher, (string)($parameter['feld'] ?? ''), $parameter['wert'] ?? null);
         }
         if ($befehl === 'setze' && !$maeher) {
             return $this->setze($buendel, $did, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? 0));

@@ -128,7 +128,18 @@ final class RoboHubModell
         'GesamtFlaeche'      => ['Gereinigte Fläche gesamt', 1, ' m²', 0, 70],
         'GesamtDauer'        => ['Reinigungsdauer gesamt', 1, ' h', 0, 71],
         'GesamtAnzahl'       => ['Reinigungen gesamt', 1, '', 0, 72],
+        // Einstellungen, die der Treiber unter 'schreibbar' als änderbar meldet.
+        'NichtStoeren'       => ['Nicht stören', 0, '', 0, 90],
+        'NichtStoerenVon'    => ['Nicht stören ab', 3, '', 0, 91],
+        'NichtStoerenBis'    => ['Nicht stören bis', 3, '', 0, 92],
+        'Lautstaerke'        => ['Lautstärke', 1, ' %', 0, 93],
     ];
+
+    /** Zeitangabe „HH:MM" (00:00–23:59) für Nicht-stören-Zeiten. */
+    public static function istUhrzeit(string $t): bool
+    {
+        return (bool)preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $t);
+    }
 }
 
 /**

@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.5.0' => [
+            '• Nicht stören: an/aus sowie Beginn und Ende (HH:MM) direkt schaltbar — bei Saug- und Mährobotern.',
+            '• Lautstärke als Schieberegler (0–100 %). Änderungen aus der Hersteller-App kommen per Echtzeit an.',
+            '• Die Kachel zeigt 🌙 Nicht stören und 🔊 Lautstärke.',
+        ],
         '0.4.4' => [
             '• Verbrauchsteile zurücksetzen: Nach Wechsel oder Reinigung den Zähler auf 100 % stellen — im Formular („🔧 Verbrauchsteile zurücksetzen", mit Sicherheitsabfrage) und auf der Kachel (↺, dann „Ja, zurücksetzen"). Jede Rücksetzung steht im Symcon-Protokoll.',
         ],
