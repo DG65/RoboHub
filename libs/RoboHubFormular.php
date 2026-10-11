@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.6.0' => [
+            '• Mähroboter: Mähzonen aus der gespeicherten Karte — Variable „Zone mähen" und Zonen-Knöpfe auf der Kachel, auch mehrere Zonen auf einmal.',
+        ],
         '0.5.0' => [
             '• Nicht stören: an/aus sowie Beginn und Ende (HH:MM) direkt schaltbar — bei Saug- und Mährobotern.',
             '• Lautstärke als Schieberegler (0–100 %). Änderungen aus der Hersteller-App kommen per Echtzeit an.',

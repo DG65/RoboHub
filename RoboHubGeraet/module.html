@@ -129,7 +129,7 @@ function zeichnen() {
     r += '</div>';
     if (gewaehlt.length) {
       var namen = d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0; }).map(function (x) { return x.name; }).join(', ');
-      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + gewaehlt.join(',') + '\',\'Reinigung ' + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + ' reinigen</button>';
+      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + gewaehlt.join(',') + '\',\'' + (d.klasse === 'maeher' ? 'Mähen ' : 'Reinigung ') + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + (d.klasse === 'maeher' ? ' mähen' : ' reinigen') + '</button>';
     }
     r += '</div>';
   }

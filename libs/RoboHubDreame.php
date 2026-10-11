@@ -1029,6 +1029,16 @@ PEM;
         if ($befehl === 'raum' && !$maeher) {
             return $this->raumReinigung($buendel, $did, array_map('intval', (array)($parameter['raeume'] ?? [])));
         }
+        if ($befehl === 'raum' && $maeher) {
+            // Zonenmähen: Konfigurationskanal, Operation 102 mit {"region":[IDs]}
+            // (ioBroker main.js mowAction o 102, docs/mower-protocol.md „zoneMower").
+            $zonen = array_values(array_unique(array_filter(array_map('intval', (array)($parameter['raeume'] ?? [])), function (int $z): bool { return $z > 0; })));
+            if (count($zonen) === 0) {
+                throw new RoboHubFehler('Keine Zone angegeben.');
+            }
+            $this->aktion($buendel, $did, 2, 50, [['m' => 'a', 'p' => 0, 'o' => 102, 'd' => ['region' => $zonen]]]);
+            return 'Mähen ' . (count($zonen) === 1 ? 'der Zone' : 'von ' . count($zonen) . ' Zonen') . ' gesendet.';
+        }
         if ($befehl === 'einstellung') {
             return $this->einstellung($buendel, $did, $maeher, (string)($parameter['feld'] ?? ''), $parameter['wert'] ?? null);
         }
@@ -1161,7 +1171,7 @@ PEM;
     public function raeume(array $buendel, array $geraet): array
     {
         if (self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER) {
-            return []; // Mäh-Zonen folgen in einer späteren Version.
+            return $this->maehZonen($buendel, (string)$geraet['id']);
         }
         $did = (string)$geraet['id'];
         $p = $this->leseProperties($buendel, $did, [[6, 8]]);
@@ -1281,6 +1291,68 @@ PEM;
             'Tenant-Id: ' . $m['tenant'],
             'Authorization: Basic ' . $m['basic'],
         ];
+    }
+
+    // =================================================================
+    // Mäh-Zonen (ioBroker main.js getMowerMap, docs/mower-protocol.md)
+    // =================================================================
+
+    /**
+     * Zonen aus den Gerätedaten der Cloud: getDeviceData liefert die Karte
+     * in Stücken (MAP.0, MAP.1 …, Gesamtlänge in MAP.info). Zusammengesetzt
+     * ist das eine JSON-Liste von Karten-Slots (Eintrag als Objekt oder als
+     * JSON-Text) mit mowingAreas.value = [[id, {name, …}], …].
+     * Mehrere Karten: der erste Slot zählt (ioBroker kennt keinen Zeiger auf
+     * die aktive Karte; der Zonen-Start nimmt nur IDs). Rückgabe [id => Name].
+     */
+    private function maehZonen(array $buendel, string $did): array
+    {
+        $daten = $this->api($buendel, '/dreame-user-iot/iotuserdata/getDeviceData', ['did' => $did])['data'] ?? null;
+        if (!is_array($daten)) {
+            $this->dbg('Karte', 'Keine Gerätedaten (getDeviceData leer).');
+            return [];
+        }
+        $text = self::stueckeZusammensetzen($daten, 'MAP');
+        $slots = json_decode($text, true);
+        if (!is_array($slots) || $slots === []) {
+            $this->dbg('Karte', 'Keine Mäh-Karte in den Gerätedaten (Schlüssel: ' . implode(', ', array_keys($daten)) . ').');
+            return [];
+        }
+        if (count($slots) > 1) {
+            $this->dbg('Karte', count($slots) . ' Karten gespeichert — Zonen aus der ersten.');
+        }
+        $slot = reset($slots);
+        if (is_string($slot)) {
+            $slot = json_decode($slot, true);
+        }
+        $zonen = [];
+        foreach ((array)($slot['mowingAreas']['value'] ?? []) as $eintrag) {
+            if (!is_array($eintrag) || !isset($eintrag[0]) || !is_numeric($eintrag[0]) || (int)$eintrag[0] <= 0) {
+                continue;
+            }
+            $id = (int)$eintrag[0];
+            $name = trim((string)($eintrag[1]['name'] ?? ''));
+            $zonen[$id] = $name !== '' ? $name : 'Zone ' . $id;
+        }
+        ksort($zonen);
+        return $zonen;
+    }
+
+    /** Setzt PREFIX.0, PREFIX.1 … zusammen, gekürzt auf PREFIX.info Zeichen (ioBroker reassembleChunks). */
+    private static function stueckeZusammensetzen(array $daten, string $prefix): string
+    {
+        $gesamt = (int)($daten[$prefix . '.info'] ?? 0);
+        if ($gesamt <= 0) {
+            return '';
+        }
+        $text = '';
+        for ($i = 0; isset($daten[$prefix . '.' . $i]); $i++) {
+            $text .= (string)$daten[$prefix . '.' . $i];
+            if (strlen($text) >= $gesamt) {
+                break;
+            }
+        }
+        return substr($text, 0, $gesamt);
     }
 
     /** POST mit JSON an die Cloud-API, prüft code == 0. */

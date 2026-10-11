@@ -49,7 +49,8 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Lädt, In der Station, Station arbeitet, Fehler, Ruht, Kartiert, Aktualisiert Firmware,
   Wetterpause (Mäher). Dazu **Zustand (Hersteller)** mit dem Originalwert im Klartext.
 - **Befehl**: Start/Fortsetzen, Pause, Stopp, Zur Station, Orten.
-- **Raum reinigen** (Sauger): Auswahl der Räume aus der gespeicherten Karte.
+- **Raum reinigen** (Sauger) bzw. **Zone mähen** (Mäher): Auswahl der Räume bzw. Mähzonen aus der
+  gespeicherten Karte, auch mehrere auf einmal.
 - Fehler, Akku, Lädt, gereinigte Fläche, Reinigungsdauer, Verbrauchsteile (Hauptbürste,
   Seitenbürste, Filter, Mopp/Walze, Sensoren, beim Mäher Messer), Station, Frisch-/
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.

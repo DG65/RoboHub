@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 (11.10.2026)
+
+- Neu: **Mähzonen** für Mähroboter. Zonen aus `POST /dreame-user-iot/iotuserdata/getDeviceData {did}`
+  (Karte in Stücken `MAP.0…n`, Länge `MAP.info`, ioBroker `reassembleChunks`), erster Karten-Slot,
+  `mowingAreas.value = [[id, {name}]]`. Start einzelner oder mehrerer Zonen über 2.50
+  `{"m":"a","p":0,"o":102,"d":{"region":[IDs]}}` (ioBroker main.js `mowAction`, docs/mower-protocol.md).
+  Variable „Zone mähen", Kachel-Knöpfe („▶️ Vorgarten mähen"), `ROBO_RaeumeReinigen($id, "1,3")`.
+- Noch nicht live geprüft — Zonen-Start nur mit Dietmars Freigabe (Rasen frei).
+
 ## 0.5.0 (11.10.2026)
 
 - Neu: **Nicht stören** (`NichtStoeren` Schalter, `NichtStoerenVon`/`NichtStoerenBis` als HH:MM-Eingabe)

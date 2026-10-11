@@ -163,6 +163,7 @@ class FakeCloud extends RoboHubDreame
     public static $cmsGeschrieben = null;   // was zuletzt per {"m":"s","t":"CMS"} geschrieben wurde
     public static $cfg = null;              // Mäher-Einstellungen (Antwort auf {"m":"g","t":"CFG"}), null = keine Antwort
     public static $cfgGeschrieben = [];     // alle {"m":"s","t":"DND"/"VOL"}-Aufträge
+    public static $geraeteDaten = null;     // Antwort data von getDeviceData (Mäher-Karte in Stücken)
     public static $karte = null;        // Kartentext (mapstr[0].map)
     public static $tokenZaehler = 0;
     public static $ablehnen = [];       // 'siid.aiid' => true: Aktion mit result.code -1 ablehnen
@@ -226,6 +227,9 @@ class FakeCloud extends RoboHubDreame
                 $k = $b['data']['params']['siid'] . '.' . $b['data']['params']['aiid'];
                 return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => !empty(self::$ablehnen[$k]) ? -1 : 0, 'out' => []]]])];
             }
+        }
+        if (strpos($url, 'iotuserdata/getDeviceData') !== false) {
+            return [200, json_encode(['code' => 0, 'data' => self::$geraeteDaten])];
         }
         if (strpos($url, 'iotfile/getDownloadUrl') !== false) {
             return [200, json_encode(['code' => 0, 'data' => 'https://download.example/karte.json'])];
@@ -760,7 +764,33 @@ FakeCloud::$anfragen = [];
 $geraet->Orten();
 $c = FakeCloud::befehle()[0];
 check('Sauger orten = 7.1, ohne Ausweichweg', $c['params']['siid'] === 7 && $c['params']['aiid'] === 1 && count(FakeCloud::befehle()) === 1);
-check('Raumreinigung beim Mäher abgelehnt', strpos($maeher->RaeumeReinigen('1'), '⛔') === 0);
+
+// Mäh-Zonen: Karte in Stücken wie bei ioBroker reassembleChunks (MAP.info = Gesamtlänge).
+$slot = ['mowingAreas' => ['value' => [[3, ['name' => 'Garten hinten', 'area' => 120]], [1, ['name' => 'Vorgarten']], [5, ['name' => '']], [0, ['name' => 'Rand']]]], 'forbiddenAreas' => ['value' => []], 'mapIndex' => 0];
+$karte = json_encode([json_encode($slot), ['mowingAreas' => ['value' => [[9, ['name' => 'Zweite Karte']]]]]]);
+$teil = intdiv(strlen($karte), 2);
+FakeCloud::$geraeteDaten = ['MAP.0' => substr($karte, 0, $teil), 'MAP.1' => substr($karte, $teil) . 'MÜLL', 'MAP.info' => (string)strlen($karte), 'SETTINGS.0' => '{}'];
+$t = $maeher->RaeumeLaden();
+check('Mäh-Zonen aus getDeviceData (Stücke + Längenkürzung, Slot als JSON-Text)', strpos($t, '✅ 3') === 0, $t);
+check('Variable „Zone mähen" mit Zonennamen, ID-sortiert, leerer Name → „Zone 5", ID 0 übergangen',
+    variable(2100, 'Raum')['name'] === 'Zone mähen' && json_decode($maeher->ReadAttributeString('Raeume'), true) == [1 => 'Vorgarten', 3 => 'Garten hinten', 5 => 'Zone 5'], $maeher->ReadAttributeString('Raeume'));
+check('nur die erste Karte (Zone 9 der zweiten fehlt)', strpos($maeher->ReadAttributeString('Raeume'), 'Zweite') === false);
+check('getDeviceData an der MOVA-Adresse mit der Geräte-ID', strpos(FakeCloud::letzte('getDeviceData')['url'], 'https://eu.iot.mova-tech.com:13267/dreame-user-iot/iotuserdata/getDeviceData') === 0 && json_decode(FakeCloud::letzte('getDeviceData')['body'], true) === ['did' => '777']);
+FakeCloud::$anfragen = [];
+$maeher->RequestAction('Raum', 3);
+$c = FakeCloud::befehle()[0] ?? [];
+check('Zone mähen → action 2.50 {"m":"a","p":0,"o":102,"d":{"region":[3]}}', ($c['params']['siid'] ?? 0) === 2 && $c['params']['aiid'] === 50 && $c['params']['in'] === [['m' => 'a', 'p' => 0, 'o' => 102, 'd' => ['region' => [3]]]], json_encode($c));
+FakeCloud::$anfragen = [];
+$t = $maeher->RaeumeReinigen('1,3,3');
+$c = FakeCloud::befehle()[0] ?? [];
+check('mehrere Zonen „1,3,3" → region [1,3], Rückmeldung', ($c['params']['in'][0]['d']['region'] ?? null) === [1, 3] && strpos($t, '2 Zonen') !== false, $t);
+$k = kachelJson($maeher->GetVisualizationTile());
+check('Kachel des Mähers zeigt die Zonen', count($k['raeume'] ?? []) === 3 && $k['raeume'][0] == ['id' => 1, 'name' => 'Vorgarten']);
+FakeCloud::$anfragen = [];
+check('Zonen-Start ohne Zone → abgelehnt, nichts gesendet', strpos($maeher->RaeumeReinigen('0'), '⛔') === 0 && count(FakeCloud::befehle()) === 0);
+check('Treiber selbst lehnt Zone 0 ab (Skript-Weg über das Konto)', strpos(json_decode($konto2->ForwardData(json_encode(['Aktion' => 'befehl', 'Geraet' => '777', 'Befehl' => 'raum', 'Parameter' => ['raeume' => [0]]])), true)['fehler'] ?? '', 'Keine Zone') !== false && count(FakeCloud::befehle()) === 0);
+FakeCloud::$geraeteDaten = ['SETTINGS.0' => '{}'];
+check('ohne Karte → Hinweis statt Fehler, alte Zonen bleiben', strpos($maeher->RaeumeLaden(), 'Keine Räume/Zonen') !== false && variable(2100, 'Raum') !== null);
 FakeCloud::$cms = json_encode(['d' => ['value' => [3978, 3978, 1026]]]);
 FakeCloud::$cmsGeschrieben = null;
 $t = $maeher->VerbrauchsteilZuruecksetzen('Messer');

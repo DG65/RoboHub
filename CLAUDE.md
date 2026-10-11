@@ -55,7 +55,7 @@
   - Befehle: EvotecIT Start 5.1/Stopp 5.2/Pause 5.4, ioBroker-Code 2.1/2.2/2.4 → 5.x zuerst,
     bei result.code ≠ 0 einmal 2.x. **Station 5.3** in beiden (3.1 wirkt nicht). Welcher Weg
     griff, steht im Debug „Befehl". Orten über 2.50 `o:9`, Messer über 2.50
-    `{"m":"g","t":"CMS"}` (Max 6000 min). Mäh-Zonen noch nicht gebaut.
+    `{"m":"g","t":"CMS"}` (Max 6000 min). Mäh-Zonen seit 0.6.0 (siehe unten).
 - Nicht gebaut, bewusst: MQTT-Push (Ausbaustufe; TLS, user=uid, pass=access_token),
   Tasshacks Body-Signatur/TLS-Fingerprint (ioBroker funktioniert ohne).
 
@@ -169,6 +169,15 @@
 - **Mäher-DND schreiben live bestätigt (LiDAX, 23:42–23:43):** Ende 11:00 → 10:30 per
   `{"m":"s","t":"DND","d":{"value":0,"time":[1200,630]}}`, CFG danach aus/20:00–10:30, MOVAhome-App zeigte
   20:00–10:30 (Dietmar bestätigt); zurück auf 11:00. **Damit ist 0.5.0 an beiden Geräten vollständig live geprüft.**
+
+## Mähzonen (0.6.0)
+
+- Zonen: `getDeviceData {did}` → `MAP.0…n` + `MAP.info` zusammensetzen → JSON-Liste von Slots (Objekt oder
+  JSON-Text) → erster Slot → `mowingAreas.value [[id,{name,area,…}]]`. ID ≤ 0 übergangen, leerer Name → „Zone n".
+  Welche Karte aktiv ist, ist unbelegt (ioBroker kennt keinen Zeiger) → erster Slot.
+- Start: 2.50 `{"m":"a","p":0,"o":102,"d":{"region":[…]}}` — nur aus ioBroker (reverse-engineered aus dem
+  App-Plugin), **live noch nicht geprüft**. Bewegungsbefehl → nur mit Dietmars Freigabe (Rasen frei, er vor Ort).
+- Variable/Attribut wie bei den Sauger-Räumen (`Raum`, `Raeume`), Kachel-Text „mähen" statt „reinigen".
 
 ## Prüfen
 
