@@ -57,6 +57,19 @@
 - Nicht gebaut, bewusst: MQTT-Push (Ausbaustufe; TLS, user=uid, pass=access_token),
   Tasshacks Body-Signatur/TLS-Fingerprint (ioBroker funktioniert ohne).
 
+## Live-Stand (Dietmars Anlage, 11.10.2026)
+
+- Konten: Dreame #42970, MOVA #50686 (Symcon „Privat"), beide angemeldet, Login + listV2 live ok.
+- **Barny II #54764** (`dreame.vacuum.r9547a`, FW 4.3.9_3855): `ROBO_Aktualisieren` live ok, alle
+  Blöcke beantwortet. **r9547a liefert 2.1/3.1 per Abfrage** (Rückfall nicht nötig, schadet nicht).
+  4.23 = 5120 → Bits 0–1 = 0 → mit Mopp-Anhebungs-Tausch „Saugen und Wischen" (gegen App prüfen).
+  3.2 = 1 (lädt) trotz 100 %/Zustand 13. **Raumnamen aus der Karte live dekodiert** (7 Räume,
+  eigene Namen + Typ-Namen; „Küche 2" = Index 1 wie ioBroker, gegen App prüfen).
+- LiDAX-Instanz (#19587) war nach dem MC-Neuanlegen weg (Ursache offen, Barny blieb) — neu
+  anlegen über Konfigurator #12732.
+- **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
+  (Port 3777 zu); Attribute/Anmeldungen blieben dabei erhalten. Nicht leichtfertig wiederholen.
+
 ## Prüfen
 
 ```
