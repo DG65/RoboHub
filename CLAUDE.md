@@ -81,6 +81,8 @@
 - **Start am LiDAX live (18:07)**: angenommen in 0,6 s mit einer Anfrage → Weg **5.1** (EvotecIT) greift, Ausweichweg 2.x nicht nötig. Danach 2.1 = **19** (in keiner Quelle) = mäht (Dietmar bestätigt) → seit 0.2.2 „Mäht". 3.2 = 2 = „lädt nicht" (Homey-App andiwirz bestätigt).
 - **Zur Station am LiDAX live (18:13)**: 5.3 angenommen (0,6 s), danach 2.1 = 5 „Fährt zur Station", 3.1 = 91, 3.2 = 5 (bei Saugern „Rückkehr zum Laden"). Pause/Stopp am Mäher noch ungetestet.
 - Barny 2.1 = 35 „Trocknet Staubbeutel" (Tasshack) **gegen die Dreamehome-App bestätigt** (20:23). LiDAX nach Rückkehr 2.1 = 6 „Lädt", 3.2 = 1.
+- **Verbrauchsteile Barny gegen App exakt bestätigt** (20:41): Filter 12 % (11.1), Seitenbürste 34 % (10.2), Hauptbürste 56 % (9.2), Sensoren 0 % (16.1). App zeigt zusätzlich Reststunden (19/69/169/0 h) — RoboHub liest die Stunden-piids noch nicht.
+- Raumumbenennung in der App („Küche 2" → „Küche") per `ROBO_RaeumeLaden` sofort übernommen.
 - „Orten" am LiDAX live: Kanal 2.50 `{"m":"a","p":0,"o":9}` funktioniert, **LiDAX hat gepiept** (Dietmar bestätigt). Start/Stopp/Pause (5.x vs. 2.x) noch ungetestet.
 - 0.2.1 live gemessen am LiDAX: 1. Abruf 9,2 s (Block 4.x versucht), 2. Abruf **0,5 s** (Block übersprungen).
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
