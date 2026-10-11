@@ -160,7 +160,10 @@
   RoboHub nimmt 5.4 (Tasshack-Vorrang). Lautstärke 7.1 = 59. Alle Blöcke beantwortet.
   LiDAX: CFG beantwortet — DND aus, 20:00–11:00, VOL 0. **Alle Lesewerte von Dietmar gegen beide Apps bestätigt.**
 - **Lautstärke schreiben live bestätigt (Barny, 23:36):** 59 → 50 (set_properties 7.1, Abruf danach 7.1 = 50)
-  → zurück 59 (7.1 = 59). Nicht-stören-Schreiben (5.4) und Mäher-Schreiben (CFG) noch nicht live.
+  → zurück 59 (7.1 = 59).
+- **Nicht stören schreiben live bestätigt (Barny, 23:37–23:39):** Ende 08:00 → 07:30 per 5.4 (Fenster id 0,
+  übrige Felder unverändert); Barny spiegelt selbst nach 5.3 = "07:30"; Dreamehome-App zeigte 22:00–07:30
+  (Dietmar bestätigt); zurück auf 08:00 (5.3/5.4 = 08:00). Mäher-Schreiben (CFG DND/VOL) noch nicht live.
 
 ## Prüfen
 
