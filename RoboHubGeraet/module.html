@@ -5,31 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 :root{--fg:#1d1d1f;--fg2:#6e6e73;--rand:rgba(0,0,0,.12);--fl:rgba(0,0,0,.05);--seite:#ffffff;
---gruen:#1f7a3a;--gruenbg:#e3f4e8;--blau:#0b5cad;--blaubg:#e3effb;--gelb:#8a5a00;--gelbbg:#fbf0d9;--rot:#a82a2a;--rotbg:#fbe6e6;--graubg:#efeff1}
+--gruen:#1f7a3a;--gruenbg:#e3f4e8;--blau:#0b5cad;--blaubg:#e3effb;--gelb:#8a5a00;--gelbbg:#fbf0d9;--rot:#a82a2a;--rotbg:#fbe6e6;--grau:#6e6e73;--graubg:#efeff1;
+--s:clamp(13px,calc(7px + 1.7vmin),22px)}
 @media (prefers-color-scheme:dark){:root{--fg:#f2f2f7;--fg2:#a1a1a6;--rand:rgba(255,255,255,.16);--fl:rgba(255,255,255,.07);--seite:#1c1c1e;
---gruen:#7fd89a;--gruenbg:rgba(52,199,89,.18);--blau:#8cc4ff;--blaubg:rgba(10,132,255,.2);--gelb:#ffd479;--gelbbg:rgba(255,159,10,.2);--rot:#ff9b9b;--rotbg:rgba(255,69,58,.2);--graubg:rgba(255,255,255,.08)}}
+--gruen:#7fd89a;--gruenbg:rgba(52,199,89,.18);--blau:#8cc4ff;--blaubg:rgba(10,132,255,.2);--gelb:#ffd479;--gelbbg:rgba(255,159,10,.2);--rot:#ff9b9b;--rotbg:rgba(255,69,58,.2);--grau:#a1a1a6;--graubg:rgba(255,255,255,.08)}}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:transparent;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px}
-body.eigen{background:var(--seite);padding:12px}
-.kopf{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.sym{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
-.titel{flex:1;min-width:0}.titel b{display:block;font-size:17px;font-weight:600}.titel span{display:block;font-size:12px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.akku{text-align:right}.akku b{display:block;font-size:19px;font-weight:600}.akku span{font-size:12px;color:var(--fg2)}
-.hinweis{border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:13px}
-.knoepfe{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
-button{font:inherit;font-size:13px;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:10px;padding:8px 2px;cursor:pointer}
-button:active{transform:scale(.97)}button:disabled{opacity:.45;cursor:default}
-.klein{font-size:12px;color:var(--fg2);margin:0 0 6px}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.chip{font-size:13px;padding:5px 11px;border-radius:999px;border:1px solid var(--rand);background:transparent;cursor:pointer;color:var(--fg)}
+html,body{margin:0;height:100%;background:transparent;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:var(--s)}
+/* Symcon legt Instanzname + Vergrößern-Symbol als eigene Ebene über die
+   oberen ~44 px der Kachel (Verbund-Befund NRGDashboard) — freihalten. */
+body{padding:44px 16px 12px;display:flex;flex-direction:column}
+#app{flex:1;display:flex;flex-direction:column}
+body.eigen{background:var(--seite);padding-top:14px}
+.layout{display:grid;gap:1.1em;align-items:start;margin:auto 0;width:100%}
+@media (min-width:560px){.layout{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:1.6em}}
+.status{display:flex;align-items:center;gap:.9em}
+.sym{width:3.4em;height:3.4em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25em;flex:none}
+.titel{min-width:0}.titel b{display:block;font-size:1.45em;font-weight:600;line-height:1.2}
+.titel span{display:block;font-size:.85em;color:var(--fg2);margin-top:.15em}
+.akku{margin:1em 0 .2em;display:flex;align-items:center;gap:.7em}
+.balken{flex:1;height:.55em;border-radius:1em;background:var(--graubg);overflow:hidden}
+.balken i{display:block;height:100%;border-radius:1em}
+.akku b{font-size:1.1em;font-weight:600;min-width:3.6em;text-align:right}
+.akku span{font-size:.8em;color:var(--fg2)}
+.hinweis{border-radius:.7em;padding:.55em .8em;margin-top:.7em;font-size:.9em}
+.knoepfe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5em;margin-top:1em;max-width:26em}
+@media (max-width:559px){.knoepfe{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none}}
+button{font:inherit;font-size:.92em;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:.8em;padding:.6em .3em;cursor:pointer;white-space:nowrap}
+button:active{transform:scale(.97)}
+.start{background:var(--blaubg);border-color:transparent;color:var(--blau)}
+.abschnitt{font-size:.78em;color:var(--fg2);text-transform:uppercase;letter-spacing:.06em;margin:0 0 .5em}
+.block+.block{margin-top:1.1em}
+.chips{display:flex;flex-wrap:wrap;gap:.45em}
+.chip{font-size:.9em;padding:.35em .9em;border-radius:2em;border:1px solid var(--rand);background:transparent}
 .chip.an{background:var(--blaubg);border-color:var(--blau);color:var(--blau)}
-.info{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.info span{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--graubg)}
-.teile{border-top:1px solid var(--rand);padding-top:8px}
-.teil{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0}
+.los{margin-top:.6em;width:100%}
+.info{display:flex;flex-wrap:wrap;gap:.45em}.info span{font-size:.85em;padding:.3em .8em;border-radius:2em;background:var(--graubg)}
+.teil{display:flex;justify-content:space-between;gap:.6em;font-size:.92em;padding:.28em 0;border-bottom:1px solid var(--rand)}
+.teil:last-of-type{border-bottom:none}
 .teil.rot{color:var(--rot)}.teil.gelb{color:var(--gelb)}.teil.ok{color:var(--fg2)}
-.mehr{background:none;border:none;color:var(--blau);padding:4px 0;font-size:13px}
-.fuss{margin-top:8px;font-size:11px;color:var(--fg2)}
-.meldung{font-size:12px;color:var(--fg2);min-height:16px;margin-top:4px}
+.mehr{background:none;border:none;color:var(--blau);padding:.4em 0;font-size:.88em}
+.fuss{margin-top:.8em;font-size:.75em;color:var(--fg2)}
+.meldung{font-size:.85em;color:var(--fg2);margin-top:.6em;min-height:1.2em}
 </style>
 </head>
 <body>
@@ -67,50 +83,56 @@ function zeichnen() {
   var d = daten; if (!d) { return; }
   var z = ZUSTAND[d.zustand] || ZUSTAND['-1'];
   var bedienbar = !d.eigen || d.bedienung;
-  var h = '';
-  h += '<div class="kopf"><div class="sym" style="' + farbe(z[1]) + '">' + (d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0]) + '</div>';
-  h += '<div class="titel"><b>' + esc(d.zustandText) + '</b><span>' + esc(d.unterzeile) + '</span></div>';
-  h += '<div class="akku"><b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? '⚡ lädt' : 'Akku') + '</span></div></div>';
-  if (!d.erreichbar) { h += '<div class="hinweis" style="' + farbe('grau') + '">📡 Roboter gerade nicht erreichbar</div>'; }
-  if (d.fehler) { h += '<div class="hinweis" style="' + farbe('rot') + '">⚠️ ' + esc(d.fehler) + '</div>'; }
-  (d.hinweise || []).forEach(function (t) { h += '<div class="hinweis" style="' + farbe('gelb') + '">' + esc(t) + '</div>'; });
+  var akkuFarbe = d.akku == null ? 'grau' : (d.akku <= 15 ? 'rot' : (d.akku <= 35 ? 'gelb' : 'gruen'));
 
+  var l = '<div class="status"><div class="sym" style="' + farbe(z[1]) + '">' + (d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0]) + '</div>';
+  l += '<div class="titel"><b>' + esc(d.zustandText) + '</b>' + (d.unterzeile ? '<span>' + esc(d.unterzeile) + '</span>' : '') + '</div></div>';
+  l += '<div class="akku"><div class="balken"><i style="width:' + (d.akku || 0) + '%;background:var(--' + akkuFarbe + ')"></i></div>';
+  l += '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? '⚡ lädt' : '🔋') + '</span></div>';
+  if (!d.erreichbar) { l += '<div class="hinweis" style="' + farbe('grau') + '">📡 Gerade nicht erreichbar</div>'; }
+  if (d.fehler) { l += '<div class="hinweis" style="' + farbe('rot') + '">⚠️ ' + esc(d.fehler) + '</div>'; }
+  (d.hinweise || []).forEach(function (t) { l += '<div class="hinweis" style="' + farbe('gelb') + '">' + esc(t) + '</div>'; });
   if (bedienbar) {
-    h += '<div class="knoepfe">';
-    BEFEHLE.forEach(function (b) { h += '<button onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>'; });
-    h += '</div>';
-    if ((d.raeume || []).length) {
-      h += '<p class="klein">' + (d.klasse === 'maeher' ? 'Zone mähen' : 'Raum reinigen') + ' — antippen, dann starten</p><div class="chips">';
-      d.raeume.forEach(function (r) { h += '<button class="chip' + (gewaehlt.indexOf(r.id) >= 0 ? ' an' : '') + '" onclick="raumWaehlen(' + r.id + ')">' + esc(r.name) + '</button>'; });
-      h += '</div>';
-      if (gewaehlt.length) {
-        var namen = d.raeume.filter(function (r) { return gewaehlt.indexOf(r.id) >= 0; }).map(function (r) { return r.name; }).join(', ');
-        h += '<div class="knoepfe" style="grid-template-columns:1fr"><button onclick="senden(\'Raeume\',\'' + gewaehlt.join(',') + '\',\'Reinigung ' + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + ' reinigen</button></div>';
-      }
-    }
+    l += '<div class="knoepfe">';
+    BEFEHLE.forEach(function (b) {
+      l += '<button' + (b[0] === 1 ? ' class="start"' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>';
+    });
+    l += '</div>';
   } else if (d.eigen) {
-    h += '<p class="klein">🔒 Nur Anzeige — Bedienung ist für diese Seite nicht freigegeben.</p>';
+    l += '<div class="hinweis" style="' + farbe('grau') + '">🔒 Nur Anzeige — Bedienung für diese Seite nicht freigegeben</div>';
   }
+  l += '<div class="meldung">' + esc(rueck) + '</div>';
 
-  if ((d.info || []).length) { h += '<div class="info">' + d.info.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div>'; }
-
+  var r = '';
+  if (bedienbar && (d.raeume || []).length) {
+    r += '<div class="block"><p class="abschnitt">' + (d.klasse === 'maeher' ? 'Zone mähen' : 'Raum reinigen') + '</p><div class="chips">';
+    d.raeume.forEach(function (x) { r += '<button class="chip' + (gewaehlt.indexOf(x.id) >= 0 ? ' an' : '') + '" onclick="raumWaehlen(' + x.id + ')">' + esc(x.name) + '</button>'; });
+    r += '</div>';
+    if (gewaehlt.length) {
+      var namen = d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0; }).map(function (x) { return x.name; }).join(', ');
+      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + gewaehlt.join(',') + '\',\'Reinigung ' + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + ' reinigen</button>';
+    }
+    r += '</div>';
+  }
+  if ((d.info || []).length) {
+    r += '<div class="block"><p class="abschnitt">Einstellung</p><div class="info">' + d.info.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div></div>';
+  }
   var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
   if (teile.length) {
     var kritisch = teile.filter(function (t) { return t.prozent <= 25; });
     var zeigen = alleTeile ? teile : kritisch;
-    h += '<div class="teile">';
+    r += '<div class="block"><p class="abschnitt">Verbrauchsteile</p>';
     zeigen.forEach(function (t) {
       var k = t.prozent <= 10 ? 'rot' : (t.prozent <= 25 ? 'gelb' : 'ok');
-      h += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + '</span></div>';
+      r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + '</span></div>';
     });
     var rest = teile.length - kritisch.length;
-    if (!alleTeile && rest > 0) { h += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' Verbrauchsteile in Ordnung') + ' ›</button>'; }
-    if (alleTeile) { h += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ weniger</button>'; }
-    h += '</div>';
+    if (!alleTeile && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' in Ordnung') + ' ›</button>'; }
+    if (alleTeile) { r += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ weniger</button>'; }
+    r += '</div>';
   }
-  h += '<div class="meldung">' + esc(rueck) + '</div>';
-  if (d.stand) { h += '<div class="fuss">Stand ' + esc(d.stand) + ' Uhr</div>'; }
-  document.getElementById('app').innerHTML = h;
+  if (d.stand) { r += '<div class="fuss">Stand ' + esc(d.stand) + ' Uhr</div>'; }
+  document.getElementById('app').innerHTML = '<div class="layout"><div>' + l + '</div><div>' + r + '</div></div>';
 }
 
 function handleMessage(raw) {

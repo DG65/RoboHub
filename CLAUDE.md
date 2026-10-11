@@ -105,6 +105,11 @@
   und mit geratenem Schlüssel live abgelehnt („🔒 … nicht freigegeben"). Darstellung in Dietmars
   Kachel-Visualisierung und in IPSView noch nicht gesehen.
 
+- **Kachel-Layout (0.3.1):** Symcon-Titelzeile (Instanzname + ⤢) liegt als Ebene über den
+  oberen ~44 px → `body{padding-top:44px}` (nicht bei `.eigen`). Erste Fassung 0.3.0 überlappte
+  (Dietmars Screenshot 21:47). Vorschau-Generator mit nachgebildetem Titelstreifen + dunklem
+  Modus lag im Scratchpad (`vorschau.py`), nicht im Repo.
+
 ## Prüfen
 
 ```

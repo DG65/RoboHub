@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1 (11.10.2026)
+
+- Kachel-Layout nach Dietmars Screenshot: Symcon legt Instanzname und Vergrößern-Symbol
+  als eigene Ebene über die oberen ~44 px — jetzt freigehalten (eigenständige Seite ohne
+  diesen Abstand). Ab 560 px Breite zweispaltig, Schrift skaliert mit der Kachelgröße
+  (`clamp`/`vmin`), Inhalt senkrecht zentriert, Akku als Balken, Knöpfe 2×2.
+
 ## 0.3.0 (11.10.2026)
 
 - **Kachel je Roboter** (Kachel-Visualisierung, `SetVisualizationType(1)`, `module.html`):
