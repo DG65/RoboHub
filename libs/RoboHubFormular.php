@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.3.5' => [
+            '• Produktbild: sucht die Bildadresse jetzt im ganzen Gerätedatensatz (lag bei echten Konten nicht an der erwarteten Stelle).',
+        ],
         '0.3.4' => [
             '• Kachel zeigt das Produktbild deines Roboters (wie in der Hersteller-App) mit farbigem Zustandsring; ohne Bild bleibt das Symbol.',
         ],

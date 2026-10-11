@@ -442,6 +442,9 @@ check('Bild: nur https, kein Einschleusen von HTML', RoboHubDreame::bildVon(['de
     && RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'https://x/a.png" onerror="alert(1)']]]) === ''
     && RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => ''], 'icon' => ['imageUrl' => 'https://x/i.png']]]) === 'https://x/i.png');
 check('Mäher ohne Bild in der Liste → kein Bild (Symbol als Ersatz)', RoboHubDreame::bildVon([]) === '');
+check('Bild an anderer Stelle im Datensatz wird gefunden', RoboHubDreame::bildVon(['deviceInfo' => ['extendScType' => ['x'], 'imageUrl' => 'https://cdn/x/robot.png']]) === 'https://cdn/x/robot.png');
+check('Nicht-Bild-Adressen werden ignoriert', RoboHubDreame::bildVon(['keyDefine' => ['url' => 'https://cdn/x/define.json']]) === '');
+check('Rohdaten listen Felder und Bildpfade', strpos($geraet->Rohdaten(), '"bilder": {') !== false && strpos($geraet->Rohdaten(), '"felder": [') !== false);
 check('Kachel: Station meldet Staubbeutel „Prüfen" als Hinweis', in_array('🗑️ Staubbeutel: Prüfen', $k['hinweise'] ?? [], true), json_encode($k['hinweise'] ?? []));
 
 $geraet->visu = [];

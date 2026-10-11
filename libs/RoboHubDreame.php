@@ -200,11 +200,35 @@ class RoboHubDreame implements RoboHubTreiber
     {
         foreach (['mainImage', 'overlook', 'icon', 'popup'] as $feld) {
             $url = (string)($record['deviceInfo'][$feld]['imageUrl'] ?? '');
-            if (preg_match('#^https://[^\s"\'<>]+$#', $url)) {
+            if (self::istBildUrl($url)) {
                 return $url;
             }
         }
-        return '';
+        // Echte Gerätelisten weichen vom ioBroker-Beispiel ab (Live-Befund
+        // 11.10.2026: deviceInfo.mainImage fehlte bei Dreame UND MOVA) —
+        // deshalb ersatzweise das erste Bild irgendwo im Datensatz.
+        $treffer = self::bildPfade($record);
+        return $treffer ? (string)reset($treffer) : '';
+    }
+
+    private static function istBildUrl(string $url): bool
+    {
+        return (bool)preg_match('#^https://[^\s"\'<>]+$#', $url);
+    }
+
+    /** Alle https-Bildadressen im Datensatz: [Pfad => URL] (für Rohdaten/Fehlersuche). */
+    public static function bildPfade(array $daten, string $pfad = ''): array
+    {
+        $out = [];
+        foreach ($daten as $k => $v) {
+            $p = $pfad === '' ? (string)$k : $pfad . '.' . $k;
+            if (is_array($v)) {
+                $out += self::bildPfade($v, $p);
+            } elseif (is_string($v) && self::istBildUrl($v) && preg_match('#\.(png|jpe?g|webp|gif)(\?|$)#i', $v)) {
+                $out[$p] = $v;
+            }
+        }
+        return $out;
     }
 
     /** Sauger oder Mäher — ioBroker erkennt Mäher ebenfalls am Modellnamen. */
@@ -314,7 +338,8 @@ class RoboHubDreame implements RoboHubTreiber
         $daten['roh'] = [
             'modell'        => $modell,
             'firmware'      => $eintrag['ver'] ?? null,
-            'liste'         => ['online' => $eintrag['online'] ?? null, 'latestStatus' => $eintrag['latestStatus'] ?? null, 'battery' => $eintrag['battery'] ?? null],
+            'liste'         => ['online' => $eintrag['online'] ?? null, 'latestStatus' => $eintrag['latestStatus'] ?? null, 'battery' => $eintrag['battery'] ?? null,
+                                'felder' => array_keys($eintrag), 'deviceInfo' => array_keys((array)($eintrag['deviceInfo'] ?? [])), 'bilder' => self::bildPfade($eintrag)],
             'properties'    => $p,
             'fehlendeBloecke' => $fehlBloecke,
             'uebersprungeneBloecke' => $ueberspringen,

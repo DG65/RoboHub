@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5 (11.10.2026)
+
+- Produktbild: Bei Dietmars Dreame- und MOVA-Konto lieferte `deviceInfo.mainImage` kein
+  Bild (Kachel blieb beim Symbol). Ersatzweise wird jetzt die erste https-Bildadresse im
+  ganzen Datensatz genommen; die Rohdaten zeigen Felder und gefundene Bildpfade.
+
 ## 0.3.4 (11.10.2026)
 
 - Kachel: offizielles Produktbild statt Haus-Symbol (Dietmars Wunsch). Quelle:
