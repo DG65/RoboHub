@@ -107,7 +107,7 @@
 
 - **Kachel-Layout (0.3.1):** Symcon-Titelzeile (Instanzname + ⤢) liegt als Ebene über den
   oberen ~44 px → `body{padding-top:44px}` (nicht bei `.eigen`). Erste Fassung 0.3.0 überlappte
-  (Dietmars Screenshot 21:47). **0.3.1 live in Dietmars Kachel-Visualisierung bestätigt (21:51, Screenshot):** keine Überlappung, zweispaltig, dunkler Modus korrekt. **0.3.2 live bestätigt (21:55):** gleiche Starthöhe, großes Symbol, Mäher-Teile offen, Stand unten. Offen: Ampelschwellen (≤10 % rot, ≤25 % gelb) vs. MOVAhome-App, die Klingen schon bei 34 % „Bald ersetzen" nennt. Vorschau-Generator mit nachgebildetem Titelstreifen + dunklem
+  (Dietmars Screenshot 21:47). **0.3.1 live in Dietmars Kachel-Visualisierung bestätigt (21:51, Screenshot):** keine Überlappung, zweispaltig, dunkler Modus korrekt. **0.3.2 live bestätigt (21:55):** gleiche Starthöhe, großes Symbol, Mäher-Teile offen, Stand unten. Ampelschwellen seit 0.3.3 an die Apps angelehnt: rot ≤ 5 %, gelb ≤ 35 % (`TEIL_ROT`/`TEIL_GELB` in module.html); exakte App-Grenze liegt bei MOVA zwischen 34 und 72 %, nicht weiter belegt. Vorschau-Generator mit nachgebildetem Titelstreifen + dunklem
   Modus lag im Scratchpad (`vorschau.py`), nicht im Repo.
 
 ## Prüfen

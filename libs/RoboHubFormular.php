@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.3.3' => [
+            '• Kachel: Farbstufen der Verbrauchsteile wie in den Hersteller-Apps — rot nur bei 0–5 %, gelb („bald ersetzen") bis 35 %.',
+        ],
         '0.3.2' => [
             '• Kachel: Inhalt beginnt bei allen Robotern auf gleicher Höhe direkt unter dem Namen, größeres Zustandssymbol, bis zu vier Verbrauchsteile immer offen, „Stand" am unteren Rand.',
         ],

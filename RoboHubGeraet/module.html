@@ -57,6 +57,10 @@ var ZUSTAND = {
   4: ['🔋', 'gruen'], 5: ['🏠', 'gruen'], 6: ['💧', 'gruen'], 7: ['⚠️', 'rot'], 8: ['💤', 'grau'],
   9: ['🗺️', 'blau'], 10: ['🔄', 'grau'], 11: ['🌧️', 'gelb']
 };
+// Farbstufen der Verbrauchsteile, angelehnt an die Hersteller-Apps
+// (Dietmars Screenshots 11.10.2026): Dreamehome färbt nur 0 % rot,
+// MOVAhome nennt 34 % „Bald ersetzen" und 72 % „In gutem Zustand".
+var TEIL_ROT = 5, TEIL_GELB = 35;
 var BEFEHLE = [[1, '▶️ Start'], [2, '⏸️ Pause'], [4, '🏠 Station'], [5, '📍 Orten']];
 var daten = null, gewaehlt = [], alleTeile = false, rueck = '';
 
@@ -120,13 +124,13 @@ function zeichnen() {
   }
   var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
   if (teile.length) {
-    var kritisch = teile.filter(function (t) { return t.prozent <= 25; });
+    var kritisch = teile.filter(function (t) { return t.prozent <= TEIL_GELB; });
     // Bis zu 4 Teile (z. B. Mäher) passen immer — dann nichts einklappen.
     var offen = alleTeile || teile.length <= 4;
     var zeigen = offen ? teile : kritisch;
     r += '<div class="block"><p class="abschnitt">Verbrauchsteile</p>';
     zeigen.forEach(function (t) {
-      var k = t.prozent <= 10 ? 'rot' : (t.prozent <= 25 ? 'gelb' : 'ok');
+      var k = t.prozent <= TEIL_ROT ? 'rot' : (t.prozent <= TEIL_GELB ? 'gelb' : 'ok');
       r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + '</span></div>';
     });
     var rest = teile.length - kritisch.length;

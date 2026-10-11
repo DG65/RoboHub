@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 (11.10.2026)
+
+- Kachel: Farbstufen der Verbrauchsteile an die Hersteller-Apps angelehnt (Dietmars
+  Wunsch): rot ≤ 5 % (Dreamehome färbt nur 0 % rot), gelb ≤ 35 % (MOVAhome: Klingen 34 % =
+  „Bald ersetzen", 72 % = „In gutem Zustand"). Die eingeklappte Liste zeigt alle gelben/roten.
+
 ## 0.3.2 (11.10.2026)
 
 - Kachel-Feinschliff nach Dietmars Screenshot: Inhalt oben ausgerichtet statt senkrecht
