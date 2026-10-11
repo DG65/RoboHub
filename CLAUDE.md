@@ -69,5 +69,7 @@ Pflicht: Dietmars Aqua10 Ultra Roller Complete (Dreamehome) und MOVA-Mäher (MOV
 
 ## Branch-Modell
 
-Erster Commit auf `main` + `beta`, danach nur `beta` bis zum ersten Live-Test.
-`LICENSE_URL` zeigt auf `main` (PolyForm von Anfang an).
+**`main` und `beta` laufen gleich** (Dietmars Entscheidung 11.10.2026: „Du kannst alles auch
+nach main pushen") — jeder Push geht auf beide, aber nur bei grünem Prüfstand:
+`php .tools/test-robohub.php >/dev/null && git push origin beta && git push origin beta:main`
+(nie mit `;` verketten). `LICENSE_URL` zeigt auf `main` (PolyForm von Anfang an).
