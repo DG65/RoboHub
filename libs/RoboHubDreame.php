@@ -915,6 +915,152 @@ PEM;
         return $termine;
     }
 
+    // Mäher-Zeitpläne (EvotecIT schedule.py / schedule_read_plan.py, MIT): über 2.50 je
+    // Kartenplatz (−1 = Standard, 0, 1) erst SCHDIV<n> {"i": Platz} → {"l": Länge, "v": Version}
+    // (0xFFFF = leer), dann SCHDDV<n> {"s": Versatz, "l": ≤ 100, "v": Version} → {"d": Text}.
+    // Dokumentgeneration 2, sonst 3. Text = {"d": [[Plan-ID, an, Name, Base64-Termine], …]}.
+    private const MAEHER_TAGE = [0 => 'So', 1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa'];
+    private const MAEHER_PLANART = [0 => 'alle', 1 => 'zonen', 2 => 'kante', 3 => 'patrouille'];
+
+    /** Rückgabe [Termine, Rohtext]; Fehler einzelner Plätze werden übergangen. */
+    private function maeherZeitplaene(array $buendel, string $did): array
+    {
+        $termine = [];
+        $roh = [];
+        foreach ([-1, 0, 1] as $platz) {
+            foreach ([2, 3] as $gen) {
+                try {
+                    $info = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDIV' . $gen, 'd' => ['i' => $platz]]);
+                } catch (RoboHubFehler $e) {
+                    if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                        throw $e;
+                    }
+                    continue;
+                }
+                if (!is_array($info) || !isset($info['l'], $info['v'])) {
+                    continue;
+                }
+                $laenge = (int)$info['l'];
+                $version = (int)$info['v'];
+                if ($laenge <= 0 || $version === 0xFFFF) {
+                    break;                                  // Platz leer
+                }
+                $text = '';
+                for ($versatz = 0, $runde = 0; strlen($text) < $laenge && $runde < 60; $runde++) {
+                    $stueck = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDDV' . $gen, 'd' => ['s' => strlen($text), 'l' => min(100, $laenge - strlen($text)), 'v' => $version]]);
+                    $teil = is_array($stueck) ? (string)($stueck['d'] ?? '') : '';
+                    if ($teil === '') {
+                        break;
+                    }
+                    $text .= $teil;
+                }
+                if (strlen($text) !== $laenge) {
+                    $this->dbg('Zeitpläne', 'Platz ' . $platz . ' unvollständig (' . strlen($text) . '/' . $laenge . ').');
+                    break;
+                }
+                $roh[] = $text;
+                foreach (self::maeherPlaeneLesen($text) as $t) {
+                    $t['platz'] = $platz;
+                    $termine[] = $t;
+                }
+                break;
+            }
+        }
+        return [$termine, implode("\n", $roh)];
+    }
+
+    /** Antwort-„d" einer Konfigurationskanal-Abfrage (2.50), r ≠ 0 = Fehler. */
+    private function maeherKanal(array $buendel, string $did, array $anfrage)
+    {
+        $out = $this->aktion($buendel, $did, 2, 50, [$anfrage]);
+        $erstes = $out['out'][0] ?? null;
+        if (is_string($erstes)) {
+            $erstes = json_decode($erstes, true);
+        }
+        if (!is_array($erstes) || (isset($erstes['r']) && (int)$erstes['r'] !== 0)) {
+            throw new RoboHubFehler('Mäher lehnt ' . $anfrage['t'] . ' ab.');
+        }
+        return $erstes['d'] ?? null;
+    }
+
+    /** Zeitplan-Dokument → Termine (je Plan einer, mit Einträgen je Wochentag). */
+    public static function maeherPlaeneLesen(string $text): array
+    {
+        $j = json_decode($text, true);
+        $termine = [];
+        foreach ((array)($j['d'] ?? []) as $plan) {
+            if (!is_array($plan) || !isset($plan[0])) {
+                continue;
+            }
+            $eintraege = [];
+            $b64 = (string)($plan[3] ?? '');
+            $daten = $b64 === '' ? '' : base64_decode($b64, true);
+            if (is_string($daten) && $daten !== '') {
+                $eintraege = self::maeherTermineLesen(array_values(unpack('C*', $daten)));
+            }
+            $tage = [];
+            foreach ([1, 2, 3, 4, 5, 6, 0] as $i) {
+                foreach ($eintraege as $e) {
+                    if ($e['tagNr'] === $i) {
+                        $tage[] = self::MAEHER_TAGE[$i];
+                        break;
+                    }
+                }
+            }
+            $termine[] = [
+                'id' => (int)$plan[0], 'an' => (int)($plan[1] ?? 0) === 1, 'ungueltig' => false,
+                'name' => (string)($plan[2] ?? ''), 'art' => 'maeher', 'tage' => $tage, 'einmalig' => false,
+                'zeit' => $eintraege[0]['von'] ?? '', 'eintraege' => $eintraege,
+            ];
+        }
+        return $termine;
+    }
+
+    /**
+     * Termin-Bytes (EvotecIT _decode_schedule_task_data): je Termin 7 Byte Kopf —
+     * Byte 0 hohe 4 Bit Wochentag (0 = So), niedrige Art (≥ 8 = wiederkehrend, Rest
+     * mod 8: 0 alles, 1 Zonen, 2 Kante, 3 Patrouille); Start 12 Bit (Byte 1 + untere 4 von 2),
+     * Ende 12 Bit (obere 4 von 2 + Byte 3), tatsächliches Ende 12 Bit (Byte 4/5),
+     * Anzahl Zonen-Bytes 12 Bit (obere 4 von 5 + Byte 6), dann die Zonen.
+     * Gerahmte Form (beginnt mit 0xAA, endet je Termin mit 0xED): nur Start.
+     */
+    private static function maeherTermineLesen(array $b): array
+    {
+        $aus = [];
+        $minuten = function (int $m): string { return sprintf('%02d:%02d', intdiv($m, 60), $m % 60); };
+        $i = 0;
+        $n = count($b);
+        if ($n > 0 && $b[0] === 0xAA) {
+            while ($i + 7 <= $n && $b[$i] === 0xAA) {
+                $laenge = $b[$i + 1];
+                if ($laenge < 7 || $i + $laenge > $n) {
+                    break;
+                }
+                $tag = $b[$i + 2] >> 4;
+                $art = ($b[$i + 2] & 0x0F) % 8;
+                $start = (($b[$i + 4] & 0x0F) << 8) | $b[$i + 3];
+                $aus[] = ['tagNr' => $tag, 'tag' => self::MAEHER_TAGE[$tag] ?? '?', 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
+                    'von' => $minuten($start), 'bis' => null, 'zonen' => $art === 1 ? array_slice($b, $i + 6, $laenge - 7) : []];
+                $i += $laenge;
+            }
+            return $aus;
+        }
+        while ($i + 7 <= $n) {
+            $tag = $b[$i] >> 4;
+            $art = ($b[$i] & 0x0F) % 8;
+            $start = (($b[$i + 2] & 0x0F) << 8) | $b[$i + 1];
+            $ende = ($b[$i + 3] << 4) | ($b[$i + 2] >> 4);
+            $anzahl = ($b[$i + 6] << 4) | ($b[$i + 5] >> 4);
+            if ($i + 7 + $anzahl > $n || $start >= 1440 || $ende >= 1440 || !isset(self::MAEHER_TAGE[$tag])) {
+                break;
+            }
+            $aus[] = ['tagNr' => $tag, 'tag' => self::MAEHER_TAGE[$tag], 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
+                'von' => $minuten($start), 'bis' => $minuten($ende), 'zonen' => $art === 1 ? array_slice($b, $i + 7, $anzahl) : []];
+            $i += 7 + $anzahl;
+        }
+        return $aus;
+    }
+
     /** Termin ein-/ausschalten: 8.2 frisch lesen, nur Feld 1 dieses Termins ändern (ioBroker-Toggle). */
     private function zeitplanSchalten(array $buendel, string $did, int $id, bool $an): string
     {
@@ -1313,7 +1459,10 @@ PEM;
     {
         $leer = ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0];
         if (self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER) {
-            return $this->maehKarte($buendel, (string)$geraet['id']) + $leer;
+            $ergebnis = $this->maehKarte($buendel, (string)$geraet['id']) + $leer;
+            // Zeitpläne nur mit der (seltenen) Kartenabfrage — das sind mehrere Anfragen.
+            [$ergebnis['zeitplaene'], $ergebnis['zeitplanRoh']] = $this->maeherZeitplaene($buendel, (string)$geraet['id']);
+            return $ergebnis;
         }
         $did = (string)$geraet['id'];
         $p = $this->leseProperties($buendel, $did, [[6, 8]]);
@@ -1628,10 +1777,7 @@ PEM;
             $weg = is_array($pfad) ? RoboHubKartenbild::maeherWeg($pfad) : [];
             $this->dbg('Live-Karte', 'Mähweg: ' . count($weg) . ' Stücke.');
         }
-        // Mäh-Zeitplan: Format noch nicht entschlüsselt (ioBroker speichert ihn nur roh) —
-        // für „📋 Rohdaten" mitgeben, Auswertung folgt nach dem Live-Befund.
-        return ['raeume' => $zonen, 'zeitplanRoh' => self::stueckeZusammensetzen($daten, 'SCHEDULE')]
-            + RoboHubKartenbild::maeher(is_array($slot) ? $slot : [], $zonen, $weg);
+        return ['raeume' => $zonen] + RoboHubKartenbild::maeher(is_array($slot) ? $slot : [], $zonen, $weg);
     }
 
     /** Setzt PREFIX.0, PREFIX.1 … zusammen, gekürzt auf PREFIX.info Zeichen (ioBroker reassembleChunks). */

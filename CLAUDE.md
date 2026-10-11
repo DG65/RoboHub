@@ -229,7 +229,13 @@
 - Raum-Termine: Raumnamen aus dem Attribut `Raeume` (gleiche Segment-IDs wie die Karte).
 - Mäher: `SCHEDULE.0…n` aus getDeviceData nur roh (Attribut `ZeitplanRoh`, „📋 Rohdaten"); Auswertung nach
   Live-Befund.
-- **Live offen:** Barnys 8.2-Inhalt gegen die App, Schalten eines Termins.
+- **Live bestätigt (12.10.2026 00:46–00:50, 0.9.0):** Barny 8.2 = `1-1-09:00-0101010-1-0-16-297795601-0` →
+  „09:00 · Mo, Mi, Fr · alle Räume · Saugen" = Dreamehome-App (Dietmar). Aus → 8.2 Feld 1 = 0, Ein → 1, beide
+  vom Gerät zurückgemeldet. Termin wieder aktiv.
+- Mäher (0.9.1): `SCHEDULE` aus getDeviceData ist beim LiDAX leer, obwohl ein (deaktivierter) Plan existiert →
+  Lesen nach EvotecIT über 2.50 `SCHDIV`/`SCHDDV` (siehe CHANGELOG). Nur Anzeige; `SCHDSV<n>`
+  {"i": Platz, "v": Version, "s": [1/0 je Plan]} zum Schalten wäre der nächste Schritt (EvotecIT verlangt
+  dafür einen ruhenden Mäher ohne offene Aufgabe). **Live offen.**
 
 ## Prüfen
 

@@ -416,9 +416,40 @@ class RoboHubGeraet extends IPSModule
         return $antwort;
     }
 
+    private function zeitplaeneUebernehmen(array $termine): void
+    {
+        $this->WriteAttributeString('Zeitplaene', (string)json_encode(array_values($termine)));
+        $zeilen = array_map(function (array $t): string { return ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t); }, $termine);
+        $this->MaintainVariable('Zeitplaene', 'Zeitpläne', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 95, true);
+        $this->SetValue('Zeitplaene', $zeilen === [] ? 'keine' : implode("\n", $zeilen));
+    }
+
+    /** Mäh-Plan: „Plan Sommer · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · Rasen". */
+    private function maehplanText(array $t): string
+    {
+        $namen = json_decode($this->ReadAttributeString('Raeume'), true) ?: [];
+        $gruppen = [];
+        foreach ((array)($t['eintraege'] ?? []) as $e) {
+            $was = $e['art'] === 'zonen'
+                ? implode(', ', array_map(function ($z) use ($namen): string { return (string)($namen[(string)$z] ?? $namen[(int)$z] ?? 'Zone ' . $z); }, (array)$e['zonen']))
+                : ['alle' => 'alles', 'kante' => 'Kante', 'patrouille' => 'Patrouille'][$e['art']] ?? $e['art'];
+            $schluessel = $e['von'] . ($e['bis'] !== null ? '–' . $e['bis'] : '') . ' · ' . $was;
+            $gruppen[$schluessel][] = $e['tag'];
+        }
+        $teile = [];
+        foreach ($gruppen as $wann => $tage) {
+            $teile[] = implode(', ', array_values(array_unique($tage))) . ' ' . $wann;
+        }
+        $kopf = trim((string)($t['name'] ?? '')) !== '' ? 'Plan „' . $t['name'] . '"' : 'Plan ' . (int)$t['id'];
+        return $kopf . ($teile === [] ? ' · ohne Termine' : ' · ' . implode('; ', $teile));
+    }
+
     /** Ein Termin in Klartext, mit Raumnamen aus der Karte: „07:00 · Mo, Mi, Fr · Vorrat, Küche · Saugen". */
     private function zeitplanText(array $t): string
     {
+        if (($t['art'] ?? '') === 'maeher') {
+            return $this->maehplanText($t);
+        }
         $tage = (array)($t['tage'] ?? []);
         if (!empty($t['einmalig'])) {
             $wann = 'einmalig';
@@ -563,10 +594,7 @@ class RoboHubGeraet extends IPSModule
         $this->WriteAttributeString('Optionen', (string)json_encode($optionen));
 
         if (array_key_exists('zeitplaene', $daten) && is_array($daten['zeitplaene'])) {
-            $this->WriteAttributeString('Zeitplaene', (string)json_encode(array_values($daten['zeitplaene'])));
-            $zeilen = array_map(function (array $t): string { return ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t); }, $daten['zeitplaene']);
-            $this->MaintainVariable('Zeitplaene', 'Zeitpläne', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 95, true);
-            $this->SetValue('Zeitplaene', $zeilen === [] ? 'keine' : implode("\n", $zeilen));
+            $this->zeitplaeneUebernehmen($daten['zeitplaene']);
         }
 
         if (isset($daten['roh'])) {
@@ -668,6 +696,9 @@ class RoboHubGeraet extends IPSModule
             ]));
         }
         if (count($raeume) === 0) {
+            if (isset($daten['zeitplaene']) && is_array($daten['zeitplaene'])) {
+                $this->zeitplaeneUebernehmen($daten['zeitplaene']);
+            }
             return 'ℹ️ Keine Räume/Zonen gefunden — der Roboter hat noch keine gespeicherte Karte, oder sein Kartenformat ist noch nicht bekannt (Debug „Karte").';
         }
         $alt = json_decode($this->ReadAttributeString('Raeume'), true) ?: [];
@@ -675,6 +706,10 @@ class RoboHubGeraet extends IPSModule
             $this->WriteAttributeString('Raeume', (string)json_encode($raeume));
             $this->MaintainVariable('Raum', $this->klasse() === RoboHubModell::KLASSE_MAEHER ? 'Zone mähen' : 'Raum reinigen', VARIABLETYPE_INTEGER, $this->presEnum($raeume), 6, true);
             $this->EnableAction('Raum');
+        }
+        // Nach den Raum-/Zonennamen, damit die Pläne schon die neuen Namen tragen.
+        if (isset($daten['zeitplaene']) && is_array($daten['zeitplaene'])) {
+            $this->zeitplaeneUebernehmen($daten['zeitplaene']);
         }
         $this->kachelAktualisieren();
         return '✅ ' . count($raeume) . ' Räume/Zonen: ' . implode(', ', $raeume) . '.';
@@ -943,7 +978,8 @@ class RoboHubGeraet extends IPSModule
             'raeume'      => $raeume,
             'karte'       => $this->kachelKarte(),
             'zeitplaene'  => array_map(function (array $t): array {
-                return ['id' => (int)$t['id'], 'an' => (bool)$t['an'], 'text' => $this->zeitplanText($t), 'schaltbar' => empty($t['ungueltig'])];
+                // Mäh-Pläne vorerst nur anzeigen (Schalten erst nach Live-Bestätigung des Lesens).
+                return ['id' => (int)$t['id'], 'an' => (bool)$t['an'], 'text' => $this->zeitplanText($t), 'schaltbar' => empty($t['ungueltig']) && ($t['art'] ?? '') !== 'maeher'];
             }, json_decode($this->ReadAttributeString('Zeitplaene'), true) ?: []),
             'teile'       => $teile,
             'stand'       => $abruf > 0 ? date('H:i:s', $abruf) : '',
@@ -1117,11 +1153,13 @@ class RoboHubGeraet extends IPSModule
         if ($termine === []) {
             return null;
         }
-        $items = [['type' => 'Label', 'caption' => 'Zeitpläne aus der Hersteller-App. Anlegen und ändern geht nur dort, hier lassen sie sich ein- und ausschalten.']];
+        $items = [['type' => 'Label', 'caption' => $this->klasse() === RoboHubModell::KLASSE_MAEHER
+            ? 'Mäh-Pläne aus der Hersteller-App (nur Anzeige). Anlegen, ändern und schalten geht in der App.'
+            : 'Zeitpläne aus der Hersteller-App. Anlegen und ändern geht nur dort, hier lassen sie sich ein- und ausschalten.']];
         foreach ($termine as $t) {
             $items[] = ['type' => 'RowLayout', 'items' => [
                 ['type' => 'Label', 'caption' => ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t), 'width' => '520px'],
-                ['type' => 'Button', 'caption' => $t['an'] ? 'Ausschalten' : 'Einschalten', 'visible' => empty($t['ungueltig']),
+                ['type' => 'Button', 'caption' => $t['an'] ? 'Ausschalten' : 'Einschalten', 'visible' => empty($t['ungueltig']) && ($t['art'] ?? '') !== 'maeher',
                     'onClick' => 'echo ROBO_ZeitplanSchalten($id, ' . (int)$t['id'] . ', ' . ($t['an'] ? 'false' : 'true') . ');'],
             ]];
         }

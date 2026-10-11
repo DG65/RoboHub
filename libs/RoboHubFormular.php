@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.9.1' => [
+            '• Mähroboter: Mäh-Pläne aus der Hersteller-App (Name, Wochentage, Uhrzeit, ganze Fläche oder Zonen) als Variable, auf der Kachel und im Formular — vorerst nur Anzeige.',
+        ],
         '0.9.0' => [
             '• Zeitpläne der Saugroboter aus der Hersteller-App: Uhrzeit, Wochentage, Räume bzw. alle Räume, Modus — als Variable, auf der Kachel und im Formular, dort und auf der Kachel ein- und ausschaltbar.',
         ],

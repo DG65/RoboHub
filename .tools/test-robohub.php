@@ -164,6 +164,8 @@ class FakeCloud extends RoboHubDreame
     public static $cfg = null;              // Mäher-Einstellungen (Antwort auf {"m":"g","t":"CFG"}), null = keine Antwort
     public static $cfgGeschrieben = [];     // alle {"m":"s","t":"DND"/"VOL"}-Aufträge
     public static $geraeteDaten = null;     // Antwort data von getDeviceData (Mäher-Karte in Stücken)
+    public static $maehplan = '';           // Zeitplan-Dokument des Mähers (Kartenplatz 0, Generation 2)
+    public static $kanal = [];              // alle Anfragen an 2.50 (t)
     public static $liveOut = [];            // Antwort out auf action 6.1 (Live-Kartenanforderung)
     public static $liveDatei = '';          // Inhalt der Zwischendatei „live/…"
     public static $karte = null;        // Kartentext (mapstr[0].map)
@@ -217,6 +219,19 @@ class FakeCloud extends RoboHubDreame
                 if (is_array($in) && in_array($in['t'] ?? '', ['DND', 'VOL'], true) && ($in['m'] ?? '') === 's') {
                     self::$cfgGeschrieben[] = $in;
                     return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => []]]])];
+                }
+                if (is_array($in) && isset($in['t'])) {
+                    self::$kanal[] = $in['t'];
+                }
+                if (is_array($in) && ($in['t'] ?? '') === 'SCHDIV2') {
+                    $leer = ($in['d']['i'] ?? null) !== 0 || self::$maehplan === '';
+                    // Platz −1: Länge > 0, aber Version 0xFFFF = leer (EvotecIT EMPTY_SCHEDULE_VERSION).
+                    $d = $leer ? ['l' => ($in['d']['i'] ?? null) === -1 ? 5 : 0, 'v' => 65535] : ['i' => 0, 'l' => strlen(self::$maehplan), 'v' => 7];
+                    return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['r' => 0, 'd' => $d])]]]])];
+                }
+                if (is_array($in) && ($in['t'] ?? '') === 'SCHDDV2') {
+                    $teil = substr(self::$maehplan, (int)$in['d']['s'], (int)$in['d']['l']);
+                    return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['r' => 0, 'd' => ['s' => $in['d']['s'], 'l' => strlen($teil), 'd' => $teil, 'v' => 7]])]]]])];
                 }
                 if (is_array($in) && ($in['t'] ?? '') === 'CFG') {
                     return self::$cfg === null
@@ -1318,11 +1333,36 @@ $geraet->Aktualisieren();
 check('alle Termine in der App gelöscht → „keine", Kachel leer', variable(2000, 'Zeitplaene')['value'] === 'keine' && kachelJson($geraet->GetVisualizationTile())['zeitplaene'] === []);
 unset(FakeCloud::$props['8.2']);
 
-// Mäher: Zeitplan-Rohtext aus den Gerätedaten für „📋 Rohdaten" (Format noch offen).
-FakeCloud::$geraeteDaten['SCHEDULE.0'] = '[[1,"Mo",480]]';
-FakeCloud::$geraeteDaten['SCHEDULE.info'] = '15';
+// Mäher: Plan-Dokument nach EvotecIT (Mo+Mi 09:00–12:00 alles, wiederkehrend; Sa 10:00–11:00 Zone 1).
+$tb = [0x18, 0x1C, 0x02, 45, 0xFF, 0x0F, 0,   0x38, 0x1C, 0x02, 45, 0xFF, 0x0F, 0,   0x69, 0x58, 0x42, 41, 0xFF, 0x1F, 0, 1];
+FakeCloud::$maehplan = json_encode(['d' => [[3, 0, 'Sommer', base64_encode(pack('C*', ...$tb))], [4, 1, '', ''], [9, 0, str_repeat('Lang', 50), '']]]);
+FakeCloud::$kanal = [];
 $maeher->RaeumeLaden();
-check('Mäher: Zeitplan roh in den Rohdaten', strpos($maeher->Rohdaten(), '"zeitplanRoh": "[[1,\"Mo\",480]]"') !== false, substr($maeher->Rohdaten(), -120));
+$mp = json_decode($maeher->ReadAttributeString('Zeitplaene'), true);
+check('Mäher-Pläne: Dokument in 100-Byte-Stücken gelesen (SCHDIV2 → SCHDDV2 …)', strlen(FakeCloud::$maehplan) > 200 && in_array('SCHDIV2', FakeCloud::$kanal, true) && count(array_keys(FakeCloud::$kanal, 'SCHDDV2')) === (int)ceil(strlen(FakeCloud::$maehplan) / 100), json_encode(FakeCloud::$kanal));
+check('Mäher-Pläne: drei Pläne (Platz −1 mit Version 0xFFFF = leer), „Sommer" aus, Plan 4 an', count($mp) === 3 && $mp[0]['id'] === 3 && $mp[0]['an'] === false && $mp[0]['name'] === 'Sommer' && $mp[1]['an'] === true, json_encode($mp));
+check('Termine: Mo 09:00–12:00 alles, Mi gleich, Sa 10:00–11:00 Zone 1', ($mp[0]['eintraege'] ?? null) == [
+    ['tagNr' => 1, 'tag' => 'Mo', 'art' => 'alle', 'von' => '09:00', 'bis' => '12:00', 'zonen' => []],
+    ['tagNr' => 3, 'tag' => 'Mi', 'art' => 'alle', 'von' => '09:00', 'bis' => '12:00', 'zonen' => []],
+    ['tagNr' => 6, 'tag' => 'Sa', 'art' => 'zonen', 'von' => '10:00', 'bis' => '11:00', 'zonen' => [1]],
+], json_encode($mp[0]['eintraege'] ?? null));
+$zone1 = json_decode($maeher->ReadAttributeString('Raeume'), true)['1'] ?? 'Zone 1';
+$mv = (string)(variable(2100, 'Zeitplaene')['value'] ?? '');
+check('Variable: „⏸️ Plan „Sommer" · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · <Zone 1>"', strpos($mv, '⏸️ Plan „Sommer" · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · ' . $zone1) === 0 && strpos($mv, '✅ Plan 4 · ohne Termine') !== false, $mv);
+$k = kachelJson($maeher->GetVisualizationTile());
+check('Mäh-Pläne auf der Kachel, aber (noch) nicht schaltbar', count($k['zeitplaene']) === 3 && $k['zeitplaene'][0]['schaltbar'] === false);
+check('Rohtext in „📋 Rohdaten"', strpos($maeher->Rohdaten(), 'Sommer') !== false);
+check('Mäher-Plan schalten → abgelehnt (noch nicht unterstützt)', strpos($maeher->ZeitplanSchalten(3, true), '⛔') === 0);
+$gerahmt = RoboHubDreame::maeherPlaeneLesen(json_encode(['d' => [[1, 1, 'R', base64_encode(pack('C*', 0xAA, 8, 0x21, 0x1C, 0x02, 0, 0, 0xED))]]]));
+check('gerahmte Termine (0xAA … 0xED): Tag + Start, kein Ende', ($gerahmt[0]['eintraege'][0] ?? null) == ['tagNr' => 2, 'tag' => 'Di', 'art' => 'zonen', 'von' => '09:00', 'bis' => null, 'zonen' => [0]], json_encode($gerahmt[0]['eintraege'] ?? null));
+check('kaputtes Dokument → keine Pläne statt Absturz', RoboHubDreame::maeherPlaeneLesen('{"d":[[1,1,"x","%%%"]]}')[0]['eintraege'] === [] && RoboHubDreame::maeherPlaeneLesen('Müll') === []);
+$merkeDaten = FakeCloud::$geraeteDaten;
+FakeCloud::$geraeteDaten = ['SETTINGS.0' => '{}'];
+FakeCloud::$maehplan = json_encode(['d' => [[5, 1, 'Ohne Karte', '']]]);
+$maeher->RaeumeLaden();
+check('Pläne kommen auch ohne Karte an', strpos((string)variable(2100, 'Zeitplaene')['value'], 'Ohne Karte') !== false);
+FakeCloud::$geraeteDaten = $merkeDaten;
+FakeCloud::$maehplan = '';
 
 abschnitt('Fehlerpfade');
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);
