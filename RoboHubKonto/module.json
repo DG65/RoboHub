@@ -1,0 +1,14 @@
+{
+  "id": "{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}",
+  "name": "RoboHubKonto",
+  "type": 2,
+  "vendor": "",
+  "aliases": [
+    "RoboHub Konto (Saug-/Wischroboter-Cloud)"
+  ],
+  "url": "https://github.com/DG65/RoboHub",
+  "parentRequirements": [],
+  "childRequirements": ["{4949DAA0-C934-4184-91E2-2D3E90D4DC24}"],
+  "implemented": ["{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}"],
+  "prefix": "ROBOHUB"
+}

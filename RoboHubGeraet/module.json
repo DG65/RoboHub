@@ -1,0 +1,14 @@
+{
+  "id": "{631DA85B-5985-4C25-B222-E47FDD49E302}",
+  "name": "RoboHubGeraet",
+  "type": 3,
+  "vendor": "",
+  "aliases": [
+    "RoboHub Roboter"
+  ],
+  "url": "https://github.com/DG65/RoboHub",
+  "parentRequirements": ["{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}"],
+  "childRequirements": [],
+  "implemented": ["{4949DAA0-C934-4184-91E2-2D3E90D4DC24}"],
+  "prefix": "ROBO"
+}

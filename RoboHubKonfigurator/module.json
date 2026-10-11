@@ -1,0 +1,14 @@
+{
+  "id": "{5AA59E01-AFBF-4669-8899-57F5E2C24C33}",
+  "name": "RoboHubKonfigurator",
+  "type": 4,
+  "vendor": "",
+  "aliases": [
+    "RoboHub Konfigurator"
+  ],
+  "url": "https://github.com/DG65/RoboHub",
+  "parentRequirements": ["{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}"],
+  "childRequirements": [],
+  "implemented": ["{4949DAA0-C934-4184-91E2-2D3E90D4DC24}"],
+  "prefix": "ROBOCFG"
+}
