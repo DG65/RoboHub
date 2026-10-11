@@ -80,6 +80,7 @@
 - **Kompletter Auftrag live verfolgt (Barny, 11.10.2026 17:55–18:06)**: Start Raum 1 → 12 „Saugt und wischt" → Modus „Saugen" gesetzt → 9 „Wäscht Mopp" (Station 4.25 = 1, Auftrag 4.7 = 3 blieb aktiv) → nur gesaugt (Dietmar vor Ort bestätigt) → 5 „Fährt zur Station", 2 m²/5 min, Akku 93 %. Zustandswechsel vom 30-s-Takt selbst erkannt.
 - **Start am LiDAX live (18:07)**: angenommen in 0,6 s mit einer Anfrage → Weg **5.1** (EvotecIT) greift, Ausweichweg 2.x nicht nötig. Danach 2.1 = **19** (in keiner Quelle) = mäht (Dietmar bestätigt) → seit 0.2.2 „Mäht". 3.2 = 2 = „lädt nicht" (Homey-App andiwirz bestätigt).
 - **Zur Station am LiDAX live (18:13)**: 5.3 angenommen (0,6 s), danach 2.1 = 5 „Fährt zur Station", 3.1 = 91, 3.2 = 5 (bei Saugern „Rückkehr zum Laden"). Pause/Stopp am Mäher noch ungetestet.
+- Barny 2.1 = 35 „Trocknet Staubbeutel" (Tasshack) **gegen die Dreamehome-App bestätigt** (20:23). LiDAX nach Rückkehr 2.1 = 6 „Lädt", 3.2 = 1.
 - „Orten" am LiDAX live: Kanal 2.50 `{"m":"a","p":0,"o":9}` funktioniert, **LiDAX hat gepiept** (Dietmar bestätigt). Start/Stopp/Pause (5.x vs. 2.x) noch ungetestet.
 - 0.2.1 live gemessen am LiDAX: 1. Abruf 9,2 s (Block 4.x versucht), 2. Abruf **0,5 s** (Block übersprungen).
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
