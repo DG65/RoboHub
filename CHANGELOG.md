@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 (11.10.2026)
+
+- Reststunden je Verbrauchsteil (Dietmars Wunsch). Sauger: vom Gerät geliefert
+  (9.1/10.1/11.2/16.2/18.2, Einheit h laut ioBroker), eigener Abfrageblock — fehlt er
+  bei einem Modell, greift die Blocksperre aus 0.2.1. Mäher: aus den CMS-Minutenzählern
+  gerechnet ((Max − Minuten) / 60, 0,1 h), ergibt exakt die App-Werte
+  (33,7 / 433,7 / 42,9 h).
+
 ## 0.2.3 (11.10.2026)
 
 - Mäher: Reinigungsbürste (max. 30000 min) und Roboter-Wartung (max. 3600 min) aus

@@ -285,6 +285,7 @@ check('Status 102 mit Geräte-ID', $geraet->status === 102);
 FakeCloud::$props = [
     '2.2' => 0, '3.2' => 3, '4.2' => 35, '4.3' => 42, '4.4' => 1, '4.5' => 2, '4.23' => (5 << 16) | 0, '4.25' => 0,
     '9.2' => 88, '10.2' => 77, '11.1' => 66, '16.1' => 55, '18.1' => 44,
+    '9.1' => 169, '10.1' => 69, '11.2' => 19, '16.2' => 0, '18.2' => 250,
     '27.1' => 0, '27.2' => 0, '27.3' => 2, '27.4' => 2, '28.1' => 20, '12.2' => 6000, '12.3' => 17, '12.4' => 950,
     '6.8' => '',
 ];
@@ -297,6 +298,8 @@ check('Akku aus battery der Geräteliste', variable(2000, 'Akku')['value'] === 1
 check('Fehler 0 → „kein Fehler"', variable(2000, 'Fehler')['value'] === 'kein Fehler');
 check('Verbrauchsteile angelegt (Hauptbürste 88 %)', variable(2000, 'Hauptbuerste')['value'] === 88);
 check('Filter-% von piid 1', variable(2000, 'Filter')['value'] === 66);
+check('Reststunden Sauger (Haupt/Seite/Filter/Sensoren/Mopp)', variable(2000, 'HauptbuersteRest')['value'] === 169.0 && variable(2000, 'SeitenbuersteRest')['value'] === 69.0 && variable(2000, 'FilterRest')['value'] === 19.0 && variable(2000, 'SensorenRest')['value'] === 0.0 && variable(2000, 'MoppRest')['value'] === 250.0);
+check('Sensoren 0 h bleibt 0 (kein Ausblenden echter Nullwerte)', variable(2000, 'SensorenRest') !== null);
 check('Saugstufe als schaltbare Auswahl', variable(2000, 'Saugstufe')['action'] === true && variable(2000, 'Saugstufe')['value'] === 1);
 check('Wassermenge entfällt bei Feuchte-Modell (28.1)', variable(2000, 'Wassermenge') === null);
 check('Reinigungsmodus mit Mopp-Anhebung: Leitung 0 → Saugen und Wischen (2)', variable(2000, 'Reinigungsmodus')['value'] === 2);
@@ -421,7 +424,7 @@ $maeher->parent = $konto2;
 $maeher->ApplyChanges();
 FakeCloud::$props = ['2.1' => 8, '2.2' => 0, '3.1' => 64, '3.2' => 0, '4.2' => 12, '4.3' => 150];
 // Zahlen so gewählt, dass sie die App-Werte von Dietmars LiDAX ergeben (34 % / 87 % / 72 %).
-FakeCloud::$cms = json_encode(['d' => ['value' => [3960, 3900, 1008]]]);
+FakeCloud::$cms = json_encode(['d' => ['value' => [3978, 3978, 1026]]]);
 FakeCloud::$anfragen = [];
 $t = $maeher->Aktualisieren();
 check('Mäher-Abruf erfolgreich', strpos($t, '✅') === 0, $t);
@@ -429,9 +432,14 @@ check('Befehlspfad dreame-iot-com-20000', FakeCloud::letzte('sendCommand') !== n
 check('2.1=8 → Wetterpause', variable(2100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_WETTERPAUSE);
 check('Regen erkannt = true', variable(2100, 'Regensensor')['value'] === true);
 check('LiDAX: Code 0 = „Roboter angehoben" (Modell-Abweichung)', variable(2100, 'Fehler')['value'] === 'Roboter angehoben (0)', (string)variable(2100, 'Fehler')['value']);
-check('Klingen aus CMS: 3960/6000 min → 34 % (wie App)', variable(2100, 'Messer')['value'] === 34);
-check('Reinigungsbürste: 3900/30000 min → 87 % (wie App)', variable(2100, 'Reinigungsbuerste')['value'] === 87);
-check('Roboter-Wartung: 1008/3600 min → 72 % (wie App)', variable(2100, 'Wartung')['value'] === 72);
+// Minuten so gewählt, dass exakt die App-Werte von Dietmars LiDAX herauskommen.
+check('Klingen: 34 % (wie App)', variable(2100, 'Messer')['value'] === 34);
+check('Reinigungsbürste: 87 % (wie App)', variable(2100, 'Reinigungsbuerste')['value'] === 87);
+check('Roboter-Wartung: 72 % (wie App)', variable(2100, 'Wartung')['value'] === 72);
+check('Klingen Reststunden 33,7 h (wie App)', variable(2100, 'MesserRest')['value'] === 33.7);
+check('Reinigungsbürste Reststunden 433,7 h (wie App)', variable(2100, 'ReinigungsbuersteRest')['value'] === 433.7);
+check('Wartung in 42,9 h (wie App)', variable(2100, 'WartungRest')['value'] === 42.9);
+check('Reststunden als Kommazahl mit Einheit h', variable(2100, 'MesserRest')['type'] === VARIABLETYPE_FLOAT && variable(2100, 'MesserRest')['pres']['SUFFIX'] === ' h');
 check('keine Sauger-Variablen beim Mäher', variable(2100, 'Staubbeutel') === null && variable(2100, 'Saugstufe') === null);
 $opts = json_decode(variable(2100, 'Zustand')['pres']['OPTIONS'], true);
 $mahtCaption = '';

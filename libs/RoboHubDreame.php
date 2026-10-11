@@ -221,6 +221,10 @@ class RoboHubDreame implements RoboHubTreiber
         [[27, 1], [27, 2], [27, 3], [27, 4]],
         [[28, 1]],
         [[12, 2], [12, 3], [12, 4]],
+        // Reststunden (ioBroker lib/specs/consumables.js, Einheit h). Eigener
+        // Block AM ENDE: die Blocksperre (0.2.1) merkt sich Block-Indizes,
+        // neue Blöcke dürfen die bestehenden Indizes nicht verschieben.
+        [[9, 1], [10, 1], [11, 2], [16, 2], [18, 2]],
     ];
     private const BLOECKE_MAEHER = [
         [[2, 1], [2, 2], [3, 1], [3, 2]],
@@ -422,6 +426,11 @@ class RoboHubDreame implements RoboHubTreiber
         $w['Filter']        = isset($p['11.1']) ? (int)$p['11.1'] : null;   // Filter: % an piid 1 (Belegung so belegt)
         $w['Sensoren']      = isset($p['16.1']) ? (int)$p['16.1'] : null;
         $w['Mopp']          = isset($p['18.1']) ? (int)$p['18.1'] : null;
+        $w['HauptbuersteRest']  = isset($p['9.1']) ? (float)$p['9.1'] : null;
+        $w['SeitenbuersteRest'] = isset($p['10.1']) ? (float)$p['10.1'] : null;
+        $w['FilterRest']        = isset($p['11.2']) ? (float)$p['11.2'] : null;   // Filter: Stunden an piid 2
+        $w['SensorenRest']      = isset($p['16.2']) ? (float)$p['16.2'] : null;
+        $w['MoppRest']          = isset($p['18.2']) ? (float)$p['18.2'] : null;
 
         if (isset($p['4.25'])) {
             $w['Station'] = [0 => 'Bereit', 1 => 'Wäscht', 2 => 'Trocknet', 3 => 'Roboter kehrt zurück', 4 => 'Pausiert', 5 => 'Füllt Wasser', 6 => 'Füllt Wasser', 7 => 'Kehrt zum Trocknen zurück'][(int)$p['4.25']] ?? 'Zustand ' . (int)$p['4.25'];
@@ -607,10 +616,19 @@ class RoboHubDreame implements RoboHubTreiber
                 ? max(0, min(100, (int)round((1 - (float)$werte[$index] / $max) * 100)))
                 : null;
         };
+        // Reststunden = (Max − verbrauchte Minuten) / 60, wie die App (z. B. 33,7 h).
+        $rest = function (int $index, int $max) use ($werte): ?float {
+            return isset($werte[$index]) && is_numeric($werte[$index])
+                ? max(0.0, round(($max - (float)$werte[$index]) / 60, 1))
+                : null;
+        };
         return array_filter([
-            'Messer'            => $prozent(0, 6000),
-            'Reinigungsbuerste' => $prozent(1, 30000),
-            'Wartung'           => $prozent(2, 3600),
+            'Messer'                => $prozent(0, 6000),
+            'Reinigungsbuerste'     => $prozent(1, 30000),
+            'Wartung'               => $prozent(2, 3600),
+            'MesserRest'            => $rest(0, 6000),
+            'ReinigungsbuersteRest' => $rest(1, 30000),
+            'WartungRest'           => $rest(2, 3600),
         ], function ($v) { return $v !== null; });
     }
 

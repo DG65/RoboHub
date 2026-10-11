@@ -89,6 +89,16 @@ final class RoboHubModell
         'Messer'             => ['Messer', 1, ' %', 0, 55],
         'Reinigungsbuerste'  => ['Reinigungsbürste', 1, ' %', 0, 56],
         'Wartung'            => ['Wartung des Roboters', 1, ' %', 0, 57],
+        // Reststunden wie in den Hersteller-Apps. Sauger: vom Gerät geliefert
+        // (ganze Stunden), Mäher: aus den Minutenzählern gerechnet (0,1 h).
+        'HauptbuersteRest'      => ['Hauptbürste Reststunden', 2, ' h', 0, 80],
+        'SeitenbuersteRest'     => ['Seitenbürste Reststunden', 2, ' h', 0, 81],
+        'FilterRest'            => ['Filter Reststunden', 2, ' h', 0, 82],
+        'MoppRest'              => ['Mopp/Walze Reststunden', 2, ' h', 0, 83],
+        'SensorenRest'          => ['Sensoren Reststunden', 2, ' h', 0, 84],
+        'MesserRest'            => ['Messer Reststunden', 2, ' h', 1, 85],
+        'ReinigungsbuersteRest' => ['Reinigungsbürste Reststunden', 2, ' h', 1, 86],
+        'WartungRest'           => ['Wartung des Roboters in', 2, ' h', 1, 87],
         'Regensensor'        => ['Regen erkannt', 0, '', 0, 65],
         'Zustand'            => ['Zustand', 1, '', 0, 10],
         'ZustandRoh'         => ['Zustand (Hersteller)', 3, '', 0, 11],
