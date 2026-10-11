@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 (11.10.2026)
+
+- Kachel-Feinschliff nach Dietmars Screenshot: Inhalt oben ausgerichtet statt senkrecht
+  zentriert (alle Kacheln beginnen auf gleicher Höhe), Zustandssymbol etwa doppelt so groß,
+  bis zu vier Verbrauchsteile immer ausgeklappt (Mäher), „Stand …" am unteren Kachelrand.
+
 ## 0.3.1 (11.10.2026)
 
 - Kachel-Layout nach Dietmars Screenshot: Symcon legt Instanzname und Vergrößern-Symbol

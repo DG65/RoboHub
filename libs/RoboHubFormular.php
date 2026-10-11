@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.3.2' => [
+            '• Kachel: Inhalt beginnt bei allen Robotern auf gleicher Höhe direkt unter dem Namen, größeres Zustandssymbol, bis zu vier Verbrauchsteile immer offen, „Stand" am unteren Rand.',
+        ],
         '0.3.1' => [
             '• Kachel überarbeitet: überlappt nicht mehr mit dem Instanznamen, nutzt breite Kacheln zweispaltig (links Zustand und Knöpfe, rechts Räume und Verbrauchsteile) und wächst mit der Kachelgröße mit.',
         ],

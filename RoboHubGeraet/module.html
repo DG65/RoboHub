@@ -16,10 +16,11 @@ html,body{margin:0;height:100%;background:transparent;color:var(--fg);font-famil
 body{padding:44px 16px 12px;display:flex;flex-direction:column}
 #app{flex:1;display:flex;flex-direction:column}
 body.eigen{background:var(--seite);padding-top:14px}
-.layout{display:grid;gap:1.1em;align-items:start;margin:auto 0;width:100%}
+.layout{display:grid;gap:1.1em;align-items:start;margin-top:.4em;width:100%}
 @media (min-width:560px){.layout{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:1.6em}}
 .status{display:flex;align-items:center;gap:.9em}
-.sym{width:3.4em;height:3.4em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.25em;flex:none}
+.sym{width:3.6em;height:3.6em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1em;flex:none}
+.sym span{font-size:2.1em;line-height:1}
 .titel{min-width:0}.titel b{display:block;font-size:1.45em;font-weight:600;line-height:1.2}
 .titel span{display:block;font-size:.85em;color:var(--fg2);margin-top:.15em}
 .akku{margin:1em 0 .2em;display:flex;align-items:center;gap:.7em}
@@ -44,7 +45,7 @@ button:active{transform:scale(.97)}
 .teil:last-of-type{border-bottom:none}
 .teil.rot{color:var(--rot)}.teil.gelb{color:var(--gelb)}.teil.ok{color:var(--fg2)}
 .mehr{background:none;border:none;color:var(--blau);padding:.4em 0;font-size:.88em}
-.fuss{margin-top:.8em;font-size:.75em;color:var(--fg2)}
+.fuss{margin-top:auto;padding-top:.8em;font-size:.75em;color:var(--fg2)}
 .meldung{font-size:.85em;color:var(--fg2);margin-top:.6em;min-height:1.2em}
 </style>
 </head>
@@ -85,7 +86,7 @@ function zeichnen() {
   var bedienbar = !d.eigen || d.bedienung;
   var akkuFarbe = d.akku == null ? 'grau' : (d.akku <= 15 ? 'rot' : (d.akku <= 35 ? 'gelb' : 'gruen'));
 
-  var l = '<div class="status"><div class="sym" style="' + farbe(z[1]) + '">' + (d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0]) + '</div>';
+  var l = '<div class="status"><div class="sym" style="' + farbe(z[1]) + '"><span>' + (d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0]) + '</span></div>';
   l += '<div class="titel"><b>' + esc(d.zustandText) + '</b>' + (d.unterzeile ? '<span>' + esc(d.unterzeile) + '</span>' : '') + '</div></div>';
   l += '<div class="akku"><div class="balken"><i style="width:' + (d.akku || 0) + '%;background:var(--' + akkuFarbe + ')"></i></div>';
   l += '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? '⚡ lädt' : '🔋') + '</span></div>';
@@ -120,19 +121,21 @@ function zeichnen() {
   var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
   if (teile.length) {
     var kritisch = teile.filter(function (t) { return t.prozent <= 25; });
-    var zeigen = alleTeile ? teile : kritisch;
+    // Bis zu 4 Teile (z. B. Mäher) passen immer — dann nichts einklappen.
+    var offen = alleTeile || teile.length <= 4;
+    var zeigen = offen ? teile : kritisch;
     r += '<div class="block"><p class="abschnitt">Verbrauchsteile</p>';
     zeigen.forEach(function (t) {
       var k = t.prozent <= 10 ? 'rot' : (t.prozent <= 25 ? 'gelb' : 'ok');
       r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + '</span></div>';
     });
     var rest = teile.length - kritisch.length;
-    if (!alleTeile && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' in Ordnung') + ' ›</button>'; }
-    if (alleTeile) { r += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ weniger</button>'; }
+    if (!offen && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' in Ordnung') + ' ›</button>'; }
+    if (alleTeile && teile.length > 4) { r += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ weniger</button>'; }
     r += '</div>';
   }
-  if (d.stand) { r += '<div class="fuss">Stand ' + esc(d.stand) + ' Uhr</div>'; }
-  document.getElementById('app').innerHTML = '<div class="layout"><div>' + l + '</div><div>' + r + '</div></div>';
+  var f = d.stand ? '<div class="fuss">Stand ' + esc(d.stand) + ' Uhr</div>' : '';
+  document.getElementById('app').innerHTML = '<div class="layout"><div>' + l + '</div><div>' + r + '</div></div>' + f;
 }
 
 function handleMessage(raw) {
