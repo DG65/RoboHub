@@ -158,7 +158,9 @@
 - **Live gelesen (11.10.2026 23:32, 0.5.0):** Barny r9547a liefert **beides** — 5.1 = false, 5.2 = "22:00",
   5.3 = "08:00" UND 5.4 = `[{"id":0,"en":false,"st":"22:00","et":"08:00","wk":127,"ss":0}]` (id 0, nicht 1);
   RoboHub nimmt 5.4 (Tasshack-Vorrang). Lautstärke 7.1 = 59. Alle Blöcke beantwortet.
-  LiDAX: CFG beantwortet — DND aus, 20:00–11:00, VOL 0. Gegen Apps noch zu prüfen; Schreiben noch nicht live.
+  LiDAX: CFG beantwortet — DND aus, 20:00–11:00, VOL 0. **Alle Lesewerte von Dietmar gegen beide Apps bestätigt.**
+- **Lautstärke schreiben live bestätigt (Barny, 23:36):** 59 → 50 (set_properties 7.1, Abruf danach 7.1 = 50)
+  → zurück 59 (7.1 = 59). Nicht-stören-Schreiben (5.4) und Mäher-Schreiben (CFG) noch nicht live.
 
 ## Prüfen
 
