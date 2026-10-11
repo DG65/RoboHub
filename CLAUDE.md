@@ -155,7 +155,10 @@
   Lautstärke 7.1 (Tasshack spielt danach einen Ton — RoboHub bewusst nicht).
 - Mäher: CFG über 2.50 (`DND` [an, min, min], `VOL`); eine zusätzliche Anfrage je Abruf.
 - Schreiben immer Read-Modify-Write (nichts überschreiben, was nicht geändert werden soll).
-- **Live offen:** welche Variante Barny (r9547a) nutzt (5.4 oder 5.1–5.3) und ob der LiDAX CFG beantwortet.
+- **Live gelesen (11.10.2026 23:32, 0.5.0):** Barny r9547a liefert **beides** — 5.1 = false, 5.2 = "22:00",
+  5.3 = "08:00" UND 5.4 = `[{"id":0,"en":false,"st":"22:00","et":"08:00","wk":127,"ss":0}]` (id 0, nicht 1);
+  RoboHub nimmt 5.4 (Tasshack-Vorrang). Lautstärke 7.1 = 59. Alle Blöcke beantwortet.
+  LiDAX: CFG beantwortet — DND aus, 20:00–11:00, VOL 0. Gegen Apps noch zu prüfen; Schreiben noch nicht live.
 
 ## Prüfen
 
