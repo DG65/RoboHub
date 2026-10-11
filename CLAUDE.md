@@ -74,7 +74,8 @@
   belegt, vermutlich „voll"; → Lädt = false), Messer 34 % aus CMS. **2.2 kam nicht**, **Block 4.x
   (4.1/4.2/4.3/4.7) wird nicht beantwortet** → Abruf ~13 s. Seit 0.2.1 gebaut (Dietmars Auftrag): `BlockSperre`
   im Konto, 1 h, nur sperren, wenn ein anderer Block antwortete.
-- „Orten" an Barny II live: Cloud hat angenommen (result.code 0), 11.10.2026 17:46.
+- „Orten" an Barny II live: Cloud angenommen und **Barny hat gepiept** (Dietmar bestätigt) — erster echter Befehl.
+- 0.2.1 live gemessen am LiDAX: 1. Abruf 9,2 s (Block 4.x versucht), 2. Abruf **0,5 s** (Block übersprungen).
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
   (Port 3777 zu); Attribute/Anmeldungen blieben dabei erhalten. Nicht leichtfertig wiederholen.
 
