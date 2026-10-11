@@ -171,6 +171,9 @@ interface RoboHubTreiber
     /** Echtzeit-Nachricht → ['Geräte-ID' => ['siid.piid' => Wert]] (nur relevante Werte). */
     public function pushLesen(string $payload): array;
 
+    /** Setzt den Verschleißzähler eines Teils zurück (Ident wie in FELDER, z. B. „Filter"). */
+    public function zuruecksetzen(array $buendel, array $geraet, string $teil): string;
+
     /** Führt einen Befehl aus; Rückgabe: Klartext („gesendet …"). */
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string;
 }

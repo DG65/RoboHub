@@ -253,6 +253,9 @@ class RoboHubKonto extends IPSModule
             if ($aktion === 'raeume') {
                 return $this->treiber()->raeume($buendel, $geraet);
             }
+            if ($aktion === 'zuruecksetzen') {
+                return $this->treiber()->zuruecksetzen($buendel, $geraet, (string)($anfrage['Teil'] ?? ''));
+            }
             if ($aktion === 'befehl') {
                 return $this->treiber()->befehl($buendel, $geraet, (string)($anfrage['Befehl'] ?? ''), (array)($anfrage['Parameter'] ?? []));
             }

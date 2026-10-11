@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.4.4' => [
+            '• Verbrauchsteile zurücksetzen: Nach Wechsel oder Reinigung den Zähler auf 100 % stellen — im Formular („🔧 Verbrauchsteile zurücksetzen", mit Sicherheitsabfrage) und auf der Kachel (↺, dann „Ja, zurücksetzen"). Jede Rücksetzung steht im Symcon-Protokoll.',
+        ],
         '0.4.3' => [
             '• „📋 Rohdaten" zeigen jetzt auch die letzten 20 Echtzeit-Meldungen mit ihren Werten — hilfreich, wenn ein Wert anders ankommt als erwartet.',
         ],

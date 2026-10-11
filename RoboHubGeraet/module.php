@@ -104,6 +104,9 @@ class RoboHubGeraet extends IPSModule
             case 'Raum':
                 $this->fuehreAus('raum', ['raeume' => [(int)$Value]]);
                 return;
+            case 'Zuruecksetzen':
+                $this->kachelAktualisieren($this->VerbrauchsteilZuruecksetzen((string)$Value));
+                return;
             case 'Raeume':
                 // Aus der Kachel: mehrere Räume als „3,5".
                 $this->fuehreAus('raum', ['raeume' => array_values(array_filter(array_map('intval', explode(',', (string)$Value))))]);
@@ -214,6 +217,35 @@ class RoboHubGeraet extends IPSModule
             return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
         }
         return $this->befehlText('raum', ['raeume' => $ids]);
+    }
+
+    /**
+     * ROBO_VerbrauchsteilZuruecksetzen($id, string $teil): string — setzt den
+     * Verschleißzähler eines Teils auf 100 % zurück (nach Wechsel/Reinigung).
+     * $teil = Ident der Prozent-Variable, z. B. „Filter", „Hauptbuerste", „Messer".
+     */
+    public function VerbrauchsteilZuruecksetzen(string $teil): string
+    {
+        $name = null;
+        foreach (self::TEILE as [$pIdent, , $anzeige]) {
+            if ($pIdent === $teil) {
+                $name = $anzeige;
+            }
+        }
+        if ($name === null || $this->wert($teil) === null) {
+            return '⛔ Unbekanntes oder bei diesem Gerät nicht vorhandenes Verbrauchsteil: ' . $teil;
+        }
+        $vorher = (int)$this->wert($teil);
+        $antwort = $this->frageKonto(['Aktion' => 'zuruecksetzen', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Teil' => $teil]);
+        if (!$antwort['ok']) {
+            $this->protokolliere($name . ' zurücksetzen fehlgeschlagen: ' . $antwort['fehler']);
+            return '⛔ ' . $antwort['fehler'];
+        }
+        // Dauerhaft festhalten — so ist später nachvollziehbar, wann gewechselt wurde.
+        $this->protokolliere($name . ' zurückgesetzt (vorher ' . $vorher . ' %).');
+        $this->Aktualisieren();
+        $nachher = $this->wert($teil);
+        return '✅ ' . $name . ' zurückgesetzt (vorher ' . $vorher . ' %' . ($nachher !== null ? ', jetzt ' . (int)$nachher . ' %' : '') . ').';
     }
 
     /** ROBO_Rohdaten($id): string — letzte Rohantwort des Herstellers (zur Fehlersuche). */
@@ -543,14 +575,18 @@ class RoboHubGeraet extends IPSModule
             }
             $cmd = (string)$_GET['cmd'];
             $wert = (string)($_GET['wert'] ?? '');
-            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume'], true)) {
+            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen'], true)) {
                 echo json_encode(['ok' => false, 'text' => '⛔ Unbekannter Befehl.']);
                 return;
             }
             try {
-                $text = $cmd === 'Befehl'
-                    ? $this->befehlText($this->befehlsName((int)$wert), [])
-                    : $this->RaeumeReinigen($wert);
+                if ($cmd === 'Befehl') {
+                    $text = $this->befehlText($this->befehlsName((int)$wert), []);
+                } elseif ($cmd === 'Zuruecksetzen') {
+                    $text = $this->VerbrauchsteilZuruecksetzen($wert);
+                } else {
+                    $text = $this->RaeumeReinigen($wert);
+                }
             } catch (Throwable $e) {
                 $text = '⛔ ' . $e->getMessage();
             }
@@ -602,7 +638,7 @@ class RoboHubGeraet extends IPSModule
                 continue;
             }
             $h = $this->wert($hIdent);
-            $teile[] = ['name' => $name, 'prozent' => (int)$p, 'stunden' => $h === null ? null : round((float)$h, 1)];
+            $teile[] = ['id' => $pIdent, 'name' => $name, 'prozent' => (int)$p, 'stunden' => $h === null ? null : round((float)$h, 1)];
         }
 
         $hinweise = [];
@@ -816,6 +852,24 @@ class RoboHubGeraet extends IPSModule
         return ['type' => 'Label', 'caption' => '⛔ Kein Konto verbunden — die Geräte-ID wurde in keiner angemeldeten RoboHub-Konto-Instanz gefunden.', 'color' => 0xFF0000];
     }
 
+    private function verbrauchPanel(): ?array
+    {
+        $items = [['type' => 'Label', 'caption' => 'Nach dem Wechsel oder der Reinigung eines Teils hier den Zähler zurücksetzen — wie in der Hersteller-App. Jede Rücksetzung steht danach im Symcon-Protokoll.']];
+        foreach (self::TEILE as [$pIdent, $hIdent, $name]) {
+            $p = $this->wert($pIdent);
+            if ($p === null) {
+                continue;
+            }
+            $items[] = ['type' => 'Button', 'caption' => '↺ ' . $name . ' zurücksetzen (jetzt ' . (int)$p . ' %)', 'width' => '420px',
+                'confirm' => $name . ' wirklich zurücksetzen? Das geht nicht rückgängig — nur nach Wechsel oder Reinigung.',
+                'onClick' => 'echo ROBO_VerbrauchsteilZuruecksetzen($id, ' . var_export($pIdent, true) . ');'];
+        }
+        if (count($items) === 1) {
+            return null;
+        }
+        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🔧  Verbrauchsteile zurücksetzen', 'items' => $items];
+    }
+
     private function technikPanel(): array
     {
         // GeraetID/Modell/Klasse bleiben Properties (der Konfigurator setzt
@@ -842,6 +896,6 @@ class RoboHubGeraet extends IPSModule
             ['code' => 201, 'icon' => 'error', 'caption' => 'Konto muss neu angemeldet werden'],
             ['code' => 202, 'icon' => 'inactive', 'caption' => 'Abruf fehlgeschlagen — wird automatisch erneut versucht'],
         ];
-        return $this->robohubBuildForm([$this->geraetPanel(), $this->kachelPanel(), $this->technikPanel()], [], $status);
+        return $this->robohubBuildForm([$this->geraetPanel(), $this->verbrauchPanel(), $this->kachelPanel(), $this->technikPanel()], [], $status);
     }
 }

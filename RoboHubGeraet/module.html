@@ -47,6 +47,8 @@ button:active{transform:scale(.97)}
 .teil{display:flex;justify-content:space-between;gap:.6em;font-size:.92em;padding:.28em 0;border-bottom:1px solid var(--rand)}
 .teil:last-of-type{border-bottom:none}
 .teil.rot{color:var(--rot)}.teil.gelb{color:var(--gelb)}.teil.ok{color:var(--fg2)}
+.mini{font-size:.78em;padding:.15em .55em;margin-left:.4em;border-radius:.6em}
+.mini.ja{background:var(--rotbg);color:var(--rot);border-color:transparent}
 .mehr{background:none;border:none;color:var(--blau);padding:.4em 0;font-size:.88em}
 .fuss{margin-top:auto;padding-top:.8em;font-size:.75em;color:var(--fg2)}
 .meldung{font-size:.85em;color:var(--fg2);margin-top:.6em;min-height:1.2em}
@@ -65,7 +67,7 @@ var ZUSTAND = {
 // MOVAhome nennt 34 % „Bald ersetzen" und 72 % „In gutem Zustand".
 var TEIL_ROT = 5, TEIL_GELB = 35;
 var BEFEHLE = [[1, '▶️ Start'], [2, '⏸️ Pause'], [4, '🏠 Station'], [5, '📍 Orten']];
-var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false;
+var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '';
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
 function farbe(n) { return 'background:var(--' + n + 'bg);color:var(--' + n + ')'; }
@@ -143,7 +145,14 @@ function zeichnen() {
     r += '<div class="block"><p class="abschnitt">Verbrauchsteile</p>';
     zeigen.forEach(function (t) {
       var k = t.prozent <= TEIL_ROT ? 'rot' : (t.prozent <= TEIL_GELB ? 'gelb' : 'ok');
-      r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + '</span></div>';
+      // Zurücksetzen nur in zwei Schritten (↺ → „Wirklich?" → Ja), nicht rückgängig zu machen.
+      var aktion = '';
+      if (bedienbar && t.id) {
+        aktion = rueckfrage === t.id
+          ? ' <button class="mini ja" onclick="rueckfrage=\'\';senden(\'Zuruecksetzen\',\'' + t.id + '\',\'Zurücksetzen ' + esc(t.name) + '\')">Ja, zurücksetzen</button><button class="mini" onclick="rueckfrage=\'\';zeichnen()">Nein</button>'
+          : ' <button class="mini" title="Nach Wechsel/Reinigung zurücksetzen" onclick="rueckfrage=\'' + t.id + '\';zeichnen()">↺</button>';
+      }
+      r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + aktion + '</span></div>';
     });
     var rest = teile.length - kritisch.length;
     if (!offen && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' in Ordnung') + ' ›</button>'; }

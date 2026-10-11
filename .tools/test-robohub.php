@@ -157,6 +157,7 @@ class FakeCloud extends RoboHubDreame
     public static $listeMova = [];      // Geräteliste des MOVA-Kontos
     public static $refreshStatus = 200;
     public static $cms = null;
+    public static $cmsGeschrieben = null;   // was zuletzt per {"m":"s","t":"CMS"} geschrieben wurde
     public static $karte = null;        // Kartentext (mapstr[0].map)
     public static $tokenZaehler = 0;
     public static $ablehnen = [];       // 'siid.aiid' => true: Aktion mit result.code -1 ablehnen
@@ -201,6 +202,10 @@ class FakeCloud extends RoboHubDreame
             }
             if ($m === 'action') {
                 $in = $b['data']['params']['in'][0] ?? null;
+                if (is_array($in) && ($in['t'] ?? '') === 'CMS' && ($in['m'] ?? '') === 's') {
+                    self::$cmsGeschrieben = $in['d']['value'] ?? null;
+                    return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => []]]])];
+                }
                 if (is_array($in) && ($in['t'] ?? '') === 'CMS') {
                     return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [self::$cms]]]])];
                 }
@@ -476,7 +481,7 @@ check('Kachel liefert Daten an handleMessage()', is_array($k));
 check('Kachel: Zustand im Klartext', ($k['zustandText'] ?? '') !== '' && $k['eigen'] === false);
 $haupt = null;
 foreach ($k['teile'] ?? [] as $t) { if ($t['name'] === 'Hauptbürste') { $haupt = $t; } }
-check('Kachel: Verbrauchsteil mit % und Stunden', $haupt == ['name' => 'Hauptbürste', 'prozent' => 88, 'stunden' => 169], json_encode($haupt));
+check('Kachel: Verbrauchsteil mit % und Stunden', $haupt == ['id' => 'Hauptbuerste', 'name' => 'Hauptbürste', 'prozent' => 88, 'stunden' => 169], json_encode($haupt));
 check('Kachel: Räume aus der Karte', count($k['raeume'] ?? []) === 3);
 check('Kachel: kein Schlüssel in den Daten', ($k['key'] ?? 'x') === '');
 check('Kachel: Produktbild aus der Geräteliste', ($k['bild'] ?? '') === 'https://oss.iot.dreame.tech/pub/pic/000000/ali_dreame/dreame.vacuum.r95475/bild.png');
@@ -543,7 +548,52 @@ FakeCloud::$anfragen = [];
 $j = json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5', 'key' => '']), true);
 check('leerer gespeicherter Schlüssel + leerer Schlüssel → trotzdem abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
 $geraet->WriteAttributeString('WebSchluessel', $gespeichert);
+
+abschnitt('Verbrauchsteile zurücksetzen');
+FakeCloud::$anfragen = [];
+$GLOBALS['LOG'] = [];
+$t = $geraet->VerbrauchsteilZuruecksetzen('Filter');
+$c = FakeCloud::befehle()[0] ?? [];
+check('Sauger: Filter zurücksetzen = action 11.1', ($c['method'] ?? '') === 'action' && $c['params']['siid'] === 11 && $c['params']['aiid'] === 1, json_encode($c));
+check('… Rückmeldung mit Vorher-Wert', strpos($t, '✅') === 0 && strpos($t, 'vorher') !== false, $t);
+check('… dauerhaft protokolliert', strpos(implode("\n", $GLOBALS['LOG']), 'Filter zurückgesetzt') !== false);
+check('… danach neu abgerufen (Kachel zeigt neuen Stand)', count(FakeCloud::befehle()) > 1 && FakeCloud::befehle()[1]['method'] === 'get_properties');
+foreach (['Hauptbuerste' => [9, 1], 'Seitenbuerste' => [10, 1], 'Sensoren' => [16, 1]] as $teil => [$si, $ai]) {
+    FakeCloud::$anfragen = [];
+    $geraet->VerbrauchsteilZuruecksetzen($teil);
+    $c = FakeCloud::befehle()[0] ?? [];
+    check("Sauger: $teil = action $si.$ai", ($c['params']['siid'] ?? 0) === $si && ($c['params']['aiid'] ?? 0) === $ai);
+}
+FakeCloud::$anfragen = [];
+check('unbekanntes Teil → abgelehnt, nichts gesendet', strpos($geraet->VerbrauchsteilZuruecksetzen('Zustand'), '⛔') === 0 && count(FakeCloud::befehle()) === 0);
+$abwId = IPS_GetObjectIDByIdent('Abwasserfilter', 2000);
+$abw = $GLOBALS['OBJ'][$abwId];
+unset($GLOBALS['OBJ'][$abwId]);   // Modell ohne Abwasserfilter: Teil nicht vorhanden
+FakeCloud::$anfragen = [];
+check('Sauger-Teil ohne Variable an diesem Modell → nichts an den Roboter gesendet', strpos($geraet->VerbrauchsteilZuruecksetzen('Abwasserfilter'), '⛔') === 0 && count(FakeCloud::befehle()) === 0);
+$GLOBALS['OBJ'][$abwId] = $abw;
+check('Mäher-Teil beim Sauger (keine Variable) → abgelehnt', strpos($geraet->VerbrauchsteilZuruecksetzen('Messer'), '⛔') === 0 && count(FakeCloud::befehle()) === 0);
+FakeCloud::$ablehnen = ['11.1' => true];
+$t = $geraet->VerbrauchsteilZuruecksetzen('Filter');
+check('Roboter lehnt ab → Fehlermeldung, kein „zurückgesetzt" im Protokoll', strpos($t, '⛔') === 0 && strpos(end($GLOBALS['LOG']) ?: '', 'fehlgeschlagen') !== false, $t);
+FakeCloud::$ablehnen = [];
+$geraet->visu = [];
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('Zuruecksetzen', 'Filter');
+$letzte = json_decode((string)end($geraet->visu), true);
+check('Kachel: RequestAction „Zuruecksetzen" sendet und meldet zurück', (FakeCloud::befehle()[0]['params']['siid'] ?? 0) === 11 && strpos((string)($letzte['rueck'] ?? ''), 'zurückgesetzt') !== false);
+FakeCloud::$anfragen = [];
+$j = json_decode(hook($geraet, ['cmd' => 'Zuruecksetzen', 'wert' => 'Filter', 'key' => 'falsch']), true);
+check('Seite: Zurücksetzen mit falschem Schlüssel abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$j = json_decode(hook($geraet, ['cmd' => 'Zuruecksetzen', 'wert' => 'Filter', 'key' => $gespeichert]), true);
+check('Seite: Zurücksetzen mit Schlüssel + Freigabe', $j['ok'] === true && (FakeCloud::befehle()[0]['params']['siid'] ?? 0) === 11, json_encode($j, JSON_UNESCAPED_UNICODE));
 $geraet->props['WebBedienung'] = false;
+FakeCloud::$anfragen = [];
+$j = json_decode(hook($geraet, ['cmd' => 'Zuruecksetzen', 'wert' => 'Filter', 'key' => $gespeichert]), true);
+check('Seite: ohne Freigabe trotz Schlüssel abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+check('Formular: Zurücksetzen-Knopf mit Sicherheitsabfrage', strpos($formKlar, 'Verbrauchsteile zurücksetzen') !== false && strpos($formKlar, '"confirm":"Filter wirklich zurücksetzen?') !== false && strpos($formKlar, "ROBO_VerbrauchsteilZuruecksetzen(\$id, 'Filter')") !== false);
+check('Formular: kein Knopf für Teile ohne Variable (Messer beim Sauger)', strpos($formKlar, 'Klingen zurücksetzen') === false && strpos($formKlar, "'Messer'") === false);
 $_GET = [];
 
 abschnitt('MOVA-Mäher');
@@ -625,6 +675,22 @@ $geraet->Orten();
 $c = FakeCloud::befehle()[0];
 check('Sauger orten = 7.1, ohne Ausweichweg', $c['params']['siid'] === 7 && $c['params']['aiid'] === 1 && count(FakeCloud::befehle()) === 1);
 check('Raumreinigung beim Mäher abgelehnt', strpos($maeher->RaeumeReinigen('1'), '⛔') === 0);
+FakeCloud::$cms = json_encode(['d' => ['value' => [3978, 3978, 1026]]]);
+FakeCloud::$cmsGeschrieben = null;
+$t = $maeher->VerbrauchsteilZuruecksetzen('Messer');
+check('Mäher: Klingen zurücksetzen schreibt CMS [0, 3978, 1026] (andere Zähler bleiben)', FakeCloud::$cmsGeschrieben === [0, 3978, 1026], json_encode(FakeCloud::$cmsGeschrieben) . ' ' . $t);
+FakeCloud::$cmsGeschrieben = null;
+$maeher->VerbrauchsteilZuruecksetzen('Wartung');
+check('Mäher: Wartung = Index 2', FakeCloud::$cmsGeschrieben === [3978, 3978, 0], json_encode(FakeCloud::$cmsGeschrieben));
+FakeCloud::$cmsGeschrieben = null;
+$maeher->VerbrauchsteilZuruecksetzen('Reinigungsbuerste');
+check('Mäher: Reinigungsbürste = Index 1', FakeCloud::$cmsGeschrieben === [3978, 0, 1026], json_encode(FakeCloud::$cmsGeschrieben));
+FakeCloud::$cms = json_encode(['d' => ['value' => 'kaputt']]);
+FakeCloud::$cmsGeschrieben = null;
+$t = $maeher->VerbrauchsteilZuruecksetzen('Messer');
+check('Mäher: CMS nicht lesbar → nichts geschrieben', FakeCloud::$cmsGeschrieben === null && strpos($t, '⛔') === 0, $t);
+FakeCloud::$cms = json_encode(['d' => ['value' => [3978, 3978, 1026]]]);
+check('Mäher: Sauger-Teil (Filter) abgelehnt', strpos($maeher->VerbrauchsteilZuruecksetzen('Filter'), '⛔') === 0);
 
 abschnitt('Beschleunigung: unbeantwortete Blöcke überspringen');
 function getPropsSiids(): array

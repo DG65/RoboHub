@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.4 (11.10.2026)
+
+- Neu: Verbrauchsteile zurücksetzen (`ROBO_VerbrauchsteilZuruecksetzen($id, 'Filter')`), im
+  Formular als Knopf je vorhandenem Teil mit Ja/Nein-Abfrage (`confirm`), auf der Kachel in
+  zwei Schritten (↺ → „Ja, zurücksetzen"), über die IPSView-Seite nur mit Freigabe + Schlüssel.
+  Danach sofort neuer Abruf; jede Rücksetzung (mit Vorher-Wert) dauerhaft im Symcon-Protokoll.
+- Sauger: Reset-Aktionen nach Tasshack `ACTION_MAPPING` — Hauptbürste 9.1, Seitenbürste 10.1,
+  Filter 11.1, Sensoren 16.1, Mopp/Walze 18.1, Schmutzwasserbehälter 26.1, Abwasserfilter 35.1.
+- Mäher: Read-Modify-Write des CMS-Zählers über 2.50 (ioBroker `resetIndex`: Klingen 0,
+  Reinigungsbürste 1, Wartung 2) — die anderen beiden Zähler bleiben erhalten; ist CMS nicht
+  lesbar, wird nichts geschrieben.
+- Noch nicht live ausgelöst (eine Rücksetzung lässt sich nicht rückgängig machen).
+
 ## 0.4.3 (11.10.2026)
 
 - Echtzeit live bestätigt: Beide Konten verbunden (TLS mit Hersteller-CA, `CertificateAuthority`

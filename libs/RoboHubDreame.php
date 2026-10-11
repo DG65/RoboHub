@@ -835,6 +835,47 @@ PEM;
         throw new RoboHubFehler('Dieser Befehl wird für ' . ($maeher ? 'Mähroboter' : 'Saugroboter') . ' noch nicht unterstützt: ' . $befehl);
     }
 
+    // Verbrauchsteile zurücksetzen. Sauger: eigene Aktion je Teil (Tasshack
+    // types.py ACTION_MAPPING, für 9/10/11/16 identisch mit ioBroker main.js).
+    private const RUECKSETZEN_SAUGER = [
+        'Hauptbuerste' => [9, 1], 'Seitenbuerste' => [10, 1], 'Filter' => [11, 1], 'Sensoren' => [16, 1],
+        'Mopp' => [18, 1], 'Schmutzwasserbehaelter' => [26, 1], 'Abwasserfilter' => [35, 1],
+    ];
+    // Mäher: Index im CMS-Minutenzähler (ioBroker main.js resetIndex, docs/mower-protocol.md).
+    private const RUECKSETZEN_MAEHER = ['Messer' => 0, 'Reinigungsbuerste' => 1, 'Wartung' => 2];
+
+    public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
+    {
+        $did = (string)$geraet['id'];
+        if (self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER) {
+            if (!isset(self::RUECKSETZEN_MAEHER[$teil])) {
+                throw new RoboHubFehler('Dieses Teil lässt sich beim Mäher nicht zurücksetzen: ' . $teil);
+            }
+            // Read-Modify-Write wie ioBroker: alle drei Zähler lesen, nur den
+            // gewünschten auf 0 setzen, alle zurückschreiben — sonst gingen die
+            // anderen beiden verloren.
+            $out = $this->aktion($buendel, $did, 2, 50, [['m' => 'g', 't' => 'CMS']]);
+            $erstes = $out['out'][0] ?? null;
+            if (is_string($erstes)) {
+                $erstes = json_decode($erstes, true);
+            }
+            $cms = $erstes['d']['value'] ?? null;
+            if (!is_array($cms) || count($cms) < 3) {
+                throw new RoboHubFehler('Verschleißzähler des Mähers nicht lesbar — nichts zurückgesetzt.');
+            }
+            $cms = array_values($cms);
+            $cms[self::RUECKSETZEN_MAEHER[$teil]] = 0;
+            $this->aktion($buendel, $did, 2, 50, [['m' => 's', 't' => 'CMS', 'd' => ['value' => $cms]]]);
+            return 'Zurücksetzen gesendet.';
+        }
+        if (!isset(self::RUECKSETZEN_SAUGER[$teil])) {
+            throw new RoboHubFehler('Dieses Teil lässt sich nicht zurücksetzen: ' . $teil);
+        }
+        [$siid, $aiid] = self::RUECKSETZEN_SAUGER[$teil];
+        $this->aktion($buendel, $did, $siid, $aiid, []);
+        return 'Zurücksetzen gesendet.';
+    }
+
     private static function befehlName(string $befehl): string
     {
         return ['start' => 'Start', 'pause' => 'Pause', 'stopp' => 'Stopp', 'station' => 'Zur Station', 'orten' => 'Orten'][$befehl] ?? $befehl;

@@ -135,6 +135,17 @@
   CONNACK angenommen, je 1 Gerät abonniert. Saugstufe in der App auf „Stark" und zurück → beide Änderungen
   per Echtzeit in Symcon (letzte um 23:01:02, Abruf 23:01:10 bestätigt). 7 Meldungen in 4 Minuten.
 
+## Verbrauchsteile zurücksetzen (0.4.4)
+
+- Sauger: `action` ohne Parameter auf den Teil-Service (Tasshack `ACTION_MAPPING`: 9.1, 10.1, 11.1,
+  16.1, 18.1, 26.1, 35.1). Mäher: CMS über 2.50 lesen (`m:g`), einen Index auf 0, alles zurück
+  (`m:s`, `d.value`) — ioBroker `resetIndex` 0/1/2. CMS-Werte sind **verbrauchte** Minuten (0 = 100 %).
+- Doppelte Sicherung: Gerät prüft Teil in `TEILE` UND vorhandene Variable, Treiber prüft die
+  Zuordnung je Klasse. Nicht rückgängig zu machen → Formular `confirm`, Kachel zweistufig, Hook nur
+  mit Freigabe + Schlüssel. Jede Rücksetzung per `protokolliere()` (Vorher-Wert).
+- **Live noch nie ausgelöst.** Nur auf Dietmars ausdrückliches Wort und an einem Teil, das er
+  gerade wirklich gewechselt/gereinigt hat.
+
 ## Prüfen
 
 ```

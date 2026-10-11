@@ -54,6 +54,9 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Seitenbürste, Filter, Mopp/Walze, Sensoren, beim Mäher Messer), Station, Frisch-/
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
+- **Verbrauchsteile zurücksetzen** nach Wechsel oder Reinigung — im Formular (mit
+  Sicherheitsabfrage) und auf der Kachel (↺, dann bestätigen). Jede Rücksetzung steht im
+  Symcon-Protokoll.
 
 ## Echtzeit-Meldungen
 
@@ -94,6 +97,7 @@ ROBO_Stoppen($id);
 ROBO_ZurStation($id);
 ROBO_Orten($id);
 ROBO_RaeumeReinigen($id, "3,5"); // Raum-IDs zeigt das Formular
+ROBO_VerbrauchsteilZuruecksetzen($id, "Filter"); // nach Wechsel/Reinigung, Ident der %-Variable
 ROBO_Aktualisieren($id);
 IPS_RequestAction($id, 'Befehl', 1); // 1 Start, 2 Pause, 3 Stopp, 4 Station, 5 Orten
 ```
