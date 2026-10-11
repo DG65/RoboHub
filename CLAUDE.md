@@ -128,6 +128,12 @@
 - Bytes über den Socket als UTF-8 (`mb_convert_encoding … ISO-8859-1`), Empfangspuffer base64 in `SetBuffer`.
 - Push → `Schnappschuss` (letzter `get_properties`-Stand je did) + Delta → `normalisiere()` → `SendDataToChildren`.
 - Prüfstand: 30 Echtzeit-Prüfungen, 7/8 Mutationen gefangen (8. gleichwertig).
+- **Live bestätigt (11.10.2026, 0.4.2):** `RequireParent` wirkte bei Bestandskonten NICHT (auch nicht in
+  ApplyChanges) → ausdrücklich `IPS_CreateInstance`/`IPS_SetName`/`IPS_ConnectInstance`. Danach beide Sockets
+  Status 102, TLS mit `CertificateAuthority` = base64(PEM) und VerifyPeer/VerifyHost an funktioniert.
+  Dreame-Server 10000.mt.eu.iot.dreame.tech:19973, MOVA 20000.mt.eu.iot.mova-tech.com:19974 (aus bindDomain).
+  CONNACK angenommen, je 1 Gerät abonniert. Saugstufe in der App auf „Stark" und zurück → beide Änderungen
+  per Echtzeit in Symcon (letzte um 23:01:02, Abruf 23:01:10 bestätigt). 7 Meldungen in 4 Minuten.
 
 ## Prüfen
 
