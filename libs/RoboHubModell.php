@@ -156,6 +156,21 @@ interface RoboHubTreiber
     /** Räume bzw. Zonen des Geräts: [ID => Name]; leer, wenn (noch) keine Karte. */
     public function raeume(array $buendel, array $geraet): array;
 
+    /** Normalisiert Rohwerte ohne Netz (für Echtzeit-Meldungen). */
+    public function normalisiere(string $modell, array $p): array;
+
+    /** [Host, Port] des Echtzeit-Servers. */
+    public function mqttZiel(array $geraete, array $buendel): array;
+
+    /** Topic, auf dem die Cloud Änderungen dieses Geräts meldet. */
+    public function mqttTopic(array $geraet, array $buendel): string;
+
+    /** [Benutzer, Passwort] für die Echtzeit-Anmeldung. */
+    public function mqttZugang(array $buendel): array;
+
+    /** Echtzeit-Nachricht → ['Geräte-ID' => ['siid.piid' => Wert]] (nur relevante Werte). */
+    public function pushLesen(string $payload): array;
+
     /** Führt einen Befehl aus; Rückgabe: Klartext („gesendet …"). */
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string;
 }

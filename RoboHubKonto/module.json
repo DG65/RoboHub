@@ -7,8 +7,15 @@
     "RoboHub Konto (Saug-/Wischroboter-Cloud)"
   ],
   "url": "https://github.com/DG65/RoboHub",
-  "parentRequirements": [],
-  "childRequirements": ["{4949DAA0-C934-4184-91E2-2D3E90D4DC24}"],
-  "implemented": ["{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}"],
+  "parentRequirements": [
+    "{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}"
+  ],
+  "childRequirements": [
+    "{4949DAA0-C934-4184-91E2-2D3E90D4DC24}"
+  ],
+  "implemented": [
+    "{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}",
+    "{018EF6B5-AB94-40C6-AA53-46943E824ACF}"
+  ],
   "prefix": "ROBOHUB"
 }

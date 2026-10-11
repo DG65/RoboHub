@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.3.5-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.4.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -55,6 +55,16 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
 
+## Echtzeit-Meldungen
+
+Jede Konto-Instanz hält (abschaltbar, Panel „⚡ Echtzeit-Meldungen") eine verschlüsselte
+MQTT-Verbindung zum Server des Herstellers. Ändert sich etwas am Roboter — Zustand, Akku,
+Fehler, Station —, steht es sofort in Symcon und auf der Kachel. Die Verbindung läuft über
+eine automatisch angelegte Client-Socket-Instanz; das Server-Zertifikat wird gegen die
+Zertifizierungsstelle des Herstellers geprüft (Zertifikat und Servername), fremde Server
+werden abgelehnt. Die regelmäßige Abfrage bleibt als Sicherheitsnetz, die schnelle
+30-Sekunden-Abfrage während der Arbeit entfällt, solange Meldungen ankommen.
+
 ## Kachel und IPSView
 
 **Kachel-Visualisierung:** Jede Roboter-Instanz ist selbst eine Kachel — Zustand mit
@@ -103,8 +113,8 @@ nicht offiziell dokumentiert und kann sich ändern.
 
 ## Grenzen (Version 0.1)
 
-- Abfrage per Intervall (Standard 120 s, während der Arbeit 30 s); keine Echtzeit-Meldungen
-  (MQTT) und keine Kartenansicht.
+- Keine Kartenansicht; Karten- und Positionsdaten aus den Echtzeit-Meldungen werden nicht
+  ausgewertet.
 - Mäher: noch keine Zonen-Auswahl.
 - Andere Regionen als „Europa" sind ungeprüft.
 

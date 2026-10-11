@@ -117,6 +117,18 @@
   (MOVA-Pfad enthält `/000002/ali_dreame/null/`). Kachel zeigt beide Bilder (Screenshot 22:05).
   Meine Zwischen-These „mainImage fehlt" war falsch — die Daten stammten von vor dem Update.
 
+## Echtzeit (MQTT, 0.4.0)
+
+- Konto hat `parentRequirements` Client Socket (`{3CFF0FD9-…}`, Daten `{79827379-…}`/`{018EF6B5-…}`),
+  `RequireParent` in `Create()`. Socket-Eigenschaften live an Dietmars System gelesen:
+  Host/Port/Open/UseSSL/VerifyPeer/VerifyHost/CertificateAuthority/Certificate/PrivateKey/UseCertificate/Password.
+  **Offen (live):** ob `CertificateAuthority` base64(PEM) erwartet (so umgesetzt) — sonst TLS-Fehler sichtbar.
+- Private Wurzel-CA in `RoboHubDreame::MQTT_WURZEL` (gültig bis 2969). SAN deckt `*.mt.<region>.iot.dreame.tech`
+  und `*.mt.<region>.iot.mova-tech.com`. Nie auf `VerifyPeer=false` zurückfallen, ohne mit Dietmar zu sprechen.
+- Bytes über den Socket als UTF-8 (`mb_convert_encoding … ISO-8859-1`), Empfangspuffer base64 in `SetBuffer`.
+- Push → `Schnappschuss` (letzter `get_properties`-Stand je did) + Delta → `normalisiere()` → `SendDataToChildren`.
+- Prüfstand: 30 Echtzeit-Prüfungen, 7/8 Mutationen gefangen (8. gleichwertig).
+
 ## Prüfen
 
 ```

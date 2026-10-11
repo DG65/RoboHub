@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.0 (11.10.2026)
+
+- **Echtzeit-Meldungen per MQTT** (Dietmars Auftrag): eigener schlanker MQTT-3.1.1-Client
+  (`libs/RoboHubMqtt.php`) über Symcons Client Socket (`RequireParent`, Konfiguration per
+  `GetConfigurationForParent`, Statuswechsel per `IM_CHANGESTATUS` — Muster Tibber Grid Reward).
+  Anmeldung mit uid + Zugangsschlüssel, Abonnement `/status/<did>/<uid>/<model>/<region>/` je
+  Gerät (ioBroker `connectMqtt`), Keepalive 60 s, Neuverbindung bei neuem Zugangsschlüssel und
+  wenn 3 Intervalle nichts kommt, PUBACK bei QoS 1.
+- **Zertifikatsprüfung statt Abschalten:** Die MQTT-Server nutzen eine private Wurzel-CA (nennt
+  sich „GlobalSign Root CA", ist es nicht). RoboHub hinterlegt genau diese Wurzel
+  (`CertificateAuthority`, SHA-256 6D:B9:EA:84:…:E4:25) und prüft Zertifikat UND Hostname —
+  gegengeprüft: Dreame-/MOVA-Server ok, fremdes Zertifikat abgelehnt. ioBroker schaltet die
+  Prüfung ab (`rejectUnauthorized: false`).
+- Meldungen (`properties_changed`) werden in den letzten vollständigen Rohstand gemischt und wie
+  bei der Abfrage übersetzt (abgeleitete Werte wie der Reinigungsmodus-Tausch bleiben korrekt),
+  dann sofort an Roboter und Kachel gegeben. Karten (6.x) und binäre Mäher-Telemetrie (1.x)
+  werden übergangen. Ohne vollständigen Stand wartet RoboHub auf den nächsten Abruf.
+- Abfrage bleibt als Sicherheitsnetz; der 30-s-Schnelltakt entfällt, solange Meldungen kommen.
+
 ## 0.3.5 (11.10.2026)
 
 - Produktbild: Ersatzweise wird jetzt die erste https-Bildadresse im ganzen Datensatz

@@ -14,6 +14,8 @@ date_default_timezone_set('Europe/Berlin');
 
 const KR_READY = 10103;
 const IPS_KERNELMESSAGE = 10100;
+const IM_CHANGESTATUS = 10505;
+const IS_ACTIVE = 102;
 const VARIABLETYPE_BOOLEAN = 0;
 const VARIABLETYPE_INTEGER = 1;
 const VARIABLETYPE_FLOAT = 2;
@@ -49,6 +51,23 @@ function IPS_DisconnectInstance(int $id): bool { $GLOBALS['INST'][$id]->parent =
 function ROBOHUB_GeraeteListe(int $id): string { return $GLOBALS['INST'][$id]->GeraeteListe(); }
 function ROBOHUB_GeraeteSuchen(int $id): string { return $GLOBALS['INST'][$id]->GeraeteSuchen(); }
 $GLOBALS['CONNECTS'] = [];
+$GLOBALS['SKRIPTE'] = [];
+function IPS_RunScriptText(string $s): bool { $GLOBALS['SKRIPTE'][] = $s; return true; }
+function IPS_GetConfiguration(int $id): string { return json_encode($GLOBALS['INST'][$id]->config ?? []); }
+/** Nachgebildeter Client Socket: merkt sich gesendete Bytes. */
+class FakeSocket
+{
+    public $InstanceID;
+    public $config = ['Open' => false];
+    public $gesendet = [];
+    public $parent = null;
+    public function __construct(int $id) { $this->InstanceID = $id; $GLOBALS['INST'][$id] = $this; }
+    public function ForwardData(string $json): string { $d = json_decode($json, true); $this->gesendet[] = mb_convert_encoding($d['Buffer'], 'ISO-8859-1', 'UTF-8'); return ''; }
+}
+function mqttVomServer($konto, string $bytes): void
+{
+    $konto->ReceiveData(json_encode(['DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}', 'Buffer' => mb_convert_encoding($bytes, 'UTF-8', 'ISO-8859-1')]));
+}
 function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
 function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time()]; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
@@ -91,6 +110,12 @@ class IPSModule
     public function SendDebug(string $a, string $b, int $c): void { $this->debug[] = "$a: $b"; }
     public function UpdateFormField(string $n, string $p, $v): void { $this->fields[] = [$n, $p, $v]; }
     public function HasActiveParent(): bool { return $this->parent !== null; }
+    public $puffer = [];
+    public function RequireParent(string $guid): void { if ($this->parent === null) { $this->parent = new FakeSocket($this->InstanceID + 90000); } }
+    public function SetBuffer(string $n, string $v): void { $this->puffer[$n] = $v; }
+    public function GetBuffer(string $n): string { return $this->puffer[$n] ?? ''; }
+    public function SendDataToChildren(string $json): void { foreach ($GLOBALS['INST'] as $m) { if ($m instanceof IPSModule && $m->parent === $this) { $m->ReceiveData($json); } } }
+    public function UnregisterMessage(int $s, int $m): void {}
     public $visu = [];
     public $visuTyp = 0;
     public function SetVisualizationType(int $t): void { $this->visuTyp = $t; }
@@ -201,6 +226,19 @@ class FakeCloud extends RoboHubDreame
     }
 }
 $GLOBALS['robohubTreiberFabrik'] = function (string $marke) { return new FakeCloud($marke); };
+
+/** Baut PUBLISH-Pakete wie ein MQTT-Server (unabhängig vom Code unter Test). */
+final class RoboHubMqttTest
+{
+    public static function publish(string $topic, string $payload, int $qos, int $id): string
+    {
+        $rest = pack('n', strlen($topic)) . $topic . ($qos > 0 ? pack('n', $id) : '') . $payload;
+        $len = strlen($rest);
+        $enc = '';
+        do { $b = $len % 128; $len = intdiv($len, 128); if ($len > 0) { $b |= 0x80; } $enc .= chr($b); } while ($len > 0);
+        return chr(0x30 | ($qos << 1)) . $enc . $rest;
+    }
+}
 
 $fails = 0;
 function check(string $was, bool $ok, string $detail = ''): void
@@ -656,6 +694,112 @@ $f = json_decode($unbekannt->GetConfigurationForm(), true);
 check('Roboter ohne Konto: rote ⛔-Zeile', strpos(json_encode($f, JSON_UNESCAPED_UNICODE), '⛔ Kein Konto verbunden') !== false);
 unset($GLOBALS['INST'][2400], $GLOBALS['INST'][2401], $GLOBALS['INST'][2402]);
 
+abschnitt('Echtzeit (MQTT)');
+$socket = $konto->parent;
+check('Konto bekommt einen Client Socket (RequireParent)', $socket instanceof FakeSocket);
+$sockCfg = json_decode($konto->GetConfigurationForParent(), true);
+check('Socket-Ziel aus bindDomain der Geräteliste', $sockCfg['Host'] === '10000.mt.eu.iot.dreame.tech' && $sockCfg['Port'] === 19973, json_encode($sockCfg));
+check('TLS mit voller Prüfung (Zertifikat + Name)', $sockCfg['UseSSL'] === true && $sockCfg['VerifyPeer'] === true && $sockCfg['VerifyHost'] === true);
+check('eigene Wurzel hinterlegt (Fingerabdruck)', openssl_x509_fingerprint(openssl_x509_read(base64_decode($sockCfg['CertificateAuthority'])), 'sha256') === '6db9ea84c7e4c9aec692cd540ff52381f5e37dae47df8ebeb948a4461aeae425');
+check('angemeldet + Echtzeit an → Socket offen', $sockCfg['Open'] === true);
+$GLOBALS['SKRIPTE'] = [];
+$konto->ApplyChanges();
+$skript = end($GLOBALS['SKRIPTE']) ?: '';
+check('ApplyChanges konfiguriert den Socket (per Skript)', strpos($skript, 'IPS_SetConfiguration(' . $socket->InstanceID) !== false && strpos($skript, '10000.mt.eu.iot.dreame.tech') !== false, $skript);
+$socket->config = $sockCfg;   // Symcon hätte sie übernommen
+$GLOBALS['SKRIPTE'] = [];
+$konto->ApplyChanges();
+check('unveränderte Einstellungen → kein erneutes Konfigurieren (keine Neuverbindungs-Schleife)', $GLOBALS['SKRIPTE'] === []);
+
+$socket->gesendet = [];
+$konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [IS_ACTIVE]);
+$b = json_decode($konto->ReadAttributeString('Buendel'), true);
+$connect = $socket->gesendet[0] ?? '';
+check('Socket verbunden → CONNECT gesendet', $connect !== '' && ord($connect[0]) === 0x10);
+$puf = $connect;
+$pk = RoboHubMqtt::zerlegen($puf)[0] ?? ['body' => ''];
+check('CONNECT: Benutzer = uid, Passwort = Zugangsschlüssel', strpos($pk['body'], pack('n', strlen($b['uid'])) . $b['uid'] . pack('n', strlen($b['access_token'])) . $b['access_token']) !== false);
+check('Keepalive-Timer läuft (50 s)', ($konto->timers['MqttPing'] ?? 0) === 50000);
+
+$socket->gesendet = [];
+mqttVomServer($konto, "\x20\x02\x00\x00");
+$sub = $socket->gesendet[0] ?? '';
+check('CONNACK 0 → SUBSCRIBE je Gerät', $sub !== '' && ord($sub[0]) === 0x82 && strpos($sub, '/status/-112663880/' . $b['uid'] . '/dreame.vacuum.r95475/eu/') !== false, bin2hex(substr($sub, 0, 8)));
+check('Formular: 🔗 verbunden', strpos(json_encode(json_decode($konto->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), '🔗 Echtzeit verbunden') !== false);
+
+// Sauger 2000: vollständiger Stand aus früheren Abrufen liegt vor. Push 2.1 = 1 (saugt) + Akku, in zwei Stücken.
+$topic = '/status/-112663880/' . $b['uid'] . '/dreame.vacuum.r95475/eu/';
+$nachricht = json_encode(['id' => 92, 'did' => '-112663880', 'data' => ['id' => 92, 'method' => 'properties_changed', 'params' => [
+    ['did' => '-112663880', 'siid' => 2, 'piid' => 1, 'value' => 1], ['did' => '-112663880', 'siid' => 3, 'piid' => 1, 'value' => 77]]]]);
+$publish = RoboHubMqttTest::publish($topic, $nachricht, 0, 0);
+mqttVomServer($konto, substr($publish, 0, 10));
+check('halbe Nachricht → noch nichts übernommen', variable(2000, 'Akku')['value'] !== 77);
+mqttVomServer($konto, substr($publish, 10));
+check('vollständige Nachricht → Zustand „Reinigt" sofort am Roboter', variable(2000, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT);
+check('… und Akku 77 %', variable(2000, 'Akku')['value'] === 77);
+check('Roboter merkt sich die Echtzeit-Meldung', $geraet->ReadAttributeInteger('LetzteEchtzeit') >= time() - 2);
+$rTakt = new ReflectionMethod('RoboHubGeraet', 'taktSekunden');
+check('mit Echtzeit kein 30-s-Schnelltakt, obwohl der Roboter reinigt', $rTakt->invoke($geraet) === 120);
+check('Kachel wurde sofort aktualisiert', strpos((string)end($geraet->visu), '"zustand":1') !== false);
+
+// Vollständiger Stand mit Stationsdaten (4.25/27.3), wie ihn ein regulärer Abruf liefert.
+FakeCloud::$props = ['2.1' => 1, '2.2' => 0, '3.1' => 77, '4.4' => 1, '4.23' => (5 << 16) | 2, '4.25' => 0, '27.3' => 0];
+FakeCloud::$ausfall = [];
+$konto->WriteAttributeString('BlockSperre', '{}');
+$geraet->Aktualisieren();
+// Nur der gepackte Reinigungsmodus kommt: Tausch muss aus dem gespeicherten Stand (4.25/27.3) richtig bleiben.
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 4, 'piid' => 23, 'value' => (5 << 16) | 0]]]]), 0, 0));
+check('Einzelwert 4.23 → Tausch bleibt korrekt (Leitung 0 = Saugen und Wischen)', variable(2000, 'Reinigungsmodus')['value'] === 2);
+
+$vorher = count($geraet->visu);
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 6, 'piid' => 1, 'value' => 'KARTE']]]]), 0, 0));
+check('Kartendaten (6.x) werden übergangen', count($geraet->visu) === $vorher);
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, '{"kaputt', 0, 0));
+check('abgeschnittene Nachricht (Server kürzt bei 4096 Byte) → still übergangen', count($geraet->visu) === $vorher);
+
+$socket->gesendet = [];
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 3, 'piid' => 1, 'value' => 76]]]]), 1, 4711));
+check('QoS 1 → PUBACK mit Paket-ID', ($socket->gesendet[0] ?? '') === "\x40\x02" . pack('n', 4711));
+
+$schnapp = json_decode($konto->ReadAttributeString('Schnappschuss'), true);
+$merke = $schnapp;
+unset($schnapp['-112663880']);
+$konto->WriteAttributeString('Schnappschuss', json_encode($schnapp));
+$akku = variable(2000, 'Akku')['value'];
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 3, 'piid' => 1, 'value' => 11]]]]), 0, 0));
+check('ohne vollständigen Stand wird nichts übersetzt (wartet auf Abruf)', variable(2000, 'Akku')['value'] === $akku);
+$konto->WriteAttributeString('Schnappschuss', json_encode($merke));
+
+$GLOBALS['SKRIPTE'] = [];
+$b2 = $b;
+$b2['expires_at'] = time() + 10;
+$konto->WriteAttributeString('Buendel', json_encode($b2));
+$konto->Erneuern();
+$skript = end($GLOBALS['SKRIPTE']) ?: '';
+check('neuer Zugangsschlüssel → Socket wird neu verbunden', strpos($skript, '"Open", false') !== false && strpos($skript, 'IPS_SetConfiguration') !== false, $skript);
+
+$GLOBALS['LOG'] = [];
+mqttVomServer($konto, "\x20\x02\x00\x05");
+check('CONNACK 5 → Fehler sichtbar und protokolliert', strpos(json_encode(json_decode($konto->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), 'nicht berechtigt') !== false && strpos(implode("\n", $GLOBALS['LOG']), 'Echtzeit-Anmeldung abgelehnt') !== false);
+
+mqttVomServer($konto, "\x20\x02\x00\x00");
+$stand = json_decode($konto->ReadAttributeString('Mqtt'), true);
+$stand['lebenszeichen'] = time() - 400;
+$konto->WriteAttributeString('Mqtt', json_encode($stand));
+$GLOBALS['SKRIPTE'] = [];
+$konto->MqttPing();
+check('keine Antwort seit 3 Intervallen → Neuverbindung', count($GLOBALS['SKRIPTE']) === 1);
+$stand['lebenszeichen'] = time();
+$stand['zustand'] = 'verbunden';
+$konto->WriteAttributeString('Mqtt', json_encode($stand));
+$socket->gesendet = [];
+$konto->MqttPing();
+check('sonst PINGREQ', ($socket->gesendet[0] ?? '') === "\xC0\x00");
+
+$konto->props['Echtzeit'] = false;
+check('Echtzeit aus → Socket geschlossen', json_decode($konto->GetConfigurationForParent(), true)['Open'] === false);
+$konto->props['Echtzeit'] = true;
+
 abschnitt('Fehlerpfade');
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);
 $b['expires_at'] = time() + 10;
@@ -718,7 +862,7 @@ foreach (['RoboHubKonto', 'RoboHubGeraet', 'RoboHubKonfigurator'] as $klasse) {
     foreach ((new ReflectionClass($klasse))->getMethods(ReflectionMethod::IS_PUBLIC) as $m) {
         if ($m->getDeclaringClass()->getName() === 'IPSModule') { continue; }
         foreach ($m->getParameters() as $p) {
-            if (in_array($m->getName(), ['MessageSink', 'RequestAction', 'ForwardData', '__construct'], true)) { continue; }
+            if (in_array($m->getName(), ['MessageSink', 'RequestAction', 'ForwardData', 'ReceiveData', '__construct'], true)) { continue; }
             check("$klasse::{$m->getName()}(\${$p->getName()}) skalar typisiert, ohne Standardwert", $p->hasType() && in_array((string)$p->getType(), ['string', 'int', 'float', 'bool'], true) && !$p->isDefaultValueAvailable());
         }
     }

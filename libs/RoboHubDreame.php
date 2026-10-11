@@ -184,7 +184,7 @@ class RoboHubDreame implements RoboHubTreiber
                 'modell' => $modell,
                 'klasse' => self::klasseVon($modell),
                 'online' => !empty($r['online']),
-                'roh'    => ['bindDomain' => $r['bindDomain'] ?? null, 'ver' => $r['ver'] ?? null],
+                'roh'    => ['bindDomain' => $r['bindDomain'] ?? null, 'ver' => $r['ver'] ?? null, 'masterUid' => $r['masterUid'] ?? null],
             ];
         }
         return $out;
@@ -327,7 +327,7 @@ class RoboHubDreame implements RoboHubTreiber
             $p['3.1'] = (int)$eintrag['battery'];
         }
 
-        $daten = $klasse === RoboHubModell::KLASSE_MAEHER ? $this->normalisiereMaeher($p, $modell) : $this->normalisiereSauger($p);
+        $daten = $this->normalisiere($modell, $p);
         if ($klasse === RoboHubModell::KLASSE_MAEHER && $online) {
             $daten['werte'] += $this->maeherVerschleiss($buendel, $did);
         }
@@ -344,6 +344,107 @@ class RoboHubDreame implements RoboHubTreiber
             'uebersprungeneBloecke' => $ueberspringen,
         ];
         return $daten;
+    }
+
+    /**
+     * Rohwerte ['siid.piid' => Wert] → normalisierter Zustand (werte/optionen).
+     * Ohne Netz — wird auch für Echtzeit-Meldungen (MQTT) genutzt, dort mit
+     * dem letzten vollständigen Stand plus den geänderten Werten, damit
+     * abgeleitete Werte (z. B. Reinigungsmodus-Tausch) korrekt bleiben.
+     */
+    public function normalisiere(string $modell, array $p): array
+    {
+        return self::klasseVon($modell) === RoboHubModell::KLASSE_MAEHER
+            ? $this->normalisiereMaeher($p, $modell)
+            : $this->normalisiereSauger($p);
+    }
+
+    // =================================================================
+    // Echtzeit (MQTT) — Werte aus ioBroker main.js connectMqtt()
+    // =================================================================
+
+    private const MQTT_ERSATZ = ['dreame' => ['app.mt.%s.iot.dreame.tech', 19973], 'mova' => ['app.mt.%s.iot.mova-tech.com', 19974]];
+
+    /**
+     * Private Wurzel-CA der Dreame/MOVA-MQTT-Server (nennt sich „GlobalSign
+     * Root CA", ist aber eine eigene Stelle — mit öffentlichen CAs schlägt die
+     * Prüfung fehl). Am 11.10.2026 von 10000.mt.eu.iot.dreame.tech:19973 und
+     * app.mt.eu.iot.mova-tech.com:19974 gelesen, beide identisch, gültig bis
+     * 2969, SHA-256 6D:B9:EA:84:C7:E4:C9:AE:C6:92:CD:54:0F:F5:23:81:F5:E3:7D:
+     * AE:47:DF:8E:BE:B9:48:A4:46:1A:EA:E4:25. Damit prüft RoboHub Zertifikat
+     * UND Hostnamen, statt die Prüfung (wie ioBroker) abzuschalten.
+     */
+    public const MQTT_WURZEL = <<<PEM
+-----BEGIN CERTIFICATE-----
+MIIDDzCCAfegAwIBAgIJAPvMK3fFXUEgMA0GCSqGSIb3DQEBCwUAMB0xGzAZBgNV
+BAMMEkdsb2JhbFNpZ24gUm9vdCBDQTAgFw02OTEyMzExNjAwMDBaGA8yOTY5MDUw
+MjE2MDAwMFowHTEbMBkGA1UEAwwSR2xvYmFsU2lnbiBSb290IENBMIIBIjANBgkq
+hkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtdVI+1rZpIpB8YlmnzWFnvJyGzlBbxEh
+RwgSanox6OypwX27htEFFJzMxz5YGv9nABm3b3SUB+0zcAkJYw/Q9lZoT1w0m9Cr
+5KJMxofpD8JjsZWFE5hvJ5NIyRS4tOgimGsIfvHGMzihZ9sLnq7kBtX7u5hIv/A5
+eSvifaroS2NombTFMQrV6ZNIvpFALbMUbp02+mexm7P59c7OzJVupQAWJSFOepIu
+UwhyYLe1oR/HTiKcIuzDSp49QxhSNYuLpSUOYo/YU4GTMoKEhXD7u+AyeOzuHrnV
+H7+/U7TlXFtMkyt+ZwQw+s8+/jzi4v9jG5XL82uVbr2FN0EC0PEhrwIDAQABo1Aw
+TjAdBgNVHQ4EFgQUQXiLQz2aun8vl2Hy1RCja8nZ4qMwHwYDVR0jBBgwFoAUQXiL
+Qz2aun8vl2Hy1RCja8nZ4qMwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOC
+AQEAaAuVj1RNRRXfV7wk2VtLr6aKPoi7mlG9OSijHxAbmwV1KMyGR6gUpqToBpe/
+xQN+AjJK1Unex0hkN7+RZhpe8ajWqtniZ+oq9Xd+be0JW2KqZmA18r5arJj4DiCt
+Asa557/RNxuiIMc/uwvPtVq2C9uPX562esS02e2bRODH+l+aKcFzeCKotccJGej7
+NrfwypYpmoqrwko/4pe9cMBc3O1CLl2ZYy+YreHMFitmL6xGnC4a6HuTcZgK/ntj
+zewB8u+e2dMQwnBclahtLtb8oMmCHCWlgMTVU1MrjlWldvULalpMnIE5gsHKNXeC
+z0PJitlGIfun4TuQQhVCf5B2aA==
+-----END CERTIFICATE-----
+PEM;
+
+    /** [Host, Port] des MQTT-Servers: bindDomain des ersten Geräts, sonst Ersatz je Marke/Region. */
+    public function mqttZiel(array $geraete, array $buendel): array
+    {
+        foreach ($geraete as $g) {
+            $bind = (string)($g['roh']['bindDomain'] ?? '');
+            if (preg_match('/^([a-z0-9.-]+):(\d{2,5})$/i', $bind, $m)) {
+                return [$m[1], (int)$m[2]];
+            }
+        }
+        [$muster, $port] = self::MQTT_ERSATZ[$this->marke];
+        return [sprintf($muster, $this->pruefeRegion((string)($buendel['region'] ?? 'eu'))), $port];
+    }
+
+    /** Topic je Gerät: /status/<did>/<uid>/<model>/<region>/ (bei geteilten Geräten die uid des Besitzers). */
+    public function mqttTopic(array $geraet, array $buendel): string
+    {
+        $uid = (string)($geraet['roh']['masterUid'] ?? '');
+        if ($uid === '') {
+            $uid = (string)($buendel['uid'] ?? '');
+        }
+        return '/status/' . $geraet['id'] . '/' . $uid . '/' . ($geraet['modell'] ?? '') . '/' . ($buendel['region'] ?? 'eu') . '/';
+    }
+
+    /** [Benutzer, Passwort] für CONNECT: uid + Zugangsschlüssel. */
+    public function mqttZugang(array $buendel): array
+    {
+        return [(string)($buendel['uid'] ?? ''), (string)($buendel['access_token'] ?? '')];
+    }
+
+    /**
+     * Zerlegt eine MQTT-Nachricht (properties_changed) in ['did' => ['siid.piid' => Wert]].
+     * Karten (6.x) und binäre Mäher-Telemetrie (1.x) werden übergangen.
+     */
+    public function pushLesen(string $payload): array
+    {
+        $j = json_decode($payload, true);
+        if (!is_array($j) || ($j['data']['method'] ?? '') !== 'properties_changed') {
+            return [];
+        }
+        $out = [];
+        $did = (string)($j['did'] ?? $j['data']['did'] ?? '');
+        foreach ((array)($j['data']['params'] ?? []) as $e) {
+            $siid = (int)($e['siid'] ?? 0);
+            if (!is_array($e) || !array_key_exists('value', $e) || in_array($siid, [1, 6], true) || $siid <= 0) {
+                continue;
+            }
+            $out[(string)($e['did'] ?? $did)][$siid . '.' . (int)($e['piid'] ?? 0)] = $e['value'];
+        }
+        return $out;
     }
 
     /** get_properties für einen Block; Rückgabe ['siid.piid' => Wert] (nur gelieferte Werte). */

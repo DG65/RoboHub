@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RoboHubModell.php';
 require_once __DIR__ . '/../libs/RoboHubFormular.php';
 require_once __DIR__ . '/../libs/RoboHubDreame.php';
+require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
 // RoboHub Konto — eine Instanz je Hersteller-Konto (z. B. Dreamehome- oder
@@ -30,6 +31,11 @@ class RoboHubKonto extends IPSModule
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
     private const DATA_ZUM_KIND  = '{4949DAA0-C934-4184-91E2-2D3E90D4DC24}';
 
+    // Echtzeit (MQTT) über Symcons Client Socket (TLS).
+    private const CLIENT_SOCKET  = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
+    private const DATA_ZUM_IO    = '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}';
+    private const MQTT_KEEPALIVE = 60;
+
     // Unbeantwortete Abfrageblöcke eine Stunde lang überspringen.
     private const BLOCK_SPERRE_S = 3600;
 
@@ -52,6 +58,14 @@ class RoboHubKonto extends IPSModule
         $this->RegisterAttributeInteger('WarteBis', 0);
         $this->RegisterAttributeString('LetzterFehler', '');
         $this->RegisterAttributeString('BlockSperre', '{}');
+        // Echtzeit: letzter vollständiger Rohstand je Gerät (für korrekte
+        // Übersetzung einzelner Änderungen) und Verbindungsstand fürs Formular.
+        $this->RegisterAttributeString('Schnappschuss', '{}');
+        $this->RegisterAttributeString('Mqtt', '{}');
+        $this->RegisterAttributeInteger('MqttEltern', 0);
+        $this->RegisterPropertyBoolean('Echtzeit', true);
+        $this->RegisterTimer('MqttPing', 0, 'ROBOHUB_MqttPing($_IPS[\'TARGET\']);');
+        $this->RequireParent(self::CLIENT_SOCKET);
         $this->registerFormAttributes();
 
         $this->RegisterTimer('Erneuern', 0, 'ROBOHUB_Erneuern($_IPS[\'TARGET\']);');
@@ -66,12 +80,24 @@ class RoboHubKonto extends IPSModule
             return;
         }
         $this->aktualisiereStatus();
+        $this->elternBeobachten();
+        $this->echtzeitKonfigurieren(false);
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
         if ($Message === IPS_KERNELMESSAGE && ($Data[0] ?? null) === KR_READY) {
             $this->ApplyChanges();
+            return;
+        }
+        // Client Socket verbunden/getrennt (Muster Tibber Grid Reward).
+        if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern')) {
+            if (($Data[0] ?? 0) === IS_ACTIVE) {
+                $this->mqttAnmelden();
+            } else {
+                $this->SetTimerInterval('MqttPing', 0);
+                $this->mqttStand(['zustand' => $this->ReadPropertyBoolean('Echtzeit') ? 'getrennt' : 'aus']);
+            }
         }
     }
 
@@ -113,6 +139,7 @@ class RoboHubKonto extends IPSModule
         // 9l: SetProperty+ApplyChanges ist hier nötig und steht am ENDE,
         // nach allen UpdateFormField-Aufrufen).
         $this->UpdateFormField('Ergebnis', 'caption', $text);
+        $this->echtzeitKonfigurieren(true);
         IPS_SetProperty($this->InstanceID, 'Passwort', '');
         IPS_ApplyChanges($this->InstanceID);
         return $text;
@@ -125,6 +152,7 @@ class RoboHubKonto extends IPSModule
         $this->WriteAttributeString('Geraete', '[]');
         $this->WriteAttributeInteger('GeraeteStand', 0);
         $this->aktualisiereStatus();
+        $this->echtzeitKonfigurieren(false);
         return $this->melde('⏏️ Abgemeldet — der Zugangsschlüssel wurde gelöscht. Die Roboter-Instanzen bleiben erhalten und laufen nach einer neuen Anmeldung weiter.');
     }
 
@@ -235,6 +263,244 @@ class RoboHubKonto extends IPSModule
     }
 
     // -----------------------------------------------------------------
+    // Echtzeit (MQTT)
+    // -----------------------------------------------------------------
+
+    /** Einstellungen für den Client Socket (Symcon wendet sie beim Verbinden an). */
+    public function GetConfigurationForParent()
+    {
+        $an = $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== '';
+        [$host, $port] = $this->mqttZiel();
+        return (string)json_encode([
+            'Host'                 => $host,
+            'Port'                 => $port,
+            'Open'                 => $an && $host !== '',
+            'UseSSL'               => true,
+            // Volle Prüfung gegen Dreames eigene Wurzel (siehe RoboHubDreame::MQTT_WURZEL).
+            'VerifyPeer'           => true,
+            'VerifyHost'           => true,
+            'CertificateAuthority' => base64_encode(RoboHubDreame::MQTT_WURZEL),
+        ]);
+    }
+
+    private function mqttZiel(): array
+    {
+        $buendel = json_decode($this->ReadAttributeString('Buendel'), true) ?: [];
+        $geraete = json_decode($this->ReadAttributeString('Geraete'), true) ?: [];
+        try {
+            return $this->treiber()->mqttZiel($geraete, $buendel);
+        } catch (Throwable $e) {
+            return ['', 0];
+        }
+    }
+
+    /** Client Socket nach Bedarf (um)konfigurieren; $neuVerbinden erzwingt Trennen + Verbinden. */
+    private function echtzeitKonfigurieren(bool $neuVerbinden): void
+    {
+        $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        if ($eltern <= 0) {
+            $this->mqttStand(['zustand' => 'fehlt']);
+            return;
+        }
+        $soll = json_decode($this->GetConfigurationForParent(), true);
+        $ist = json_decode((string)IPS_GetConfiguration($eltern), true) ?: [];
+        $anders = false;
+        foreach ($soll as $k => $v) {
+            if (($ist[$k] ?? null) != $v) {
+                $anders = true;
+            }
+        }
+        if (!$soll['Open']) {
+            $this->SetTimerInterval('MqttPing', 0);
+            $this->mqttStand(['zustand' => 'aus']);
+        }
+        if (!$anders && !($neuVerbinden && $soll['Open'])) {
+            return;
+        }
+        // Wie Tibber Grid Reward: per Skript, damit das ApplyChanges des
+        // Sockets nicht im eigenen Aufruf hängt; IM_CHANGESTATUS meldet das Ergebnis.
+        $skript = '';
+        if ($neuVerbinden && $soll['Open'] && !$anders) {
+            $skript .= 'IPS_SetProperty(' . $eltern . ', "Open", false); IPS_ApplyChanges(' . $eltern . ');';
+        }
+        $skript .= 'IPS_SetConfiguration(' . $eltern . ', ' . var_export((string)json_encode($soll), true) . '); IPS_ApplyChanges(' . $eltern . ');';
+        if ($soll['Open']) {
+            $this->mqttStand(['zustand' => 'verbinde', 'host' => $soll['Host'] . ':' . $soll['Port']]);
+        }
+        IPS_RunScriptText($skript);
+    }
+
+    private function elternBeobachten(): void
+    {
+        $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        $vorher = $this->ReadAttributeInteger('MqttEltern');
+        if ($vorher !== $eltern && $vorher > 0) {
+            $this->UnregisterMessage($vorher, IM_CHANGESTATUS);
+        }
+        $this->WriteAttributeInteger('MqttEltern', $eltern);
+        if ($eltern > 0) {
+            $this->RegisterMessage($eltern, IM_CHANGESTATUS);
+        }
+    }
+
+    /** Socket steht → MQTT-Anmeldung mit dem aktuellen Zugangsschlüssel. */
+    private function mqttAnmelden(): void
+    {
+        if (!$this->ReadPropertyBoolean('Echtzeit')) {
+            return;
+        }
+        try {
+            $buendel = $this->gueltigesBuendel();
+            [$benutzer, $passwort] = $this->treiber()->mqttZugang($buendel);
+        } catch (Throwable $e) {
+            $this->mqttStand(['zustand' => 'fehler', 'text' => $e->getMessage()]);
+            return;
+        }
+        $this->SetBuffer('MqttEingang', '');
+        $this->mqttSenden(RoboHubMqtt::connect('p_' . bin2hex(random_bytes(8)), $benutzer, $passwort, self::MQTT_KEEPALIVE));
+        $this->SetTimerInterval('MqttPing', (self::MQTT_KEEPALIVE - 10) * 1000);
+    }
+
+    private function mqttSenden(string $bytes): void
+    {
+        try {
+            $this->SendDataToParent((string)json_encode(['DataID' => self::DATA_ZUM_IO, 'Buffer' => mb_convert_encoding($bytes, 'UTF-8', 'ISO-8859-1')]));
+        } catch (Throwable $e) {
+            $this->mqttStand(['zustand' => 'fehler', 'text' => 'Senden fehlgeschlagen: ' . $e->getMessage()]);
+        }
+    }
+
+    /** Timer: Verbindung am Leben halten; ohne jede Antwort seit 3 Intervallen neu verbinden. */
+    public function MqttPing(): void
+    {
+        $stand = json_decode($this->ReadAttributeString('Mqtt'), true) ?: [];
+        if (($stand['zustand'] ?? '') !== 'verbunden') {
+            return;
+        }
+        if (time() - (int)($stand['lebenszeichen'] ?? 0) > 3 * self::MQTT_KEEPALIVE) {
+            $this->protokolliere('Echtzeit-Verbindung antwortet nicht mehr — verbinde neu.');
+            $this->echtzeitKonfigurieren(true);
+            return;
+        }
+        $this->mqttSenden(RoboHubMqtt::pingreq());
+    }
+
+    /** Daten vom Client Socket (Bytes als UTF-8, Verbund-Muster Fernwirk101). */
+    public function ReceiveData($JSONString)
+    {
+        $paket = json_decode((string)$JSONString, true);
+        if (!is_array($paket) || !isset($paket['Buffer'])) {
+            return '';
+        }
+        $puffer = base64_decode($this->GetBuffer('MqttEingang')) . mb_convert_encoding((string)$paket['Buffer'], 'ISO-8859-1', 'UTF-8');
+        $pakete = RoboHubMqtt::zerlegen($puffer);
+        $this->SetBuffer('MqttEingang', base64_encode($puffer));
+        foreach ($pakete as $p) {
+            $this->mqttPaket($p);
+        }
+        return '';
+    }
+
+    private function mqttPaket(array $p): void
+    {
+        $this->mqttStand(['lebenszeichen' => time()]);
+        switch ($p['typ']) {
+            case RoboHubMqtt::CONNACK:
+                $code = RoboHubMqtt::connackCode($p['body']);
+                if ($code !== 0) {
+                    $text = 'Echtzeit-Anmeldung abgelehnt: ' . RoboHubMqtt::connackText($code);
+                    $this->mqttStand(['zustand' => 'fehler', 'text' => $text]);
+                    $this->protokolliere($text);
+                    return;
+                }
+                $topics = [];
+                $buendel = json_decode($this->ReadAttributeString('Buendel'), true) ?: [];
+                foreach (json_decode($this->ReadAttributeString('Geraete'), true) ?: [] as $g) {
+                    $topics[] = $this->treiber()->mqttTopic($g, $buendel);
+                }
+                if (count($topics) > 0) {
+                    $this->mqttSenden(RoboHubMqtt::subscribe(1, $topics, 0));
+                }
+                $this->mqttStand(['zustand' => 'verbunden', 'seit' => time(), 'text' => '', 'topics' => count($topics)]);
+                return;
+            case RoboHubMqtt::PUBLISH:
+                $pub = RoboHubMqtt::publishLesen($p['flags'], $p['body']);
+                if ($pub['qos'] > 0) {
+                    $this->mqttSenden(RoboHubMqtt::puback($pub['id']));
+                }
+                $this->SendDebug('Echtzeit', $pub['topic'] . ' ' . substr($pub['payload'], 0, 600), 0);
+                $this->pushVerarbeiten($pub['payload']);
+                return;
+        }
+    }
+
+    /** Änderungen in den letzten vollständigen Stand mischen, übersetzen, an den Roboter geben. */
+    private function pushVerarbeiten(string $payload): void
+    {
+        $aenderungen = $this->treiber()->pushLesen($payload);
+        if (count($aenderungen) === 0) {
+            return;
+        }
+        $schnapp = json_decode($this->ReadAttributeString('Schnappschuss'), true) ?: [];
+        foreach ($aenderungen as $did => $delta) {
+            if (!isset($schnapp[$did])) {
+                // Noch kein vollständiger Stand (z. B. direkt nach dem Start) —
+                // ohne ihn ließen sich abgeleitete Werte nicht korrekt bilden;
+                // der nächste reguläre Abruf holt alles.
+                continue;
+            }
+            $schnapp[$did]['p'] = array_replace((array)$schnapp[$did]['p'], $delta);
+            $daten = $this->treiber()->normalisiere((string)$schnapp[$did]['modell'], $schnapp[$did]['p']);
+            $daten['online'] = true;
+            $daten['echtzeit'] = array_keys($delta);
+            $this->SendDataToChildren((string)json_encode(['DataID' => self::DATA_ZUM_KIND, 'Geraet' => (string)$did, 'Daten' => $daten]));
+            $this->mqttStand(['letzte' => time(), 'anzahl' => (int)((json_decode($this->ReadAttributeString('Mqtt'), true)['anzahl'] ?? 0)) + 1]);
+        }
+        $this->WriteAttributeString('Schnappschuss', (string)json_encode($schnapp));
+    }
+
+    private function schnappschussMerken(string $did, string $modell, array $p): void
+    {
+        if (count($p) === 0) {
+            return;
+        }
+        $schnapp = json_decode($this->ReadAttributeString('Schnappschuss'), true) ?: [];
+        $schnapp[$did] = ['modell' => $modell, 'p' => $p];
+        $this->WriteAttributeString('Schnappschuss', (string)json_encode($schnapp));
+    }
+
+    private function mqttStand(array $neu): void
+    {
+        $stand = array_replace(json_decode($this->ReadAttributeString('Mqtt'), true) ?: [], $neu);
+        $this->WriteAttributeString('Mqtt', (string)json_encode($stand));
+        $this->UpdateFormField('EchtzeitZeile', 'caption', $this->echtzeitZeile());
+    }
+
+    private function echtzeitZeile(): string
+    {
+        $s = json_decode($this->ReadAttributeString('Mqtt'), true) ?: [];
+        if (!$this->ReadPropertyBoolean('Echtzeit')) {
+            return 'ℹ️ Echtzeit ist ausgeschaltet — die Roboter werden nur per Abfrage aktualisiert.';
+        }
+        switch ($s['zustand'] ?? '') {
+            case 'verbunden':
+                return '🔗 Echtzeit verbunden mit ' . ($s['host'] ?? '?') . ' seit ' . date('d.m.Y H:i', (int)($s['seit'] ?? time())) . ' Uhr, '
+                    . (int)($s['topics'] ?? 0) . ' Gerät(e) abonniert'
+                    . (!empty($s['letzte']) ? ', letzte Meldung ' . date('H:i:s', (int)$s['letzte']) . ' Uhr (' . (int)($s['anzahl'] ?? 0) . ' insgesamt)' : ', noch keine Meldung') . '.';
+            case 'verbinde':
+                return '⏳ Echtzeit verbindet mit ' . ($s['host'] ?? '?') . ' …';
+            case 'fehler':
+                return '⛔ Echtzeit: ' . ($s['text'] ?? 'Fehler') . ' — die Abfrage läuft weiter.';
+            case 'getrennt':
+                return '⚠️ Echtzeit getrennt — Symcon verbindet automatisch neu; die Abfrage läuft weiter.';
+            case 'fehlt':
+                return '⚠️ Keine Verbindungsinstanz (Client Socket) — bitte „Übernehmen" klicken.';
+            default:
+                return $this->ReadAttributeString('Buendel') === '' ? 'ℹ️ Echtzeit startet nach der Anmeldung.' : 'ℹ️ Echtzeit noch nicht verbunden.';
+        }
+    }
+
+    // -----------------------------------------------------------------
     // Intern
     // -----------------------------------------------------------------
 
@@ -274,6 +540,10 @@ class RoboHubKonto extends IPSModule
             $neu = $this->treiber()->erneuern($buendel);
             if ($neu !== $buendel) {
                 $this->WriteAttributeString('Buendel', (string)json_encode($neu));
+                if (($neu['access_token'] ?? '') !== ($buendel['access_token'] ?? '')) {
+                    // Echtzeit-Anmeldung nutzt den Zugangsschlüssel → neu verbinden.
+                    $this->echtzeitKonfigurieren(true);
+                }
             }
             if ($this->ReadAttributeString('LetzterFehler') !== '') {
                 $this->WriteAttributeString('LetzterFehler', '');
@@ -308,6 +578,7 @@ class RoboHubKonto extends IPSModule
             }
         }
         $daten = $this->treiber()->zustand($buendel, $geraet);
+        $this->schnappschussMerken($did, (string)($geraet['modell'] ?? ''), (array)($daten['roh']['properties'] ?? []));
 
         $ok = (array)($daten['bloecke']['ok'] ?? []);
         $fehl = (array)($daten['bloecke']['fehl'] ?? []);
@@ -516,6 +787,16 @@ class RoboHubKonto extends IPSModule
             ['code' => 201, 'icon' => 'error', 'caption' => 'Anmeldung erforderlich (Zugangsschlüssel abgelaufen oder abgelehnt)'],
             ['code' => 202, 'icon' => 'inactive', 'caption' => 'Cloud bremst — RoboHub wartet die Sperrfrist ab'],
         ];
-        return $this->robohubBuildForm([$this->kontoPanel(), $this->geraetePanel()], [], $status);
+        $echtzeit = [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '⚡  Echtzeit-Meldungen',
+            'items' => [
+                ['type' => 'CheckBox', 'name' => 'Echtzeit', 'caption' => 'Änderungen sofort von der Hersteller-Cloud empfangen (statt nur alle paar Minuten abzufragen)'],
+                ['type' => 'Label', 'name' => 'EchtzeitZeile', 'caption' => $this->echtzeitZeile()],
+                ['type' => 'Label', 'caption' => 'Technik: verschlüsselte MQTT-Verbindung zum Server des Herstellers über eine eigene Client-Socket-Instanz. Das Server-Zertifikat wird gegen die Zertifizierungsstelle des Herstellers geprüft (Zertifikat und Servername) — fremde Server werden abgelehnt.'],
+                ['type' => 'Label', 'caption' => 'Die regelmäßige Abfrage läuft zusätzlich weiter (Sicherheitsnetz). Karten- und Positionsdaten werden nicht verarbeitet.'],
+            ],
+        ];
+        return $this->robohubBuildForm([$this->kontoPanel(), $this->geraetePanel(), $echtzeit], [], $status);
     }
 }

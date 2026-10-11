@@ -46,6 +46,7 @@ class RoboHubGeraet extends IPSModule
 
         $this->RegisterAttributeString('Raeume', '{}');
         $this->RegisterAttributeString('Bild', '');
+        $this->RegisterAttributeInteger('LetzteEchtzeit', 0);
         $this->RegisterAttributeInteger('RaeumeStand', 0);
         $this->RegisterAttributeString('Optionen', '{}');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
@@ -121,6 +122,23 @@ class RoboHubGeraet extends IPSModule
     // -----------------------------------------------------------------
     // Öffentliche Aktionen (Skripte, Formular)
     // -----------------------------------------------------------------
+
+    /**
+     * Echtzeit-Meldung von der Konto-Instanz (MQTT): bereits übersetzter
+     * Zustand mit den geänderten Werten. Nur für dieses Gerät übernehmen.
+     */
+    public function ReceiveData($JSONString)
+    {
+        $d = json_decode((string)$JSONString, true);
+        if (!is_array($d) || (string)($d['Geraet'] ?? '') !== $this->ReadPropertyString('GeraetID') || !is_array($d['Daten'] ?? null)) {
+            return '';
+        }
+        $this->uebernimm($d['Daten']);
+        $this->WriteAttributeInteger('LetzteEchtzeit', time());
+        $this->SendDebug('Echtzeit', 'geändert: ' . implode(', ', (array)($d['Daten']['echtzeit'] ?? [])), 0);
+        $this->kachelAktualisieren();
+        return '';
+    }
 
     /** ROBO_Aktualisieren($id): string — Zustand sofort abrufen. */
     public function Aktualisieren(): string
@@ -388,7 +406,9 @@ class RoboHubGeraet extends IPSModule
         $basis = max(30, $this->ReadPropertyInteger('Intervall'));
         $zustand = $this->hatVariable('Zustand') ? (int)$this->GetValue('Zustand') : RoboHubModell::ZUSTAND_UNBEKANNT;
         $aktiv = in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_ZURUECK, RoboHubModell::ZUSTAND_STATIONSARBEIT, RoboHubModell::ZUSTAND_KARTIERUNG], true);
-        return $aktiv ? min($basis, self::TAKT_AKTIV_S) : $basis;
+        // Kommen Echtzeit-Meldungen, braucht es die schnelle Abfrage nicht.
+        $echtzeit = time() - $this->ReadAttributeInteger('LetzteEchtzeit') < 600;
+        return ($aktiv && !$echtzeit) ? min($basis, self::TAKT_AKTIV_S) : $basis;
     }
 
     private function klasse(): string
@@ -759,7 +779,8 @@ class RoboHubGeraet extends IPSModule
                 $this->kontoZeile(),
                 ['type' => 'Label', 'name' => 'AbrufZeile', 'caption' => $zeile],
                 ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => 'Abfrage alle', 'suffix' => ' s', 'minimum' => 30, 'maximum' => 3600],
-                ['type' => 'Label', 'caption' => 'Während der Roboter arbeitet, fragt RoboHub automatisch alle ' . self::TAKT_AKTIV_S . ' s nach. Kürzere Abstände belasten die Hersteller-Cloud, die bei zu vielen Anfragen eine Sperrfrist verhängt.'],
+                ['type' => 'Label', 'caption' => 'Während der Roboter arbeitet, fragt RoboHub automatisch alle ' . self::TAKT_AKTIV_S . ' s nach — außer Echtzeit-Meldungen kommen an (Konto-Instanz). Kürzere Abstände belasten die Hersteller-Cloud, die bei zu vielen Anfragen eine Sperrfrist verhängt.'],
+                ['type' => 'Label', 'caption' => $this->ReadAttributeInteger('LetzteEchtzeit') > 0 ? '⚡ Letzte Echtzeit-Meldung ' . date('d.m.Y H:i:s', $this->ReadAttributeInteger('LetzteEchtzeit')) . ' Uhr.' : 'ℹ️ Noch keine Echtzeit-Meldung empfangen.'],
                 ['type' => 'Label', 'caption' => $raumZeile],
                 ['type' => 'RowLayout', 'items' => [
                     ['type' => 'Button', 'caption' => '🔄 Jetzt aktualisieren', 'onClick' => 'echo ROBO_Aktualisieren($id);'],
