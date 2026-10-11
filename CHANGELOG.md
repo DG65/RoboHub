@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 (11.10.2026)
+
+- Mäher-Zustand 19 = „Mäht". In keiner Referenz enthalten; live am MOVA LiDAX
+  Ultra 1000 (`mova.mower.g2529c`, FW 4.3.6_0529) nach „Start" beobachtet (Akku
+  sinkend, Besitzer bestätigt). Start lief über Weg 5.1 (eine Anfrage, 0,6 s).
+
 ## 0.2.1 (11.10.2026)
 
 - Schnellere Abfrage: Die Konto-Instanz merkt sich je Gerät Abfrageblöcke, die nicht

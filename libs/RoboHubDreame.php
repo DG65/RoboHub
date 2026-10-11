@@ -493,6 +493,10 @@ class RoboHubDreame implements RoboHubTreiber
         14 => ['Firmware-Update', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
         15 => ['Laden pausiert — Akku zu heiß', RoboHubModell::ZUSTAND_LAEDT],
         16 => ['Laden pausiert — Akku zu kalt', RoboHubModell::ZUSTAND_LAEDT],
+        // 19 kennt keine Referenz (ioBroker, EvotecIT, mova-lidax-ha, Homey-App).
+        // Live beobachtet am MOVA LiDAX Ultra 1000 (g2529c, FW 4.3.6_0529) direkt
+        // nach „Start", Akku sinkend, Besitzer bestätigt: mäht (11.10.2026).
+        19 => ['Mäht', RoboHubModell::ZUSTAND_REINIGT],
         75 => ['Am Wartungspunkt pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
     ];
 

@@ -78,6 +78,7 @@
 - **Raumreinigung live (Barny, Raum 1 „Vorrat")**: action 4.1 mit selects `[[1,1,saug,wasser,1]]` angenommen; danach 2.1 = 12 „Saugt und wischt", 4.1 = 18 (Raumreinigung), 4.7 = 3 (Raum). 11.10.2026 17:55, Dietmar vor Ort.
 - **Reinigungsmodus-Tausch live bestätigt (Barny)**: Leitung 0 lief als „Saugt und wischt" (2.1 = 12); „Saugen" gesetzt → 4.23 5120 → 5122 (nur Bits 0–1 geändert, Feuchte erhalten), Gerät übernahm. Danach 2.1 = 9 „Wäscht Mopp".
 - **Kompletter Auftrag live verfolgt (Barny, 11.10.2026 17:55–18:06)**: Start Raum 1 → 12 „Saugt und wischt" → Modus „Saugen" gesetzt → 9 „Wäscht Mopp" (Station 4.25 = 1, Auftrag 4.7 = 3 blieb aktiv) → nur gesaugt (Dietmar vor Ort bestätigt) → 5 „Fährt zur Station", 2 m²/5 min, Akku 93 %. Zustandswechsel vom 30-s-Takt selbst erkannt.
+- **Start am LiDAX live (18:07)**: angenommen in 0,6 s mit einer Anfrage → Weg **5.1** (EvotecIT) greift, Ausweichweg 2.x nicht nötig. Danach 2.1 = **19** (in keiner Quelle) = mäht (Dietmar bestätigt) → seit 0.2.2 „Mäht". 3.2 = 2 = „lädt nicht" (Homey-App andiwirz bestätigt).
 - „Orten" am LiDAX live: Kanal 2.50 `{"m":"a","p":0,"o":9}` funktioniert, **LiDAX hat gepiept** (Dietmar bestätigt). Start/Stopp/Pause (5.x vs. 2.x) noch ungetestet.
 - 0.2.1 live gemessen am LiDAX: 1. Abruf 9,2 s (Block 4.x versucht), 2. Abruf **0,5 s** (Block übersprungen).
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**

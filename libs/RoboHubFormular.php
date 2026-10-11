@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.2.2' => [
+            '• Mähroboter: Zustand 19 wird als „Mäht" erkannt (bisher „Unbekannt") — am MOVA LiDAX Ultra 1000 live beobachtet.',
+        ],
         '0.2.1' => [
             '• Schnellere Abfrage: Werte, die ein Roboter nachweislich nicht liefert (z. B. beim MOVA LiDAX die Auftragsdaten), fragt RoboHub nur noch stündlich nach statt bei jedem Abruf — der Abruf dauert dadurch Sekunden statt einer Viertelminute.',
         ],
