@@ -30,6 +30,9 @@ final class RoboHubKartenbild
     ];
     private const WAND = [91, 100, 112];
     private const BODEN = [207, 214, 222];
+    // Trennlinie zwischen zwei Räumen: weiß wie die Raumfugen der Dreamehome-App.
+    private const TRENNLINIE = [255, 255, 255];
+    private const TRENN = 3;
 
     // Klassen im Zwischenraster: 0 außen, 1 Wand, 2 Boden ohne Raum, 100+n Raum n.
     private const AUSSEN = 0;
@@ -87,11 +90,11 @@ final class RoboHubKartenbild
         $w = $maxX - $minX + 1;
         $hh = $maxY - $minY + 1;
 
-        // Palette: 0 transparent, 1 Wand, 2 Boden, ab 3 die Räume (feste Farbe je Raum-Reihenfolge).
+        // Palette: 0 transparent, 1 Wand, 2 Boden, 3 Trennlinie, ab 4 die Räume (feste Farbe je Raum-Reihenfolge).
         $ids = array_values(array_unique(array_merge(array_keys($raeume), $segInf)));
         sort($ids);
         $index = [];
-        $palette = [[255, 255, 255], self::WAND, self::BODEN];
+        $palette = [[255, 255, 255], self::WAND, self::BODEN, self::TRENNLINIE];
         foreach ($ids as $i => $id) {
             if (count($palette) >= 256) {
                 break;
@@ -100,11 +103,17 @@ final class RoboHubKartenbild
             $palette[] = self::RAUMFARBEN[$i % count(self::RAUMFARBEN)];
         }
 
-        $f = max(1, min(4, intdiv(self::ZIEL_PX, max($w, $hh))));
+        // Mindestens doppelt vergrößern: die Trennlinie ist ein Bildpunkt des
+        // vergrößerten Bildes, also halb so breit wie ein Kartenpunkt (5 cm).
+        $f = max(2, min(4, intdiv(self::ZIEL_PX, max($w, $hh))));
+        $andererRaum = function (int $k, int $nachbar): bool {
+            return $k >= 100 && $nachbar >= 100 && $nachbar !== $k;
+        };
         $summe = [];
         $zeilen = '';
         for ($y = $minY; $y <= $maxY; $y++) {
             $z = '';
+            $unten = '';                                // letzte Teilzeile: Linie zum Raum darunter
             for ($x = $minX; $x <= $maxX; $x++) {
                 $k = $klasse[$y][$x] ?? self::AUSSEN;
                 if ($k >= 100) {
@@ -118,9 +127,12 @@ final class RoboHubKartenbild
                 } else {
                     $p = $k;
                 }
-                $z .= str_repeat(chr($p), $f);
+                $rechts = $andererRaum($k, $klasse[$y][$x + 1] ?? self::AUSSEN);
+                $teil = str_repeat(chr($p), $f - 1) . chr($rechts ? self::TRENN : $p);
+                $z .= $teil;
+                $unten .= $andererRaum($k, $klasse[$y + 1][$x] ?? self::AUSSEN) ? str_repeat(chr(self::TRENN), $f) : $teil;
             }
-            $zeilen .= str_repeat("\0" . $z, $f);       // Filter 0 je Zeile
+            $zeilen .= str_repeat("\0" . $z, $f - 1) . "\0" . $unten;   // Filter 0 je Zeile
         }
 
         $marken = [];

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1 (12.10.2026)
+
+- Kartenbild (Sauger): weiße Trennlinie zwischen zwei aneinandergrenzenden Räumen (Dietmars Wunsch —
+  gespeicherte Karten enthalten kaum Wandpunkte). Ein Bildpunkt breit im vergrößerten Bild, deshalb jetzt
+  mindestens doppelt vergrößert. Keine Linie zu Wand, Boden ohne Raum oder Außenrand.
+
 ## 0.7.0 (12.10.2026)
 
 - Neu: **Kartenbild** auf Kachel und IPSView-Seite (`libs/RoboHubKartenbild.php`, ohne GD).

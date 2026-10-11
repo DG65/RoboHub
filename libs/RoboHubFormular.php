@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.7.1' => [
+            '• Kartenbild: feine weiße Trennlinien zwischen den Räumen, wie in der Dreamehome-App.',
+        ],
         '0.7.0' => [
             '• Kartenbild auf der Kachel und der IPSView-Seite: Räume farbig mit Namen und Station (Saugroboter), Mähzonen und Sperrflächen (Mähroboter). Namen antippen wählt Räume/Zonen aus.',
             '• Abschaltbar unter „Kachel und IPSView" → „Kartenbild zeigen".',

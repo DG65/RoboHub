@@ -505,6 +505,17 @@ $px = function (int $x, int $y) use ($png, $f) { return $png['zeilen'][$y * $f][
 check('gespiegelt: Wand (größtes y) oben, Räume darunter', $png && $px(0, 0) === 1 && $px(3, 0) === 1 && $px(0, 3) !== 1);
 check('Räume farbig getrennt, Raum 3 links / Raum 5 rechts', $png && $px(0, 2) === $px(1, 3) && $px(2, 2) === $px(3, 1) && $px(0, 2) !== $px(2, 2) && $px(0, 2) >= 3);
 check('außen durchsichtig (tRNS Eintrag 0)', $png && $png['trns'] === "\x00");
+// Trennlinie: Raum 3 (lokal x 0–1) grenzt an Raum 5 (x 2–3) → letzte Teilspalte von x=1 weiß (Index 3).
+$zeile = $png['zeilen'][2 * $f] ?? [];
+check('Trennlinie zwischen zwei Räumen (ein Bildpunkt, Palette 3)', $png && $zeile[2 * $f - 1] === 3 && $zeile[2 * $f - 2] === $px(0, 2) && $zeile[2 * $f] === $px(2, 2), json_encode(array_slice($zeile, 0, 4 * $f)));
+check('keine Linie zwischen Raum und Wand oder am Außenrand', $png && $png['zeilen'][$f - 1][$f - 1] === 1 && end($zeile) === $px(3, 2) && $png['zeilen'][4 * $f - 1][0] === $px(0, 3));
+check('weiß in der Palette', $png && substr($png['plte'], 9, 3) === "\xff\xff\xff");
+$gestapelt = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => [], '5' => []]], 'breite' => 2, 'hoehe' => 2, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => chr(3) . chr(3) . chr(5) . chr(5)], [3 => 'A', 5 => 'B']);
+$pg = pngLesen($gestapelt['bild']);
+$fg = $pg ? intdiv($pg['h'], 2) : 0;
+$gross = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => []]], 'breite' => 300, 'hoehe' => 2, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => str_repeat(chr(3), 600)], [3 => 'Halle']);
+check('auch große Karten (300 Punkte) mindestens doppelt vergrößert — sonst wäre die Linie so breit wie ein Kartenpunkt', (pngLesen($gross['bild'])['b'] ?? 0) === 600);
+check('waagrechte Trennlinie: Raum 5 (oben im Bild) über Raum 3', $pg && $pg['zeilen'][$fg - 1] === array_fill(0, $pg['b'], 3) && $pg['zeilen'][0][0] !== 3 && $pg['zeilen'][$fg][0] !== 3 && $pg['zeilen'][0][0] !== $pg['zeilen'][$fg][0]);
 check('Kodierung „standard" gewählt', $kb['kodierung'] === 'standard');
 $m = [];
 foreach ($kb['marken'] as $mk) { $m[$mk['name']] = $mk; }
