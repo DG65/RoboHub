@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.8.0' => [
+            '• Live-Karte: Während der Arbeit zeigt die Kachel den gefahrenen Weg und den Roboter (Punkt mit Blickrichtung) — Saugroboter alle 30 s, Mähroboter alle 60 s, dazwischen bewegt die Echtzeit-Verbindung den Roboter.',
+            '• Nach der Arbeit bleibt der fertige Weg stehen. Abschaltbar unter „Kachel und IPSView" → „Live-Karte während der Arbeit".',
+        ],
         '0.7.1' => [
             '• Kartenbild: feine weiße Trennlinien zwischen den Räumen, wie in der Dreamehome-App.',
         ],

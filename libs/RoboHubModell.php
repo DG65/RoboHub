@@ -172,6 +172,13 @@ interface RoboHubTreiber
      */
     public function karte(array $buendel, array $geraet): array;
 
+    /**
+     * Aktuelle Karte während der Arbeit: wie karte(), dazu 'weg' (Stücke in %)
+     * und 'roboter' (['x' %, 'y' %, 'winkel']) sowie 'geometrie' für spätere
+     * Echtzeit-Positionen.
+     */
+    public function liveKarte(array $buendel, array $geraet): array;
+
     /** Normalisiert Rohwerte ohne Netz (für Echtzeit-Meldungen). */
     public function normalisiere(string $modell, array $p): array;
 
@@ -184,7 +191,10 @@ interface RoboHubTreiber
     /** [Benutzer, Passwort] für die Echtzeit-Anmeldung. */
     public function mqttZugang(array $buendel): array;
 
-    /** Echtzeit-Nachricht → ['Geräte-ID' => ['siid.piid' => Wert]] (nur relevante Werte). */
+    /**
+     * Echtzeit-Nachricht → ['Geräte-ID' => ['siid.piid' => Wert]] (nur relevante Werte).
+     * Eine Roboterposition steht unter dem Schlüssel '_position' als [x mm, y mm, Winkel].
+     */
     public function pushLesen(string $payload): array;
 
     /** Setzt den Verschleißzähler eines Teils zurück (Ident wie in FELDER, z. B. „Filter"). */

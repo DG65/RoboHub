@@ -164,6 +164,8 @@ class FakeCloud extends RoboHubDreame
     public static $cfg = null;              // Mäher-Einstellungen (Antwort auf {"m":"g","t":"CFG"}), null = keine Antwort
     public static $cfgGeschrieben = [];     // alle {"m":"s","t":"DND"/"VOL"}-Aufträge
     public static $geraeteDaten = null;     // Antwort data von getDeviceData (Mäher-Karte in Stücken)
+    public static $liveOut = [];            // Antwort out auf action 6.1 (Live-Kartenanforderung)
+    public static $liveDatei = '';          // Inhalt der Zwischendatei „live/…"
     public static $karte = null;        // Kartentext (mapstr[0].map)
     public static $tokenZaehler = 0;
     public static $ablehnen = [];       // 'siid.aiid' => true: Aktion mit result.code -1 ablehnen
@@ -225,6 +227,9 @@ class FakeCloud extends RoboHubDreame
                     return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [self::$cms]]]])];
                 }
                 $k = $b['data']['params']['siid'] . '.' . $b['data']['params']['aiid'];
+                if ($k === '6.1') {
+                    return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => self::$liveOut]]])];
+                }
                 return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => !empty(self::$ablehnen[$k]) ? -1 : 0, 'out' => []]]])];
             }
         }
@@ -232,7 +237,11 @@ class FakeCloud extends RoboHubDreame
             return [200, json_encode(['code' => 0, 'data' => self::$geraeteDaten])];
         }
         if (strpos($url, 'iotfile/getDownloadUrl') !== false) {
-            return [200, json_encode(['code' => 0, 'data' => 'https://download.example/karte.json'])];
+            $live = strpos((string)(json_decode((string)$body, true)['filename'] ?? ''), 'live/') === 0;
+            return [200, json_encode(['code' => 0, 'data' => $live ? 'https://download.example/live' : 'https://download.example/karte.json'])];
+        }
+        if (strpos($url, 'download.example/live') !== false) {
+            return [200, self::$liveDatei];
         }
         if (strpos($url, 'download.example') !== false) {
             return [200, json_encode(['curr_id' => 1, 'mapstr' => [['id' => 0, 'map' => self::$karte]]])];
@@ -569,6 +578,8 @@ $geraet->RaeumeLaden();
 $k = kachelJson($geraet->GetVisualizationTile());
 check('Kachel bekommt das Kartenbild mit Namen', strpos((string)($k['karte']['bild'] ?? ''), 'data:image/png;base64,') === 0 && count($k['karte']['marken']) === 2, json_encode(array_keys((array)($k['karte'] ?? []))));
 check('… und weiterhin die Räume', count($k['raeume']) === 2);
+check('Bild der gespeicherten Karte trägt keinen Roboter (Position im Kopf ist veraltet)', !isset(RoboHubKartenbild::sauger(['roboter' => [125, 25, 0], 'json' => ['seg_inf' => ['3' => []], 'tr' => 'M0,0L50,0']] + $rohKarte, [3 => 'Küche'])['roboter']));
+check('gespeicherte Karte: kein (veralteter) Roboter, kein Weg', !isset($k['karte']['roboter']) && !isset($k['karte']['weg']));
 $geraet->props['KarteZeigen'] = false;
 check('„Kartenbild zeigen" aus → keine Karte auf der Kachel', kachelJson($geraet->GetVisualizationTile())['karte'] === null);
 $geraet->props['KarteZeigen'] = true;
@@ -1139,6 +1150,105 @@ check('sonst PINGREQ', ($socket->gesendet[0] ?? '') === "\xC0\x00");
 $konto->props['Echtzeit'] = false;
 check('Echtzeit aus → Socket geschlossen', json_decode($konto->GetConfigurationForParent(), true)['Open'] === false);
 $konto->props['Echtzeit'] = true;
+
+abschnitt('Live-Karte');
+check('Weg aus „tr": M = neues Stück, L relativ, S/W absolut', RoboHubKartenbild::saugerWeg('M100,200L10,0L0,10S150,250M500,500L5,5M9,9') === [[[100, 200], [110, 200], [110, 210], [150, 250]], [[500, 500], [505, 505]]], json_encode(RoboHubKartenbild::saugerWeg('M100,200L10,0L0,10S150,250M500,500L5,5M9,9')));
+check('Mähweg aus M_PATH: ×10, null/32767 trennt, Einzelpunkte entfallen', RoboHubKartenbild::maeherWeg([[1, 2], [3, 4], [32767, -32768], [5, 6], null, [7, 8], [9, 10]]) === [[[10.0, 20.0], [30.0, 40.0]], [[70.0, 80.0], [90.0, 100.0]]]);
+$lang = [];
+for ($i = 0; $i < 4000; $i++) { $lang[] = [$i, 0]; }
+$lang[] = [4000, 9];   // Endpunkt mit eigenem y; Index 4000 liegt nicht im 3er-Raster
+$geoTest = ['art' => 'mm', 'x1' => 0, 'y2' => 10, 'b' => 4000, 'h' => 20];
+$r = new ReflectionMethod('RoboHubKartenbild', 'wegNachProzent');
+$aus = $r->invoke(null, [$lang], $geoTest);
+check('langer Weg ausgedünnt (≤ 1500 Punkte), Endpunkt bleibt', count($aus[0]) <= 1501 && count($aus[0]) > 1000 && end($aus[0]) === [100.0, 5.0], (string)count($aus[0]) . ' ' . json_encode(end($aus[0])));
+// Mäher-Telemetrie: x = 123 cm, y = −45 cm, Winkel 64/255.
+$xb = 123 & 0xFFFFF; $yb = (-45) & 0xFFFFF;
+$tele = [0xCE, $xb & 0xFF, ($xb >> 8) & 0xFF, (($xb >> 16) & 0x0F) | (($yb & 0x0F) << 4), ($yb >> 4) & 0xFF, ($yb >> 12) & 0xFF, 64, 0, 0];
+check('Mäher-Position aus 1.4 (20-Bit mit Vorzeichen, cm → mm)', RoboHubDreame::maeherPosition($tele) === [1230, -450, 90], json_encode(RoboHubDreame::maeherPosition($tele)));
+check('falsche Kennung → keine Position', RoboHubDreame::maeherPosition([0x00, 1, 2, 3, 4, 5, 6]) === null && RoboHubDreame::maeherPosition([0xCE, 1]) === null);
+// Sauger-Teilrahmen („P" = 80) mit Roboter bei x 1500, y −200, Winkel 45.
+$pKopf = pack('v', 1) . pack('v', 7) . chr(80) . pack('v', 1500) . pack('v', 65336) . pack('v', 45) . str_repeat("\0", 16);
+$pText = strtr(base64_encode(gzcompress($pKopf . '{}')), '+/', '-_');
+check('Position aus Kartenrahmen-Kopf (auch Teilrahmen)', RoboHubDreame::kopfPosition($pText) === [1500, -200, 45], json_encode(RoboHubDreame::kopfPosition($pText)));
+$ohne = strtr(base64_encode(gzcompress(pack('v', 1) . pack('v', 7) . chr(80) . pack('v', 32767) . pack('v', 32767) . pack('v', 32767) . str_repeat("\0", 16))), '+/', '-_');
+check('32767 = keine Position', RoboHubDreame::kopfPosition($ohne) === null);
+$fc = new FakeCloud('dreame');
+$push = $fc->pushLesen(json_encode(['did' => '5', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 6, 'piid' => 1, 'value' => $pText], ['siid' => 3, 'piid' => 1, 'value' => 50], ['did' => '777', 'siid' => 1, 'piid' => 4, 'value' => $tele]]]]));
+check('Echtzeit: Positionen als _position, Kartentext selbst nicht als Wert', $push === ['5' => ['_position' => [1500, -200, 45], '3.1' => 50], '777' => ['_position' => [1230, -450, 90]]], json_encode($push));
+
+// Sauger: aktuelle Karte über action 6.1 → Zwischendatei (verschlüsselt mit Schlüssel aus dem Dateinamen).
+// 6×4 wie oben, Roboter bei x 125 / y 25 (Mitte zwischen Raum 3 und 5), Winkel 90, Weg quer durch Raum 3 und 5.
+$lKopf = pack('v', 1) . pack('v', 0) . chr(73) . pack('v', 125) . pack('v', 25) . pack('v', 90) . pack('v', 125) . pack('v', 25) . "\0\0" . pack('v', 50) . pack('v', 6) . pack('v', 4) . "\0\0\0\0";
+$lJson = json_encode(['seg_inf' => $segsB, 'tr' => 'M75,25L100,0L100,0']);
+$lSchl = 'XYZ123';
+FakeCloud::$liveDatei = base64_encode(openssl_encrypt(gzcompress($lKopf . $pix . $lJson), 'aes-256-cbc', substr(hash('sha256', $lSchl), 0, 32), OPENSSL_RAW_DATA, str_repeat("\0", 16)));
+FakeCloud::$liveOut = [['piid' => 5, 'value' => '1760000000000'], ['piid' => 3, 'value' => 'live/2026/abc,' . $lSchl]];
+// Ausgangslage: Roboter in der Station (der Echtzeit-Test oben ließ ihn „reinigen").
+FakeCloud::$props['2.1'] = 13;
+$geraet->Aktualisieren();
+check('Station → Live-Takt aus', ($geraet->timers['LiveKarte'] ?? -1) === 0 && $geraet->ReadAttributeBoolean('LiveAktiv') === false);
+FakeCloud::$anfragen = [];
+FakeCloud::$props['2.1'] = 1;
+$geraet->Aktualisieren();
+$anf = array_values(array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action' && $b['params']['siid'] === 6; }));
+check('Reinigung beginnt → Live-Karte sofort angefordert (action 6.1, frame_type I)', count($anf) === 1 && strpos($anf[0]['params']['in'][0]['value'], '"frame_type":"I"') !== false && $anf[0]['params']['in'][0]['piid'] === 2);
+check('… Zwischendatei mit Dateiname ohne Schlüssel angefragt', json_decode(FakeCloud::letzte('getDownloadUrl')['body'], true)['filename'] === 'live/2026/abc');
+check('… Live-Takt 30 s läuft', ($geraet->timers['LiveKarte'] ?? 0) === 30000);
+$k = kachelJson($geraet->GetVisualizationTile());
+check('Kachel: Weg (1 Stück, 3 Punkte) und Roboter auf der Karte', count($k['karte']['weg'] ?? []) === 1 && count($k['karte']['weg'][0]) === 3 && isset($k['karte']['roboter']['x']), json_encode($k['karte']['weg'] ?? null));
+check('… Roboter an x 125 / y 25 mm → 50 % / 75 %, Winkel 90', ($k['karte']['roboter'] ?? null) == ['x' => 50.0, 'y' => 75.0, 'winkel' => 90], json_encode($k['karte']['roboter'] ?? null));
+check('… Weg beginnt bei x 75 mm → 25 %', ($k['karte']['weg'][0][0] ?? null) == [25.0, 75.0], json_encode($k['karte']['weg'][0] ?? null));
+check('… „live"-Zeitpunkt, keine Umrechnungsdaten in der Kachel', ($k['karte']['live'] ?? 0) >= time() - 5 && !isset($k['karte']['geometrie']));
+FakeCloud::$anfragen = [];
+FakeCloud::$karte = strtr(base64_encode(gzcompress($kopfB . $pix . json_encode(['seg_inf' => $segsB]))), '+/', '-_');
+FakeCloud::$props['6.8'] = json_encode(['object_name' => 'ali_dreame/123/map']);
+$t = $geraet->RaeumeLaden();
+check('(gespeicherte Karte mit Bild wurde geladen)', strpos($t, '✅') === 0, $t);
+FakeCloud::$karte = $klar;
+check('Räume laden während der Live-Karte überschreibt sie nicht', isset(kachelJson($geraet->GetVisualizationTile())['karte']['weg']));
+// Echtzeit-Rahmen 6.1 bewegt den Roboter (x 25 mm → linke Spalte, y 125 mm → zweite Zeile von oben).
+$pKopf2 = pack('v', 1) . pack('v', 8) . chr(80) . pack('v', 25) . pack('v', 125) . pack('v', 180) . str_repeat("\0", 16);
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 6, 'piid' => 1, 'value' => strtr(base64_encode(gzcompress($pKopf2 . '{}')), '+/', '-_')]]]]), 0, 0));
+$k = kachelJson($geraet->GetVisualizationTile());
+check('Echtzeit-Kartenrahmen versetzt den Roboter sofort', ($k['karte']['roboter'] ?? null) == ['x' => 0.0, 'y' => 25.0, 'winkel' => 180], json_encode($k['karte']['roboter'] ?? null));
+check('… und landet nicht im Schnappschuss (kein Gerätewert)', strpos($konto->ReadAttributeString('Schnappschuss'), '_position') === false);
+check('… und landet nicht im Echtzeit-Verlauf', strpos($geraet->ReadAttributeString('EchtzeitVerlauf'), '"werte":[]') === false);
+// Ende der Reinigung → ein letztes Mal laden, Takt aus.
+FakeCloud::$anfragen = [];
+FakeCloud::$props['2.1'] = 13;
+$geraet->Aktualisieren();
+$anf = array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action' && $b['params']['siid'] === 6; });
+check('Reinigung fertig → fertiger Weg ein letztes Mal geholt, Takt aus', count($anf) === 1 && ($geraet->timers['LiveKarte'] ?? -1) === 0);
+FakeCloud::$anfragen = [];
+$geraet->Aktualisieren();
+check('… danach keine weiteren Anforderungen', count(array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action'; })) === 0);
+check('fertiger Weg bleibt bis zur nächsten Arbeit stehen', isset(kachelJson($geraet->GetVisualizationTile())['karte']['weg']));
+FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . $lJson)), '+/', '-_')]];
+check('Kartentext direkt in der Antwort (6.1) wird ebenfalls genommen', strpos($geraet->LiveKarteLaden(), '✅') === 0);
+FakeCloud::$liveOut = [];
+check('keine Karte geliefert → klare Meldung, alte bleibt', strpos($geraet->LiveKarteLaden(), '⛔') === 0 && isset(kachelJson($geraet->GetVisualizationTile())['karte']['weg']));
+$geraet->props['LiveKarte'] = false;
+FakeCloud::$props['2.1'] = 1;
+FakeCloud::$anfragen = [];
+$geraet->Aktualisieren();
+check('„Live-Karte" aus → keine Anforderung trotz Reinigung', count(array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action'; })) === 0);
+$geraet->props['LiveKarte'] = true;
+FakeCloud::$props['2.1'] = 13;
+$geraet->Aktualisieren();
+
+// Mäher: Mähweg aus M_PATH, Position per Echtzeit 1.4.
+$pfadM = json_encode([[50, 50], [900, 50], [900, 450], null, [100, 100], [200, 100]]);
+FakeCloud::$geraeteDaten = ['MAP.0' => json_encode([$slotM]), 'MAP.info' => (string)strlen(json_encode([$slotM])), 'M_PATH.0' => $pfadM, 'M_PATH.info' => (string)strlen($pfadM)];
+FakeCloud::$props['2.1'] = 19;
+FakeCloud::$cfg = null;
+$maeher->Aktualisieren();
+$k = kachelJson($maeher->GetVisualizationTile());
+check('Mäher mäht → Live-Karte mit Mähweg (2 Stücke), Takt 60 s', count($k['karte']['weg'] ?? []) === 2 && ($maeher->timers['LiveKarte'] ?? 0) === 60000, json_encode($k['karte']['weg'] ?? null));
+$maeher->ReceiveData(json_encode(['Geraet' => '777', 'Daten' => ['werte' => [], 'optionen' => [], 'echtzeit' => [], 'position' => [5000, 2500, 90]]]));
+$k = kachelJson($maeher->GetVisualizationTile());
+check('Echtzeit-Position des Mähers (Mitte des Rasens) auf der Karte', ($k['karte']['roboter'] ?? null) == ['x' => 50.0, 'y' => 50.0, 'winkel' => 90], json_encode($k['karte']['roboter'] ?? null));
+FakeCloud::$props['2.1'] = 13;
+$maeher->Aktualisieren();
 
 abschnitt('Fehlerpfade');
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);

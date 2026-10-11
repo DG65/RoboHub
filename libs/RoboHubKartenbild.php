@@ -46,7 +46,7 @@ final class RoboHubKartenbild
      * $roh aus RoboHubDreame::dekodiereKarteRoh(), $raeume [ID => Name].
      * Rückgabe ['bild' => data-URI|'', 'marken' => [...], 'station' => [...]|null, 'kodierung' => string].
      */
-    public static function sauger(array $roh, array $raeume): array
+    public static function sauger(array $roh, array $raeume, bool $live = false): array
     {
         $leer = ['bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0, 'kodierung' => ''];
         $b = (int)($roh['breite'] ?? 0);
@@ -153,13 +153,136 @@ final class RoboHubKartenbild
             }
         }
 
-        return [
+        // Umrechnung Karten-mm → Bild-%: für Weg und Roboter jetzt und für
+        // spätere Echtzeit-Positionen (RoboHubKartenbild::prozentPunkt).
+        $geometrie = $raster > 0
+            ? ['art' => 'raster', 'links' => (int)$roh['links'], 'oben' => (int)$roh['oben'], 'raster' => $raster, 'hoehe' => $h, 'minX' => $minX, 'minY' => $minY, 'b' => $w, 'h' => $hh]
+            : null;
+        $ergebnis = [
             'bild'      => 'data:image/png;base64,' . base64_encode(self::png($w * $f, $hh * $f, $palette, $zeilen)),
             'marken'    => $marken,
             'station'   => $station,
             'format'    => round($w / $hh, 3),
+            'geometrie' => $geometrie,
             'kodierung' => $kodierung,
         ];
+        // Nur in einer Live-Karte sind Roboterposition und Weg aktuell; die
+        // gespeicherte Karte trägt den Stand von irgendwann.
+        if ($live && $geometrie !== null) {
+            $ergebnis['weg'] = self::wegNachProzent(self::saugerWeg((string)($roh['json']['tr'] ?? '')), $geometrie);
+            $r = $roh['roboter'] ?? null;
+            if (is_array($r) && !self::ungueltig($r[0], $r[1]) && empty($roh['json']['nr'])) {
+                $ergebnis['roboter'] = self::prozentPunkt($geometrie, (float)$r[0], (float)$r[1]) + ['winkel' => (int)($r[2] ?? 0)];
+            }
+        }
+        return $ergebnis;
+    }
+
+    /** 32767 (bzw. −32768) steht im Kartenkopf für „keine Position". */
+    private static function ungueltig($x, $y): bool
+    {
+        return !is_numeric($x) || !is_numeric($y) || abs((int)$x) >= 32767 || abs((int)$y) >= 32767;
+    }
+
+    /**
+     * Weg aus dem Kartentext „tr" (Tasshack map.py): Befehle M/W/S/l mit
+     * absoluten mm-Koordinaten, L mit relativen. M beginnt ein neues Stück
+     * (Fahrt ohne Reinigen wird nicht gezeichnet), alle anderen verlängern es.
+     * Rückgabe: Liste von Stücken [[x, y], …] in mm.
+     */
+    public static function saugerWeg(string $tr): array
+    {
+        if ($tr === '' || !preg_match_all('/([MWSLl])(-?\d+),(-?\d+)/', $tr, $treffer, PREG_SET_ORDER)) {
+            return [];
+        }
+        $stuecke = [];
+        $aktuell = [];
+        $x = 0;
+        $y = 0;
+        foreach ($treffer as [, $op, $a, $b]) {
+            if ($op === 'L') {
+                $x += (int)$a;
+                $y += (int)$b;
+            } else {
+                $x = (int)$a;
+                $y = (int)$b;
+            }
+            if ($op === 'M') {
+                if (count($aktuell) > 1) {
+                    $stuecke[] = $aktuell;
+                }
+                $aktuell = [];
+            }
+            $aktuell[] = [$x, $y];
+        }
+        if (count($aktuell) > 1) {
+            $stuecke[] = $aktuell;
+        }
+        return $stuecke;
+    }
+
+    /**
+     * Mähweg aus M_PATH (ioBroker docs/mower-protocol.md): Liste von [x, y]
+     * (zehntel der Kartenkoordinaten → ×10), null oder [32767, −32768] trennt Stücke.
+     */
+    public static function maeherWeg(array $pfad): array
+    {
+        $stuecke = [];
+        $aktuell = [];
+        foreach ($pfad as $p) {
+            if (!is_array($p) || !isset($p[0], $p[1]) || ((int)$p[0] === 32767 && (int)$p[1] === -32768)) {
+                if (count($aktuell) > 1) {
+                    $stuecke[] = $aktuell;
+                }
+                $aktuell = [];
+                continue;
+            }
+            $aktuell[] = [(float)$p[0] * 10, (float)$p[1] * 10];
+        }
+        if (count($aktuell) > 1) {
+            $stuecke[] = $aktuell;
+        }
+        return $stuecke;
+    }
+
+    // Höchstzahl Wegpunkte für die Kachel — darüber wird gleichmäßig ausgedünnt.
+    private const WEG_MAX = 1500;
+
+    /** Stücke in mm → Stücke in % (eine Nachkommastelle), ausgedünnt auf WEG_MAX Punkte. */
+    private static function wegNachProzent(array $stuecke, array $geometrie): array
+    {
+        $gesamt = 0;
+        foreach ($stuecke as $s) {
+            $gesamt += count($s);
+        }
+        $schritt = max(1, (int)ceil($gesamt / self::WEG_MAX));
+        $aus = [];
+        foreach ($stuecke as $s) {
+            $neu = [];
+            $n = count($s);
+            foreach ($s as $i => [$x, $y]) {
+                if ($i % $schritt !== 0 && $i !== $n - 1) {
+                    continue;                           // Endpunkt jedes Stücks bleibt
+                }
+                $p = self::prozentPunkt($geometrie, (float)$x, (float)$y);
+                $neu[] = [$p['x'], $p['y']];
+            }
+            if (count($neu) > 1) {
+                $aus[] = $neu;
+            }
+        }
+        return $aus;
+    }
+
+    /** Karten-mm → Bild-% nach der Geometrie eines Kartenbilds (Sauger-Raster oder Mäher-mm). */
+    public static function prozentPunkt(array $g, float $x, float $y): array
+    {
+        if (($g['art'] ?? '') === 'raster') {
+            $px = ($x - $g['links']) / $g['raster'] - $g['minX'];
+            $py = $g['hoehe'] - 1 - ($y - $g['oben']) / $g['raster'] - $g['minY'];
+            return ['x' => self::prozent($px + 0.5, (float)$g['b']), 'y' => self::prozent($py + 0.5, (float)$g['h'])];
+        }
+        return ['x' => self::prozent($x - $g['x1'], (float)$g['b']), 'y' => self::prozent($g['y2'] - $y, (float)$g['h'])];
     }
 
     /**
@@ -231,7 +354,7 @@ final class RoboHubKartenbild
      * Mäher: Karten-Slot (mowingAreas/forbiddenAreas mit path [{x,y}] in mm) → SVG.
      * Rückgabe ['bild' => data-URI|'', 'marken' => [...], 'station' => null].
      */
-    public static function maeher(array $slot, array $zonen): array
+    public static function maeher(array $slot, array $zonen, array $weg = []): array
     {
         $leer = ['bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0];
         $flaechen = [];
@@ -293,7 +416,12 @@ final class RoboHubKartenbild
             }
         }
         $svg .= '</svg>';
-        return ['bild' => 'data:image/svg+xml;base64,' . base64_encode($svg), 'marken' => $marken, 'station' => null, 'format' => round($w / $hh, 3)];
+        $geometrie = ['art' => 'mm', 'x1' => $x1, 'y2' => $y2, 'b' => $w, 'h' => $hh];
+        $ergebnis = ['bild' => 'data:image/svg+xml;base64,' . base64_encode($svg), 'marken' => $marken, 'station' => null, 'format' => round($w / $hh, 3), 'geometrie' => $geometrie];
+        if ($weg !== []) {
+            $ergebnis['weg'] = self::wegNachProzent($weg, $geometrie);
+        }
+        return $ergebnis;
     }
 
     private static function prozent(float $wert, float $gesamt): float

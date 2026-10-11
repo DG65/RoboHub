@@ -448,13 +448,49 @@ PEM;
         $out = [];
         $did = (string)($j['did'] ?? $j['data']['did'] ?? '');
         foreach ((array)($j['data']['params'] ?? []) as $e) {
-            $siid = (int)($e['siid'] ?? 0);
-            if (!is_array($e) || !array_key_exists('value', $e) || in_array($siid, [1, 6], true) || $siid <= 0) {
+            if (!is_array($e) || !array_key_exists('value', $e)) {
                 continue;
             }
-            $out[(string)($e['did'] ?? $did)][$siid . '.' . (int)($e['piid'] ?? 0)] = $e['value'];
+            $siid = (int)($e['siid'] ?? 0);
+            $piid = (int)($e['piid'] ?? 0);
+            $ziel = (string)($e['did'] ?? $did);
+            // Positionen: Sauger-Kartenrahmen 6.1 (Kopf), Mäher-Telemetrie 1.4.
+            // Alles andere aus 1.x/6.x (Karte, Rohtelemetrie) bleibt draußen.
+            $position = null;
+            if ($siid === 6 && $piid === 1 && is_string($e['value'])) {
+                $position = self::kopfPosition($e['value']);
+            } elseif ($siid === 1 && $piid === 4 && is_array($e['value'])) {
+                $position = self::maeherPosition($e['value']);
+            }
+            if ($position !== null) {
+                $out[$ziel]['_position'] = $position;
+            }
+            if (in_array($siid, [1, 6], true) || $siid <= 0) {
+                continue;
+            }
+            $out[$ziel][$siid . '.' . $piid] = $e['value'];
         }
         return $out;
+    }
+
+    /**
+     * Mäher-Telemetrie 1.4 (Bytefolge, beginnt mit 0xCE; ioBroker main.js):
+     * x = 20 Bit aus Byte 1–3, y = 20 Bit aus Byte 3–5, beide mit Vorzeichen,
+     * Einheit 1 cm (×10 = mm wie die Karte), Byte 6 = Winkel (0–255 → 0–360°).
+     */
+    public static function maeherPosition(array $b): ?array
+    {
+        if (count($b) < 7 || (int)$b[0] !== 0xCE) {
+            return null;
+        }
+        $b = array_map(function ($v) { return ((int)$v) & 0xFF; }, $b);
+        $s32 = function (int $v): int {
+            $v &= 0xFFFFFFFF;
+            return $v >= 0x80000000 ? $v - 0x100000000 : $v;
+        };
+        $x = $s32(($b[3] << 28) | ($b[2] << 20) | ($b[1] << 12)) >> 12;
+        $y = $s32(($b[5] << 24) | ($b[4] << 16) | ($b[3] << 8)) >> 12;
+        return [$x * 10, $y * 10, (int)round($b[6] / 255 * 360)];
     }
 
     /** get_properties für einen Block; Rückgabe ['siid.piid' => Wert] (nur gelieferte Werte). */
@@ -1241,6 +1277,40 @@ PEM;
      */
     public static function dekodiereKarteRoh(string $kartenText, string $modell): ?array
     {
+        $roh = self::karteEntpacken($kartenText, $modell);
+        if ($roh === null) {
+            return null;
+        }
+        $k = unpack('vmapId/vframeId/cframe/vrx/vry/vrw/vsx/vsy/vsw/vraster/vbreite/vhoehe/vlinks/voben', $roh);
+        if ((int)$k['frame'] !== 73) {
+            return null;
+        }
+        return self::karteZerlegen($roh, $k);
+    }
+
+    /**
+     * Nur die Roboterposition aus einem beliebigen Kartenrahmen (auch „P",
+     * die Teilrahmen der Echtzeit-Meldung 6.1): [x mm, y mm, Winkel] oder null.
+     */
+    public static function kopfPosition(string $kartenText): ?array
+    {
+        $roh = self::karteEntpacken($kartenText, '');
+        if ($roh === null) {
+            return null;
+        }
+        $k = unpack('x5/vrx/vry/vrw', $roh);
+        $vz = function (int $v): int { return $v >= 0x8000 ? $v - 0x10000 : $v; };
+        $x = $vz((int)$k['rx']);
+        $y = $vz((int)$k['ry']);
+        if (abs($x) >= 32767 || abs($y) >= 32767 || $vz((int)$k['rw']) === 32767) {
+            return null;
+        }
+        return [$x, $y, $vz((int)$k['rw'])];
+    }
+
+    /** Kartentext („Base64[,Schlüssel]") → entschlüsselte, entpackte Bytes (mind. 27 Byte Kopf) oder null. */
+    private static function karteEntpacken(string $kartenText, string $modell): ?string
+    {
         if ($kartenText === '') {
             return null;
         }
@@ -1265,10 +1335,11 @@ PEM;
         if ($roh === false || strlen($roh) < 27) {
             return null;
         }
-        $k = unpack('vmapId/vframeId/cframe/vrx/vry/vrw/vsx/vsy/vsw/vraster/vbreite/vhoehe/vlinks/voben', $roh);
-        if ((int)$k['frame'] !== 73) {
-            return null;
-        }
+        return $roh;
+    }
+
+    private static function karteZerlegen(string $roh, array $k): ?array
+    {
         $vz = function (int $v): int { return $v >= 0x8000 ? $v - 0x10000 : $v; };
         $breite = (int)$k['breite'];
         $hoehe = (int)$k['hoehe'];
@@ -1291,6 +1362,7 @@ PEM;
             'links'   => $links,
             'oben'    => $oben,
             'station' => [$vz((int)$k['sx']), $vz((int)$k['sy'])],
+            'roboter' => [$vz((int)$k['rx']), $vz((int)$k['ry']), $vz((int)$k['rw'])],
             'pixel'   => (string)substr($roh, 27, $breite * $hoehe),
         ];
     }
@@ -1338,6 +1410,67 @@ PEM;
     }
 
     // =================================================================
+    // Live-Karte
+    // =================================================================
+
+    public function liveKarte(array $buendel, array $geraet): array
+    {
+        $did = (string)$geraet['id'];
+        if (self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER) {
+            return $this->maehKarte($buendel, $did, true) + ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0];
+        }
+        $modell = (string)($geraet['modell'] ?? '');
+        // Aktuellen Vollrahmen („I") anfordern wie Tasshack _request_i_map:
+        // action 6.1 mit 6.2 = {"req_type":1,"frame_type":"I","force_type":1}.
+        // Antwort: 6.3 = Dateiname in der Cloud (ggf. „Name,Schlüssel"),
+        // 6.1 = Kartentext direkt, 6.13 = alte Form „0,Text" bzw. „1,Name[,Schlüssel]".
+        $erg = $this->aktion($buendel, $did, 6, 1, [['piid' => 2, 'value' => '{"req_type":1,"frame_type":"I","force_type":1}']]);
+        $datei = '';
+        $text = '';
+        foreach ((array)($erg['out'] ?? []) as $p) {
+            $wert = (string)($p['value'] ?? '');
+            if ($wert === '') {
+                continue;
+            }
+            $piid = (int)($p['piid'] ?? 0);
+            if ($piid === 3) {
+                $datei = $wert;
+            } elseif ($piid === 1) {
+                $text = $wert;
+            } elseif ($piid === 13 && $datei === '' && $text === '') {
+                $teile = explode(',', $wert, 2);
+                if ($teile[0] === '0') {
+                    $text = (string)($teile[1] ?? '');
+                } else {
+                    $datei = (string)($teile[1] ?? '');
+                }
+            }
+        }
+        if ($text === '' && $datei !== '') {
+            [$name, $schluessel] = array_pad(explode(',', $datei, 2), 2, '');
+            $url = $this->api($buendel, '/dreame-user-iot/iotfile/getDownloadUrl', [
+                'did' => $did, 'model' => $modell, 'filename' => $name, 'region' => (string)($buendel['region'] ?? 'eu'),
+            ])['data'] ?? '';
+            if (is_string($url) && $url !== '') {
+                [$status, $inhalt] = $this->http('GET', $url, ['Accept: */*'], null);
+                if ($status === 200 && $inhalt !== '') {
+                    $text = trim($inhalt) . ($schluessel !== '' && strpos($inhalt, ',') === false ? ',' . $schluessel : '');
+                }
+            }
+        }
+        $roh = self::dekodiereKarteRoh($text, $modell);
+        if ($roh === null) {
+            $this->dbg('Live-Karte', 'Kein aktueller Kartenrahmen (Antwort: ' . json_encode($erg['out'] ?? []) . ').');
+            throw new RoboHubFehler('Der Roboter hat keine aktuelle Karte geliefert.');
+        }
+        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
+        $bild = RoboHubKartenbild::sauger($roh, $raeume, true);
+        $this->dbg('Live-Karte', $roh['breite'] . '×' . $roh['hoehe'] . ', Kodierung „' . $bild['kodierung'] . '", Weg ' . count($bild['weg'] ?? []) . ' Stücke, Roboter ' . json_encode($bild['roboter'] ?? null));
+        unset($bild['kodierung']);
+        return ['raeume' => $raeume] + $bild;
+    }
+
+    // =================================================================
     // Mäh-Zonen (ioBroker main.js getMowerMap, docs/mower-protocol.md)
     // =================================================================
 
@@ -1349,7 +1482,7 @@ PEM;
      * Mehrere Karten: der erste Slot zählt (ioBroker kennt keinen Zeiger auf
      * die aktive Karte; der Zonen-Start nimmt nur IDs). Rückgabe [id => Name].
      */
-    private function maehKarte(array $buendel, string $did): array
+    private function maehKarte(array $buendel, string $did, bool $mitWeg = false): array
     {
         $daten = $this->api($buendel, '/dreame-user-iot/iotuserdata/getDeviceData', ['did' => $did])['data'] ?? null;
         if (!is_array($daten)) {
@@ -1379,7 +1512,13 @@ PEM;
             $zonen[$id] = $name !== '' ? $name : 'Zone ' . $id;
         }
         ksort($zonen);
-        return ['raeume' => $zonen] + RoboHubKartenbild::maeher(is_array($slot) ? $slot : [], $zonen);
+        $weg = [];
+        if ($mitWeg) {
+            $pfad = json_decode(self::stueckeZusammensetzen($daten, 'M_PATH'), true);
+            $weg = is_array($pfad) ? RoboHubKartenbild::maeherWeg($pfad) : [];
+            $this->dbg('Live-Karte', 'Mähweg: ' . count($weg) . ' Stücke.');
+        }
+        return ['raeume' => $zonen] + RoboHubKartenbild::maeher(is_array($slot) ? $slot : [], $zonen, $weg);
     }
 
     /** Setzt PREFIX.0, PREFIX.1 … zusammen, gekürzt auf PREFIX.info Zeichen (ioBroker reassembleChunks). */

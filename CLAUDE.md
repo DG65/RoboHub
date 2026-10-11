@@ -202,6 +202,19 @@
   aneinander. LiDAX → SVG, Zone „Rasen" als L-Form (~7 × 14 m). **Beide von Dietmar gegen Dreamehome/MOVAhome
   bestätigt (Ausrichtung, Form, Raumlage).**
 
+## Live-Karte (0.8.0)
+
+- Sauger: action 6.1 mit 6.2 (`frame_type` I) → 6.3 Zwischendatei / 6.1 Text / 6.13 alt; Zwischendatei über
+  dasselbe `getDownloadUrl` wie die gespeicherte Karte (Tasshack-Strings 18/34/48 = dreame-user-iot/iotfile/
+  getDownloadUrl, Parameter filename). Schlüssel hinter dem Komma im Dateinamen → sha256 wie gespeicherte Karte.
+- Weg „tr": Tasshack-Regex `[MWSLl](-?\d+),(-?\d+)`; Kartenwinkel 0° = +x, Kachel dreht um 90° − Winkel
+  (Richtung **live zu prüfen**).
+- Mäher: M_PATH ×10; Telemetrie 1.4 nach ioBroker (Bitlage siehe `maeherPosition`). **Noch nie eine Mäher-
+  Echtzeit-Meldung gesehen** — ob 1.4 überhaupt über die Cloud kommt, ist offen.
+- Kachel-Feld `karte` bekommt `weg`, `roboter`, `live` (Zeitstempel); `geometrie` bleibt im Attribut.
+- Takt `LiveKarte` getrennt vom Abruf-Takt (der mit Echtzeit 120 s bleibt).
+- Prüfstand: 19/19 Mutationen gefangen.
+
 ## Prüfen
 
 ```

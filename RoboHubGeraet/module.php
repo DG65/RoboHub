@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/RoboHubModell.php';
 require_once __DIR__ . '/../libs/RoboHubFormular.php';
+require_once __DIR__ . '/../libs/RoboHubKartenbild.php';
 
 // ===========================================================================
 // RoboHub Roboter — eine Instanz je Saug-/Wisch- oder Mähroboter.
@@ -48,6 +49,9 @@ class RoboHubGeraet extends IPSModule
         // Kartenbild für Kachel/Seite: {"bild": data-URI, "marken": [...], "station": {...}|null, "format": b/h}.
         $this->RegisterAttributeString('Karte', '{}');
         $this->RegisterPropertyBoolean('KarteZeigen', true);
+        // Live-Karte: während der Arbeit aktuelle Karte mit Weg und Roboter holen.
+        $this->RegisterPropertyBoolean('LiveKarte', true);
+        $this->RegisterAttributeBoolean('LiveAktiv', false);
         $this->RegisterAttributeString('Bild', '');
         $this->RegisterAttributeInteger('LetzteEchtzeit', 0);
         $this->RegisterAttributeString('EchtzeitVerlauf', '[]');
@@ -60,6 +64,7 @@ class RoboHubGeraet extends IPSModule
         $this->registerFormAttributes();
 
         $this->RegisterTimer('Abruf', 0, 'ROBO_Aktualisieren($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('LiveKarte', 0, 'ROBO_LiveKarteLaden($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges()
@@ -151,11 +156,18 @@ class RoboHubGeraet extends IPSModule
         $this->uebernimm($d['Daten']);
         $this->WriteAttributeInteger('LetzteEchtzeit', time());
         // Verlauf der letzten 20 Meldungen (Rohwerte) — zur Fehlersuche in „📋 Rohdaten".
+        // Reine Positionsmeldungen (Kartenrahmen, alle paar Sekunden) nicht.
         $delta = (array)($d['Daten']['echtzeit'] ?? []);
-        $verlauf = json_decode($this->ReadAttributeString('EchtzeitVerlauf'), true) ?: [];
-        array_unshift($verlauf, ['zeit' => date('d.m.Y H:i:s'), 'werte' => $delta]);
-        $this->WriteAttributeString('EchtzeitVerlauf', (string)json_encode(array_slice($verlauf, 0, 20)));
-        $this->SendDebug('Echtzeit', json_encode($delta), 0);
+        if ($delta !== []) {
+            $verlauf = json_decode($this->ReadAttributeString('EchtzeitVerlauf'), true) ?: [];
+            array_unshift($verlauf, ['zeit' => date('d.m.Y H:i:s'), 'werte' => $delta]);
+            $this->WriteAttributeString('EchtzeitVerlauf', (string)json_encode(array_slice($verlauf, 0, 20)));
+            $this->SendDebug('Echtzeit', json_encode($delta), 0);
+        }
+        if (is_array($d['Daten']['position'] ?? null)) {
+            $this->positionUebernehmen($d['Daten']['position']);
+        }
+        $this->liveSteuern();
         $this->kachelAktualisieren();
         return '';
     }
@@ -177,6 +189,7 @@ class RoboHubGeraet extends IPSModule
         $this->SetStatus(102);
         $this->uebernimm((array)$antwort['daten']);
         $this->WriteAttributeInteger('LetzterAbruf', time());
+        $this->liveSteuern();
         if (time() - $this->ReadAttributeInteger('RaeumeStand') > self::RAEUME_ALTER_S) {
             $this->ladeRaeume();
         }
@@ -378,6 +391,20 @@ class RoboHubGeraet extends IPSModule
         return $antwort;
     }
 
+    /** Kartendaten für die Kachel (ohne Umrechnungsdaten). */
+    private function kachelKarte(): ?array
+    {
+        if (!$this->ReadPropertyBoolean('KarteZeigen')) {
+            return null;
+        }
+        $karte = json_decode($this->ReadAttributeString('Karte'), true);
+        if (!is_array($karte) || (string)($karte['bild'] ?? '') === '') {
+            return null;
+        }
+        unset($karte['geometrie']);
+        return $karte;
+    }
+
     /** Idents, die der Treiber als frei änderbar gemeldet hat (Nicht stören, Lautstärke). */
     private function schreibbar(): array
     {
@@ -476,6 +503,67 @@ class RoboHubGeraet extends IPSModule
         }
     }
 
+    // Takt der Live-Karte während der Arbeit (Sauger: Kartenrahmen klein, Mäher: ganze Gerätedaten).
+    private const LIVE_SAUGER_S = 30;
+    private const LIVE_MAEHER_S = 60;
+
+    /**
+     * ROBO_LiveKarteLaden($id): string — aktuelle Karte mit gefahrenem Weg und
+     * Roboterposition holen (läuft während der Arbeit von selbst).
+     */
+    public function LiveKarteLaden(): string
+    {
+        $antwort = $this->frageKonto(['Aktion' => 'livekarte', 'Geraet' => $this->ReadPropertyString('GeraetID')]);
+        if (!$antwort['ok']) {
+            $this->SendDebug('Live-Karte', (string)$antwort['fehler'], 0);
+            return '⛔ ' . $antwort['fehler'];
+        }
+        $d = (array)$antwort['daten'];
+        if ((string)($d['bild'] ?? '') === '') {
+            return 'ℹ️ Keine aktuelle Karte geliefert.';
+        }
+        $this->WriteAttributeString('Karte', (string)json_encode([
+            'bild' => (string)$d['bild'], 'marken' => array_values((array)($d['marken'] ?? [])),
+            'station' => $d['station'] ?? null, 'format' => (float)($d['format'] ?? 1.0),
+            'geometrie' => $d['geometrie'] ?? null, 'weg' => array_values((array)($d['weg'] ?? [])),
+            'roboter' => $d['roboter'] ?? null, 'live' => time(),
+        ]));
+        $this->kachelAktualisieren();
+        $punkte = 0;
+        foreach ((array)($d['weg'] ?? []) as $s) {
+            $punkte += count((array)$s);
+        }
+        return '✅ Live-Karte geladen: ' . $punkte . ' Wegpunkte' . (isset($d['roboter']) ? ', Roboter auf der Karte.' : '.');
+    }
+
+    /** Zustand → Live-Takt an/aus. Am Ende der Arbeit einmal den fertigen Weg holen. */
+    private function liveSteuern(): void
+    {
+        $zustand = $this->hatVariable('Zustand') ? (int)$this->GetValue('Zustand') : RoboHubModell::ZUSTAND_UNBEKANNT;
+        $aktiv = $this->ReadPropertyBoolean('LiveKarte') && $this->ReadPropertyBoolean('KarteZeigen')
+            && in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_PAUSIERT, RoboHubModell::ZUSTAND_ZURUECK], true);
+        $war = $this->ReadAttributeBoolean('LiveAktiv');
+        if ($aktiv === $war) {
+            return;
+        }
+        $this->WriteAttributeBoolean('LiveAktiv', $aktiv);
+        $takt = $this->klasse() === RoboHubModell::KLASSE_MAEHER ? self::LIVE_MAEHER_S : self::LIVE_SAUGER_S;
+        $this->SetTimerInterval('LiveKarte', $aktiv ? $takt * 1000 : 0);
+        // Beim Start sofort, am Ende ein letztes Mal (fertiger Weg bleibt bis zur nächsten Arbeit stehen).
+        $this->LiveKarteLaden();
+    }
+
+    /** Echtzeit-Position [x mm, y mm, Winkel] auf die angezeigte Karte setzen. */
+    private function positionUebernehmen(array $pos): void
+    {
+        $karte = json_decode($this->ReadAttributeString('Karte'), true) ?: [];
+        if (!is_array($karte['geometrie'] ?? null) || !isset($pos[0], $pos[1])) {
+            return;
+        }
+        $karte['roboter'] = RoboHubKartenbild::prozentPunkt($karte['geometrie'], (float)$pos[0], (float)$pos[1]) + ['winkel' => (int)($pos[2] ?? 0)];
+        $this->WriteAttributeString('Karte', (string)json_encode($karte));
+    }
+
     /** ROBO_RaeumeLaden($id): string — Raum-/Zonenliste aus der Karte neu holen. */
     public function RaeumeLaden(): string
     {
@@ -495,10 +583,11 @@ class RoboHubGeraet extends IPSModule
         foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;
         }
-        if ((string)($daten['bild'] ?? '') !== '') {
+        if ((string)($daten['bild'] ?? '') !== '' && !$this->ReadAttributeBoolean('LiveAktiv')) {
             $this->WriteAttributeString('Karte', (string)json_encode([
                 'bild' => (string)$daten['bild'], 'marken' => array_values((array)($daten['marken'] ?? [])),
                 'station' => $daten['station'] ?? null, 'format' => (float)($daten['format'] ?? 1.0),
+                'geometrie' => $daten['geometrie'] ?? null,
             ]));
         }
         if (count($raeume) === 0) {
@@ -772,7 +861,7 @@ class RoboHubGeraet extends IPSModule
             'hinweise'    => $hinweise,
             'info'        => $info,
             'raeume'      => $raeume,
-            'karte'       => $this->ReadPropertyBoolean('KarteZeigen') ? (json_decode($this->ReadAttributeString('Karte'), true) ?: null) : null,
+            'karte'       => $this->kachelKarte(),
             'teile'       => $teile,
             'stand'       => $abruf > 0 ? date('H:i:s', $abruf) : '',
             'rueck'       => $rueckmeldung,
@@ -849,6 +938,7 @@ class RoboHubGeraet extends IPSModule
             'items' => [
                 ['type' => 'Label', 'caption' => 'Kachel-Visualisierung: Diese Instanz ist selbst eine Kachel — einfach auf dem Dashboard platzieren. Bedienen geht dort immer (Anmeldung der Visualisierung).'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Kartenbild zeigen (Räume bzw. Mähzonen zum Antippen)'],
+                ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live-Karte während der Arbeit (gefahrener Weg und Roboterposition; Sauger alle 30 s, Mäher alle 60 s)'],
                 ['type' => 'Label', 'caption' => 'IPSView oder Browser: In IPSView ein WebView-Element anlegen und als Adresse http://<Symcon-IP>:3777' . $this->hookPfad() . ' eintragen. Die Seite aktualisiert sich alle 15 Sekunden selbst.'],
                 ['type' => 'Label', 'caption' => '👁 Nur Anzeige: ' . $this->hookPfad()],
                 ['type' => 'CheckBox', 'name' => 'WebBedienung', 'caption' => 'Bedienung über die eigenständige Seite erlauben (nur mit Schlüssel in der Adresse)'],
