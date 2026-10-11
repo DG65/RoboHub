@@ -82,7 +82,7 @@
 - **Zur Station am LiDAX live (18:13)**: 5.3 angenommen (0,6 s), danach 2.1 = 5 „Fährt zur Station", 3.1 = 91, 3.2 = 5 (bei Saugern „Rückkehr zum Laden"). Pause/Stopp am Mäher noch ungetestet.
 - Barny 2.1 = 35 „Trocknet Staubbeutel" (Tasshack) **gegen die Dreamehome-App bestätigt** (20:23). LiDAX nach Rückkehr 2.1 = 6 „Lädt", 3.2 = 1.
 - **Verbrauchsteile Barny gegen App exakt bestätigt** (20:41): Filter 12 % (11.1), Seitenbürste 34 % (10.2), Hauptbürste 56 % (9.2), Sensoren 0 % (16.1). App zeigt zusätzlich Reststunden (19/69/169/0 h) — RoboHub liest die Stunden-piids noch nicht.
-- **Mäher-Verschleiß gegen MOVAhome-App bestätigt** (21:08): Klingen 34 % (33,7 h), Reinigungsbürste 87 % (433,7 h → Max 30000 min stimmt), Wartung 72 % (42,9 h → Max 3600 min stimmt). Seit 0.2.3 alle drei als Variable. Dietmar hat **keine Garage** — Zustand 19 ist nicht garagenbezogen.
+- **Mäher-Verschleiß gegen MOVAhome-App bestätigt** (21:08): Klingen 34 % (33,7 h), Reinigungsbürste 87 % (433,7 h → Max 30000 min stimmt), Wartung 72 % (42,9 h → Max 3600 min stimmt). Seit 0.2.3 alle drei als Variable. Dietmar **hat eine Garage** (die App erkennt sie nur nicht; ihr „Garage erwerben" ist kein Beleg — meine Fehldeutung, von Dietmar korrigiert). Zustand 19 = „Mäht" bleibt trotzdem belegt: er mähte dabei nachweislich (Dietmar vor Ort). Ob Garagen-Ein-/Ausfahrt einen eigenen Zustand hat, ist offen.
 - Raumumbenennung in der App („Küche 2" → „Küche") per `ROBO_RaeumeLaden` sofort übernommen.
 - „Orten" am LiDAX live: Kanal 2.50 `{"m":"a","p":0,"o":9}` funktioniert, **LiDAX hat gepiept** (Dietmar bestätigt). Start/Stopp/Pause (5.x vs. 2.x) noch ungetestet.
 - 0.2.1 live gemessen am LiDAX: 1. Abruf 9,2 s (Block 4.x versucht), 2. Abruf **0,5 s** (Block übersprungen).
