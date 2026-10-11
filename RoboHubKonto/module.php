@@ -80,10 +80,7 @@ class RoboHubKonto extends IPSModule
             return;
         }
         $this->aktualisiereStatus();
-        // Auch hier, nicht nur in Create(): bestehende Konten (vor 0.4.0 angelegt)
-        // bekommen ihren Client Socket sonst nie (Live-Befund 11.10.2026,
-        // SDK-Doku: „normalerweise in Create() oder ApplyChanges()").
-        $this->RequireParent(self::CLIENT_SOCKET);
+        $this->verbindungSicherstellen();
         $this->elternBeobachten();
         $this->echtzeitKonfigurieren(false);
     }
@@ -332,6 +329,30 @@ class RoboHubKonto extends IPSModule
             $this->mqttStand(['zustand' => 'verbinde', 'host' => $soll['Host'] . ':' . $soll['Port']]);
         }
         IPS_RunScriptText($skript);
+    }
+
+    /**
+     * Client Socket anlegen und verbinden, falls noch keiner da ist.
+     * RequireParent() in Create()/ApplyChanges() hat bei Konten, die vor 0.4.0
+     * angelegt wurden, live nichts angelegt (11.10.2026, auch nach Übernehmen),
+     * obwohl Moduldefinition und Code stimmten. Deshalb dieselben Schritte wie
+     * in Symcons offiziellen Stubs (SymconStubs ModuleStubs::RequireParent):
+     * anlegen, benennen, verbinden — nur ausdrücklich.
+     */
+    private function verbindungSicherstellen(): void
+    {
+        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) !== 0) {
+            return;
+        }
+        $id = @IPS_CreateInstance(self::CLIENT_SOCKET);
+        if (!$id) {
+            $this->protokolliere('Client Socket für die Echtzeit-Meldungen ließ sich nicht anlegen.');
+            return;
+        }
+        IPS_SetName($id, 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')');
+        if (!IPS_ConnectInstance($this->InstanceID, $id)) {
+            $this->protokolliere('Client Socket #' . $id . ' ließ sich nicht verbinden.');
+        }
     }
 
     private function elternBeobachten(): void

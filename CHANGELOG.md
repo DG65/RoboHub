@@ -1,10 +1,17 @@
 # Changelog
 
+## 0.4.2 (11.10.2026)
+
+- Fix (zweiter Anlauf): Auch `RequireParent()` in `ApplyChanges()` legte bei Dietmars
+  bestehenden Konten live keinen Client Socket an (Moduldefinition und Code nachweislich
+  korrekt, auch nach „Übernehmen" nichts). Jetzt ausdrücklich dieselben Schritte wie in
+  Symcons offiziellen Stubs (`IPS_CreateInstance`, `IPS_SetName`, `IPS_ConnectInstance`),
+  Name „RoboHub Echtzeit (<Konto>)". Prüfstand bildet das Live-Verhalten nach
+  (`RequireParent` ohne Wirkung).
+
 ## 0.4.1 (11.10.2026)
 
-- Fix: Bestehende Konto-Instanzen bekamen unter 0.4.0 keinen Client Socket — `RequireParent`
-  stand nur in `Create()`. Jetzt zusätzlich in `ApplyChanges()` (SDK-Doku). Prüfstand bildet
-  den Bestandsfall nach (Create ohne Wirkung).
+- Versuch: `RequireParent` zusätzlich in `ApplyChanges()` — hat live NICHT gewirkt, siehe 0.4.2.
 
 ## 0.4.0 (11.10.2026)
 

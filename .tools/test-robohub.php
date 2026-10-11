@@ -53,6 +53,9 @@ function ROBOHUB_GeraeteSuchen(int $id): string { return $GLOBALS['INST'][$id]->
 $GLOBALS['CONNECTS'] = [];
 $GLOBALS['SKRIPTE'] = [];
 function IPS_RunScriptText(string $s): bool { $GLOBALS['SKRIPTE'][] = $s; return true; }
+$GLOBALS['NAMEN'] = [];
+function IPS_CreateInstance(string $guid): int { $s = new FakeSocket(70000 + count($GLOBALS['INST'])); $GLOBALS['ERZEUGT'][] = [$guid, $s->InstanceID]; return $s->InstanceID; }
+function IPS_SetName(int $id, string $n): bool { $GLOBALS['NAMEN'][$id] = $n; return true; }
 function IPS_GetConfiguration(int $id): string { return json_encode($GLOBALS['INST'][$id]->config ?? []); }
 /** Nachgebildeter Client Socket: merkt sich gesendete Bytes. */
 class FakeSocket
@@ -71,7 +74,7 @@ function mqttVomServer($konto, string $bytes): void
 function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
 function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time()]; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
-function IPS_GetName(int $id): string { return 'Instanz ' . $id; }
+function IPS_GetName(int $id): string { return $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }
 function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0]; }
 
 class IPSModule
@@ -111,8 +114,8 @@ class IPSModule
     public function UpdateFormField(string $n, string $p, $v): void { $this->fields[] = [$n, $p, $v]; }
     public function HasActiveParent(): bool { return $this->parent !== null; }
     public $puffer = [];
-    public $requireParentAufrufe = 0;
-    public function RequireParent(string $guid): void { $this->requireParentAufrufe++; if ($this->parent === null && !empty($GLOBALS['REQUIRE_PARENT_WIRKT'])) { $this->parent = new FakeSocket($this->InstanceID + 90000); } }
+    // Wie live beobachtet: RequireParent() legt bei Bestandsinstanzen nichts an.
+    public function RequireParent(string $guid): void {}
     public function SetBuffer(string $n, string $v): void { $this->puffer[$n] = $v; }
     public function GetBuffer(string $n): string { return $this->puffer[$n] ?? ''; }
     public function SendDataToChildren(string $json): void { foreach ($GLOBALS['INST'] as $m) { if ($m instanceof IPSModule && $m->parent === $this) { $m->ReceiveData($json); } } }
@@ -696,11 +699,16 @@ check('Roboter ohne Konto: rote ⛔-Zeile', strpos(json_encode($f, JSON_UNESCAPE
 unset($GLOBALS['INST'][2400], $GLOBALS['INST'][2401], $GLOBALS['INST'][2402]);
 
 abschnitt('Echtzeit (MQTT)');
-// Wie live beobachtet: Das Konto existierte schon vor 0.4.0, Create() hat keinen Socket gebracht.
+// Wie live beobachtet: Konto aus der Zeit vor 0.4.0 ohne Socket (RequireParent wirkt nicht).
+$konto->parent = null;
 check('Bestandskonto hat noch keinen Socket', $konto->parent === null);
-$GLOBALS['REQUIRE_PARENT_WIRKT'] = true;
+$GLOBALS['ERZEUGT'] = [];
 $konto->ApplyChanges();
 $socket = $konto->parent;
+check('ApplyChanges legt den Client Socket selbst an und verbindet ihn', count($GLOBALS['ERZEUGT']) === 1 && $GLOBALS['ERZEUGT'][0][0] === '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}' && $socket instanceof FakeSocket);
+check('… mit sprechendem Namen', strpos($GLOBALS['NAMEN'][$socket->InstanceID] ?? '', 'RoboHub Echtzeit (') === 0);
+$konto->ApplyChanges();
+check('zweites ApplyChanges legt keinen weiteren Socket an', count($GLOBALS['ERZEUGT']) === 1);
 check('Konto bekommt einen Client Socket (RequireParent)', $socket instanceof FakeSocket);
 $sockCfg = json_decode($konto->GetConfigurationForParent(), true);
 check('Socket-Ziel aus bindDomain der Geräteliste', $sockCfg['Host'] === '10000.mt.eu.iot.dreame.tech' && $sockCfg['Port'] === 19973, json_encode($sockCfg));

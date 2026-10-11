@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.4.2' => [
+            '• Echtzeit: Die Verbindungsinstanz („RoboHub Echtzeit (…)", Client Socket) wird jetzt zuverlässig angelegt — auch bei Konten von vor 0.4.0.',
+        ],
         '0.4.1' => [
             '• Echtzeit: Auch Konten, die vor 0.4.0 angelegt wurden, bekommen jetzt ihre Verbindungsinstanz (Client Socket).',
         ],
