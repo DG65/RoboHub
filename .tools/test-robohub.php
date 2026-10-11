@@ -461,13 +461,15 @@ $ohneKonto->ApplyChanges();
 check('ohne Konto-Instanz verständliche Meldung', strpos($ohneKonto->Aktualisieren(), 'Keine aktive RoboHub-Konto-Instanz') !== false);
 
 abschnitt('Formulare (Konvention)');
+$libVersion = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version'];
 foreach ([$konto, $geraet, $cfg] as $mod) {
+    global $libVersion;
     $name = get_class($mod);
     $json = $mod->GetConfigurationForm();
     $f = json_decode($json, true);
     check("$name: gültiges JSON", is_array($f));
     $caps = array_map(function ($e) { return $e['caption'] ?? ''; }, $f['elements']);
-    $erwartet = ['👋  Wozu dieses Modul?', '🆕  Neu bis Version 0.1.0', '📖  Dokumentation & Hilfe'];
+    $erwartet = ['👋  Wozu dieses Modul?', '🆕  Neu bis Version ' . $libVersion, '📖  Dokumentation & Hilfe'];
     check("$name: Kopf-Reihenfolge Zweck → Neu → Doku", array_slice($caps, 0, 3) === $erwartet, implode(' | ', $caps));
     check("$name: endet mit Rückmeldung → Über dieses Modul", array_slice($caps, -2) === ['💬  Rückmeldungen', '🧡  Über dieses Modul']);
     check("$name: kein doppeltes Fragezeichen", strpos($json, '? ?') === false && strpos($json, '??') === false);
@@ -479,7 +481,7 @@ foreach ([$konto, $geraet, $cfg] as $mod) {
 $geraet->AckNews();
 check('AckNews speichert installierte Version ohne Suffix', $geraet->ReadAttributeString('SeenNews') === json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version']);
 $f = json_decode($geraet->GetConfigurationForm(), true);
-check('nach Bestätigen kein News-Panel mehr', !in_array('🆕  Neu bis Version 0.1.0', array_column($f['elements'], 'caption'), true));
+check('nach Bestätigen kein News-Panel mehr', !in_array('🆕  Neu bis Version ' . $libVersion, array_column($f['elements'], 'caption'), true));
 $lib = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true);
 $news = (new ReflectionClass('RoboHubKonto'))->getStaticPropertyValue('ROBOHUB_NEWS_VERSIONS');
 $keys = array_keys($news);
