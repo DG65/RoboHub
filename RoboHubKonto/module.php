@@ -30,6 +30,9 @@ class RoboHubKonto extends IPSModule
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
     private const DATA_ZUM_KIND  = '{4949DAA0-C934-4184-91E2-2D3E90D4DC24}';
 
+    // Unbeantwortete Abfrageblöcke eine Stunde lang überspringen.
+    private const BLOCK_SPERRE_S = 3600;
+
     // Prüftakt für die Schlüssel-Erneuerung.
     private const ERNEUERN_MS = 15 * 60 * 1000;
 
@@ -48,6 +51,7 @@ class RoboHubKonto extends IPSModule
         $this->RegisterAttributeInteger('GeraeteStand', 0);
         $this->RegisterAttributeInteger('WarteBis', 0);
         $this->RegisterAttributeString('LetzterFehler', '');
+        $this->RegisterAttributeString('BlockSperre', '{}');
         $this->registerFormAttributes();
 
         $this->RegisterTimer('Erneuern', 0, 'ROBOHUB_Erneuern($_IPS[\'TARGET\']);');
@@ -215,7 +219,7 @@ class RoboHubKonto extends IPSModule
         $buendel = $this->gueltigesBuendel();
         try {
             if ($aktion === 'zustand') {
-                return $this->treiber()->zustand($buendel, $geraet);
+                return $this->zustandMitBlockSperre($buendel, $geraet);
             }
             if ($aktion === 'raeume') {
                 return $this->treiber()->raeume($buendel, $geraet);
@@ -284,6 +288,46 @@ class RoboHubKonto extends IPSModule
                 IPS_SemaphoreLeave($sem);
             }
         }
+    }
+
+    /**
+     * Zustand abfragen und dabei Abfrageblöcke überspringen, auf die dieses
+     * Gerät zuletzt nicht geantwortet hat. Gesperrt wird ein Block nur, wenn
+     * im selben Abruf mindestens ein anderer geantwortet hat (sonst war das
+     * Gerät einfach kurz weg); nach BLOCK_SPERRE_S wird er erneut versucht.
+     */
+    private function zustandMitBlockSperre(array $buendel, array $geraet): array
+    {
+        $did = (string)$geraet['id'];
+        $sperre = json_decode($this->ReadAttributeString('BlockSperre'), true) ?: [];
+        $jetzt = time();
+        $geraet['ueberspringen'] = [];
+        foreach ((array)($sperre[$did] ?? []) as $block => $bis) {
+            if ((int)$bis > $jetzt) {
+                $geraet['ueberspringen'][] = (int)$block;
+            }
+        }
+        $daten = $this->treiber()->zustand($buendel, $geraet);
+
+        $ok = (array)($daten['bloecke']['ok'] ?? []);
+        $fehl = (array)($daten['bloecke']['fehl'] ?? []);
+        if (count($ok) > 0) {
+            foreach ($fehl as $block) {
+                $sperre[$did][(int)$block] = $jetzt + self::BLOCK_SPERRE_S;
+            }
+            // Abgelaufene Sperren aufräumen (ein beantworteter Block war nur
+            // dabei, weil seine Sperre abgelaufen war — er fällt hier mit raus).
+            foreach ((array)($sperre[$did] ?? []) as $block => $bis) {
+                if ((int)$bis <= $jetzt && !in_array((int)$block, $fehl, true)) {
+                    unset($sperre[$did][$block]);
+                }
+            }
+            if (empty($sperre[$did])) {
+                unset($sperre[$did]);
+            }
+            $this->WriteAttributeString('BlockSperre', (string)json_encode($sperre));
+        }
+        return $daten;
     }
 
     private function verarbeiteFehler(RoboHubFehler $e): void

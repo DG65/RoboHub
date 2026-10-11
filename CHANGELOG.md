@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 (11.10.2026)
+
+- Schnellere Abfrage: Die Konto-Instanz merkt sich je Gerät Abfrageblöcke, die nicht
+  beantwortet wurden (Attribut `BlockSperre`), und überspringt sie eine Stunde lang.
+  Gesperrt wird nur, wenn im selben Abruf ein anderer Block geantwortet hat — ist der
+  Roboter kurz weg, bleibt alles offen. Live-Anlass: Der MOVA LiDAX Ultra 1000
+  beantwortet Block 4.x (Arbeitsmodus/Fläche/Dauer/Auftrag) nicht, jeder Abruf
+  dauerte dadurch ~13 s. Die Rohdaten zeigen die übersprungenen Blöcke.
+
 ## 0.2.0 (11.10.2026)
 
 - **Ein Konfigurator für alle Konten** (Dietmars Wunsch): Der Konfigurator hat keine

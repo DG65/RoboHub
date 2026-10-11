@@ -247,20 +247,30 @@ class RoboHubDreame implements RoboHubTreiber
         $online = !empty($eintrag['online']);
 
         // 2) Properties blockweise. Ein Offline-Gerät nicht weiter befragen.
+        // Blöcke, auf die dieses Gerät nachweislich nicht antwortet, gibt das
+        // Konto in 'ueberspringen' mit (Indizes) — jede unbeantwortete Abfrage
+        // kostet sonst einige Sekunden Wartezeit (Live-Befund LiDAX, Block 4.x).
+        $ueberspringen = array_map('intval', (array)($geraet['ueberspringen'] ?? []));
         $p = [];
-        $fehlBloecke = 0;
+        $fehl = [];
+        $ok = [];
         if ($online) {
-            foreach ($klasse === RoboHubModell::KLASSE_MAEHER ? self::BLOECKE_MAEHER : self::BLOECKE_SAUGER as $block) {
+            foreach ($klasse === RoboHubModell::KLASSE_MAEHER ? self::BLOECKE_MAEHER : self::BLOECKE_SAUGER as $i => $block) {
+                if (in_array($i, $ueberspringen, true)) {
+                    continue;
+                }
                 try {
                     $p += $this->leseProperties($buendel, $did, $block);
+                    $ok[] = $i;
                 } catch (RoboHubFehler $e) {
                     if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
                         throw $e;
                     }
-                    $fehlBloecke++;
+                    $fehl[] = $i;
                 }
             }
         }
+        $fehlBloecke = count($fehl);
         // Zusammenfassung als Grundwert, echte Abfrage gewinnt (Reihenfolge wie ioBroker).
         if (!isset($p['2.1']) && isset($eintrag['latestStatus']) && $klasse === RoboHubModell::KLASSE_SAUGER) {
             $p['2.1'] = (int)$eintrag['latestStatus'];
@@ -274,12 +284,14 @@ class RoboHubDreame implements RoboHubTreiber
             $daten['werte'] += $this->maeherVerschleiss($buendel, $did);
         }
         $daten['online'] = $online;
+        $daten['bloecke'] = ['ok' => $ok, 'fehl' => $fehl];
         $daten['roh'] = [
             'modell'        => $modell,
             'firmware'      => $eintrag['ver'] ?? null,
             'liste'         => ['online' => $eintrag['online'] ?? null, 'latestStatus' => $eintrag['latestStatus'] ?? null, 'battery' => $eintrag['battery'] ?? null],
             'properties'    => $p,
             'fehlendeBloecke' => $fehlBloecke,
+            'uebersprungeneBloecke' => $ueberspringen,
         ];
         return $daten;
     }

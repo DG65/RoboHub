@@ -72,8 +72,9 @@
   ein Konfigurator #12732 für beide Konten, Selbstzuordnung → MOVA #50686 live korrekt).
 - **LiDAX live (FW 4.3.6_0529):** 2.1 = 13 „Geladen", 3.1 = 100, **3.2 = 2** (in keiner Quelle
   belegt, vermutlich „voll"; → Lädt = false), Messer 34 % aus CMS. **2.2 kam nicht**, **Block 4.x
-  (4.1/4.2/4.3/4.7) wird nicht beantwortet** → Abruf ~13 s. Idee: nicht beantwortete Blöcke je
-  Gerät merken und nur stündlich erneut versuchen (mit Dietmar abstimmen).
+  (4.1/4.2/4.3/4.7) wird nicht beantwortet** → Abruf ~13 s. Seit 0.2.1 gebaut (Dietmars Auftrag): `BlockSperre`
+  im Konto, 1 h, nur sperren, wenn ein anderer Block antwortete.
+- „Orten" an Barny II live: Cloud hat angenommen (result.code 0), 11.10.2026 17:46.
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
   (Port 3777 zu); Attribute/Anmeldungen blieben dabei erhalten. Nicht leichtfertig wiederholen.
 

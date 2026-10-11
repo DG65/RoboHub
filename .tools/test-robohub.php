@@ -469,6 +469,36 @@ $c = FakeCloud::befehle()[0];
 check('Sauger orten = 7.1, ohne Ausweichweg', $c['params']['siid'] === 7 && $c['params']['aiid'] === 1 && count(FakeCloud::befehle()) === 1);
 check('Raumreinigung beim Mäher abgelehnt', strpos($maeher->RaeumeReinigen('1'), '⛔') === 0);
 
+abschnitt('Beschleunigung: unbeantwortete Blöcke überspringen');
+function getPropsSiids(): array
+{
+    $o = [];
+    foreach (FakeCloud::befehle() as $c) { if ($c['method'] === 'get_properties') { $o[] = $c['params'][0]['siid']; } }
+    return $o;
+}
+FakeCloud::$props = ['2.1' => 13, '2.2' => 0, '3.1' => 100, '3.2' => 2];
+FakeCloud::$ausfall = [4 => true];       // LiDAX-Livebefund: Block 4.x antwortet nicht
+FakeCloud::$anfragen = [];
+$maeher->Aktualisieren();
+check('1. Abruf: Block 4 wird versucht (und scheitert)', in_array(4, getPropsSiids(), true));
+$sperre = json_decode($konto2->ReadAttributeString('BlockSperre'), true);
+check('… danach für dieses Gerät gesperrt (1 h)', isset($sperre['777'][1]) && $sperre['777'][1] > time() + 3500, json_encode($sperre));
+FakeCloud::$anfragen = [];
+$maeher->Aktualisieren();
+check('2. Abruf: Block 4 wird übersprungen', !in_array(4, getPropsSiids(), true) && in_array(2, getPropsSiids(), true), json_encode(getPropsSiids()));
+check('Rohdaten zeigen übersprungene Blöcke', strpos($maeher->Rohdaten(), '"uebersprungeneBloecke": [') !== false);
+$sperre['777'][1] = time() - 1;           // Stunde abgelaufen
+$konto2->WriteAttributeString('BlockSperre', json_encode($sperre));
+FakeCloud::$ausfall = [];                 // Block antwortet inzwischen
+FakeCloud::$anfragen = [];
+$maeher->Aktualisieren();
+check('nach Ablauf erneut versucht', in_array(4, getPropsSiids(), true));
+check('beantworteter Block wird entsperrt', !isset(json_decode($konto2->ReadAttributeString('BlockSperre'), true)['777']));
+FakeCloud::$ausfall = [2 => true, 4 => true];   // Gerät antwortet gar nicht
+$maeher->Aktualisieren();
+check('alles unbeantwortet → nichts gesperrt (Gerät war nur kurz weg)', json_decode($konto2->ReadAttributeString('BlockSperre'), true) === []);
+FakeCloud::$ausfall = [];
+
 abschnitt('Ein Konfigurator für alle Konten + Selbstzuordnung');
 FakeCloud::$liste = [$saugerRecord];
 $t = $cfg->Suchen();
