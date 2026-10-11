@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 (11.10.2026)
+
+- Fix Konfigurator: Ein bereits angelegter Roboter erschien doppelt — einmal
+  richtig, einmal rot als „nicht mehr im Konto". PHP wandelt numerische
+  Geräte-IDs als Array-Schlüssel in Zahlen um, der anschließende strenge
+  Vergleich schlug fehl. Live-Fund an Dietmars erstem echten Konto.
+
 ## 0.1.1 (11.10.2026)
 
 - Mähroboter-Gerätecodes (2.2) vollständig nach dem Register von

@@ -90,6 +90,10 @@ class RoboHubKonfigurator extends IPSModule
         // Instanzen, deren Gerät nicht mehr im Konto ist, trotzdem zeigen (rot markiert vom Konfigurator).
         $bekannt = array_column($werte, 'id');
         foreach ($vorhanden as $id => $iid) {
+            // PHP macht numerische Array-Schlüssel („2066117758") zu int —
+            // ohne Rückumwandlung schlägt der strenge Vergleich fehl und
+            // jedes angelegte Gerät erschiene doppelt (Live-Fund 11.10.2026).
+            $id = (string)$id;
             if (!in_array($id, $bekannt, true) && $id !== '') {
                 $werte[] = ['id' => $id, 'name' => IPS_GetName($iid), 'modell' => (string)IPS_GetProperty($iid, 'Modell'), 'klasse' => '', 'online' => 'nicht mehr im Konto', 'instanceID' => $iid];
             }

@@ -29,7 +29,7 @@
   ohne mit Dietmar zu sprechen.
 - Befehle/Abfragen: `POST /dreame-iot-com-<10000|20000>/device/sendCommand`, Methoden
   `get_properties`/`set_properties`/`action`. Code 80001/-8 = Gerät offline, kein Auth-Fehler.
-- **r95475-Falle (Dietmars Aqua10 Ultra Roller Complete):** liefert 2.1 (Zustand) und 3.1
+- **r95475-Falle (Aqua10 Ultra Roller Complete; Dietmars Gerät meldet sich live als `dreame.vacuum.r9547a`, Gerät „Barny II", did 2066117758 — gleiche Familie):** liefert 2.1 (Zustand) und 3.1
   (Akku) nicht per Abfrage, nur per MQTT. Deshalb Rückfall auf `latestStatus`/`battery` aus
   `listV2` (wie ioBroker `_bridgeStatusSummary`). Echte Abfrage gewinnt, wenn vorhanden.
 - Raumreinigung: `action 4.1`, `in [{piid:1,value:18},{piid:10,value:{"selects":[[seg,1,saug,wasser,1]]}}]`

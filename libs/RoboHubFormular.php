@@ -31,6 +31,9 @@ trait RoboHubFormular
             '• Mähroboter: Gerätecodes vollständig (Fehler, Wartung, Hinweise getrennt) — reine Hinweise wie „Schlechtwetter-Schutz aktiv" erscheinen in der neuen Variable „Letzte Meldung" statt als Fehler. MOVA LiDAX Ultra 1000/2000 mit ihren abweichenden Codes 0 und 55.',
             '• Mähroboter: Zustände nach den Beschriftungen der Hersteller-App (3 = Pausiert, 4 = Pausiert wegen Fehler); Start/Stopp/Pause mit Ausweichweg, falls der Mäher einen Befehlsweg ablehnt.',
         ],
+        '0.1.2' => [
+            '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
+        ],
     ];
 
     private static $ROBOHUB_REPO_URL    = 'https://github.com/DG65/RoboHub';

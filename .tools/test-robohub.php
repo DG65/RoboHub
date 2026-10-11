@@ -365,6 +365,25 @@ $befehle = FakeCloud::befehle();
 $raum = end($befehle);
 check('Raum-Variable startet genau diesen Raum', json_decode($raum['params']['in'][1]['value'], true)['selects'][0][0] === 5);
 
+abschnitt('Konfigurator mit angelegter Instanz');
+FakeCloud::$liste = [$saugerRecord, ['did' => '2066117758', 'model' => 'dreame.vacuum.r9547a', 'customName' => 'Barny II', 'online' => true]];
+$barny = new RoboHubGeraet(2300);
+$barny->props = ['GeraetID' => '2066117758', 'Modell' => 'dreame.vacuum.r9547a', 'Klasse' => 'sauger', 'Intervall' => 120];
+$barny->Create();
+$alt = new RoboHubGeraet(2301);
+$alt->props = ['GeraetID' => '999', 'Modell' => 'dreame.vacuum.x', 'Klasse' => 'sauger', 'Intervall' => 120];
+$alt->Create();
+$cfg->Suchen();
+$werte = null;
+foreach (array_reverse($cfg->fields) as $f) { if ($f[0] === 'Geraete' && $f[1] === 'values') { $werte = json_decode($f[2], true); break; } }
+$ids = array_map(function ($w) { return (string)$w['id']; }, (array)$werte);
+check('angelegtes Gerät mit Zahlen-ID erscheint genau einmal (Live-Fund Barny II)', count(array_keys($ids, '2066117758', true)) === 1, json_encode($ids));
+$barnyZeile = null;
+foreach ((array)$werte as $w) { if ((string)$w['id'] === '2066117758') { $barnyZeile = $w; } }
+check('… und ist seiner Instanz zugeordnet', ($barnyZeile['instanceID'] ?? 0) === 2300);
+check('wirklich verwaiste Instanz bleibt sichtbar', in_array('999', $ids, true));
+unset($GLOBALS['INST'][2300], $GLOBALS['INST'][2301]);
+
 abschnitt('MOVA-Mäher');
 $konto2 = new RoboHubKonto(1100);
 $konto2->props = ['Hersteller' => 'mova', 'Region' => 'eu', 'Konto' => 'n@example.org', 'Passwort' => 'geheim'];
