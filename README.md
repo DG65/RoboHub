@@ -55,6 +55,7 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Seitenbürste, Filter, Mopp/Walze, Sensoren, beim Mäher Messer), Station, Frisch-/
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
+- **Kartenbild** auf Kachel und IPSView-Seite: Räume bzw. Mähzonen mit Namen zum Antippen.
 - **Nicht stören** (an/aus, Beginn, Ende) und **Lautstärke**: direkt schaltbar, bei Saug- und
   Mährobotern.
 - **Verbrauchsteile zurücksetzen** nach Wechsel oder Reinigung — im Formular (mit

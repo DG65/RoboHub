@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/RoboHubModell.php';
+require_once __DIR__ . '/RoboHubKartenbild.php';
 
 // ===========================================================================
 // RoboHub-Treiber für die Dreame- und MOVA-Cloud (Dreamehome-/MOVAhome-App).
@@ -1168,10 +1169,11 @@ PEM;
     ];
 
     /** Raum-ID => Name; leeres Array, wenn keine Karte vorhanden/lesbar. */
-    public function raeume(array $buendel, array $geraet): array
+    public function karte(array $buendel, array $geraet): array
     {
+        $leer = ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0];
         if (self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER) {
-            return $this->maehZonen($buendel, (string)$geraet['id']);
+            return $this->maehKarte($buendel, (string)$geraet['id']) + $leer;
         }
         $did = (string)$geraet['id'];
         $p = $this->leseProperties($buendel, $did, [[6, 8]]);
@@ -1179,19 +1181,19 @@ PEM;
         $datei = is_array($objekt) ? (string)($objekt['object_name'] ?? '') : '';
         if ($datei === '') {
             $this->dbg('Karte', 'Keine gespeicherte Karte (6.8 leer).');
-            return [];
+            return $leer;
         }
         $url = $this->api($buendel, '/dreame-user-iot/iotfile/getDownloadUrl', [
             'did' => $did, 'model' => (string)($geraet['modell'] ?? ''), 'filename' => $datei, 'region' => (string)($buendel['region'] ?? 'eu'),
         ])['data'] ?? '';
         if (!is_string($url) || $url === '') {
-            return [];
+            return $leer;
         }
         [$status, $text] = $this->http('GET', $url, ['Accept: */*'], null);
         $inhalt = json_decode($text, true);
         if ($status !== 200 || !is_array($inhalt)) {
             $this->dbg('Karte', 'Kartendatei nicht ladbar (HTTP ' . $status . ').');
-            return [];
+            return $leer;
         }
         $karten = (array)($inhalt['mapstr'] ?? []);
         $erste = $karten[0] ?? null;
@@ -1201,12 +1203,20 @@ PEM;
             }
         }
         $kartenText = is_array($erste) ? (string)($erste['thb'] ?? $erste['map'] ?? '') : '';
-        $zusatz = self::dekodiereKarte($kartenText, (string)($geraet['modell'] ?? ''));
-        if ($zusatz === null) {
+        $roh = self::dekodiereKarteRoh($kartenText, (string)($geraet['modell'] ?? ''));
+        if ($roh === null) {
             $this->dbg('Karte', 'Karte nicht dekodierbar (verschlüsselt mit unbekanntem Schlüssel oder anderes Format).');
-            return [];
+            return $leer;
         }
-        return self::raeumeAusSegmenten((array)($zusatz['seg_inf'] ?? []));
+        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
+        $bild = RoboHubKartenbild::sauger($roh, $raeume);
+        if ($bild['bild'] === '') {
+            $this->dbg('Karte', 'Räume gelesen, aber kein Kartenbild erzeugbar (' . $roh['breite'] . '×' . $roh['hoehe'] . ').');
+        } else {
+            $this->dbg('Karte', 'Kartenbild ' . $roh['breite'] . '×' . $roh['hoehe'] . ', Kodierung „' . $bild['kodierung'] . '", ' . strlen($bild['bild']) . ' Zeichen.');
+        }
+        unset($bild['kodierung']);
+        return ['raeume' => $raeume] + $bild;
     }
 
     /**
@@ -1217,6 +1227,19 @@ PEM;
      * dann JSON. Das Bild selbst wird nicht ausgewertet.
      */
     public static function dekodiereKarte(string $kartenText, string $modell): ?array
+    {
+        $roh = self::dekodiereKarteRoh($kartenText, $modell);
+        return $roh === null ? null : $roh['json'];
+    }
+
+    /**
+     * Karte vollständig: Kopf (Tasshack map.py, 27 Byte, Little Endian:
+     * 0 mapId, 2 frameId, 4 frameType, 5/7/9 Roboter x/y/Winkel, 11/13/15
+     * Station x/y/Winkel, 17 Rastergröße mm, 19 Breite, 21 Höhe, 23 links,
+     * 25 oben), Bildpunkte (Breite × Höhe Byte, Zeile 0 = kleinstes y) und
+     * JSON-Anhang. „origin" im JSON ersetzt links/oben (wie Tasshack).
+     */
+    public static function dekodiereKarteRoh(string $kartenText, string $modell): ?array
     {
         if ($kartenText === '') {
             return null;
@@ -1242,13 +1265,34 @@ PEM;
         if ($roh === false || strlen($roh) < 27) {
             return null;
         }
-        $kopf = unpack('vmapId/x2/cframe/x14/vbreite/vhoehe', $roh);
-        if ((int)$kopf['frame'] !== 73) {
+        $k = unpack('vmapId/vframeId/cframe/vrx/vry/vrw/vsx/vsy/vsw/vraster/vbreite/vhoehe/vlinks/voben', $roh);
+        if ((int)$k['frame'] !== 73) {
             return null;
         }
-        $anhang = substr($roh, 27 + (int)$kopf['breite'] * (int)$kopf['hoehe']);
+        $vz = function (int $v): int { return $v >= 0x8000 ? $v - 0x10000 : $v; };
+        $breite = (int)$k['breite'];
+        $hoehe = (int)$k['hoehe'];
+        $anhang = substr($roh, 27 + $breite * $hoehe);
         $json = json_decode((string)$anhang, true);
-        return is_array($json) ? $json : null;
+        if (!is_array($json)) {
+            return null;
+        }
+        $links = $vz((int)$k['links']);
+        $oben = $vz((int)$k['oben']);
+        if (isset($json['origin'][0], $json['origin'][1]) && is_numeric($json['origin'][0]) && is_numeric($json['origin'][1])) {
+            $links = (int)$json['origin'][0];
+            $oben = (int)$json['origin'][1];
+        }
+        return [
+            'json'    => $json,
+            'breite'  => $breite,
+            'hoehe'   => $hoehe,
+            'raster'  => $vz((int)$k['raster']),
+            'links'   => $links,
+            'oben'    => $oben,
+            'station' => [$vz((int)$k['sx']), $vz((int)$k['sy'])],
+            'pixel'   => (string)substr($roh, 27, $breite * $hoehe),
+        ];
     }
 
     public static function raeumeAusSegmenten(array $segmente): array
@@ -1305,18 +1349,18 @@ PEM;
      * Mehrere Karten: der erste Slot zählt (ioBroker kennt keinen Zeiger auf
      * die aktive Karte; der Zonen-Start nimmt nur IDs). Rückgabe [id => Name].
      */
-    private function maehZonen(array $buendel, string $did): array
+    private function maehKarte(array $buendel, string $did): array
     {
         $daten = $this->api($buendel, '/dreame-user-iot/iotuserdata/getDeviceData', ['did' => $did])['data'] ?? null;
         if (!is_array($daten)) {
             $this->dbg('Karte', 'Keine Gerätedaten (getDeviceData leer).');
-            return [];
+            return ['raeume' => []];
         }
         $text = self::stueckeZusammensetzen($daten, 'MAP');
         $slots = json_decode($text, true);
         if (!is_array($slots) || $slots === []) {
             $this->dbg('Karte', 'Keine Mäh-Karte in den Gerätedaten (Schlüssel: ' . implode(', ', array_keys($daten)) . ').');
-            return [];
+            return ['raeume' => []];
         }
         if (count($slots) > 1) {
             $this->dbg('Karte', count($slots) . ' Karten gespeichert — Zonen aus der ersten.');
@@ -1335,7 +1379,7 @@ PEM;
             $zonen[$id] = $name !== '' ? $name : 'Zone ' . $id;
         }
         ksort($zonen);
-        return $zonen;
+        return ['raeume' => $zonen] + RoboHubKartenbild::maeher(is_array($slot) ? $slot : [], $zonen);
     }
 
     /** Setzt PREFIX.0, PREFIX.1 … zusammen, gekürzt auf PREFIX.info Zeichen (ioBroker reassembleChunks). */

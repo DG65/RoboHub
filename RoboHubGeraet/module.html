@@ -16,8 +16,11 @@ html,body{margin:0;height:100%;background:transparent;color:var(--fg);font-famil
 body{padding:44px 16px 12px;display:flex;flex-direction:column}
 #app{flex:1;display:flex;flex-direction:column}
 body.eigen{background:var(--seite);padding-top:14px}
-.layout{display:grid;gap:1.1em;align-items:start;margin-top:.4em;width:100%}
-@media (min-width:560px){.layout{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:1.6em}}
+.layout{display:grid;gap:1.1em;align-items:start;margin-top:.4em;width:100%;grid-template-areas:"links" "karte" "rechts"}
+.links{grid-area:links}.rechts{grid-area:rechts}.kartenfeld{grid-area:karte}
+/* Mittelbreit: Karte unter dem Status (links), schmal gehalten. Breit: eigene Spalte in der Mitte. */
+@media (min-width:560px){.layout{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);grid-template-areas:"links rechts" "karte rechts";gap:1.1em 1.6em}}
+@media (min-width:900px){.layout.mitkarte{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) minmax(0,1.2fr);grid-template-areas:"links karte rechts"}}
 .status{display:flex;align-items:center;gap:.9em}
 .sym{width:3.6em;height:3.6em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1em;flex:none}
 .sym span{font-size:2.1em;line-height:1}
@@ -52,6 +55,13 @@ button:active{transform:scale(.97)}
 .mehr{background:none;border:none;color:var(--blau);padding:.4em 0;font-size:.88em}
 .fuss{margin-top:auto;padding-top:.8em;font-size:.75em;color:var(--fg2)}
 .meldung{font-size:.85em;color:var(--fg2);margin-top:.6em;min-height:1.2em}
+.karte{border-radius:.8em;background:var(--fl);padding:.5em}
+.flaeche{position:relative;margin:0 auto;max-width:100%}
+.flaeche img{display:block;width:100%;height:auto}
+.ort{position:absolute;transform:translate(-50%,-50%);font-size:.72em;padding:.15em .55em;border-radius:1em;border:1px solid var(--rand);background:var(--seite);opacity:.92;color:var(--fg);white-space:nowrap;cursor:default}
+button.ort{cursor:pointer}
+.ort.an{background:var(--blau);color:var(--seite);border-color:var(--blau);opacity:1}
+.dock{position:absolute;transform:translate(-50%,-50%);font-size:.9em;line-height:1}
 </style>
 </head>
 <body>
@@ -122,6 +132,21 @@ function zeichnen() {
   }
   l += '<div class="meldung">' + esc(rueck) + '</div>';
 
+  // Kartenbild: Räume/Zonen als Namen darüber, antippen = auswählen (wie die Knöpfe rechts).
+  var k = d.karte, kt = '';
+  if (k && k.bild) {
+    var hoch = 14; // em — sehr hohe Karten nicht über die Kachel hinaus wachsen lassen
+    kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + (hoch * (k.format || 1)).toFixed(1) + 'em)"><img src="' + esc(k.bild) + '" alt="Karte">';
+    (k.marken || []).forEach(function (m) {
+      var an = gewaehlt.indexOf(m.id) >= 0 ? ' an' : '';
+      kt += bedienbar
+        ? '<button class="ort' + an + '" style="left:' + m.x + '%;top:' + m.y + '%" onclick="raumWaehlen(' + Number(m.id) + ')">' + esc(m.name) + '</button>'
+        : '<span class="ort" style="left:' + m.x + '%;top:' + m.y + '%">' + esc(m.name) + '</span>';
+    });
+    if (k.station) { kt += '<span class="dock" style="left:' + k.station.x + '%;top:' + k.station.y + '%" title="Station">⚡</span>'; }
+    kt += '</div></div>';
+  }
+
   var r = '';
   if (bedienbar && (d.raeume || []).length) {
     r += '<div class="block"><p class="abschnitt">' + (d.klasse === 'maeher' ? 'Zone mähen' : 'Raum reinigen') + '</p><div class="chips">';
@@ -160,7 +185,8 @@ function zeichnen() {
     r += '</div>';
   }
   var f = d.stand ? '<div class="fuss">Stand ' + esc(d.stand) + ' Uhr</div>' : '';
-  document.getElementById('app').innerHTML = '<div class="layout"><div>' + l + '</div><div>' + r + '</div></div>' + f;
+  document.getElementById('app').innerHTML = '<div class="layout' + (kt ? ' mitkarte' : '') + '"><div class="links">' + l + '</div>'
+    + (kt ? '<div class="kartenfeld">' + kt + '</div>' : '') + '<div class="rechts">' + r + '</div></div>' + f;
 }
 
 function handleMessage(raw) {

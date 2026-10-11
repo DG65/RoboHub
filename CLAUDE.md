@@ -181,6 +181,18 @@
 - **Live gelesen (11.10.2026 23:55, LiDAX):** getDeviceData liefert die Karte im erwarteten Format, 1 Zone:
   ID 1 „Rasen" → Variable „Zone mähen" angelegt; MOVAhome kennt ebenfalls nur „Rasen" (Dietmar bestätigt). Zonen-Start (o 102) noch nicht live.
 
+## Kartenbild (0.7.0)
+
+- `libs/RoboHubKartenbild.php`: Sauger-PNG (eigener PNG-Schreiber, Palette + tRNS, gzcompress) und Mäher-SVG.
+- Sauger-Kodierung nach Tasshack map.py (Rahmen „I"): `standard` (Raum Bits 0–5, Bit 7 Wand/Grenze),
+  `v3` (Raum Bits 0–4, 31 = Boden, Bits 5–6 Wand, 3 = nicht zeichnen), `rahmen` bei `fsm`=1 (Raum Bits 2–7).
+  Auswahl über Abgleich mit `seg_inf` — Tasshacks echte Auswahl hängt an Kartenversion/`ris`, die RoboHub
+  nicht nachbildet. Darstellung gespiegelt (Tasshack render: `pixel_type[x, height - y - 1]`).
+- Kartentext: `thb` vor `map` (seit 0.1.x so) — falls Barnys Bild grob/klein ist, liegt es daran.
+- Attribut `Karte` (JSON), Kachel-Feld `karte`; leeres Bild überschreibt kein vorhandenes.
+- Vorschau-Generator im Scratchpad (`vorschau-karte.py` + `karte-demo.php`), nicht im Repo.
+- **Live offen:** welche Kodierung/Ausrichtung Barny liefert (Debug „Karte"), Mäher-Bild gegen MOVAhome.
+
 ## Prüfen
 
 ```

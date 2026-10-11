@@ -164,8 +164,13 @@ interface RoboHubTreiber
     /** Aktueller Zustand eines Geräts, normalisiert nach RoboHubModell::FELDER plus 'roh'. */
     public function zustand(array $buendel, array $geraet): array;
 
-    /** Räume bzw. Zonen des Geräts: [ID => Name]; leer, wenn (noch) keine Karte. */
-    public function raeume(array $buendel, array $geraet): array;
+    /**
+     * Räume bzw. Zonen und Kartenbild des Geräts:
+     * ['raeume' => [ID => Name], 'bild' => data-URI ('' = keins),
+     *  'marken' => [['name', 'x' %, 'y' %], …], 'station' => ['x' %, 'y' %] | null].
+     * Leere Liste/leeres Bild, wenn (noch) keine Karte.
+     */
+    public function karte(array $buendel, array $geraet): array;
 
     /** Normalisiert Rohwerte ohne Netz (für Echtzeit-Meldungen). */
     public function normalisiere(string $modell, array $p): array;

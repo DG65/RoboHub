@@ -457,6 +457,114 @@ $befehle = FakeCloud::befehle();
 $raum = end($befehle);
 check('Raum-Variable startet genau diesen Raum', json_decode($raum['params']['in'][1]['value'], true)['selects'][0][0] === 5);
 
+abschnitt('Kartenbild');
+/** PNG (Palette, 8 Bit) prüfen und Zeilen als Listen von Palettenindizes liefern; null bei Fehler. */
+function pngLesen(string $uri): ?array
+{
+    if (strpos($uri, 'data:image/png;base64,') !== 0) { return null; }
+    $png = base64_decode(substr($uri, 22));
+    if (substr($png, 0, 8) !== "\x89PNG\r\n\x1a\n") { return null; }
+    $pos = 8; $idat = ''; $b = 0; $h = 0; $plte = ''; $trns = null;
+    while ($pos < strlen($png)) {
+        $len = unpack('N', substr($png, $pos, 4))[1];
+        $typ = substr($png, $pos + 4, 4);
+        $d = substr($png, $pos + 8, $len);
+        if (unpack('N', substr($png, $pos + 8 + $len, 4))[1] !== crc32($typ . $d)) { return null; }
+        if ($typ === 'IHDR') { [, $b, $h] = unpack('N2', $d) + [0, 0, 0]; $b = unpack('N', substr($d, 0, 4))[1]; $h = unpack('N', substr($d, 4, 4))[1]; if (substr($d, 8, 2) !== "\x08\x03") { return null; } }
+        if ($typ === 'PLTE') { $plte = $d; }
+        if ($typ === 'tRNS') { $trns = $d; }
+        if ($typ === 'IDAT') { $idat .= $d; }
+        $pos += 12 + $len;
+    }
+    $roh = gzuncompress($idat);
+    $zeilen = [];
+    for ($y = 0; $y < $h; $y++) {
+        $z = substr($roh, $y * ($b + 1), $b + 1);
+        if ($z[0] !== "\0") { return null; }
+        $zeilen[] = array_map('ord', str_split(substr($z, 1)));
+    }
+    return ['b' => $b, 'h' => $h, 'zeilen' => $zeilen, 'plte' => $plte, 'trns' => $trns];
+}
+// 6×4-Karte, Zeile 0 = kleinstes y. Räume 3 (links) und 5 (rechts), Wand (Bit 7) oben, außen 0.
+// Zeile 3 (größtes y) = Wand → muss im Bild OBEN stehen (gespiegelt wie Tasshack).
+$punkte = [
+    [0, 3, 3, 5, 5, 0],
+    [0, 3, 3, 5, 5, 0],
+    [0, 3, 3, 5, 5, 0],
+    [0, 0x80, 0x80, 0x80, 0x80, 0],
+];
+$pix = '';
+foreach ($punkte as $z) { foreach ($z as $p) { $pix .= chr($p); } }
+$rohKarte = ['json' => ['seg_inf' => ['3' => [], '5' => []]], 'breite' => 6, 'hoehe' => 4, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [125, 25], 'pixel' => $pix];
+$kb = RoboHubKartenbild::sauger($rohKarte, [3 => 'Küche', 5 => 'Bad']);
+$png = pngLesen($kb['bild']);
+check('Sauger-Kartenbild ist gültiges PNG (Prüfsummen, Palette, Filter 0)', $png !== null, substr($kb['bild'], 0, 40));
+$f = $png ? intdiv($png['b'], 4) : 0;
+check('auf belegte Fläche zugeschnitten (4×4) und ganzzahlig vergrößert', $png && $png['b'] === $png['h'] && $png['b'] % 4 === 0 && $f >= 2, json_encode([$png['b'] ?? 0, $png['h'] ?? 0]));
+$px = function (int $x, int $y) use ($png, $f) { return $png['zeilen'][$y * $f][$x * $f]; };
+check('gespiegelt: Wand (größtes y) oben, Räume darunter', $png && $px(0, 0) === 1 && $px(3, 0) === 1 && $px(0, 3) !== 1);
+check('Räume farbig getrennt, Raum 3 links / Raum 5 rechts', $png && $px(0, 2) === $px(1, 3) && $px(2, 2) === $px(3, 1) && $px(0, 2) !== $px(2, 2) && $px(0, 2) >= 3);
+check('außen durchsichtig (tRNS Eintrag 0)', $png && $png['trns'] === "\x00");
+check('Kodierung „standard" gewählt', $kb['kodierung'] === 'standard');
+$m = [];
+foreach ($kb['marken'] as $mk) { $m[$mk['name']] = $mk; }
+check('Beschriftung: Küche links, Bad rechts, beide unterhalb der Wand', isset($m['Küche'], $m['Bad']) && $m['Küche']['x'] === 25.0 && $m['Bad']['x'] === 75.0 && $m['Küche']['y'] === 62.5 && $m['Küche']['id'] === 3, json_encode($kb['marken'], JSON_UNESCAPED_UNICODE));
+// Station x=125 mm → Punkt 2,5 → im Ausschnitt (ab x=1) 1,5+0,5 = 2 von 4 → 50 %; y=25 mm → Zeile 0,5 → gespiegelt 2,5 → 3/4 = 75 %.
+check('Station aus dem Kartenkopf an der richtigen Stelle', $kb['station'] == ['x' => 50.0, 'y' => 75.0], json_encode($kb['station']));
+check('Seitenverhältnis für die Kachel', $kb['format'] === 1.0);
+$verschoben = RoboHubKartenbild::sauger(['links' => -100, 'oben' => 300, 'station' => [25, 325]] + $rohKarte, [3 => 'Küche', 5 => 'Bad']);
+check('Station relativ zum Kartenursprung (links/oben ≠ 0)', $verschoben['station'] == ['x' => 50.0, 'y' => 75.0], json_encode($verschoben['station']));
+$fremd = $pix;
+$fremd[6] = chr(9);   // ein Punkt gehört zu Raum 9, der nicht in der Raumliste steht
+$fremd[7] = chr(9); $fremd[12] = chr(9); $fremd[13] = chr(9);
+$kf = RoboHubKartenbild::sauger(['pixel' => $fremd] + $rohKarte, [3 => 'Küche', 5 => 'Bad']);
+check('Raum ohne Namen in der Raumliste → keine Beschriftung, kein Absturz', count($kf['marken']) === 2 && $kf['bild'] !== '');
+
+// Variante v3: Raum = Bits 0–4, Wand = Bits 5–6. 63 = Raum 31 + Wand 1 → Wand; 31 = Boden ohne Raum.
+$v3 = str_repeat(chr(3), 4) . str_repeat(chr(63), 4) . str_repeat(chr(31), 4) . str_repeat(chr(63), 4);
+$kb3 = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => []]], 'breite' => 4, 'hoehe' => 4, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => $v3], [3 => 'Flur']);
+check('passende Kodierung „v3" gewählt (Raumnummern passen zu seg_inf)', $kb3['kodierung'] === 'v3');
+check('Station 0/0 = unbekannt → keine Markierung', $kb3['station'] === null);
+$rahmen = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => []], 'fsm' => 1], 'breite' => 2, 'hoehe' => 1, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => chr(3 << 2) . chr(63 << 2)], [3 => 'Flur']);
+$pr = pngLesen($rahmen['bild']);
+check('Rahmenkarte (fsm=1): Raum = Bits 2–7, 63 = Wand', $rahmen['kodierung'] === 'rahmen' && $pr && $pr['zeilen'][0][0] >= 3 && end($pr['zeilen'][0]) === 1);
+check('leere Karte → kein Bild', RoboHubKartenbild::sauger(['json' => [], 'breite' => 3, 'hoehe' => 3, 'pixel' => str_repeat("\0", 9)], [])['bild'] === '');
+check('zu kurze Bilddaten → kein Bild statt Absturz', RoboHubKartenbild::sauger(['json' => [], 'breite' => 30, 'hoehe' => 30, 'pixel' => 'abc'], [])['bild'] === '');
+
+// Roher Kopf: Station/Raster/Ursprung richtig gelesen, „origin" im JSON gewinnt.
+$kopf2 = pack('v', 1) . pack('v', 0) . chr(73) . pack('v', 0) . pack('v', 0) . pack('v', 0) . pack('v', 125) . pack('v', 65511) . pack('v', 0) . pack('v', 50) . pack('v', 6) . pack('v', 4) . pack('v', 65436) . pack('v', 200);
+$r2 = RoboHubDreame::dekodiereKarteRoh(strtr(base64_encode(gzcompress($kopf2 . $pix . json_encode(['seg_inf' => ['3' => []], 'origin' => [-300, 400]]))), '+/', '-_'), 'x');
+check('Kartenkopf: Station mit Vorzeichen, Raster, Größe; origin ersetzt links/oben', $r2 !== null && $r2['station'] === [125, -25] && $r2['raster'] === 50 && $r2['breite'] === 6 && $r2['links'] === -300 && $r2['oben'] === 400 && $r2['pixel'] === $pix, json_encode($r2 ? array_diff_key($r2, ['pixel' => 1]) : null));
+
+// Mäher: Zonen-Vielecke in mm → SVG, y gespiegelt.
+$slotM = ['mowingAreas' => ['value' => [[1, ['name' => 'Rasen', 'path' => [['x' => 0, 'y' => 0], ['x' => 10000, 'y' => 0], ['x' => 10000, 'y' => 5000], ['x' => 0, 'y' => 5000]]]]]],
+    'forbiddenAreas' => ['value' => [[7, ['path' => [['x' => 1000, 'y' => 4000], ['x' => 2000, 'y' => 4000], ['x' => 2000, 'y' => 4500]]]]]]];
+$km = RoboHubKartenbild::maeher($slotM, [1 => 'Rasen']);
+$svg = base64_decode(substr($km['bild'], strlen('data:image/svg+xml;base64,')));
+check('Mäher-Karte als SVG mit Zone (grün) und Sperrfläche (rot)', strpos($km['bild'], 'data:image/svg+xml;base64,') === 0 && substr_count($svg, '<polygon') === 2 && strpos($svg, '#7cc47f') !== false && strpos($svg, '#e57373') !== false);
+check('SVG ist wohlgeformt', @simplexml_load_string($svg) !== false);
+check('Zonenname mittig beschriftet', count($km['marken']) === 1 && $km['marken'][0]['name'] === 'Rasen' && $km['marken'][0]['x'] === 50.0 && $km['marken'][0]['y'] === 50.0, json_encode($km['marken']));
+preg_match('/points="([^"]+)"[^>]*#e57373/', $svg, $sp);
+$erste = explode(',', explode(' ', $sp[1] ?? '0,0')[0]);
+check('y gespiegelt: Sperrfläche (y=4000 mm, weit oben im Garten) liegt im Bild oben', (int)$erste[1] < 1500, $sp[1] ?? '');
+check('Seitenverhältnis ≈ 2:1 (gleicher Rand ringsum: 10600 × 5600 mm)', abs($km['format'] - 1.893) < 0.01, (string)$km['format']);
+check('Mäher ohne Vielecke → kein Bild', RoboHubKartenbild::maeher(['mowingAreas' => ['value' => [[1, ['name' => 'x']]]]], [1 => 'x'])['bild'] === '');
+
+// Durchgereicht bis zur Kachel.
+$segsB = ['3' => ['type' => 4, 'index' => 0], '5' => ['type' => 0, 'name' => base64_encode('Bad')]];
+$kopfB = pack('v', 1) . "\0\0" . chr(73) . str_repeat("\0", 6) . pack('v', 125) . pack('v', 25) . "\0\0" . pack('v', 50) . pack('v', 6) . pack('v', 4) . "\0\0\0\0";
+FakeCloud::$karte = strtr(base64_encode(gzcompress($kopfB . $pix . json_encode(['seg_inf' => $segsB]))), '+/', '-_');
+$geraet->RaeumeLaden();
+$k = kachelJson($geraet->GetVisualizationTile());
+check('Kachel bekommt das Kartenbild mit Namen', strpos((string)($k['karte']['bild'] ?? ''), 'data:image/png;base64,') === 0 && count($k['karte']['marken']) === 2, json_encode(array_keys((array)($k['karte'] ?? []))));
+check('… und weiterhin die Räume', count($k['raeume']) === 2);
+$geraet->props['KarteZeigen'] = false;
+check('„Kartenbild zeigen" aus → keine Karte auf der Kachel', kachelJson($geraet->GetVisualizationTile())['karte'] === null);
+$geraet->props['KarteZeigen'] = true;
+FakeCloud::$karte = $klar;
+$geraet->RaeumeLaden();
+check('Karte ohne Bildpunkte → altes Bild bleibt (kein Flackern), Räume aktualisiert', strpos((string)(kachelJson($geraet->GetVisualizationTile())['karte']['bild'] ?? ''), 'data:image/png') === 0 && count(kachelJson($geraet->GetVisualizationTile())['raeume']) === 3);
+
 abschnitt('Konfigurator mit angelegter Instanz');
 FakeCloud::$liste = [$saugerRecord, ['did' => '2066117758', 'model' => 'dreame.vacuum.r9547a', 'customName' => 'Barny II', 'online' => true]];
 $barny = new RoboHubGeraet(2300);

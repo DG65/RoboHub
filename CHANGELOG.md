@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.0 (12.10.2026)
+
+- Neu: **Kartenbild** auf Kachel und IPSView-Seite (`libs/RoboHubKartenbild.php`, ohne GD).
+  - Sauger: Bildpunkte der gespeicherten Karte → PNG mit Farbpalette (außen durchsichtig, Wände,
+    Räume je eigene Farbe), auf die belegte Fläche zugeschnitten, ganzzahlig vergrößert, gespiegelt
+    wie Tasshack (Zeile 0 = kleinstes y). Drei Bildpunkt-Kodierungen nach Tasshack map.py
+    (standard / v3 / Rahmenkarte `fsm`); gewählt wird die, deren Raumnummern zu `seg_inf` passen.
+    Station aus dem Kartenkopf (Bytes 11/13, Raster 17, Ursprung 23/25 bzw. `origin`).
+  - Mäher: Zonen und Sperrflächen als SVG aus `mowingAreas`/`forbiddenAreas` (mm, y gespiegelt
+    wie ioBroker).
+  - Namen als Beschriftung über dem Bild (scharf in jeder Größe), antippen wählt Raum/Zone.
+  - Breite Kachel: Karte als eigene mittlere Spalte; mittelbreit unter dem Status.
+  - Schalter „Kartenbild zeigen" (Standard an). Bleibt eine Karte ohne Bildpunkte, bleibt das
+    letzte Bild stehen.
+- Treiber-Schnittstelle: `raeume()` → `karte()` (Räume + Bild + Beschriftung).
+- Noch nicht live geprüft — welche Kodierung Barny nutzt, zeigt das Debug „Karte".
+
 ## 0.6.0 (11.10.2026)
 
 - Neu: **Mähzonen** für Mähroboter. Zonen aus `POST /dreame-user-iot/iotuserdata/getDeviceData {did}`

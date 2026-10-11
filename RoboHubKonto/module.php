@@ -251,7 +251,7 @@ class RoboHubKonto extends IPSModule
                 return $this->zustandMitBlockSperre($buendel, $geraet);
             }
             if ($aktion === 'raeume') {
-                return $this->treiber()->raeume($buendel, $geraet);
+                return $this->treiber()->karte($buendel, $geraet);
             }
             if ($aktion === 'zuruecksetzen') {
                 return $this->treiber()->zuruecksetzen($buendel, $geraet, (string)($anfrage['Teil'] ?? ''));

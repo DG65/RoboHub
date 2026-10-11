@@ -45,6 +45,9 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('WebSchluessel', '');
 
         $this->RegisterAttributeString('Raeume', '{}');
+        // Kartenbild für Kachel/Seite: {"bild": data-URI, "marken": [...], "station": {...}|null, "format": b/h}.
+        $this->RegisterAttributeString('Karte', '{}');
+        $this->RegisterPropertyBoolean('KarteZeigen', true);
         $this->RegisterAttributeString('Bild', '');
         $this->RegisterAttributeInteger('LetzteEchtzeit', 0);
         $this->RegisterAttributeString('EchtzeitVerlauf', '[]');
@@ -487,9 +490,16 @@ class RoboHubGeraet extends IPSModule
             $this->SendDebug('Räume', (string)$antwort['fehler'], 0);
             return '⛔ ' . $antwort['fehler'];
         }
+        $daten = (array)$antwort['daten'];
         $raeume = [];
-        foreach ((array)$antwort['daten'] as $id => $name) {
+        foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;
+        }
+        if ((string)($daten['bild'] ?? '') !== '') {
+            $this->WriteAttributeString('Karte', (string)json_encode([
+                'bild' => (string)$daten['bild'], 'marken' => array_values((array)($daten['marken'] ?? [])),
+                'station' => $daten['station'] ?? null, 'format' => (float)($daten['format'] ?? 1.0),
+            ]));
         }
         if (count($raeume) === 0) {
             return 'ℹ️ Keine Räume/Zonen gefunden — der Roboter hat noch keine gespeicherte Karte, oder sein Kartenformat ist noch nicht bekannt (Debug „Karte").';
@@ -762,6 +772,7 @@ class RoboHubGeraet extends IPSModule
             'hinweise'    => $hinweise,
             'info'        => $info,
             'raeume'      => $raeume,
+            'karte'       => $this->ReadPropertyBoolean('KarteZeigen') ? (json_decode($this->ReadAttributeString('Karte'), true) ?: null) : null,
             'teile'       => $teile,
             'stand'       => $abruf > 0 ? date('H:i:s', $abruf) : '',
             'rueck'       => $rueckmeldung,
@@ -837,6 +848,7 @@ class RoboHubGeraet extends IPSModule
             'caption' => '📱  Kachel und IPSView',
             'items' => [
                 ['type' => 'Label', 'caption' => 'Kachel-Visualisierung: Diese Instanz ist selbst eine Kachel — einfach auf dem Dashboard platzieren. Bedienen geht dort immer (Anmeldung der Visualisierung).'],
+                ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Kartenbild zeigen (Räume bzw. Mähzonen zum Antippen)'],
                 ['type' => 'Label', 'caption' => 'IPSView oder Browser: In IPSView ein WebView-Element anlegen und als Adresse http://<Symcon-IP>:3777' . $this->hookPfad() . ' eintragen. Die Seite aktualisiert sich alle 15 Sekunden selbst.'],
                 ['type' => 'Label', 'caption' => '👁 Nur Anzeige: ' . $this->hookPfad()],
                 ['type' => 'CheckBox', 'name' => 'WebBedienung', 'caption' => 'Bedienung über die eigenständige Seite erlauben (nur mit Schlüssel in der Adresse)'],
