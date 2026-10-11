@@ -1362,7 +1362,7 @@ check('Termine: Mo 09:00–12:00 alles, Mi gleich, Sa 10:00–11:00 Zone 1', ($m
 ], json_encode($mp[0]['eintraege'] ?? null));
 $zone1 = json_decode($maeher->ReadAttributeString('Raeume'), true)['1'] ?? 'Zone 1';
 $mv = (string)(variable(2100, 'Zeitplaene')['value'] ?? '');
-check('Variable: „⏸️ Plan „Sommer" · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · <Zone 1>"', strpos($mv, '⏸️ Plan „Sommer" · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · ' . $zone1) === 0 && strpos($mv, '✅ Plan 4 · ohne Termine') !== false, $mv);
+check('Variable: „⏸️ Plan „Sommer" · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · <Zone 1>"', strpos($mv, '⏸️ Plan „Sommer" · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · ' . $zone1) === 0 && strpos($mv, '✅ Plan 5 · ohne Termine') !== false, $mv);
 $k = kachelJson($maeher->GetVisualizationTile());
 check('Mäh-Pläne auf der Kachel, aber (noch) nicht schaltbar', count($k['zeitplaene']) === 3 && $k['zeitplaene'][0]['schaltbar'] === false);
 check('Rohtext in „📋 Rohdaten"', strpos($maeher->Rohdaten(), 'Sommer') !== false);
@@ -1384,6 +1384,12 @@ check('… ausgeschalteter Termin (Fr 18:00) weggelassen, keine Dokumentabfrage 
 $mv = (string)variable(2100, 'Zeitplaene')['value'];
 check('Variable: „⏸️ Plan „Frühling" · Mo, Do, So 08:30 · alles" (Montag zuerst)', strpos($mv, '⏸️ Plan „Frühling" · Mo, Do, So 08:30 · alles') !== false && strpos($mv, '✅ Plan „Abend" · Sa 19:15 · ') !== false, $mv);
 check('Termin-Auswertung: falsche Form / aus → nichts', RoboHubDreame::maeherTabellenTermin([1, 1, 0, 2000, [1], []]) === [] && RoboHubDreame::maeherTabellenTermin('x') === [] && RoboHubDreame::maeherTabellenTermin([1, 0, 0, 60, [1], []]) === []);
+// Echte Antworten des LiDAX (12.10.2026 01:01): eine belegte Tabelle (aus, täglich 12:00 ganze Fläche),
+// drei leere Platzhalter.
+FakeCloud::$tabellen = [0 => [[0, 0, 1, '', [[0, 41976294]], 7], [1, 0, 1, '', [], 7]], 1 => [[2, 0, 1, '', [], 7], [3, 0, 1, '', [], 7]]];
+FakeCloud::$tabTermine = ['0/0' => [0, 1, 0, 720, [0, 1, 2, 3, 4, 5, 6], []]];
+$maeher->RaeumeLaden();
+check('LiDAX-Livedaten: genau ein Plan „⏸️ Plan 1 · täglich 12:00 · alles", Platzhalter ausgeblendet', variable(2100, 'Zeitplaene')['value'] === '⏸️ Plan 1 · täglich 12:00 · alles', (string)variable(2100, 'Zeitplaene')['value']);
 FakeCloud::$tabellen = null;
 FakeCloud::$tabTermine = [];
 $merkeDaten = FakeCloud::$geraeteDaten;

@@ -1004,6 +1004,11 @@ PEM;
             if (!is_array($t) || count($t) < 5 || !is_array($t[4])) {
                 continue;
             }
+            // Leere Platzhalter (kein Name, keine Termine) stehen in jeder Tabelle — LiDAX
+            // meldet 4 Tabellen, belegt ist eine (Live-Befund 12.10.2026). Nicht anzeigen.
+            if ($t[4] === [] && trim((string)$t[3]) === '') {
+                continue;
+            }
             $eintraege = [];
             foreach ($t[4] as $ref) {
                 if (!is_array($ref) || !isset($ref[0])) {

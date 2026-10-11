@@ -438,9 +438,12 @@ class RoboHubGeraet extends IPSModule
         }
         $teile = [];
         foreach ($gruppen as $wann => $tage) {
-            $teile[] = implode(', ', array_values(array_unique($tage))) . ' ' . $wann;
+            $tage = array_values(array_unique($tage));
+            $tageText = count($tage) === 7 ? 'täglich' : ($tage === ['Mo', 'Di', 'Mi', 'Do', 'Fr'] ? 'werktags' : implode(', ', $tage));
+            $teile[] = $tageText . ' ' . $wann;
         }
-        $kopf = trim((string)($t['name'] ?? '')) !== '' ? 'Plan „' . $t['name'] . '"' : 'Plan ' . (int)$t['id'];
+        // Ohne Namen wie in der App gezählt: erster Plan = „Plan 1".
+        $kopf = trim((string)($t['name'] ?? '')) !== '' ? 'Plan „' . $t['name'] . '"' : 'Plan ' . ((int)$t['id'] + 1);
         return $kopf . ($teile === [] ? ' · ohne Termine' : ' · ' . implode('; ', $teile));
     }
 
