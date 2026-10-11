@@ -598,8 +598,20 @@ class RoboHubDreame implements RoboHubTreiber
         if (!is_array($werte) || !isset($werte[0])) {
             return [];
         }
-        // Gesund in % = (1 − Minuten / Max) × 100; Messer max. 6000 min.
-        return ['Messer' => max(0, min(100, (int)round((1 - (float)$werte[0] / 6000) * 100)))];
+        // Gesund in % = (1 − Minuten / Max) × 100; Max je Teil laut
+        // docs/mower-protocol.md: Klingen 6000, Reinigungsbürste 30000,
+        // Roboter-Wartung 3600 min. Alle drei am LiDAX Ultra 1000 gegen die
+        // MOVAhome-App bestätigt (34 % / 87 % / 72 %, 11.10.2026).
+        $prozent = function (int $index, int $max) use ($werte): ?int {
+            return isset($werte[$index]) && is_numeric($werte[$index])
+                ? max(0, min(100, (int)round((1 - (float)$werte[$index] / $max) * 100)))
+                : null;
+        };
+        return array_filter([
+            'Messer'            => $prozent(0, 6000),
+            'Reinigungsbuerste' => $prozent(1, 30000),
+            'Wartung'           => $prozent(2, 3600),
+        ], function ($v) { return $v !== null; });
     }
 
     // =================================================================

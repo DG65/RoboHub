@@ -420,7 +420,8 @@ $maeher->Create();
 $maeher->parent = $konto2;
 $maeher->ApplyChanges();
 FakeCloud::$props = ['2.1' => 8, '2.2' => 0, '3.1' => 64, '3.2' => 0, '4.2' => 12, '4.3' => 150];
-FakeCloud::$cms = json_encode(['d' => ['value' => [1500, 100, 100]]]);
+// Zahlen so gewählt, dass sie die App-Werte von Dietmars LiDAX ergeben (34 % / 87 % / 72 %).
+FakeCloud::$cms = json_encode(['d' => ['value' => [3960, 3900, 1008]]]);
 FakeCloud::$anfragen = [];
 $t = $maeher->Aktualisieren();
 check('Mäher-Abruf erfolgreich', strpos($t, '✅') === 0, $t);
@@ -428,7 +429,9 @@ check('Befehlspfad dreame-iot-com-20000', FakeCloud::letzte('sendCommand') !== n
 check('2.1=8 → Wetterpause', variable(2100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_WETTERPAUSE);
 check('Regen erkannt = true', variable(2100, 'Regensensor')['value'] === true);
 check('LiDAX: Code 0 = „Roboter angehoben" (Modell-Abweichung)', variable(2100, 'Fehler')['value'] === 'Roboter angehoben (0)', (string)variable(2100, 'Fehler')['value']);
-check('Messer aus CMS: 1500/6000 min → 75 %', variable(2100, 'Messer')['value'] === 75);
+check('Klingen aus CMS: 3960/6000 min → 34 % (wie App)', variable(2100, 'Messer')['value'] === 34);
+check('Reinigungsbürste: 3900/30000 min → 87 % (wie App)', variable(2100, 'Reinigungsbuerste')['value'] === 87);
+check('Roboter-Wartung: 1008/3600 min → 72 % (wie App)', variable(2100, 'Wartung')['value'] === 72);
 check('keine Sauger-Variablen beim Mäher', variable(2100, 'Staubbeutel') === null && variable(2100, 'Saugstufe') === null);
 $opts = json_decode(variable(2100, 'Zustand')['pres']['OPTIONS'], true);
 $mahtCaption = '';

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 (11.10.2026)
+
+- Mäher: Reinigungsbürste (max. 30000 min) und Roboter-Wartung (max. 3600 min) aus
+  derselben CMS-Antwort wie die Klingen. Alle drei am MOVA LiDAX Ultra 1000 gegen die
+  MOVAhome-App bestätigt (Klingen 34 %, Bürste 87 %, Wartung 72 %).
+
 ## 0.2.2 (11.10.2026)
 
 - Mäher-Zustand 19 = „Mäht". In keiner Referenz enthalten; live am MOVA LiDAX

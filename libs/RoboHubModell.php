@@ -87,6 +87,8 @@ final class RoboHubModell
      */
     public const FELDER = [
         'Messer'             => ['Messer', 1, ' %', 0, 55],
+        'Reinigungsbuerste'  => ['Reinigungsbürste', 1, ' %', 0, 56],
+        'Wartung'            => ['Wartung des Roboters', 1, ' %', 0, 57],
         'Regensensor'        => ['Regen erkannt', 0, '', 0, 65],
         'Zustand'            => ['Zustand', 1, '', 0, 10],
         'ZustandRoh'         => ['Zustand (Hersteller)', 3, '', 0, 11],
