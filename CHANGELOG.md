@@ -11,7 +11,7 @@
 - Mäher: Read-Modify-Write des CMS-Zählers über 2.50 (ioBroker `resetIndex`: Klingen 0,
   Reinigungsbürste 1, Wartung 2) — die anderen beiden Zähler bleiben erhalten; ist CMS nicht
   lesbar, wird nichts geschrieben.
-- Noch nicht live ausgelöst (eine Rücksetzung lässt sich nicht rückgängig machen).
+- Live bestätigt: Sensoren am Barny (16.1) → 100 % / 30 h. Mäher-Weg noch nicht live.
 
 ## 0.4.3 (11.10.2026)
 

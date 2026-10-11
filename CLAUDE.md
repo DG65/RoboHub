@@ -143,8 +143,10 @@
 - Doppelte Sicherung: Gerät prüft Teil in `TEILE` UND vorhandene Variable, Treiber prüft die
   Zuordnung je Klasse. Nicht rückgängig zu machen → Formular `confirm`, Kachel zweistufig, Hook nur
   mit Freigabe + Schlüssel. Jede Rücksetzung per `protokolliere()` (Vorher-Wert).
-- **Live noch nie ausgelöst.** Nur auf Dietmars ausdrückliches Wort und an einem Teil, das er
-  gerade wirklich gewechselt/gereinigt hat.
+- **Live bestätigt (11.10.2026 23:20, Barny, Sensoren nach Reinigung durch Dietmar):** action 16.1
+  angenommen, Abruf danach 16.1 = 100 %, 16.2 = 30 h, Dauer 2,7 s inkl. Abruf, Protokolleintrag da.
+  Mäher-CMS-Weg und die übrigen Sauger-Teile noch nicht live. Weiter nur auf Dietmars ausdrückliches
+  Wort und an einem Teil, das er gerade wirklich gewechselt/gereinigt hat.
 
 ## Prüfen
 
