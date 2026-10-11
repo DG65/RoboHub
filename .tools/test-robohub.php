@@ -49,6 +49,8 @@ function IPS_DisconnectInstance(int $id): bool { $GLOBALS['INST'][$id]->parent =
 function ROBOHUB_GeraeteListe(int $id): string { return $GLOBALS['INST'][$id]->GeraeteListe(); }
 function ROBOHUB_GeraeteSuchen(int $id): string { return $GLOBALS['INST'][$id]->GeraeteSuchen(); }
 $GLOBALS['CONNECTS'] = [];
+function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
+function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time()]; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return 'Instanz ' . $id; }
 function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0]; }
@@ -89,6 +91,10 @@ class IPSModule
     public function SendDebug(string $a, string $b, int $c): void { $this->debug[] = "$a: $b"; }
     public function UpdateFormField(string $n, string $p, $v): void { $this->fields[] = [$n, $p, $v]; }
     public function HasActiveParent(): bool { return $this->parent !== null; }
+    public $visu = [];
+    public $visuTyp = 0;
+    public function SetVisualizationType(int $t): void { $this->visuTyp = $t; }
+    public function UpdateVisualizationValue(string $v): void { $this->visu[] = $v; }
     public function SendDataToParent(string $json): string { return $this->parent->ForwardData($json); }
     public function MaintainVariable(string $ident, string $name, int $type, $pres, int $pos, bool $keep): void
     {
@@ -102,7 +108,7 @@ class IPSModule
         $GLOBALS['OBJ'][$id]['name'] = $name;
     }
     public function EnableAction(string $ident): void { $GLOBALS['OBJ'][IPS_GetObjectIDByIdent($ident, $this->InstanceID)]['action'] = true; }
-    public function SetValue(string $ident, $v): void { $GLOBALS['OBJ'][IPS_GetObjectIDByIdent($ident, $this->InstanceID)]['value'] = $v; }
+    public function SetValue(string $ident, $v): void { $id = IPS_GetObjectIDByIdent($ident, $this->InstanceID); if ($GLOBALS['OBJ'][$id]['value'] !== $v) { $GLOBALS['OBJ'][$id]['changed'] = time(); } $GLOBALS['OBJ'][$id]['value'] = $v; }
     public function GetValue(string $ident) { return $GLOBALS['OBJ'][IPS_GetObjectIDByIdent($ident, $this->InstanceID)]['value']; }
 }
 
@@ -408,6 +414,86 @@ $altZeile = null;
 foreach ((array)$werte as $w) { if ((string)$w['id'] === '999') { $altZeile = $w; } }
 check('verwaiste Zeile ohne create (Symcon färbt sie rot)', $altZeile !== null && !isset($altZeile['create']) && $altZeile['online'] === 'in keinem Konto gefunden');
 unset($GLOBALS['INST'][2300], $GLOBALS['INST'][2301]);
+
+abschnitt('Kachel und eigenständige Seite (IPSView)');
+function kachelJson(string $html): ?array
+{
+    return preg_match('/handleMessage\((\{.*?\})\);/s', $html, $m) ? json_decode($m[1], true) : null;
+}
+function hook(RoboHubGeraet $g, array $get): string
+{
+    $_GET = $get;
+    ob_start();
+    $g->ProcessHookData();
+    return (string)ob_get_clean();
+}
+check('Instanz ist eine Kachel (SetVisualizationType 1)', $geraet->visuTyp === 1);
+$k = kachelJson($geraet->GetVisualizationTile());
+check('Kachel liefert Daten an handleMessage()', is_array($k));
+check('Kachel: Zustand im Klartext', ($k['zustandText'] ?? '') !== '' && $k['eigen'] === false);
+$haupt = null;
+foreach ($k['teile'] ?? [] as $t) { if ($t['name'] === 'Hauptbürste') { $haupt = $t; } }
+check('Kachel: Verbrauchsteil mit % und Stunden', $haupt == ['name' => 'Hauptbürste', 'prozent' => 88, 'stunden' => 169], json_encode($haupt));
+check('Kachel: Räume aus der Karte', count($k['raeume'] ?? []) === 3);
+check('Kachel: kein Schlüssel in den Daten', ($k['key'] ?? 'x') === '');
+check('Kachel: Station meldet Staubbeutel „Prüfen" als Hinweis', in_array('🗑️ Staubbeutel: Prüfen', $k['hinweise'] ?? [], true), json_encode($k['hinweise'] ?? []));
+
+$geraet->visu = [];
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('Raeume', '3,5');
+$befehle = FakeCloud::befehle();
+$raum = end($befehle);
+check('Kachel-Raumauswahl „3,5" startet beide Räume', json_decode($raum['params']['in'][1]['value'], true)['selects'] === [[3, 1, 1, 2, 1], [5, 1, 1, 2, 1]]);
+$letzte = json_decode((string)end($geraet->visu), true);
+check('Kachel bekommt Rückmeldung „gesendet"', strpos((string)($letzte['rueck'] ?? ''), 'gesendet') !== false);
+
+$seite = hook($geraet, []);
+$d = kachelJson($seite);
+check('Seite: HTML mit Daten und 15-s-Aktualisierung', $d !== null && strpos($seite, 'setInterval') !== false && strpos($seite, '15000') !== false);
+check('Seite ohne Schlüssel: nur Anzeige', $d['eigen'] === true && $d['bedienung'] === false && $d['key'] === '');
+$schluessel = $geraet->ReadAttributeString('WebSchluessel');
+check('Schlüssel erzeugt (24 Hex-Zeichen)', (bool)preg_match('/^[0-9a-f]{24}$/', $schluessel));
+
+FakeCloud::$anfragen = [];
+$j = json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5', 'key' => $schluessel]), true);
+check('Bedienung aus (Standard): Befehl trotz richtigem Schlüssel abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$d = kachelJson(hook($geraet, ['key' => $schluessel]));
+check('Bedienung aus: Seite mit Schlüssel bleibt Anzeige', $d['bedienung'] === false && $d['key'] === '');
+
+$geraet->props['WebBedienung'] = true;
+$j = json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5', 'key' => 'falsch']), true);
+check('falscher Schlüssel → abgelehnt, nichts gesendet', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$j = json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5']), true);
+check('kein Schlüssel → abgelehnt, nichts gesendet', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$j = json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5', 'key' => $schluessel]), true);
+$c = FakeCloud::befehle()[0] ?? [];
+check('richtiger Schlüssel + Freigabe → Orten gesendet', $j['ok'] === true && ($c['params']['siid'] ?? 0) === 7 && ($c['params']['aiid'] ?? 0) === 1, json_encode($j, JSON_UNESCAPED_UNICODE));
+FakeCloud::$anfragen = [];
+$j = json_decode(hook($geraet, ['cmd' => 'Loeschen', 'wert' => '1', 'key' => $schluessel]), true);
+check('unbekannter Befehl über die Seite abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$j = json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '99', 'key' => $schluessel]), true);
+check('ungültiger Befehlswert → Fehlermeldung statt Absturz', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$d = kachelJson(hook($geraet, ['key' => $schluessel]));
+check('Seite mit Schlüssel + Freigabe: bedienbar', $d['bedienung'] === true && $d['key'] === $schluessel);
+$t = $geraet->NeuerWebSchluessel();
+check('neuer Schlüssel: alter wird ungültig', $geraet->ReadAttributeString('WebSchluessel') !== $schluessel && json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5', 'key' => $schluessel]), true)['ok'] === false);
+$form = $geraet->GetConfigurationForm();
+$formKlar = json_encode(json_decode($form, true), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+check('Formular: Panel „Kachel und IPSView" mit Hook-Adresse', strpos($formKlar, 'Kachel und IPSView') !== false && strpos($formKlar, '/hook/robohub2000') !== false);
+$jd = json_decode(hook($geraet, ['json' => '1', 'key' => $geraet->ReadAttributeString('WebSchluessel')]), true);
+check('Datenabfrage mit Schlüssel + Freigabe enthält Schlüssel', $jd['key'] === $geraet->ReadAttributeString('WebSchluessel'));
+$geraet->props['WebBedienung'] = false;
+$jd = json_decode(hook($geraet, ['json' => '1', 'key' => $geraet->ReadAttributeString('WebSchluessel')]), true);
+check('Datenabfrage ohne Freigabe gibt den Schlüssel NICHT heraus', $jd['key'] === '' && $jd['bedienung'] === false);
+$geraet->props['WebBedienung'] = true;
+$gespeichert = $geraet->ReadAttributeString('WebSchluessel');
+$geraet->WriteAttributeString('WebSchluessel', '');   // z. B. nach Attribut-Verlust beim Modul-Neuladen
+FakeCloud::$anfragen = [];
+$j = json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5', 'key' => '']), true);
+check('leerer gespeicherter Schlüssel + leerer Schlüssel → trotzdem abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$geraet->WriteAttributeString('WebSchluessel', $gespeichert);
+$geraet->props['WebBedienung'] = false;
+$_GET = [];
 
 abschnitt('MOVA-Mäher');
 $konto2 = new RoboHubKonto(1100);

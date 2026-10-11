@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--fg:#1d1d1f;--fg2:#6e6e73;--rand:rgba(0,0,0,.12);--fl:rgba(0,0,0,.05);--seite:#ffffff;
+--gruen:#1f7a3a;--gruenbg:#e3f4e8;--blau:#0b5cad;--blaubg:#e3effb;--gelb:#8a5a00;--gelbbg:#fbf0d9;--rot:#a82a2a;--rotbg:#fbe6e6;--graubg:#efeff1}
+@media (prefers-color-scheme:dark){:root{--fg:#f2f2f7;--fg2:#a1a1a6;--rand:rgba(255,255,255,.16);--fl:rgba(255,255,255,.07);--seite:#1c1c1e;
+--gruen:#7fd89a;--gruenbg:rgba(52,199,89,.18);--blau:#8cc4ff;--blaubg:rgba(10,132,255,.2);--gelb:#ffd479;--gelbbg:rgba(255,159,10,.2);--rot:#ff9b9b;--rotbg:rgba(255,69,58,.2);--graubg:rgba(255,255,255,.08)}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:transparent;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px}
+body.eigen{background:var(--seite);padding:12px}
+.kopf{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.sym{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex:none}
+.titel{flex:1;min-width:0}.titel b{display:block;font-size:17px;font-weight:600}.titel span{display:block;font-size:12px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.akku{text-align:right}.akku b{display:block;font-size:19px;font-weight:600}.akku span{font-size:12px;color:var(--fg2)}
+.hinweis{border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:13px}
+.knoepfe{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+button{font:inherit;font-size:13px;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:10px;padding:8px 2px;cursor:pointer}
+button:active{transform:scale(.97)}button:disabled{opacity:.45;cursor:default}
+.klein{font-size:12px;color:var(--fg2);margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{font-size:13px;padding:5px 11px;border-radius:999px;border:1px solid var(--rand);background:transparent;cursor:pointer;color:var(--fg)}
+.chip.an{background:var(--blaubg);border-color:var(--blau);color:var(--blau)}
+.info{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.info span{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--graubg)}
+.teile{border-top:1px solid var(--rand);padding-top:8px}
+.teil{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0}
+.teil.rot{color:var(--rot)}.teil.gelb{color:var(--gelb)}.teil.ok{color:var(--fg2)}
+.mehr{background:none;border:none;color:var(--blau);padding:4px 0;font-size:13px}
+.fuss{margin-top:8px;font-size:11px;color:var(--fg2)}
+.meldung{font-size:12px;color:var(--fg2);min-height:16px;margin-top:4px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+var ZUSTAND = {
+  '-1': ['❔', 'grau'], 0: ['🤖', 'gruen'], 1: ['🧹', 'blau'], 2: ['⏸️', 'gelb'], 3: ['↩️', 'blau'],
+  4: ['🔋', 'gruen'], 5: ['🏠', 'gruen'], 6: ['💧', 'gruen'], 7: ['⚠️', 'rot'], 8: ['💤', 'grau'],
+  9: ['🗺️', 'blau'], 10: ['🔄', 'grau'], 11: ['🌧️', 'gelb']
+};
+var BEFEHLE = [[1, '▶️ Start'], [2, '⏸️ Pause'], [4, '🏠 Station'], [5, '📍 Orten']];
+var daten = null, gewaehlt = [], alleTeile = false, rueck = '';
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+function farbe(n) { return 'background:var(--' + n + 'bg);color:var(--' + n + ')'; }
+
+// Kachel: requestAction() der Visualisierung (deren Anmeldung gilt).
+// Eigenständige Seite (IPSView/Browser): nur mit Schlüssel, per WebHook.
+function senden(ident, wert, text) {
+  rueck = '📤 ' + text + ' gesendet …'; zeichnen();
+  if (!daten.eigen && typeof requestAction === 'function') { requestAction(ident, wert); return; }
+  fetch(daten.hook + '?cmd=' + encodeURIComponent(ident) + '&wert=' + encodeURIComponent(wert) + '&key=' + encodeURIComponent(daten.key || ''))
+    .then(function (r) { return r.json(); })
+    .then(function (j) { rueck = j.text || (j.ok ? '📤 gesendet' : '⛔ abgelehnt'); zeichnen(); })
+    .catch(function () { rueck = '⛔ Keine Verbindung zu Symcon'; zeichnen(); });
+}
+
+function raumWaehlen(id) {
+  var i = gewaehlt.indexOf(id);
+  if (i >= 0) { gewaehlt.splice(i, 1); } else { gewaehlt.push(id); }
+  zeichnen();
+}
+
+function zeichnen() {
+  var d = daten; if (!d) { return; }
+  var z = ZUSTAND[d.zustand] || ZUSTAND['-1'];
+  var bedienbar = !d.eigen || d.bedienung;
+  var h = '';
+  h += '<div class="kopf"><div class="sym" style="' + farbe(z[1]) + '">' + (d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0]) + '</div>';
+  h += '<div class="titel"><b>' + esc(d.zustandText) + '</b><span>' + esc(d.unterzeile) + '</span></div>';
+  h += '<div class="akku"><b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? '⚡ lädt' : 'Akku') + '</span></div></div>';
+  if (!d.erreichbar) { h += '<div class="hinweis" style="' + farbe('grau') + '">📡 Roboter gerade nicht erreichbar</div>'; }
+  if (d.fehler) { h += '<div class="hinweis" style="' + farbe('rot') + '">⚠️ ' + esc(d.fehler) + '</div>'; }
+  (d.hinweise || []).forEach(function (t) { h += '<div class="hinweis" style="' + farbe('gelb') + '">' + esc(t) + '</div>'; });
+
+  if (bedienbar) {
+    h += '<div class="knoepfe">';
+    BEFEHLE.forEach(function (b) { h += '<button onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>'; });
+    h += '</div>';
+    if ((d.raeume || []).length) {
+      h += '<p class="klein">' + (d.klasse === 'maeher' ? 'Zone mähen' : 'Raum reinigen') + ' — antippen, dann starten</p><div class="chips">';
+      d.raeume.forEach(function (r) { h += '<button class="chip' + (gewaehlt.indexOf(r.id) >= 0 ? ' an' : '') + '" onclick="raumWaehlen(' + r.id + ')">' + esc(r.name) + '</button>'; });
+      h += '</div>';
+      if (gewaehlt.length) {
+        var namen = d.raeume.filter(function (r) { return gewaehlt.indexOf(r.id) >= 0; }).map(function (r) { return r.name; }).join(', ');
+        h += '<div class="knoepfe" style="grid-template-columns:1fr"><button onclick="senden(\'Raeume\',\'' + gewaehlt.join(',') + '\',\'Reinigung ' + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + ' reinigen</button></div>';
+      }
+    }
+  } else if (d.eigen) {
+    h += '<p class="klein">🔒 Nur Anzeige — Bedienung ist für diese Seite nicht freigegeben.</p>';
+  }
+
+  if ((d.info || []).length) { h += '<div class="info">' + d.info.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div>'; }
+
+  var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
+  if (teile.length) {
+    var kritisch = teile.filter(function (t) { return t.prozent <= 25; });
+    var zeigen = alleTeile ? teile : kritisch;
+    h += '<div class="teile">';
+    zeigen.forEach(function (t) {
+      var k = t.prozent <= 10 ? 'rot' : (t.prozent <= 25 ? 'gelb' : 'ok');
+      h += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + '</span></div>';
+    });
+    var rest = teile.length - kritisch.length;
+    if (!alleTeile && rest > 0) { h += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' Verbrauchsteile in Ordnung') + ' ›</button>'; }
+    if (alleTeile) { h += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ weniger</button>'; }
+    h += '</div>';
+  }
+  h += '<div class="meldung">' + esc(rueck) + '</div>';
+  if (d.stand) { h += '<div class="fuss">Stand ' + esc(d.stand) + ' Uhr</div>'; }
+  document.getElementById('app').innerHTML = h;
+}
+
+function handleMessage(raw) {
+  var neu = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (neu.rueck) { rueck = neu.rueck; } else if (daten && neu.stand !== daten.stand) { rueck = ''; }
+  daten = neu;
+  if (daten.eigen) { document.body.className = 'eigen'; }
+  zeichnen();
+}
+</script>
+</body>
+</html>

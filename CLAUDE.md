@@ -90,6 +90,19 @@
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
   (Port 3777 zu); Attribute/Anmeldungen blieben dabei erhalten. Nicht leichtfertig wiederholen.
 
+## Kachel und IPSView (0.3.0)
+
+- Kachel in `RoboHubGeraet` (`module.html`, `kachelDaten()`), Aktualisierung nach jedem Abruf,
+  Raum-Laden und Befehl (`kachelAktualisieren()`, mit Rückmeldung). Kachel-Bedienung über
+  `requestAction()` → `RequestAction()` (Befehl/Raum/Raeume).
+- IPSView rendert keine HTML-Kacheln (Verbund-Befund Prognose/NRGDashboard) → WebHook-Seite.
+  **Sicherheit, nicht aufweichen:** Seite ohne Anmeldung erreichbar → Befehle nur mit
+  `WebBedienung` (Standard aus) UND Schlüssel (`hash_equals`, leerer Schlüssel nie gültig —
+  Attribut kann nach MC-Neuladen leer sein), Positivliste Befehl/Raum/Raeume; ohne Freigabe nie
+  den Schlüssel ausliefern. Prüfstand + 6 Sicherheits-Mutationen (alle gefangen).
+- Live noch nicht gesehen (Stand 11.10.2026): Darstellung in Dietmars Kachel-Visualisierung und
+  in IPSView-WebView.
+
 ## Prüfen
 
 ```

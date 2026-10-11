@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.3.0' => [
+            '• Jeder Roboter ist jetzt eine eigene Kachel: Zustand, Akku, Knöpfe, Räume zum Antippen und die fälligen Verbrauchsteile auf einen Blick.',
+            '• Für IPSView: dieselbe Ansicht als eigenständige Seite (WebView-Element). Standardmäßig nur Anzeige; Bedienung erst nach Freigabe im Panel „📱 Kachel und IPSView" und nur mit geheimem Schlüssel in der Adresse.',
+        ],
         '0.2.5' => [
             '• Saugroboter: zusätzlich Abwasserauslassfilter und Schmutzwasserbehälter des Roboters (% und Reststunden), sofern das Modell sie meldet.',
         ],

@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.2.5-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.3.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -54,6 +54,26 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Seitenbürste, Filter, Mopp/Walze, Sensoren, beim Mäher Messer), Station, Frisch-/
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
+
+## Kachel und IPSView
+
+**Kachel-Visualisierung:** Jede Roboter-Instanz ist selbst eine Kachel — Zustand mit
+Symbol, Akku, Knöpfe für Start/Pause/Station/Orten, Räume zum Antippen („Vorrat, Küche
+reinigen"), Modus und Saugstufe sowie die Verbrauchsteile, die fällig sind, zuerst. Die
+Bedienung nutzt die Anmeldung der Visualisierung. Über den Doppelpfeil kommen wie
+gewohnt alle Variablen.
+
+**IPSView und Browser:** IPSView kann Symcon-Kacheln nicht darstellen. Deshalb liefert
+jeder Roboter dieselbe Ansicht zusätzlich als eigenständige Seite:
+`http://<Symcon-IP>:3777/hook/robohub<InstanzID>` — in IPSView als WebView-Element
+einbinden; die Seite aktualisiert sich alle 15 Sekunden.
+
+Diese Seite ist ohne Symcon-Anmeldung erreichbar und deshalb standardmäßig **nur
+Anzeige**. Bedienen lässt sie sich erst, wenn du es im Formular („📱 Kachel und
+IPSView") erlaubst — und dann nur mit dem geheimen Schlüssel in der Adresse
+(`…?key=…`, im Formular angezeigt, jederzeit neu erzeugbar). Alternativ bindest du in
+IPSView die Variablen „Befehl" und „Raum reinigen" direkt; dann gilt die
+IPSView-Anmeldung.
 
 ## Skripte
 

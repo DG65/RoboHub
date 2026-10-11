@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 (11.10.2026)
+
+- **Kachel je Roboter** (Kachel-Visualisierung, `SetVisualizationType(1)`, `module.html`):
+  Zustand mit Symbol und Unterzeile (Rohzustand, „seit …"), Akku/Laden, Erreichbarkeit,
+  Fehler und Stationshinweise, Knöpfe Start/Pause/Station/Orten, Raumauswahl mit
+  Mehrfachwahl und Bestätigungsknopf (neue Aktion `Raeume`), Modus/Saugstufe,
+  Verbrauchsteile nach Dringlichkeit (≤ 10 % rot, ≤ 25 % gelb, Rest aufklappbar).
+  Kein eigener Titel (Symcon zeigt den Instanznamen).
+- **Eigenständige Seite für IPSView/Browser** über WebHook `/hook/robohub<ID>`
+  (Verbund-Muster NRGDashboard/Prognose, Aktualisierung alle 15 s). Ohne Symcon-
+  Anmeldung erreichbar, daher standardmäßig nur Anzeige; Befehle nur bei
+  eingeschalteter Freigabe (`WebBedienung`, Standard aus) UND passendem Schlüssel
+  (`hash_equals`, 24 Hex-Zeichen, `ROBO_NeuerWebSchluessel`), nur Befehl/Raum/Raeume.
+  Ohne Freigabe gibt die Seite den Schlüssel nie heraus.
+
 ## 0.2.5 (11.10.2026)
 
 - Sauger: Abwasserauslassfilter (35.2 %, 35.1 h; Tasshack) und Schmutzwasserbehälter

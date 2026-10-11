@@ -39,6 +39,10 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterPropertyString('Modell', '');
         $this->RegisterPropertyString('Klasse', RoboHubModell::KLASSE_SAUGER);
         $this->RegisterPropertyInteger('Intervall', 120);
+        // Eigenständige Seite (IPSView/Browser): Bedienen nur, wenn ausdrücklich
+        // erlaubt — die Seite ist ohne Symcon-Anmeldung erreichbar.
+        $this->RegisterPropertyBoolean('WebBedienung', false);
+        $this->RegisterAttributeString('WebSchluessel', '');
 
         $this->RegisterAttributeString('Raeume', '{}');
         $this->RegisterAttributeInteger('RaeumeStand', 0);
@@ -60,6 +64,10 @@ class RoboHubGeraet extends IPSModule
         $this->MaintainVariable('Zustand', 'Zustand', VARIABLETYPE_INTEGER, $this->presEnum($this->zustandsOptionen($klasse)), 10, true);
         $this->MaintainVariable('Befehl', 'Befehl', VARIABLETYPE_INTEGER, $this->presEnum($this->befehlsOptionen($klasse)), 5, true);
         $this->EnableAction('Befehl');
+        $this->SetVisualizationType(1);
+        if ($this->ReadAttributeString('WebSchluessel') === '') {
+            $this->WriteAttributeString('WebSchluessel', bin2hex(random_bytes(12)));
+        }
 
         if (IPS_GetKernelRunlevel() !== KR_READY) {
             $this->RegisterMessage(0, IPS_KERNELMESSAGE);
@@ -71,6 +79,7 @@ class RoboHubGeraet extends IPSModule
             return;
         }
         $this->ordneKontoZu();
+        $this->registriereHook();
         $this->SetStatus(102);
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
     }
@@ -91,6 +100,10 @@ class RoboHubGeraet extends IPSModule
                 return;
             case 'Raum':
                 $this->fuehreAus('raum', ['raeume' => [(int)$Value]]);
+                return;
+            case 'Raeume':
+                // Aus der Kachel: mehrere Räume als „3,5".
+                $this->fuehreAus('raum', ['raeume' => array_values(array_filter(array_map('intval', explode(',', (string)$Value))))]);
                 return;
             default:
                 $optionen = json_decode($this->ReadAttributeString('Optionen'), true) ?: [];
@@ -128,6 +141,7 @@ class RoboHubGeraet extends IPSModule
         if (time() - $this->ReadAttributeInteger('RaeumeStand') > self::RAEUME_ALTER_S) {
             $this->ladeRaeume();
         }
+        $this->kachelAktualisieren();
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
         return '✅ Zustand abgerufen: ' . RoboHubModell::zustandsName((int)$this->GetValue('Zustand'), $this->klasse())
             . ($this->hatVariable('Akku') ? ', Akku ' . $this->GetValue('Akku') . ' %' : '') . '.';
@@ -260,6 +274,7 @@ class RoboHubGeraet extends IPSModule
     private function fuehreAus(string $befehl, array $parameter): bool
     {
         $text = $this->befehlText($befehl, $parameter);
+        $this->kachelAktualisieren($text);
         if (strpos($text, '⛔') === 0) {
             // Variable springt zurück bzw. bleibt — die Protokollzeile steht schon.
             return false;
@@ -350,6 +365,7 @@ class RoboHubGeraet extends IPSModule
             $this->MaintainVariable('Raum', $this->klasse() === RoboHubModell::KLASSE_MAEHER ? 'Zone mähen' : 'Raum reinigen', VARIABLETYPE_INTEGER, $this->presEnum($raeume), 6, true);
             $this->EnableAction('Raum');
         }
+        $this->kachelAktualisieren();
         return '✅ ' . count($raeume) . ' Räume/Zonen: ' . implode(', ', $raeume) . '.';
     }
 
@@ -429,6 +445,256 @@ class RoboHubGeraet extends IPSModule
     private function protokolliere(string $text): void
     {
         IPS_LogMessage('RoboHub Roboter #' . $this->InstanceID, $text);
+    }
+
+    // -----------------------------------------------------------------
+    // Kachel (Kachel-Visualisierung) und eigenständige Seite (IPSView)
+    // -----------------------------------------------------------------
+
+    private const WEBHOOK_GUID = '{015A6EB8-D6E5-4B93-B496-0D3F77AE9FE1}';
+
+    // Verbrauchsteile für die Kachel: [Prozent-Ident, Stunden-Ident, Name].
+    private const TEILE = [
+        ['Hauptbuerste', 'HauptbuersteRest', 'Hauptbürste'],
+        ['Seitenbuerste', 'SeitenbuersteRest', 'Seitenbürste'],
+        ['Filter', 'FilterRest', 'Filter'],
+        ['Mopp', 'MoppRest', 'Mopp/Walze'],
+        ['Sensoren', 'SensorenRest', 'Sensoren'],
+        ['Abwasserfilter', 'AbwasserfilterRest', 'Abwasserauslassfilter'],
+        ['Schmutzwasserbehaelter', 'SchmutzwasserbehaelterRest', 'Schmutzwasserbehälter'],
+        ['Messer', 'MesserRest', 'Klingen'],
+        ['Reinigungsbuerste', 'ReinigungsbuersteRest', 'Reinigungsbürste'],
+        ['Wartung', 'WartungRest', 'Wartung des Roboters'],
+    ];
+
+    private function hookPfad(): string
+    {
+        return '/hook/robohub' . $this->InstanceID;
+    }
+
+    public function GetVisualizationTile()
+    {
+        return file_get_contents(__DIR__ . '/module.html')
+            . '<script>handleMessage(' . $this->kachelDaten(false, '') . ');</script>';
+    }
+
+    private function kachelAktualisieren(string $rueckmeldung = ''): void
+    {
+        $this->UpdateVisualizationValue($this->kachelDaten(false, '', $rueckmeldung));
+    }
+
+    /**
+     * Eigenständige Seite für IPSView (WebView-Element) oder jeden Browser:
+     *   /hook/robohub<ID>            Anzeige, aktualisiert sich alle 15 s
+     *   /hook/robohub<ID>?key=…      dazu Bedienung, falls im Formular erlaubt
+     *   ?json=1                      nur Daten;  ?cmd=Befehl|Raum|Raeume&wert=…&key=…  Befehl
+     * Die Seite ist ohne Symcon-Anmeldung erreichbar, deshalb Befehle nur mit
+     * dem geheimen Schlüssel UND eingeschalteter Freigabe.
+     */
+    public function ProcessHookData()
+    {
+        $key = (string)($_GET['key'] ?? '');
+        $darf = $this->ReadPropertyBoolean('WebBedienung') && $key !== '' && hash_equals($this->ReadAttributeString('WebSchluessel'), $key);
+
+        if (isset($_GET['cmd'])) {
+            $this->kopf('application/json');
+            if (!$darf) {
+                echo json_encode(['ok' => false, 'text' => '🔒 Bedienung über diese Seite ist nicht freigegeben.']);
+                return;
+            }
+            $cmd = (string)$_GET['cmd'];
+            $wert = (string)($_GET['wert'] ?? '');
+            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume'], true)) {
+                echo json_encode(['ok' => false, 'text' => '⛔ Unbekannter Befehl.']);
+                return;
+            }
+            try {
+                $text = $cmd === 'Befehl'
+                    ? $this->befehlText($this->befehlsName((int)$wert), [])
+                    : $this->RaeumeReinigen($wert);
+            } catch (Throwable $e) {
+                $text = '⛔ ' . $e->getMessage();
+            }
+            $this->kachelAktualisieren($text);
+            echo json_encode(['ok' => strpos($text, '⛔') !== 0, 'text' => $text], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        if (isset($_GET['json'])) {
+            $this->kopf('application/json');
+            echo $this->kachelDaten(true, $darf ? $key : '');
+            return;
+        }
+        $this->kopf('text/html');
+        $json = $this->kachelDaten(true, $darf ? $key : '');
+        $abruf = json_encode($this->hookPfad() . '?json=1' . ($darf ? '&key=' . rawurlencode($key) : ''));
+        echo file_get_contents(__DIR__ . '/module.html')
+            . '<script>handleMessage(' . $json . ');setInterval(function(){fetch(' . $abruf . ')'
+            . '.then(function(r){return r.text();}).then(function(t){handleMessage(t);}).catch(function(){});},15000);</script>';
+    }
+
+    private function kopf(string $typ): void
+    {
+        if (!headers_sent()) {
+            header('Content-Type: ' . $typ . '; charset=utf-8');
+        }
+    }
+
+    /** Daten für Kachel und eigenständige Seite (JSON). */
+    private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = ''): string
+    {
+        $klasse = $this->klasse();
+        $zustand = $this->wert('Zustand');
+        $zustand = $zustand === null ? RoboHubModell::ZUSTAND_UNBEKANNT : (int)$zustand;
+        $zid = @IPS_GetObjectIDByIdent('Zustand', $this->InstanceID);
+        $seit = ($zid !== false && $zustand !== RoboHubModell::ZUSTAND_UNBEKANNT) ? (int)IPS_GetVariable($zid)['VariableChanged'] : 0;
+        $roh = (string)($this->wert('ZustandRoh') ?? '');
+        $unter = [];
+        if ($roh !== '' && strpos($roh, RoboHubModell::zustandsName($zustand, $klasse)) !== 0) {
+            $unter[] = preg_replace('/\s*\(\d+\)$/', '', $roh);
+        }
+        if ($seit > 0) {
+            $unter[] = 'seit ' . date(date('Ymd', $seit) === date('Ymd') ? 'H:i' : 'd.m. H:i', $seit) . ' Uhr';
+        }
+
+        $teile = [];
+        foreach (self::TEILE as [$pIdent, $hIdent, $name]) {
+            $p = $this->wert($pIdent);
+            if ($p === null) {
+                continue;
+            }
+            $h = $this->wert($hIdent);
+            $teile[] = ['name' => $name, 'prozent' => (int)$p, 'stunden' => $h === null ? null : round((float)$h, 1)];
+        }
+
+        $hinweise = [];
+        foreach (['Frischwasser' => '🚰 Frischwasser', 'Schmutzwasser' => '🪣 Schmutzwasser', 'Staubbeutel' => '🗑️ Staubbeutel', 'Reinigungsmittel' => '🧴 Reinigungsmittel'] as $ident => $name) {
+            $v = $this->wert($ident);
+            if ($v !== null && $v !== '' && $v !== 'In Ordnung') {
+                $hinweise[] = $name . ': ' . $v;
+            }
+        }
+        $meldung = $this->wert('Meldung');
+        if (is_string($meldung) && $meldung !== '') {
+            $hinweise[] = 'ℹ️ ' . $meldung;
+        }
+
+        $info = [];
+        foreach (['Reinigungsmodus', 'Saugstufe', 'Wassermenge'] as $ident) {
+            $t = $this->auswahlText($ident);
+            if ($t !== null) {
+                $info[] = $t;
+            }
+        }
+        if ($this->wert('Regensensor') !== null) {
+            $info[] = $this->wert('Regensensor') ? '🌧️ Regen erkannt' : '☀️ kein Regen';
+        }
+        $flaeche = $this->wert('Flaeche');
+        if ($flaeche !== null && in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_PAUSIERT], true)) {
+            $info[] = $flaeche . ' m² · ' . (int)$this->wert('Dauer') . ' min';
+        }
+
+        $raeume = [];
+        foreach (json_decode($this->ReadAttributeString('Raeume'), true) ?: [] as $id => $name) {
+            $raeume[] = ['id' => (int)$id, 'name' => (string)$name];
+        }
+        $fehler = (string)($this->wert('Fehler') ?? '');
+        $abruf = $this->ReadAttributeInteger('LetzterAbruf');
+
+        return (string)json_encode([
+            'klasse'      => $klasse,
+            'zustand'     => $zustand,
+            'zustandText' => RoboHubModell::zustandsName($zustand, $klasse),
+            'unterzeile'  => implode(' · ', $unter),
+            'akku'        => $this->wert('Akku') === null ? null : (int)$this->wert('Akku'),
+            'laedt'       => (bool)$this->wert('Laedt'),
+            'erreichbar'  => $this->wert('Erreichbar') !== false,
+            'fehler'      => ($fehler === '' || $fehler === 'kein Fehler') ? '' : $fehler,
+            'hinweise'    => $hinweise,
+            'info'        => $info,
+            'raeume'      => $raeume,
+            'teile'       => $teile,
+            'stand'       => $abruf > 0 ? date('H:i:s', $abruf) : '',
+            'rueck'       => $rueckmeldung,
+            'eigen'       => $eigen,
+            'bedienung'   => $eigen && $key !== '',
+            'key'         => $key,
+            'hook'        => $this->hookPfad(),
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** Wert einer eigenen Variable oder null, wenn es sie (noch) nicht gibt. */
+    private function wert(string $ident)
+    {
+        $id = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        return $id === false ? null : GetValue($id);
+    }
+
+    /** Klartext einer Auswahl-Variable (aus ihrer Aufzählung). */
+    private function auswahlText(string $ident): ?string
+    {
+        $wert = $this->wert($ident);
+        $optionen = json_decode($this->ReadAttributeString('Optionen'), true) ?: [];
+        if ($wert === null || !isset($optionen[$ident])) {
+            return null;
+        }
+        return (string)($optionen[$ident][(int)$wert] ?? $optionen[$ident][(string)(int)$wert] ?? $wert);
+    }
+
+    /** WebHook beim WebHook-Control eintragen (Verbund-Muster, z. B. NRGDashboard). */
+    private function registriereHook(): void
+    {
+        $ids = IPS_GetInstanceListByModuleID(self::WEBHOOK_GUID);
+        if (count($ids) === 0) {
+            return;
+        }
+        $hooks = json_decode((string)IPS_GetProperty($ids[0], 'Hooks'), true);
+        if (!is_array($hooks)) {
+            $hooks = [];
+        }
+        foreach ($hooks as $i => $hook) {
+            if (($hook['Hook'] ?? '') === $this->hookPfad()) {
+                if ((int)$hook['TargetID'] === $this->InstanceID) {
+                    return;
+                }
+                $hooks[$i]['TargetID'] = $this->InstanceID;
+                IPS_SetProperty($ids[0], 'Hooks', json_encode($hooks));
+                IPS_ApplyChanges($ids[0]);
+                return;
+            }
+        }
+        $hooks[] = ['Hook' => $this->hookPfad(), 'TargetID' => $this->InstanceID];
+        IPS_SetProperty($ids[0], 'Hooks', json_encode($hooks));
+        IPS_ApplyChanges($ids[0]);
+    }
+
+    /** ROBO_NeuerWebSchluessel($id): string — macht alte Bedien-Adressen ungültig. */
+    public function NeuerWebSchluessel(): string
+    {
+        $this->WriteAttributeString('WebSchluessel', bin2hex(random_bytes(12)));
+        $this->UpdateFormField('WebAdresseBedienung', 'caption', $this->webAdresseZeile());
+        return '🔑 Neuer Schlüssel erzeugt. Die bisherige Bedien-Adresse funktioniert ab sofort nicht mehr — in IPSView die neue Adresse eintragen.';
+    }
+
+    private function webAdresseZeile(): string
+    {
+        return '🔑 Mit Bedienung: ' . $this->hookPfad() . '?key=' . $this->ReadAttributeString('WebSchluessel');
+    }
+
+    private function kachelPanel(): array
+    {
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '📱  Kachel und IPSView',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Kachel-Visualisierung: Diese Instanz ist selbst eine Kachel — einfach auf dem Dashboard platzieren. Bedienen geht dort immer (Anmeldung der Visualisierung).'],
+                ['type' => 'Label', 'caption' => 'IPSView oder Browser: In IPSView ein WebView-Element anlegen und als Adresse http://<Symcon-IP>:3777' . $this->hookPfad() . ' eintragen. Die Seite aktualisiert sich alle 15 Sekunden selbst.'],
+                ['type' => 'Label', 'caption' => '👁 Nur Anzeige: ' . $this->hookPfad()],
+                ['type' => 'CheckBox', 'name' => 'WebBedienung', 'caption' => 'Bedienung über die eigenständige Seite erlauben (nur mit Schlüssel in der Adresse)'],
+                ['type' => 'Label', 'name' => 'WebAdresseBedienung', 'caption' => $this->webAdresseZeile()],
+                ['type' => 'Button', 'caption' => '🔑 Neuen Schlüssel erzeugen', 'onClick' => 'echo ROBO_NeuerWebSchluessel($id);'],
+                ['type' => 'Label', 'caption' => '⚠️ Die eigenständige Seite ist ohne Symcon-Anmeldung erreichbar. Wer die Adresse mit Schlüssel kennt, kann den Roboter starten — Adresse nicht weitergeben. Alternativ in IPSView die Variablen „Befehl" und „Raum reinigen" direkt als Schalter binden; dann gilt die IPSView-Anmeldung.'],
+            ],
+        ];
     }
 
     // -----------------------------------------------------------------
@@ -535,6 +801,6 @@ class RoboHubGeraet extends IPSModule
             ['code' => 201, 'icon' => 'error', 'caption' => 'Konto muss neu angemeldet werden'],
             ['code' => 202, 'icon' => 'inactive', 'caption' => 'Abruf fehlgeschlagen — wird automatisch erneut versucht'],
         ];
-        return $this->robohubBuildForm([$this->geraetPanel(), $this->technikPanel()], [], $status);
+        return $this->robohubBuildForm([$this->geraetPanel(), $this->kachelPanel(), $this->technikPanel()], [], $status);
     }
 }
