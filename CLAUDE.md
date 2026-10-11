@@ -208,7 +208,7 @@
   dasselbe `getDownloadUrl` wie die gespeicherte Karte (Tasshack-Strings 18/34/48 = dreame-user-iot/iotfile/
   getDownloadUrl, Parameter filename). Schlüssel hinter dem Komma im Dateinamen → sha256 wie gespeicherte Karte.
 - Weg „tr": Tasshack-Regex `[MWSLl](-?\d+),(-?\d+)`; Kartenwinkel 0° = +x, Kachel dreht um 90° − Winkel
-  (Richtung **live zu prüfen**).
+  (Richtung beim Sauger live bestätigt, Mäher offen).
 - Mäher: M_PATH ×10; Telemetrie 1.4 nach ioBroker (Bitlage siehe `maeherPosition`). **Noch nie eine Mäher-
   Echtzeit-Meldung gesehen** — ob 1.4 überhaupt über die Cloud kommt, ist offen.
 - Kachel-Feld `karte` bekommt `weg`, `roboter`, `live` (Zeitstempel); `geometrie` bleibt im Attribut.
@@ -218,7 +218,8 @@
   Reinigung 138 Punkte, Roboter = Station. **Live-Rahmen ohne `seg_inf`** (Raumnummern nur in den Bildpunkten)
   → seit 0.8.1 Namen aus dem Attribut `Raeume` (Gerät → Konto → Treiber `$geraet['raeume']`).
   0.8.1 live (00:37): 7 Räume farbig + Namen (Palette 11), Weg 138 Punkte, Roboter auf Station, Winkel 269.
-  Offen: Verhalten während einer echten Reinigung, Pfeilrichtung (Kachel zeigt bei 269° nach unten), Mäher.
+  Pfeilrichtung bestätigt (Dietmar: Barny schaut in der Station in den Raum, Pfeil passt; Formel 90° − Winkel stimmt).
+  Offen: Verhalten während einer echten Reinigung, Mäher (Weg, Position, Pfeilrichtung).
 
 ## Prüfen
 
