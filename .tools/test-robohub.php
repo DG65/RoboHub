@@ -166,6 +166,8 @@ class FakeCloud extends RoboHubDreame
     public static $geraeteDaten = null;     // Antwort data von getDeviceData (Mäher-Karte in Stücken)
     public static $maehplan = '';           // Zeitplan-Dokument des Mähers (Kartenplatz 0, Generation 2)
     public static $kanal = [];              // alle Anfragen an 2.50 (t)
+    public static $tabellen = null;         // MOVA-Tabellenform: Antwort auf SCHDI je Platz (Platz => d), null = r 3
+    public static $tabTermine = [];         // 'Tabelle/Termin' => Antwort auf SCHDC
     public static $liveOut = [];            // Antwort out auf action 6.1 (Live-Kartenanforderung)
     public static $liveDatei = '';          // Inhalt der Zwischendatei „live/…"
     public static $karte = null;        // Kartentext (mapstr[0].map)
@@ -222,6 +224,18 @@ class FakeCloud extends RoboHubDreame
                 }
                 if (is_array($in) && isset($in['t'])) {
                     self::$kanal[] = $in['t'];
+                }
+                $r3 = json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['m' => 'r', 'q' => 1, 'r' => 3])]]]]);
+                if (is_array($in) && ($in['t'] ?? '') === 'SCHDI') {
+                    $platz = intdiv((int)($in['d'][0] ?? 0), 2);
+                    if (self::$tabellen === null) {
+                        return [200, $r3];
+                    }
+                    return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['m' => 'r', 'r' => 0, 'd' => self::$tabellen[$platz] ?? []])]]]])];
+                }
+                if (is_array($in) && ($in['t'] ?? '') === 'SCHDC') {
+                    $k = ($in['d'][0] ?? '') . '/' . ($in['d'][1] ?? '');
+                    return [200, isset(self::$tabTermine[$k]) ? json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['m' => 'r', 'r' => 0, 'd' => self::$tabTermine[$k]])]]]]) : $r3];
                 }
                 if (is_array($in) && ($in['t'] ?? '') === 'SCHDIV2') {
                     $leer = ($in['d']['i'] ?? null) !== 0 || self::$maehplan === '';
@@ -1356,6 +1370,22 @@ check('Mäher-Plan schalten → abgelehnt (noch nicht unterstützt)', strpos($ma
 $gerahmt = RoboHubDreame::maeherPlaeneLesen(json_encode(['d' => [[1, 1, 'R', base64_encode(pack('C*', 0xAA, 8, 0x21, 0x1C, 0x02, 0, 0, 0xED))]]]));
 check('gerahmte Termine (0xAA … 0xED): Tag + Start, kein Ende', ($gerahmt[0]['eintraege'][0] ?? null) == ['tagNr' => 2, 'tag' => 'Di', 'art' => 'zonen', 'von' => '09:00', 'bis' => null, 'zonen' => [0]], json_encode($gerahmt[0]['eintraege'] ?? null));
 check('kaputtes Dokument → keine Pläne statt Absturz', RoboHubDreame::maeherPlaeneLesen('{"d":[[1,1,"x","%%%"]]}')[0]['eintraege'] === [] && RoboHubDreame::maeherPlaeneLesen('Müll') === []);
+// MOVA-Tabellenform (Live-Befund LiDAX: SCHDIV2/3 → r 3). Plan „Frühling" (Tabelle 0, aus) mit zwei
+// Terminen: Mo+Do 08:30 ganze Fläche (an), Fr 18:00 (aus → weggelassen); Tabelle 1 „Abend" an, Zone 1 Sa 19:15.
+FakeCloud::$maehplan = '';
+FakeCloud::$tabellen = [0 => [[0, 0, 0, 'Frühling', [[1, 3], [2, 1]]], [1, 1, 0, 'Abend', [[5, 2]]]]];
+FakeCloud::$tabTermine = ['0/1' => [1, 1, 8, 510, [4, 0, 1], []], '0/2' => [2, 0, 8, 1080, [5], []], '1/5' => [5, 1, 9, 1155, [6], [1]]];
+FakeCloud::$kanal = [];
+$maeher->RaeumeLaden();
+$mt = json_decode($maeher->ReadAttributeString('Zeitplaene'), true);
+check('Tabellenform: SCHDI für Platz 0 (Tabellen 0/1), SCHDC je Termin', in_array('SCHDI', FakeCloud::$kanal, true) && count(array_keys(FakeCloud::$kanal, 'SCHDC')) === 3, json_encode(FakeCloud::$kanal));
+check('… zwei Pläne: „Frühling" aus mit Mo+Do 08:30, „Abend" an mit Sa 19:15 Zone 1', count($mt) === 2 && $mt[0]['name'] === 'Frühling' && $mt[0]['an'] === false && array_column($mt[0]['eintraege'], 'tag') === ['Mo', 'Do', 'So'] && $mt[0]['eintraege'][0]['von'] === '08:30' && $mt[1]['an'] === true && $mt[1]['eintraege'][0] == ['tagNr' => 6, 'tag' => 'Sa', 'art' => 'zonen', 'von' => '19:15', 'bis' => null, 'zonen' => [1]], json_encode($mt, JSON_UNESCAPED_UNICODE));
+check('… ausgeschalteter Termin (Fr 18:00) weggelassen, keine Dokumentabfrage für Platz 0', strpos(json_encode($mt), '18:00') === false && !in_array('SCHDIV2', array_slice(FakeCloud::$kanal, 2), true));
+$mv = (string)variable(2100, 'Zeitplaene')['value'];
+check('Variable: „⏸️ Plan „Frühling" · Mo, Do, So 08:30 · alles" (Montag zuerst)', strpos($mv, '⏸️ Plan „Frühling" · Mo, Do, So 08:30 · alles') !== false && strpos($mv, '✅ Plan „Abend" · Sa 19:15 · ') !== false, $mv);
+check('Termin-Auswertung: falsche Form / aus → nichts', RoboHubDreame::maeherTabellenTermin([1, 1, 0, 2000, [1], []]) === [] && RoboHubDreame::maeherTabellenTermin('x') === [] && RoboHubDreame::maeherTabellenTermin([1, 0, 0, 60, [1], []]) === []);
+FakeCloud::$tabellen = null;
+FakeCloud::$tabTermine = [];
 $merkeDaten = FakeCloud::$geraeteDaten;
 FakeCloud::$geraeteDaten = ['SETTINGS.0' => '{}'];
 FakeCloud::$maehplan = json_encode(['d' => [[5, 1, 'Ohne Karte', '']]]);

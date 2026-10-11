@@ -929,6 +929,20 @@ PEM;
         $roh = [];
         $protokoll = [];      // je Platz/Generation die Antwort — für „📋 Rohdaten", falls nichts gefunden wird
         foreach ([-1, 0, 1] as $platz) {
+            // MOVA (LiDAX, Live-Befund 12.10.2026: SCHDIV2/3 → r 3) nutzt Tabellen:
+            // SCHDI je Kartenplatz, dann SCHDC je Termin (EvotecIT read_tables).
+            if ($platz >= 0) {
+                try {
+                    $termine = array_merge($termine, $this->maeherPlanTabellen($buendel, $did, $platz, $roh));
+                    $protokoll[] = 'Platz ' . $platz . ' Tabellen: gelesen';
+                    continue;
+                } catch (RoboHubFehler $e) {
+                    if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                        throw $e;
+                    }
+                    $protokoll[] = 'Platz ' . $platz . ' Tabellen: ' . $e->getMessage();
+                }
+            }
             foreach ([2, 3] as $gen) {
                 try {
                     $info = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDIV' . $gen, 'd' => ['i' => $platz]]);
@@ -970,6 +984,80 @@ PEM;
             }
         }
         return [$termine, $roh !== [] ? implode("\n", $roh) : implode("\n", $protokoll)];
+    }
+
+    /**
+     * Tabellenform (EvotecIT schedule_tables.py): SCHDI [2·Platz, 2·Platz+1] →
+     * [[Tabellen-ID, an, ?, Name, [[Termin-ID, Version], …]], …]; je Termin
+     * SCHDC [Tabellen-ID, Termin-ID] → [Termin-ID, an, Art, Start-Minute, [Tage 0=So], [Zonen]].
+     * Nur Startzeit, kein Ende. Ausgeschaltete Termine lässt EvotecIT weg — hier auch.
+     */
+    private function maeherPlanTabellen(array $buendel, string $did, int $platz, array &$roh): array
+    {
+        $tabellen = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDI', 'd' => [2 * $platz, 2 * $platz + 1]]);
+        if (!is_array($tabellen)) {
+            throw new RoboHubFehler('SCHDI ohne Liste.');
+        }
+        $roh[] = 'SCHDI ' . $platz . ': ' . json_encode($tabellen, JSON_UNESCAPED_UNICODE);
+        $termine = [];
+        foreach ($tabellen as $t) {
+            if (!is_array($t) || count($t) < 5 || !is_array($t[4])) {
+                continue;
+            }
+            $eintraege = [];
+            foreach ($t[4] as $ref) {
+                if (!is_array($ref) || !isset($ref[0])) {
+                    continue;
+                }
+                try {
+                    $termin = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDC', 'd' => [(int)$t[0], (int)$ref[0]]]);
+                } catch (RoboHubFehler $e) {
+                    if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                        throw $e;
+                    }
+                    continue;
+                }
+                $roh[] = 'SCHDC ' . (int)$t[0] . '/' . (int)$ref[0] . ': ' . json_encode($termin);
+                $eintraege = array_merge($eintraege, self::maeherTabellenTermin($termin));
+            }
+            usort($eintraege, function (array $a, array $b): int {
+                return (($a['tagNr'] + 6) % 7) <=> (($b['tagNr'] + 6) % 7) ?: strcmp($a['von'], $b['von']);
+            });
+            $tage = [];
+            foreach ($eintraege as $e) {
+                $tage[$e['tag']] = true;
+            }
+            $termine[] = [
+                'id' => (int)$t[0] - 2 * $platz, 'an' => (int)$t[1] === 1, 'ungueltig' => false,
+                'name' => (string)$t[3], 'art' => 'maeher', 'tage' => array_keys($tage), 'einmalig' => false,
+                'zeit' => $eintraege[0]['von'] ?? '', 'eintraege' => $eintraege, 'platz' => $platz, 'tabelle' => (int)$t[0],
+            ];
+        }
+        return $termine;
+    }
+
+    /** SCHDC-Antwort → Einträge je Wochentag (leer, wenn der Termin aus ist). */
+    public static function maeherTabellenTermin($v): array
+    {
+        if (!is_array($v) || count($v) < 6 || (int)$v[1] !== 1 || !is_array($v[4]) || !is_array($v[5])) {
+            return [];
+        }
+        $art = ((int)$v[2]) % 8;
+        $start = (int)$v[3];
+        if ($start < 0 || $start >= 1440) {
+            return [];
+        }
+        $aus = [];
+        foreach ($v[4] as $tag) {
+            $tag = (int)$tag;
+            if (!isset(self::MAEHER_TAGE[$tag])) {
+                continue;
+            }
+            $aus[] = ['tagNr' => $tag, 'tag' => self::MAEHER_TAGE[$tag], 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
+                'von' => sprintf('%02d:%02d', intdiv($start, 60), $start % 60), 'bis' => null,
+                'zonen' => $art === 1 ? array_map('intval', $v[5]) : []];
+        }
+        return $aus;
     }
 
     /** Antwort-„d" einer Konfigurationskanal-Abfrage (2.50), r ≠ 0 = Fehler. */

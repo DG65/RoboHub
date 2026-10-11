@@ -235,7 +235,8 @@
 - Mäher (0.9.1): `SCHEDULE` aus getDeviceData ist beim LiDAX leer, obwohl ein (deaktivierter) Plan existiert →
   Lesen nach EvotecIT über 2.50 `SCHDIV`/`SCHDDV` (siehe CHANGELOG). Nur Anzeige; `SCHDSV<n>`
   {"i": Platz, "v": Version, "s": [1/0 je Plan]} zum Schalten wäre der nächste Schritt (EvotecIT verlangt
-  dafür einen ruhenden Mäher ohne offene Aufgabe). **Live offen.**
+  dafür einen ruhenden Mäher ohne offene Aufgabe). **Live 0.9.2:** LiDAX antwortet auf SCHDIV2/3 an allen Plätzen
+  mit `{"m":"r","r":3}` → seit 0.9.3 zuerst Tabellenform SCHDI/SCHDC (EvotecIT: für MOVA bevorzugt). **Live offen.**
 
 ## Prüfen
 

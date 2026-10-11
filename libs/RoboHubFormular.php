@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.9.3' => [
+            '• Mähroboter: Mäh-Pläne von MOVA-Mähern (z. B. LiDAX) werden jetzt gefunden — sie liegen in Plantabellen statt in einem Plan-Dokument.',
+        ],
         '0.9.2' => [
             '• Mähroboter: Findet RoboHub keinen Mäh-Plan, stehen die Antworten des Mähers in „📋 Rohdaten" (Fehlersuche).',
         ],
