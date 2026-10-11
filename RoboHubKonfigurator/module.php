@@ -61,8 +61,15 @@ class RoboHubKonfigurator extends IPSModule
 
     private function listenWerte(array $geraete): array
     {
+        // Nur Roboter DIESES Kontos — bei mehreren Konten (z. B. Dreamehome
+        // + MOVAhome) erschienen sonst die Roboter des anderen Kontos als
+        // „nicht mehr im Konto" (Live-Fund 11.10.2026).
+        $konto = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
         $vorhanden = [];
         foreach (IPS_GetInstanceListByModuleID(self::GERAET_GUID) as $iid) {
+            if ((int)(IPS_GetInstance($iid)['ConnectionID'] ?? 0) !== $konto) {
+                continue;
+            }
             $vorhanden[(string)IPS_GetProperty($iid, 'GeraetID')] = $iid;
         }
         $werte = [];

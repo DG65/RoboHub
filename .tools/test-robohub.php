@@ -40,6 +40,7 @@ function IPS_ApplyChanges(int $id): bool { $GLOBALS['INST'][$id]->ApplyChanges()
 function IPS_GetInstanceListByModuleID(string $g): array { $o = []; foreach ($GLOBALS['INST'] as $id => $m) { if ($m instanceof RoboHubGeraet) { $o[] = $id; } } return $o; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return 'Instanz ' . $id; }
+function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0]; }
 
 class IPSModule
 {
@@ -370,9 +371,15 @@ FakeCloud::$liste = [$saugerRecord, ['did' => '2066117758', 'model' => 'dreame.v
 $barny = new RoboHubGeraet(2300);
 $barny->props = ['GeraetID' => '2066117758', 'Modell' => 'dreame.vacuum.r9547a', 'Klasse' => 'sauger', 'Intervall' => 120];
 $barny->Create();
+$barny->parent = $konto;
+$fremd = new RoboHubGeraet(2302);
+$fremd->props = ['GeraetID' => '-115358610', 'Modell' => 'mova.mower.g2529c', 'Klasse' => 'maeher', 'Intervall' => 120];
+$fremd->Create();
+$fremd->parent = new RoboHubKonto(1999);
 $alt = new RoboHubGeraet(2301);
 $alt->props = ['GeraetID' => '999', 'Modell' => 'dreame.vacuum.x', 'Klasse' => 'sauger', 'Intervall' => 120];
 $alt->Create();
+$alt->parent = $konto;
 $cfg->Suchen();
 $werte = null;
 foreach (array_reverse($cfg->fields) as $f) { if ($f[0] === 'Geraete' && $f[1] === 'values') { $werte = json_decode($f[2], true); break; } }
@@ -382,7 +389,8 @@ $barnyZeile = null;
 foreach ((array)$werte as $w) { if ((string)$w['id'] === '2066117758') { $barnyZeile = $w; } }
 check('… und ist seiner Instanz zugeordnet', ($barnyZeile['instanceID'] ?? 0) === 2300);
 check('wirklich verwaiste Instanz bleibt sichtbar', in_array('999', $ids, true));
-unset($GLOBALS['INST'][2300], $GLOBALS['INST'][2301]);
+check('Roboter eines anderen Kontos erscheint nicht (Live-Fund LiDAX/Barny)', !in_array('-115358610', $ids, true), json_encode($ids));
+unset($GLOBALS['INST'][2300], $GLOBALS['INST'][2301], $GLOBALS['INST'][2302], $GLOBALS['INST'][1999]);
 
 abschnitt('MOVA-Mäher');
 $konto2 = new RoboHubKonto(1100);

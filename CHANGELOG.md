@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 (11.10.2026)
+
+- Fix Konfigurator: Bei mehreren Konto-Instanzen erschienen die Roboter des
+  anderen Kontos rot als „nicht mehr im Konto" (Live-Fund: Saugroboter im
+  MOVA-Konfigurator). Berücksichtigt werden jetzt nur Roboter, die mit der
+  Konto-Instanz dieses Konfigurators verbunden sind.
+
 ## 0.1.2 (11.10.2026)
 
 - Fix Konfigurator: Ein bereits angelegter Roboter erschien doppelt — einmal

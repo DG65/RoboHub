@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.1.3' => [
+            '• Konfigurator: Bei mehreren Konten (z. B. Dreamehome und MOVAhome) zeigt jeder Konfigurator nur noch die Roboter seines eigenen Kontos.',
+        ],
     ];
 
     private static $ROBOHUB_REPO_URL    = 'https://github.com/DG65/RoboHub';
