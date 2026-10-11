@@ -195,7 +195,7 @@
   Live (12.10.2026 00:17, Barny): PNG gültig 538×400 (Vergrößerung 2), 377 Linienpunkte — die meisten Räume
   der gespeicherten Karte haben ohnehin schon eine Lücke dazwischen, Linien entstehen nur, wo sie direkt
   aneinanderstoßen (z. B. Wohnzimmer/Esszimmer). Hinweis: Bild nie per Hand aus dem Protokoll abschreiben
-  (Prüfsumme kaputt) — in Symcon selbst prüfen.
+  (Prüfsumme kaputt) — in Symcon selbst prüfen. Dietmar: „Linien passen so" (Stärke so lassen).
 - Vorschau-Generator im Scratchpad (`vorschau-karte.py` + `karte-demo.php`), nicht im Repo.
 - **Live bestätigt (12.10.2026 00:08, 0.7.0):** Barny r9547a → PNG 269×200 Punkte (Vergrößerung 1), 7 Räume
   farbig + Namen + Station; gespeicherte Karte enthält kaum Wandpunkte (nur Hindernisse), Räume grenzen direkt
