@@ -191,7 +191,10 @@
 - Kartentext: `thb` vor `map` (seit 0.1.x so) — falls Barnys Bild grob/klein ist, liegt es daran.
 - Attribut `Karte` (JSON), Kachel-Feld `karte`; leeres Bild überschreibt kein vorhandenes.
 - Vorschau-Generator im Scratchpad (`vorschau-karte.py` + `karte-demo.php`), nicht im Repo.
-- **Live offen:** welche Kodierung/Ausrichtung Barny liefert (Debug „Karte"), Mäher-Bild gegen MOVAhome.
+- **Live bestätigt (12.10.2026 00:08, 0.7.0):** Barny r9547a → PNG 269×200 Punkte (Vergrößerung 1), 7 Räume
+  farbig + Namen + Station; gespeicherte Karte enthält kaum Wandpunkte (nur Hindernisse), Räume grenzen direkt
+  aneinander. LiDAX → SVG, Zone „Rasen" als L-Form (~7 × 14 m). **Beide von Dietmar gegen Dreamehome/MOVAhome
+  bestätigt (Ausrichtung, Form, Raumlage).**
 
 ## Prüfen
 

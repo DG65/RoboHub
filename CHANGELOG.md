@@ -15,7 +15,7 @@
   - Schalter „Kartenbild zeigen" (Standard an). Bleibt eine Karte ohne Bildpunkte, bleibt das
     letzte Bild stehen.
 - Treiber-Schnittstelle: `raeume()` → `karte()` (Räume + Bild + Beschriftung).
-- Noch nicht live geprüft — welche Kodierung Barny nutzt, zeigt das Debug „Karte".
+- Live bestätigt: Barny (7 Räume) und LiDAX (Zone Rasen) stimmen mit den Apps überein.
 
 ## 0.6.0 (11.10.2026)
 
