@@ -67,8 +67,13 @@
   4.23 = 5120 → Bits 0–1 = 0 → mit Mopp-Anhebungs-Tausch „Saugen und Wischen" (gegen App prüfen).
   3.2 = 1 (lädt) trotz 100 %/Zustand 13. **Raumnamen aus der Karte live dekodiert** (7 Räume,
   eigene Namen + Typ-Namen; „Küche 2" = Index 1 wie ioBroker, gegen App prüfen).
-- LiDAX-Instanz (#19587) war nach dem MC-Neuanlegen weg (Ursache offen, Barny blieb) — neu
-  anlegen über Konfigurator #12732.
+- LiDAX-Instanz #19587 war weg — sehr wahrscheinlich über den Papierkorb der roten Doppelzeile im
+  Konfigurator gelöscht (Papierkorb löscht laut SDK-Doku die Instanz). Neu: **#11377** (0.2.0,
+  ein Konfigurator #12732 für beide Konten, Selbstzuordnung → MOVA #50686 live korrekt).
+- **LiDAX live (FW 4.3.6_0529):** 2.1 = 13 „Geladen", 3.1 = 100, **3.2 = 2** (in keiner Quelle
+  belegt, vermutlich „voll"; → Lädt = false), Messer 34 % aus CMS. **2.2 kam nicht**, **Block 4.x
+  (4.1/4.2/4.3/4.7) wird nicht beantwortet** → Abruf ~13 s. Idee: nicht beantwortete Blöcke je
+  Gerät merken und nur stündlich erneut versuchen (mit Dietmar abstimmen).
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
   (Port 3777 zu); Attribute/Anmeldungen blieben dabei erhalten. Nicht leichtfertig wiederholen.
 
