@@ -276,6 +276,8 @@ class RoboHubDreame implements RoboHubTreiber
         // Modell alle kennt. Am Ende (Blocksperre, siehe oben).
         [[5, 1], [5, 2], [5, 3], [5, 4]],
         [[7, 1]],
+        // Zeitpläne 8.2 (Tasshack SCHEDULE, ioBroker lib/schedule.js). Am Ende (Blocksperre).
+        [[8, 2]],
     ];
     private const BLOECKE_MAEHER = [
         [[2, 1], [2, 2], [3, 1], [3, 2]],
@@ -661,7 +663,11 @@ PEM;
             $schreibbar[] = 'Lautstaerke';
         }
 
-        return ['werte' => $w, 'optionen' => $optionen, 'schreibbar' => $schreibbar];
+        $daten = ['werte' => $w, 'optionen' => $optionen, 'schreibbar' => $schreibbar];
+        if (array_key_exists('8.2', $p) && is_string($p['8.2'])) {
+            $daten['zeitplaene'] = self::zeitplaeneLesen($p['8.2']);
+        }
+        return $daten;
     }
 
     /**
@@ -840,6 +846,101 @@ PEM;
             'ReinigungsbuersteRest' => $rest(1, 30000),
             'WartungRest'           => $rest(2, 3600),
         ], function ($v) { return $v !== null; });
+    }
+
+    // -----------------------------------------------------------------
+    // Zeitpläne (Sauger 8.2)
+    // -----------------------------------------------------------------
+
+    // Raum-Termine: Modus/Saugstufe je Raum (ioBroker decodeRoomsWord), „Alle Räume": eigene Modus-Reihenfolge.
+    private const TERMIN_MODUS_RAUM = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen'];
+    private const TERMIN_MODUS_ALLE = [1 => 'Saugen', 2 => 'Saugen und Wischen', 3 => 'Wischen', 4 => 'Erst saugen, dann wischen'];
+    private const TERMIN_SAUGSTUFE = [0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo'];
+
+    /**
+     * 8.2 → Liste der Termine. Format je Termin (durch „;" getrennt, Felder durch „-"):
+     * 0 ID, 1 Zustand (0 aus, 1/2 an, 3 ungültig — Tasshack), 2 Uhrzeit, 3 Wochentage
+     * (7 Zeichen, Index 0 = Sonntag — ioBroker), 4 „0" = einmalig (Tasshack), 5 Karte,
+     * 6–8 je nach Art (ioBroker detectScheduleType): Räume (Feld 8 = Wörter je Raum,
+     * Bits 0–7 Raum, 8–11 Durchgänge, 16–19 Saugstufe, 20–23 Modus), Alle Räume
+     * (Feld 7: Bits 4–7 Modus, 24–27 Saugstufe, 28–31 Durchgänge), Kurzbefehl (Feld 7 / 256).
+     */
+    public static function zeitplaeneLesen(string $text): array
+    {
+        $termine = [];
+        foreach (explode(';', $text) as $teil) {
+            $f = explode('-', trim($teil));
+            if (count($f) < 9 || !ctype_digit($f[0]) || !preg_match('/^\d{1,2}:\d{2}$/', $f[2])) {
+                continue;
+            }
+            $maske = str_pad($f[3], 7, '0', STR_PAD_LEFT);
+            $tage = [];
+            foreach ([1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 0 => 'So'] as $i => $tag) {
+                if (($maske[$i] ?? '0') === '1') {
+                    $tage[] = $tag;
+                }
+            }
+            $t = [
+                'id'        => (int)$f[0],
+                'an'        => in_array($f[1], ['1', '2'], true),
+                'ungueltig' => $f[1] === '3',
+                'zeit'      => $f[2],
+                'tage'      => $tage,
+                'einmalig'  => $f[4] === '0',
+                'art'       => 'unbekannt',
+            ];
+            if ($f[7] === '0' && $f[8] !== '0') {
+                $t['art'] = 'raeume';
+                $t['raeume'] = [];
+                foreach (explode(',', $f[8]) as $wort) {
+                    $w = (int)$wort;
+                    $t['raeume'][] = ['id' => $w & 0xFF, 'durchgaenge' => ($w >> 8) & 0xF,
+                        'saugstufe' => self::TERMIN_SAUGSTUFE[($w >> 16) & 0xF] ?? null, 'modus' => self::TERMIN_MODUS_RAUM[($w >> 20) & 0xF] ?? null];
+                }
+            } elseif ($f[7] !== '0' && $f[8] === '0' && $f[6] === '0') {
+                $t['art'] = 'kurzbefehl';
+                $t['kurzbefehl'] = ((int)$f[7]) >> 8;
+            } elseif ($f[7] !== '0' && $f[8] === '0') {
+                $w = (int)$f[7];
+                $t['art'] = 'alle';
+                $t['modus'] = self::TERMIN_MODUS_ALLE[($w >> 4) & 0xF] ?? null;
+                $t['saugstufe'] = self::TERMIN_SAUGSTUFE[($w >> 24) & 0xF] ?? null;
+                $t['durchgaenge'] = ($w >> 28) & 0xF;
+            }
+            $termine[] = $t;
+        }
+        usort($termine, function (array $a, array $b): int {
+            return strcmp(str_pad($a['zeit'], 5, '0', STR_PAD_LEFT), str_pad($b['zeit'], 5, '0', STR_PAD_LEFT)) ?: ($a['id'] <=> $b['id']);
+        });
+        return $termine;
+    }
+
+    /** Termin ein-/ausschalten: 8.2 frisch lesen, nur Feld 1 dieses Termins ändern (ioBroker-Toggle). */
+    private function zeitplanSchalten(array $buendel, string $did, int $id, bool $an): string
+    {
+        $p = $this->leseProperties($buendel, $did, [[8, 2]]);
+        if (!isset($p['8.2']) || !is_string($p['8.2'])) {
+            throw new RoboHubFehler('Zeitpläne des Roboters nicht lesbar — nichts geändert.');
+        }
+        $teile = explode(';', $p['8.2']);
+        $gefunden = false;
+        foreach ($teile as $i => $teil) {
+            $f = explode('-', $teil);
+            if (count($f) < 9 || $f[0] !== (string)$id) {
+                continue;
+            }
+            if ($f[1] === '3') {
+                throw new RoboHubFehler('Dieser Zeitplan ist ungültig (z. B. Karte geändert) — bitte in der Hersteller-App prüfen.');
+            }
+            $f[1] = $an ? '1' : '0';
+            $teile[$i] = implode('-', $f);
+            $gefunden = true;
+        }
+        if (!$gefunden) {
+            throw new RoboHubFehler('Zeitplan ' . $id . ' gibt es am Roboter nicht (mehr).');
+        }
+        $this->setzeProperty($buendel, $did, 8, 2, implode(';', $teile));
+        return 'Zeitplan ' . ($an ? 'eingeschaltet' : 'ausgeschaltet') . '.';
     }
 
     // -----------------------------------------------------------------
@@ -1075,6 +1176,9 @@ PEM;
             }
             $this->aktion($buendel, $did, 2, 50, [['m' => 'a', 'p' => 0, 'o' => 102, 'd' => ['region' => $zonen]]]);
             return 'Mähen ' . (count($zonen) === 1 ? 'der Zone' : 'von ' . count($zonen) . ' Zonen') . ' gesendet.';
+        }
+        if ($befehl === 'zeitplan' && !$maeher) {
+            return $this->zeitplanSchalten($buendel, $did, (int)($parameter['id'] ?? 0), !empty($parameter['an']));
         }
         if ($befehl === 'einstellung') {
             return $this->einstellung($buendel, $did, $maeher, (string)($parameter['feld'] ?? ''), $parameter['wert'] ?? null);
@@ -1524,7 +1628,10 @@ PEM;
             $weg = is_array($pfad) ? RoboHubKartenbild::maeherWeg($pfad) : [];
             $this->dbg('Live-Karte', 'Mähweg: ' . count($weg) . ' Stücke.');
         }
-        return ['raeume' => $zonen] + RoboHubKartenbild::maeher(is_array($slot) ? $slot : [], $zonen, $weg);
+        // Mäh-Zeitplan: Format noch nicht entschlüsselt (ioBroker speichert ihn nur roh) —
+        // für „📋 Rohdaten" mitgeben, Auswertung folgt nach dem Live-Befund.
+        return ['raeume' => $zonen, 'zeitplanRoh' => self::stueckeZusammensetzen($daten, 'SCHEDULE')]
+            + RoboHubKartenbild::maeher(is_array($slot) ? $slot : [], $zonen, $weg);
     }
 
     /** Setzt PREFIX.0, PREFIX.1 … zusammen, gekürzt auf PREFIX.info Zeichen (ioBroker reassembleChunks). */

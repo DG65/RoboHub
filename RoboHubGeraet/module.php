@@ -57,6 +57,8 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('EchtzeitVerlauf', '[]');
         $this->RegisterAttributeInteger('RaeumeStand', 0);
         $this->RegisterAttributeString('Optionen', '{}');
+        $this->RegisterAttributeString('Zeitplaene', '[]');
+        $this->RegisterAttributeString('ZeitplanRoh', '');
         $this->RegisterAttributeString('Schreibbar', '[]');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
         $this->RegisterAttributeString('LetzterFehler', '');
@@ -115,6 +117,11 @@ class RoboHubGeraet extends IPSModule
                 return;
             case 'Zuruecksetzen':
                 $this->kachelAktualisieren($this->VerbrauchsteilZuruecksetzen((string)$Value));
+                return;
+            case 'Zeitplan':
+                // Aus der Kachel: „ID:1" bzw. „ID:0".
+                [$tid, $an] = array_pad(explode(':', (string)$Value, 2), 2, '0');
+                $this->kachelAktualisieren($this->ZeitplanSchalten((int)$tid, $an === '1'));
                 return;
             case 'Raeume':
                 // Aus der Kachel: mehrere Räume als „3,5".
@@ -272,6 +279,21 @@ class RoboHubGeraet extends IPSModule
         return '✅ ' . $name . ' zurückgesetzt (vorher ' . $vorher . ' %' . ($nachher !== null ? ', jetzt ' . (int)$nachher . ' %' : '') . ').';
     }
 
+    /** ROBO_ZeitplanSchalten($id, int $termin, bool $an): string — Zeitplan der Hersteller-App ein-/ausschalten. */
+    public function ZeitplanSchalten(int $termin, bool $an): string
+    {
+        $bekannt = false;
+        foreach (json_decode($this->ReadAttributeString('Zeitplaene'), true) ?: [] as $t) {
+            if ((int)($t['id'] ?? -1) === $termin) {
+                $bekannt = true;
+            }
+        }
+        if (!$bekannt) {
+            return '⛔ Unbekannter Zeitplan: ' . $termin;
+        }
+        return $this->befehlText('zeitplan', ['id' => $termin, 'an' => $an]);
+    }
+
     /** ROBO_Rohdaten($id): string — letzte Rohantwort des Herstellers (zur Fehlersuche). */
     public function Rohdaten(): string
     {
@@ -281,10 +303,13 @@ class RoboHubGeraet extends IPSModule
         }
         $daten = json_decode($roh, true);
         $verlauf = json_decode($this->ReadAttributeString('EchtzeitVerlauf'), true) ?: [];
-        if (!is_array($daten) || count($verlauf) === 0) {
+        if (!is_array($daten) || (count($verlauf) === 0 && $this->ReadAttributeString('ZeitplanRoh') === '')) {
             return $roh;
         }
         $daten['echtzeitVerlauf'] = $verlauf;   // neueste zuerst, bleibt gültiges JSON
+        if ($this->ReadAttributeString('ZeitplanRoh') !== '') {
+            $daten['zeitplanRoh'] = $this->ReadAttributeString('ZeitplanRoh');
+        }
         return (string)json_encode($daten, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
@@ -389,6 +414,47 @@ class RoboHubGeraet extends IPSModule
             return ['ok' => false, 'fehler' => 'Unerwartete Antwort der Konto-Instanz.'];
         }
         return $antwort;
+    }
+
+    /** Ein Termin in Klartext, mit Raumnamen aus der Karte: „07:00 · Mo, Mi, Fr · Vorrat, Küche · Saugen". */
+    private function zeitplanText(array $t): string
+    {
+        $tage = (array)($t['tage'] ?? []);
+        if (!empty($t['einmalig'])) {
+            $wann = 'einmalig';
+        } elseif (count($tage) === 7) {
+            $wann = 'täglich';
+        } elseif ($tage === ['Mo', 'Di', 'Mi', 'Do', 'Fr']) {
+            $wann = 'werktags';
+        } else {
+            $wann = $tage === [] ? 'nie' : implode(', ', $tage);
+        }
+        $teile = [(string)($t['zeit'] ?? '?'), $wann];
+        $namen = json_decode($this->ReadAttributeString('Raeume'), true) ?: [];
+        switch ($t['art'] ?? '') {
+            case 'raeume':
+                $teile[] = implode(', ', array_map(function (array $r) use ($namen): string {
+                    return (string)($namen[(string)$r['id']] ?? $namen[(int)$r['id']] ?? 'Raum ' . $r['id']);
+                }, (array)($t['raeume'] ?? [])));
+                $modi = array_values(array_unique(array_filter(array_column((array)($t['raeume'] ?? []), 'modus'))));
+                if (count($modi) === 1) {
+                    $teile[] = $modi[0];
+                }
+                break;
+            case 'alle':
+                $teile[] = 'alle Räume';
+                if (!empty($t['modus'])) {
+                    $teile[] = $t['modus'];
+                }
+                break;
+            case 'kurzbefehl':
+                $teile[] = 'Kurzbefehl ' . (int)($t['kurzbefehl'] ?? 0);
+                break;
+        }
+        if (!empty($t['ungueltig'])) {
+            $teile[] = '⚠️ ungültig';
+        }
+        return implode(' · ', $teile);
     }
 
     /** Kartendaten für die Kachel (ohne Umrechnungsdaten). */
@@ -496,6 +562,13 @@ class RoboHubGeraet extends IPSModule
         }
         $this->WriteAttributeString('Optionen', (string)json_encode($optionen));
 
+        if (array_key_exists('zeitplaene', $daten) && is_array($daten['zeitplaene'])) {
+            $this->WriteAttributeString('Zeitplaene', (string)json_encode(array_values($daten['zeitplaene'])));
+            $zeilen = array_map(function (array $t): string { return ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t); }, $daten['zeitplaene']);
+            $this->MaintainVariable('Zeitplaene', 'Zeitpläne', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 95, true);
+            $this->SetValue('Zeitplaene', $zeilen === [] ? 'keine' : implode("\n", $zeilen));
+        }
+
         if (isset($daten['roh'])) {
             $roh = (string)json_encode($daten['roh'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             $this->WriteAttributeString('LetzteRohdaten', $roh);
@@ -580,6 +653,9 @@ class RoboHubGeraet extends IPSModule
             return '⛔ ' . $antwort['fehler'];
         }
         $daten = (array)$antwort['daten'];
+        if (isset($daten['zeitplanRoh'])) {
+            $this->WriteAttributeString('ZeitplanRoh', (string)$daten['zeitplanRoh']);
+        }
         $raeume = [];
         foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;
@@ -741,7 +817,7 @@ class RoboHubGeraet extends IPSModule
             }
             $cmd = (string)$_GET['cmd'];
             $wert = (string)($_GET['wert'] ?? '');
-            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen'], true)) {
+            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen', 'Zeitplan'], true)) {
                 echo json_encode(['ok' => false, 'text' => '⛔ Unbekannter Befehl.']);
                 return;
             }
@@ -750,6 +826,9 @@ class RoboHubGeraet extends IPSModule
                     $text = $this->befehlText($this->befehlsName((int)$wert), []);
                 } elseif ($cmd === 'Zuruecksetzen') {
                     $text = $this->VerbrauchsteilZuruecksetzen($wert);
+                } elseif ($cmd === 'Zeitplan') {
+                    [$tid, $an] = array_pad(explode(':', $wert, 2), 2, '0');
+                    $text = $this->ZeitplanSchalten((int)$tid, $an === '1');
                 } else {
                     $text = $this->RaeumeReinigen($wert);
                 }
@@ -863,6 +942,9 @@ class RoboHubGeraet extends IPSModule
             'info'        => $info,
             'raeume'      => $raeume,
             'karte'       => $this->kachelKarte(),
+            'zeitplaene'  => array_map(function (array $t): array {
+                return ['id' => (int)$t['id'], 'an' => (bool)$t['an'], 'text' => $this->zeitplanText($t), 'schaltbar' => empty($t['ungueltig'])];
+            }, json_decode($this->ReadAttributeString('Zeitplaene'), true) ?: []),
             'teile'       => $teile,
             'stand'       => $abruf > 0 ? date('H:i:s', $abruf) : '',
             'rueck'       => $rueckmeldung,
@@ -1029,6 +1111,23 @@ class RoboHubGeraet extends IPSModule
         return ['type' => 'Label', 'caption' => '⛔ Kein Konto verbunden — die Geräte-ID wurde in keiner angemeldeten RoboHub-Konto-Instanz gefunden.', 'color' => 0xFF0000];
     }
 
+    private function zeitplanPanel(): ?array
+    {
+        $termine = json_decode($this->ReadAttributeString('Zeitplaene'), true) ?: [];
+        if ($termine === []) {
+            return null;
+        }
+        $items = [['type' => 'Label', 'caption' => 'Zeitpläne aus der Hersteller-App. Anlegen und ändern geht nur dort, hier lassen sie sich ein- und ausschalten.']];
+        foreach ($termine as $t) {
+            $items[] = ['type' => 'RowLayout', 'items' => [
+                ['type' => 'Label', 'caption' => ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t), 'width' => '520px'],
+                ['type' => 'Button', 'caption' => $t['an'] ? 'Ausschalten' : 'Einschalten', 'visible' => empty($t['ungueltig']),
+                    'onClick' => 'echo ROBO_ZeitplanSchalten($id, ' . (int)$t['id'] . ', ' . ($t['an'] ? 'false' : 'true') . ');'],
+            ]];
+        }
+        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🗓️  Zeitpläne (' . count($termine) . ')', 'items' => $items];
+    }
+
     private function verbrauchPanel(): ?array
     {
         $items = [['type' => 'Label', 'caption' => 'Nach dem Wechsel oder der Reinigung eines Teils hier den Zähler zurücksetzen — wie in der Hersteller-App. Jede Rücksetzung steht danach im Symcon-Protokoll.']];
@@ -1073,6 +1172,6 @@ class RoboHubGeraet extends IPSModule
             ['code' => 201, 'icon' => 'error', 'caption' => 'Konto muss neu angemeldet werden'],
             ['code' => 202, 'icon' => 'inactive', 'caption' => 'Abruf fehlgeschlagen — wird automatisch erneut versucht'],
         ];
-        return $this->robohubBuildForm([$this->geraetPanel(), $this->verbrauchPanel(), $this->kachelPanel(), $this->technikPanel()], [], $status);
+        return $this->robohubBuildForm([$this->geraetPanel(), $this->zeitplanPanel(), $this->verbrauchPanel(), $this->kachelPanel(), $this->technikPanel()], [], $status);
     }
 }

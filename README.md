@@ -56,6 +56,7 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
 - **Kartenbild** auf Kachel und IPSView-Seite: Räume bzw. Mähzonen mit Namen zum Antippen.
+- **Zeitpläne** (Saugroboter) aus der Hersteller-App anzeigen und ein-/ausschalten.
 - **Live-Karte** während der Arbeit: gefahrener Weg und Roboterposition, fertiger Weg bleibt danach stehen.
 - **Nicht stören** (an/aus, Beginn, Ende) und **Lautstärke**: direkt schaltbar, bei Saug- und
   Mährobotern.

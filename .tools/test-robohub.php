@@ -384,7 +384,7 @@ check('Reststunden Sauger (Haupt/Seite/Filter/Sensoren/Mopp)', variable(2000, 'H
 check('Sensoren 0 h bleibt 0 (kein Ausblenden echter Nullwerte)', variable(2000, 'SensorenRest') !== null);
 check('Abwasserauslassfilter: 35.2 = %, 35.1 = h', variable(2000, 'Abwasserfilter')['value'] === 40 && variable(2000, 'AbwasserfilterRest')['value'] === 120.0);
 check('Schmutzwasserbehälter: 26.1 = %, 26.2 = h', variable(2000, 'Schmutzwasserbehaelter')['value'] === 75 && variable(2000, 'SchmutzwasserbehaelterRest')['value'] === 300.0);
-check('neuer Block hängt am Ende (Blocksperre-Indizes stabil)', (function () { $r = new ReflectionClass('RoboHubDreame'); $b = $r->getConstant('BLOECKE_SAUGER'); return $b[7] === [[26, 1], [26, 2], [35, 1]] && $b[8] === [[5, 1], [5, 2], [5, 3], [5, 4]] && end($b) === [[7, 1]] && $b[2][5] === [35, 2]; })());
+check('neuer Block hängt am Ende (Blocksperre-Indizes stabil)', (function () { $r = new ReflectionClass('RoboHubDreame'); $b = $r->getConstant('BLOECKE_SAUGER'); return $b[7] === [[26, 1], [26, 2], [35, 1]] && $b[8] === [[5, 1], [5, 2], [5, 3], [5, 4]] && $b[9] === [[7, 1]] && end($b) === [[8, 2]] && $b[2][5] === [35, 2]; })());
 check('Saugstufe als schaltbare Auswahl', variable(2000, 'Saugstufe')['action'] === true && variable(2000, 'Saugstufe')['value'] === 1);
 check('Wassermenge entfällt bei Feuchte-Modell (28.1)', variable(2000, 'Wassermenge') === null);
 check('Reinigungsmodus mit Mopp-Anhebung: Leitung 0 → Saugen und Wischen (2)', variable(2000, 'Reinigungsmodus')['value'] === 2);
@@ -1260,6 +1260,69 @@ $k = kachelJson($maeher->GetVisualizationTile());
 check('Echtzeit-Position des Mähers (Mitte des Rasens) auf der Karte', ($k['karte']['roboter'] ?? null) == ['x' => 50.0, 'y' => 50.0, 'winkel' => 90], json_encode($k['karte']['roboter'] ?? null));
 FakeCloud::$props['2.1'] = 13;
 $maeher->Aktualisieren();
+
+abschnitt('Zeitpläne');
+// Beispiele aus ioBroker lib/schedule.js (Live-Messpunkte dort): Raum-Termin, Alle Räume, Kurzbefehl.
+$plan = '5-1-07:00-0101010-1-1-0-0-1126240517;2-0-22:30-1111111-1-1-20-297795617-0;3-3-06:00-0000000-0-1-0-512-0';
+$tp = RoboHubDreame::zeitplaeneLesen($plan);
+check('drei Termine, nach Uhrzeit sortiert', array_column($tp, 'zeit') === ['06:00', '07:00', '22:30'], json_encode(array_column($tp, 'zeit')));
+$raumT = $tp[1];
+check('Raum-Termin: an, Mo/Mi/Fr (Maske ab Sonntag)', $raumT['an'] === true && $raumT['tage'] === ['Mo', 'Mi', 'Fr'] && $raumT['einmalig'] === false, json_encode($raumT));
+check('Raum-Termin: Wort 0x43211105 → Raum 5, 1 Durchgang, Standard, Saugen und Wischen', $raumT['art'] === 'raeume' && $raumT['raeume'] === [['id' => 5, 'durchgaenge' => 1, 'saugstufe' => 'Standard', 'modus' => 'Saugen und Wischen']], json_encode($raumT['raeume'] ?? null));
+check('Alle Räume: aus, täglich, 0x11c00021 → Saugen und Wischen, Standard, 1 Durchgang', $tp[2]['art'] === 'alle' && $tp[2]['an'] === false && count($tp[2]['tage']) === 7 && $tp[2]['modus'] === 'Saugen und Wischen' && $tp[2]['saugstufe'] === 'Standard' && $tp[2]['durchgaenge'] === 1, json_encode($tp[2]));
+check('Kurzbefehl 512/256 = 2, Zustand 3 = ungültig, Feld 4 „0" = einmalig', $tp[0]['art'] === 'kurzbefehl' && $tp[0]['kurzbefehl'] === 2 && $tp[0]['ungueltig'] === true && $tp[0]['an'] === false && $tp[0]['einmalig'] === true);
+check('leer / Müll → keine Termine statt Absturz', RoboHubDreame::zeitplaeneLesen('') === [] && RoboHubDreame::zeitplaeneLesen('kaputt;1-2') === []);
+check('Alle Räume: Modus 3 = Wischen (eigene Reihenfolge, nicht die der Raum-Termine)', RoboHubDreame::zeitplaeneLesen('4-1-09:00-1111111-1-1-20-297795633-0')[0]['modus'] === 'Wischen');
+check('Zustand 2 zählt als an (Tasshack)', RoboHubDreame::zeitplaeneLesen('9-2-08:00-1111111-1-1-0-0-1126240517')[0]['an'] === true);
+
+FakeCloud::$props['8.2'] = $plan;
+FakeCloud::$props['2.1'] = 13;
+$geraet->Aktualisieren();
+$namenR = json_decode($geraet->ReadAttributeString('Raeume'), true);
+$raum5 = $namenR['5'] ?? 'Raum 5';
+$zv = (string)(variable(2000, 'Zeitplaene')['value'] ?? '');
+check('Variable „Zeitpläne" in Klartext mit Raumnamen', strpos($zv, '✅ 07:00 · Mo, Mi, Fr · ' . $raum5 . ' · Saugen und Wischen') !== false && strpos($zv, '⏸️ 22:30 · täglich · alle Räume · Saugen und Wischen') !== false && strpos($zv, '06:00 · einmalig · Kurzbefehl 2 · ⚠️ ungültig') !== false, $zv);
+$k = kachelJson($geraet->GetVisualizationTile());
+check('Werktage Mo–Fr als „werktags"', strpos((function () use ($geraet) { $r = new ReflectionMethod('RoboHubGeraet', 'zeitplanText'); return $r->invoke($geraet, ['zeit' => '08:00', 'tage' => ['Mo', 'Di', 'Mi', 'Do', 'Fr'], 'art' => 'alle']); })(), '08:00 · werktags · alle Räume') === 0);
+check('Kachel: drei Zeitpläne, ungültiger nicht schaltbar', count($k['zeitplaene'] ?? []) === 3 && $k['zeitplaene'][0]['schaltbar'] === false && $k['zeitplaene'][1]['an'] === true, json_encode($k['zeitplaene'] ?? null, JSON_UNESCAPED_UNICODE));
+$formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+check('Formular: Panel „Zeitpläne (3)" mit Schaltknöpfen', strpos($formKlar, 'Zeitpläne (3)') !== false && strpos($formKlar, 'ROBO_ZeitplanSchalten($id, 2, true)') !== false && strpos($formKlar, 'ROBO_ZeitplanSchalten($id, 5, false)') !== false);
+
+FakeCloud::$anfragen = [];
+// Inzwischen in der App geändert (Termin 5 auf 07:30) — Schalten darf das nicht überschreiben.
+FakeCloud::$props['8.2'] = str_replace('5-1-07:00-', '5-1-07:30-', $plan);
+$t = $geraet->ZeitplanSchalten(2, true);
+check('Einschalten: 8.2 frisch gelesen, nur Feld 1 von Termin 2 geändert (App-Änderung bleibt)', (gesetzt()['8.2'] ?? '') === '5-1-07:30-0101010-1-1-0-0-1126240517;2-1-22:30-1111111-1-1-20-297795617-0;3-3-06:00-0000000-0-1-0-512-0' && strpos($t, '📤') === 0, (gesetzt()['8.2'] ?? '') . ' ' . $t);
+FakeCloud::$props['8.2'] = $plan;
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('Zeitplan', '5:0');
+check('Kachel „5:0" schaltet Termin 5 aus', strpos((string)(gesetzt()['8.2'] ?? ''), '5-0-07:00-') === 0);
+FakeCloud::$anfragen = [];
+$t = $geraet->ZeitplanSchalten(3, true);
+check('ungültiger Termin → abgelehnt, nichts geschrieben', strpos($t, '⛔') === 0 && gesetzt() === [], $t);
+FakeCloud::$anfragen = [];
+$t = $geraet->ZeitplanSchalten(9, true);
+check('unbekannter Termin → abgelehnt, nichts gesendet', strpos($t, '⛔') === 0 && count(FakeCloud::befehle()) === 0);
+check('Treiber prüft selbst: Termin weg (inzwischen in der App gelöscht)', strpos(json_decode($konto->ForwardData(json_encode(['Aktion' => 'befehl', 'Geraet' => '-112663880', 'Befehl' => 'zeitplan', 'Parameter' => ['id' => 7, 'an' => true]])), true)['fehler'] ?? '', 'nicht (mehr)') !== false);
+$geraet->props['WebBedienung'] = false;
+FakeCloud::$anfragen = [];
+$j = json_decode(hook($geraet, ['cmd' => 'Zeitplan', 'wert' => '2:1', 'key' => $geraet->ReadAttributeString('WebSchluessel')]), true);
+check('Seite: Zeitplan ohne Freigabe abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
+$geraet->props['WebBedienung'] = true;
+$j = json_decode(hook($geraet, ['cmd' => 'Zeitplan', 'wert' => '2:1', 'key' => $geraet->ReadAttributeString('WebSchluessel')]), true);
+check('Seite: Zeitplan mit Freigabe + Schlüssel', $j['ok'] === true && isset(gesetzt()['8.2']), json_encode($j, JSON_UNESCAPED_UNICODE));
+$geraet->props['WebBedienung'] = false;
+$_GET = [];
+FakeCloud::$props['8.2'] = '';
+$geraet->Aktualisieren();
+check('alle Termine in der App gelöscht → „keine", Kachel leer', variable(2000, 'Zeitplaene')['value'] === 'keine' && kachelJson($geraet->GetVisualizationTile())['zeitplaene'] === []);
+unset(FakeCloud::$props['8.2']);
+
+// Mäher: Zeitplan-Rohtext aus den Gerätedaten für „📋 Rohdaten" (Format noch offen).
+FakeCloud::$geraeteDaten['SCHEDULE.0'] = '[[1,"Mo",480]]';
+FakeCloud::$geraeteDaten['SCHEDULE.info'] = '15';
+$maeher->RaeumeLaden();
+check('Mäher: Zeitplan roh in den Rohdaten', strpos($maeher->Rohdaten(), '"zeitplanRoh": "[[1,\"Mo\",480]]"') !== false, substr($maeher->Rohdaten(), -120));
 
 abschnitt('Fehlerpfade');
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);

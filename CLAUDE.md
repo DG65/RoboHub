@@ -221,6 +221,16 @@
   Pfeilrichtung bestätigt (Dietmar: Barny schaut in der Station in den Raum, Pfeil passt; Formel 90° − Winkel stimmt).
   Offen: Verhalten während einer echten Reinigung, Mäher (Weg, Position, Pfeilrichtung).
 
+## Zeitpläne (0.9.0)
+
+- Sauger 8.2, eigener Block am Ende. Lesen: `RoboHubDreame::zeitplaeneLesen()` (Tasshack + ioBroker
+  lib/schedule.js, dort von TA2k gegen Live-Messpunkte geprüft). Schreiben nur Feld 1 (an/aus) per
+  Read-Modify-Write — Tasshack schreibt 8.2 gar nicht (nur Löschen über Aktion), ioBroker schaltet so.
+- Raum-Termine: Raumnamen aus dem Attribut `Raeume` (gleiche Segment-IDs wie die Karte).
+- Mäher: `SCHEDULE.0…n` aus getDeviceData nur roh (Attribut `ZeitplanRoh`, „📋 Rohdaten"); Auswertung nach
+  Live-Befund.
+- **Live offen:** Barnys 8.2-Inhalt gegen die App, Schalten eines Termins.
+
 ## Prüfen
 
 ```

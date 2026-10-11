@@ -52,6 +52,8 @@ button:active{transform:scale(.97)}
 .teil.rot{color:var(--rot)}.teil.gelb{color:var(--gelb)}.teil.ok{color:var(--fg2)}
 .mini{font-size:.78em;padding:.15em .55em;margin-left:.4em;border-radius:.6em}
 .mini.ja{background:var(--rotbg);color:var(--rot);border-color:transparent}
+.teil.aus{color:var(--fg2);opacity:.75}
+.mini.aus{background:transparent;color:var(--fg2)}
 .mehr{background:none;border:none;color:var(--blau);padding:.4em 0;font-size:.88em}
 .fuss{margin-top:auto;padding-top:.8em;font-size:.75em;color:var(--fg2)}
 .meldung{font-size:.85em;color:var(--fg2);margin-top:.6em;min-height:1.2em}
@@ -173,6 +175,16 @@ function zeichnen() {
       var namen = d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0; }).map(function (x) { return x.name; }).join(', ');
       r += '<button class="start los" onclick="senden(\'Raeume\',\'' + gewaehlt.join(',') + '\',\'' + (d.klasse === 'maeher' ? 'Mähen ' : 'Reinigung ') + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + (d.klasse === 'maeher' ? ' mähen' : ' reinigen') + '</button>';
     }
+    r += '</div>';
+  }
+  if ((d.zeitplaene || []).length) {
+    r += '<div class="block"><p class="abschnitt">Zeitpläne</p>';
+    d.zeitplaene.forEach(function (t) {
+      var knopf = bedienbar && t.schaltbar
+        ? ' <button class="mini' + (t.an ? '' : ' aus') + '" onclick="senden(\'Zeitplan\',\'' + Number(t.id) + ':' + (t.an ? 0 : 1) + '\',\'Zeitplan ' + (t.an ? 'aus' : 'ein') + '\')">' + (t.an ? 'an' : 'aus') + '</button>'
+        : '';
+      r += '<div class="teil ' + (t.an ? 'ok' : 'aus') + '"><span>' + (t.an ? '🗓️ ' : '⏸️ ') + esc(t.text) + '</span><span>' + knopf + '</span></div>';
+    });
     r += '</div>';
   }
   if ((d.info || []).length) {
