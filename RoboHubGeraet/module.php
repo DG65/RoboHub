@@ -513,7 +513,8 @@ class RoboHubGeraet extends IPSModule
      */
     public function LiveKarteLaden(): string
     {
-        $antwort = $this->frageKonto(['Aktion' => 'livekarte', 'Geraet' => $this->ReadPropertyString('GeraetID')]);
+        $antwort = $this->frageKonto(['Aktion' => 'livekarte', 'Geraet' => $this->ReadPropertyString('GeraetID'),
+            'Raeume' => json_decode($this->ReadAttributeString('Raeume'), true) ?: []]);
         if (!$antwort['ok']) {
             $this->SendDebug('Live-Karte', (string)$antwort['fehler'], 0);
             return '⛔ ' . $antwort['fehler'];

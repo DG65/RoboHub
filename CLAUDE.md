@@ -214,6 +214,10 @@
 - Kachel-Feld `karte` bekommt `weg`, `roboter`, `live` (Zeitstempel); `geometrie` bleibt im Attribut.
 - Takt `LiveKarte` getrennt vom Abruf-Takt (der mit Echtzeit 120 s bleibt).
 - Prüfstand: 19/19 Mutationen gefangen.
+- **Live (12.10.2026 00:35, Barny in der Station, 0.8.0):** Anforderung beantwortet, Bild 374×394, Weg der letzten
+  Reinigung 138 Punkte, Roboter = Station. **Live-Rahmen ohne `seg_inf`** (Raumnummern nur in den Bildpunkten)
+  → seit 0.8.1 Namen aus dem Attribut `Raeume` (Gerät → Konto → Treiber `$geraet['raeume']`).
+  Offen: Verhalten während einer echten Reinigung, Pfeilrichtung, Mäher.
 
 ## Prüfen
 

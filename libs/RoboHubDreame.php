@@ -1464,6 +1464,12 @@ PEM;
             throw new RoboHubFehler('Der Roboter hat keine aktuelle Karte geliefert.');
         }
         $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
+        if ($raeume === []) {
+            // Live-Rahmen ohne seg_inf: Namen aus der gespeicherten Karte (vom Roboter mitgegeben).
+            foreach ((array)($geraet['raeume'] ?? []) as $id => $name) {
+                $raeume[(int)$id] = (string)$name;
+            }
+        }
         $bild = RoboHubKartenbild::sauger($roh, $raeume, true);
         $this->dbg('Live-Karte', $roh['breite'] . '×' . $roh['hoehe'] . ', Kodierung „' . $bild['kodierung'] . '", Weg ' . count($bild['weg'] ?? []) . ' Stücke, Roboter ' . json_encode($bild['roboter'] ?? null));
         unset($bild['kodierung']);

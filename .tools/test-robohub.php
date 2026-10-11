@@ -544,6 +544,7 @@ check('Raum ohne Namen in der Raumliste → keine Beschriftung, kein Absturz', c
 $v3 = str_repeat(chr(3), 4) . str_repeat(chr(63), 4) . str_repeat(chr(31), 4) . str_repeat(chr(63), 4);
 $kb3 = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => []]], 'breite' => 4, 'hoehe' => 4, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => $v3], [3 => 'Flur']);
 check('passende Kodierung „v3" gewählt (Raumnummern passen zu seg_inf)', $kb3['kodierung'] === 'v3');
+check('ohne seg_inf entscheidet die Raumliste über die Kodierung (Live-Rahmen)', RoboHubKartenbild::sauger(['json' => [], 'breite' => 4, 'hoehe' => 4, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => $v3], [3 => 'Flur'])['kodierung'] === 'v3');
 check('Station 0/0 = unbekannt → keine Markierung', $kb3['station'] === null);
 $rahmen = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => []], 'fsm' => 1], 'breite' => 2, 'hoehe' => 1, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => chr(3 << 2) . chr(63 << 2)], [3 => 'Flur']);
 $pr = pngLesen($rahmen['bild']);
@@ -1225,6 +1226,16 @@ check('… danach keine weiteren Anforderungen', count(array_filter(FakeCloud::b
 check('fertiger Weg bleibt bis zur nächsten Arbeit stehen', isset(kachelJson($geraet->GetVisualizationTile())['karte']['weg']));
 FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . $lJson)), '+/', '-_')]];
 check('Kartentext direkt in der Antwort (6.1) wird ebenfalls genommen', strpos($geraet->LiveKarteLaden(), '✅') === 0);
+// Live-Befund Barny: Live-Rahmen ohne seg_inf → Namen aus der gespeicherten Raumliste, Räume trotzdem farbig.
+FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . json_encode(['tr' => 'M75,25L100,0']))), '+/', '-_')]];
+$geraet->LiveKarteLaden();
+$k = kachelJson($geraet->GetVisualizationTile());
+$namenLive = array_map(function ($m) { return $m['name']; }, $k['karte']['marken'] ?? []);
+sort($namenLive);
+check('Live-Rahmen ohne seg_inf: Namen aus der gespeicherten Karte', $namenLive === ['Bad', 'Küche'], json_encode($namenLive, JSON_UNESCAPED_UNICODE));
+check('… Räume farbig (Palette mit Raumfarben)', strlen(pngLesen($k['karte']['bild'])['plte'] ?? '') >= 3 * 6);
+$ohneNamen = RoboHubKartenbild::sauger(['json' => []] + $rohKarte, []);
+check('Räume ganz ohne Namen bekommen trotzdem eigene Farben', ($pz = pngLesen($ohneNamen['bild'])) && $pz['zeilen'][2 * intdiv($pz['b'], 4)][0] >= 4 && $ohneNamen['marken'] === []);
 FakeCloud::$liveOut = [];
 check('keine Karte geliefert → klare Meldung, alte bleibt', strpos($geraet->LiveKarteLaden(), '⛔') === 0 && isset(kachelJson($geraet->GetVisualizationTile())['karte']['weg']));
 $geraet->props['LiveKarte'] = false;

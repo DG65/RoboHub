@@ -55,7 +55,12 @@ final class RoboHubKartenbild
         if ($b <= 0 || $h <= 0 || strlen($pixel) < $b * $h || $b * $h > 4000000) {
             return $leer;
         }
-        $segInf = array_map('intval', array_keys((array)($roh['json']['seg_inf'] ?? [])));
+        // Bekannte Räume: aus der Karte selbst (seg_inf) oder — Live-Rahmen tragen
+        // seg_inf nicht immer (Barny r9547a, Live-Befund 12.10.2026) — aus der Raumliste.
+        $segInf = array_values(array_unique(array_merge(
+            array_map('intval', array_keys((array)($roh['json']['seg_inf'] ?? []))),
+            array_map('intval', array_keys($raeume))
+        )));
         $kodierung = self::waehleKodierung($pixel, $roh['json'] ?? [], $segInf);
 
         // Klassen je Punkt + Umriss der belegten Fläche.
@@ -91,7 +96,14 @@ final class RoboHubKartenbild
         $hh = $maxY - $minY + 1;
 
         // Palette: 0 transparent, 1 Wand, 2 Boden, 3 Trennlinie, ab 4 die Räume (feste Farbe je Raum-Reihenfolge).
-        $ids = array_values(array_unique(array_merge(array_keys($raeume), $segInf)));
+        // Auch Räume ohne Namen bekommen eine Farbe.
+        $imBild = [];
+        foreach ($tabelle as $k) {
+            if ($k >= 100) {
+                $imBild[] = $k - 100;
+            }
+        }
+        $ids = array_values(array_unique(array_merge(array_keys($raeume), $segInf, $imBild)));
         sort($ids);
         $index = [];
         $palette = [[255, 255, 255], self::WAND, self::BODEN, self::TRENNLINIE];

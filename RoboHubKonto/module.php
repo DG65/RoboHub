@@ -254,7 +254,7 @@ class RoboHubKonto extends IPSModule
                 return $this->treiber()->karte($buendel, $geraet);
             }
             if ($aktion === 'livekarte') {
-                return $this->treiber()->liveKarte($buendel, $geraet);
+                return $this->treiber()->liveKarte($buendel, $geraet + ['raeume' => (array)($anfrage['Raeume'] ?? [])]);
             }
             if ($aktion === 'zuruecksetzen') {
                 return $this->treiber()->zuruecksetzen($buendel, $geraet, (string)($anfrage['Teil'] ?? ''));

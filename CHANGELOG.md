@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.1 (12.10.2026)
+
+- Fix Live-Karte: Barnys Live-Rahmen (r9547a) trägt kein `seg_inf` — Räume waren grau und ohne Namen.
+  Jetzt Namen aus der gespeicherten Raumliste (Roboter gibt sie mit), Kodierungswahl auch über diese
+  Liste, und jeder Raum im Bild bekommt eine Farbe, auch ohne Namen.
+- Live bestätigt (0.8.0, Barny in der Station): Anforderung 6.1 beantwortet, Weg der letzten Reinigung
+  (138 Punkte) und Roboter auf der Station.
+
 ## 0.8.0 (12.10.2026)
 
 - Neu: **Live-Karte** — gefahrener Weg und Roboterposition auf Kachel und IPSView-Seite.
