@@ -75,6 +75,7 @@
   (4.1/4.2/4.3/4.7) wird nicht beantwortet** → Abruf ~13 s. Seit 0.2.1 gebaut (Dietmars Auftrag): `BlockSperre`
   im Konto, 1 h, nur sperren, wenn ein anderer Block antwortete.
 - „Orten" an Barny II live: Cloud angenommen und **Barny hat gepiept** (Dietmar bestätigt) — erster echter Befehl.
+- **Raumreinigung live (Barny, Raum 1 „Vorrat")**: action 4.1 mit selects `[[1,1,saug,wasser,1]]` angenommen; danach 2.1 = 12 „Saugt und wischt", 4.1 = 18 (Raumreinigung), 4.7 = 3 (Raum). 11.10.2026 17:55, Dietmar vor Ort.
 - „Orten" am LiDAX live: Kanal 2.50 `{"m":"a","p":0,"o":9}` funktioniert, **LiDAX hat gepiept** (Dietmar bestätigt). Start/Stopp/Pause (5.x vs. 2.x) noch ungetestet.
 - 0.2.1 live gemessen am LiDAX: 1. Abruf 9,2 s (Block 4.x versucht), 2. Abruf **0,5 s** (Block übersprungen).
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
