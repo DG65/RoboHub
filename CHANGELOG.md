@@ -14,7 +14,7 @@
 - Neue Abfrageblöcke am Ende der Sauger-Liste (Blocksperre-Indizes bleiben stabil).
 - Treiber meldet änderbare Felder unter `schreibbar`; die Instanz führt die Liste zusammen (Mäher-
   Echtzeit-Meldungen tragen die Einstellungen nicht mit).
-- Noch nicht live geprüft.
+- Live an beiden Geräten bestätigt (Lesen und Schreiben, gegen beide Apps).
 
 ## 0.4.4 (11.10.2026)
 

@@ -165,7 +165,10 @@
   übrige Felder unverändert); Barny spiegelt selbst nach 5.3 = "07:30"; Dreamehome-App zeigte 22:00–07:30
   (Dietmar bestätigt); zurück auf 08:00 (5.3/5.4 = 08:00).
 - **Mäher-Lautstärke schreiben live bestätigt (LiDAX, 23:40–23:41):** `{"m":"s","t":"VOL","d":{"value":10}}`
-  angenommen, frisch gelesenes CFG danach VOL = 10; zurück auf 0 (CFG VOL = 0). Mäher-DND-Schreiben noch nicht live.
+  angenommen, frisch gelesenes CFG danach VOL = 10; zurück auf 0 (CFG VOL = 0).
+- **Mäher-DND schreiben live bestätigt (LiDAX, 23:42–23:43):** Ende 11:00 → 10:30 per
+  `{"m":"s","t":"DND","d":{"value":0,"time":[1200,630]}}`, CFG danach aus/20:00–10:30, MOVAhome-App zeigte
+  20:00–10:30 (Dietmar bestätigt); zurück auf 11:00. **Damit ist 0.5.0 an beiden Geräten vollständig live geprüft.**
 
 ## Prüfen
 
