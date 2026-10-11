@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.4.1' => [
+            '• Echtzeit: Auch Konten, die vor 0.4.0 angelegt wurden, bekommen jetzt ihre Verbindungsinstanz (Client Socket).',
+        ],
         '0.4.0' => [
             '• ⚡ Echtzeit-Meldungen: Änderungen am Roboter (Zustand, Akku, Fehler, Station) kommen sofort per verschlüsselter Verbindung von der Hersteller-Cloud — Panel „⚡ Echtzeit-Meldungen" in der Konto-Instanz. Dafür legt Symcon unter jedem Konto automatisch eine Client-Socket-Instanz an.',
         ],

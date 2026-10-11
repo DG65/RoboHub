@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1 (11.10.2026)
+
+- Fix: Bestehende Konto-Instanzen bekamen unter 0.4.0 keinen Client Socket — `RequireParent`
+  stand nur in `Create()`. Jetzt zusätzlich in `ApplyChanges()` (SDK-Doku). Prüfstand bildet
+  den Bestandsfall nach (Create ohne Wirkung).
+
 ## 0.4.0 (11.10.2026)
 
 - **Echtzeit-Meldungen per MQTT** (Dietmars Auftrag): eigener schlanker MQTT-3.1.1-Client

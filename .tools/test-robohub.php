@@ -111,7 +111,8 @@ class IPSModule
     public function UpdateFormField(string $n, string $p, $v): void { $this->fields[] = [$n, $p, $v]; }
     public function HasActiveParent(): bool { return $this->parent !== null; }
     public $puffer = [];
-    public function RequireParent(string $guid): void { if ($this->parent === null) { $this->parent = new FakeSocket($this->InstanceID + 90000); } }
+    public $requireParentAufrufe = 0;
+    public function RequireParent(string $guid): void { $this->requireParentAufrufe++; if ($this->parent === null && !empty($GLOBALS['REQUIRE_PARENT_WIRKT'])) { $this->parent = new FakeSocket($this->InstanceID + 90000); } }
     public function SetBuffer(string $n, string $v): void { $this->puffer[$n] = $v; }
     public function GetBuffer(string $n): string { return $this->puffer[$n] ?? ''; }
     public function SendDataToChildren(string $json): void { foreach ($GLOBALS['INST'] as $m) { if ($m instanceof IPSModule && $m->parent === $this) { $m->ReceiveData($json); } } }
@@ -695,6 +696,10 @@ check('Roboter ohne Konto: rote ⛔-Zeile', strpos(json_encode($f, JSON_UNESCAPE
 unset($GLOBALS['INST'][2400], $GLOBALS['INST'][2401], $GLOBALS['INST'][2402]);
 
 abschnitt('Echtzeit (MQTT)');
+// Wie live beobachtet: Das Konto existierte schon vor 0.4.0, Create() hat keinen Socket gebracht.
+check('Bestandskonto hat noch keinen Socket', $konto->parent === null);
+$GLOBALS['REQUIRE_PARENT_WIRKT'] = true;
+$konto->ApplyChanges();
 $socket = $konto->parent;
 check('Konto bekommt einen Client Socket (RequireParent)', $socket instanceof FakeSocket);
 $sockCfg = json_decode($konto->GetConfigurationForParent(), true);

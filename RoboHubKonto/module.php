@@ -80,6 +80,10 @@ class RoboHubKonto extends IPSModule
             return;
         }
         $this->aktualisiereStatus();
+        // Auch hier, nicht nur in Create(): bestehende Konten (vor 0.4.0 angelegt)
+        // bekommen ihren Client Socket sonst nie (Live-Befund 11.10.2026,
+        // SDK-Doku: „normalerweise in Create() oder ApplyChanges()").
+        $this->RequireParent(self::CLIENT_SOCKET);
         $this->elternBeobachten();
         $this->echtzeitKonfigurieren(false);
     }
