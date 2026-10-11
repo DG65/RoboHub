@@ -192,6 +192,10 @@
 - Attribut `Karte` (JSON), Kachel-Feld `karte`; leeres Bild überschreibt kein vorhandenes.
 - Trennlinien (0.7.1): Palette 3 weiß, nur Raum↔anderer Raum (rechts/unten), letzte Teilspalte/-zeile eines
   Kartenpunkts; Vergrößerung mindestens 2.
+  Live (12.10.2026 00:17, Barny): PNG gültig 538×400 (Vergrößerung 2), 377 Linienpunkte — die meisten Räume
+  der gespeicherten Karte haben ohnehin schon eine Lücke dazwischen, Linien entstehen nur, wo sie direkt
+  aneinanderstoßen (z. B. Wohnzimmer/Esszimmer). Hinweis: Bild nie per Hand aus dem Protokoll abschreiben
+  (Prüfsumme kaputt) — in Symcon selbst prüfen.
 - Vorschau-Generator im Scratchpad (`vorschau-karte.py` + `karte-demo.php`), nicht im Repo.
 - **Live bestätigt (12.10.2026 00:08, 0.7.0):** Barny r9547a → PNG 269×200 Punkte (Vergrößerung 1), 7 Räume
   farbig + Namen + Station; gespeicherte Karte enthält kaum Wandpunkte (nur Hindernisse), Räume grenzen direkt
