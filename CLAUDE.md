@@ -179,7 +179,7 @@
   App-Plugin), **live noch nicht geprüft**. Bewegungsbefehl → nur mit Dietmars Freigabe (Rasen frei, er vor Ort).
 - Variable/Attribut wie bei den Sauger-Räumen (`Raum`, `Raeume`), Kachel-Text „mähen" statt „reinigen".
 - **Live gelesen (11.10.2026 23:55, LiDAX):** getDeviceData liefert die Karte im erwarteten Format, 1 Zone:
-  ID 1 „Rasen" → Variable „Zone mähen" angelegt. Zonen-Start (o 102) noch nicht live.
+  ID 1 „Rasen" → Variable „Zone mähen" angelegt; MOVAhome kennt ebenfalls nur „Rasen" (Dietmar bestätigt). Zonen-Start (o 102) noch nicht live.
 
 ## Prüfen
 
