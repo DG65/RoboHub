@@ -204,9 +204,8 @@ class RoboHubDreame implements RoboHubTreiber
                 return $url;
             }
         }
-        // Echte Gerätelisten weichen vom ioBroker-Beispiel ab (Live-Befund
-        // 11.10.2026: deviceInfo.mainImage fehlte bei Dreame UND MOVA) —
-        // deshalb ersatzweise das erste Bild irgendwo im Datensatz.
+        // Sicherheitsnetz für Modelle, die das Bild an anderer Stelle führen.
+        // (Live 11.10.2026: Dreame r9547a und MOVA g2529c liefern mainImage.)
         $treffer = self::bildPfade($record);
         return $treffer ? (string)reset($treffer) : '';
     }

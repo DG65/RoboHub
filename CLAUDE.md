@@ -112,8 +112,10 @@
 
 - **Produktbild (0.3.4):** `RoboHubDreame::bildVon()` aus listV2 `deviceInfo.*.imageUrl`
   (öffentlich auf oss.iot.dreame.tech, ohne Anmeldung abrufbar, HTTP 200 geprüft), Attribut
-  `Bild`, Kachel lädt direkt (Hotlink, keine Kopie — Bildrechte beim Hersteller). Ob MOVA ein
-  Bild liefert: live offen.
+  `Bild`, Kachel lädt direkt (Hotlink, keine Kopie — Bildrechte beim Hersteller). **Live bestätigt
+  (22:07):** Dreame r9547a UND MOVA g2529c liefern `deviceInfo.mainImage/popup/icon/overlook.imageUrl`
+  (MOVA-Pfad enthält `/000002/ali_dreame/null/`). Kachel zeigt beide Bilder (Screenshot 22:05).
+  Meine Zwischen-These „mainImage fehlt" war falsch — die Daten stammten von vor dem Update.
 
 ## Prüfen
 

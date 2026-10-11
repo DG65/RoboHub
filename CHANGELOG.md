@@ -2,9 +2,11 @@
 
 ## 0.3.5 (11.10.2026)
 
-- Produktbild: Bei Dietmars Dreame- und MOVA-Konto lieferte `deviceInfo.mainImage` kein
-  Bild (Kachel blieb beim Symbol). Ersatzweise wird jetzt die erste https-Bildadresse im
-  ganzen Datensatz genommen; die Rohdaten zeigen Felder und gefundene Bildpfade.
+- Produktbild: Ersatzweise wird jetzt die erste https-Bildadresse im ganzen Datensatz
+  genommen, falls `deviceInfo.mainImage` fehlt; die Rohdaten zeigen Felder und gefundene
+  Bildpfade. **Korrektur:** Die Vermutung, `mainImage` fehle bei Dietmars Konten, war falsch —
+  live liefern Dreame (r9547a) und MOVA (g2529c) es dort. Die leere Kachel unter 0.3.4 kam
+  daher, dass noch kein Abruf nach dem Update gelaufen war (Bild wird erst beim Abruf gesetzt).
 
 ## 0.3.4 (11.10.2026)
 
