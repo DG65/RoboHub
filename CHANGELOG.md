@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.5 (11.10.2026)
+
+- Sauger: Abwasserauslassfilter (35.2 %, 35.1 h; Tasshack) und Schmutzwasserbehälter
+  des Roboters (26.1 %, 26.2 h; ioBroker) — wie in der Dreamehome-App. Eigener
+  Abfrageblock am Ende der Liste (Blocksperre-Indizes bleiben stabil).
+
 ## 0.2.4 (11.10.2026)
 
 - Reststunden je Verbrauchsteil (Dietmars Wunsch). Sauger: vom Gerät geliefert

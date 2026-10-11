@@ -286,6 +286,7 @@ FakeCloud::$props = [
     '2.2' => 0, '3.2' => 3, '4.2' => 35, '4.3' => 42, '4.4' => 1, '4.5' => 2, '4.23' => (5 << 16) | 0, '4.25' => 0,
     '9.2' => 88, '10.2' => 77, '11.1' => 66, '16.1' => 55, '18.1' => 44,
     '9.1' => 169, '10.1' => 69, '11.2' => 19, '16.2' => 0, '18.2' => 250,
+    '35.2' => 40, '35.1' => 120, '26.1' => 75, '26.2' => 300,
     '27.1' => 0, '27.2' => 0, '27.3' => 2, '27.4' => 2, '28.1' => 20, '12.2' => 6000, '12.3' => 17, '12.4' => 950,
     '6.8' => '',
 ];
@@ -300,6 +301,9 @@ check('Verbrauchsteile angelegt (Hauptbürste 88 %)', variable(2000, 'Hauptbuers
 check('Filter-% von piid 1', variable(2000, 'Filter')['value'] === 66);
 check('Reststunden Sauger (Haupt/Seite/Filter/Sensoren/Mopp)', variable(2000, 'HauptbuersteRest')['value'] === 169.0 && variable(2000, 'SeitenbuersteRest')['value'] === 69.0 && variable(2000, 'FilterRest')['value'] === 19.0 && variable(2000, 'SensorenRest')['value'] === 0.0 && variable(2000, 'MoppRest')['value'] === 250.0);
 check('Sensoren 0 h bleibt 0 (kein Ausblenden echter Nullwerte)', variable(2000, 'SensorenRest') !== null);
+check('Abwasserauslassfilter: 35.2 = %, 35.1 = h', variable(2000, 'Abwasserfilter')['value'] === 40 && variable(2000, 'AbwasserfilterRest')['value'] === 120.0);
+check('Schmutzwasserbehälter: 26.1 = %, 26.2 = h', variable(2000, 'Schmutzwasserbehaelter')['value'] === 75 && variable(2000, 'SchmutzwasserbehaelterRest')['value'] === 300.0);
+check('neuer Block hängt am Ende (Blocksperre-Indizes stabil)', (function () { $r = new ReflectionClass('RoboHubDreame'); $b = $r->getConstant('BLOECKE_SAUGER'); return end($b) === [[26, 1], [26, 2], [35, 1]] && $b[2][5] === [35, 2]; })());
 check('Saugstufe als schaltbare Auswahl', variable(2000, 'Saugstufe')['action'] === true && variable(2000, 'Saugstufe')['value'] === 1);
 check('Wassermenge entfällt bei Feuchte-Modell (28.1)', variable(2000, 'Wassermenge') === null);
 check('Reinigungsmodus mit Mopp-Anhebung: Leitung 0 → Saugen und Wischen (2)', variable(2000, 'Reinigungsmodus')['value'] === 2);

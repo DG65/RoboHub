@@ -225,6 +225,10 @@ class RoboHubDreame implements RoboHubTreiber
         // Block AM ENDE: die Blocksperre (0.2.1) merkt sich Block-Indizes,
         // neue Blöcke dürfen die bestehenden Indizes nicht verschieben.
         [[9, 1], [10, 1], [11, 2], [16, 2], [18, 2]],
+        // Schmutzwasserbehälter am Roboter (ioBroker consumables.js: 26.1 %,
+        // 26.2 h) und Stunden des Abwasserauslassfilters (Tasshack: 35.1 h,
+        // 35.2 % steht schon in Block 2). Ebenfalls am Ende (Blocksperre).
+        [[26, 1], [26, 2], [35, 1]],
     ];
     private const BLOECKE_MAEHER = [
         [[2, 1], [2, 2], [3, 1], [3, 2]],
@@ -431,6 +435,12 @@ class RoboHubDreame implements RoboHubTreiber
         $w['FilterRest']        = isset($p['11.2']) ? (float)$p['11.2'] : null;   // Filter: Stunden an piid 2
         $w['SensorenRest']      = isset($p['16.2']) ? (float)$p['16.2'] : null;
         $w['MoppRest']          = isset($p['18.2']) ? (float)$p['18.2'] : null;
+        // Reihenfolge %/h bei 35 nur aus Tasshack; an Dietmars Gerät beide 0,
+        // also live nicht unterscheidbar (siehe CLAUDE.md).
+        $w['Abwasserfilter']             = isset($p['35.2']) ? (int)$p['35.2'] : null;
+        $w['AbwasserfilterRest']         = isset($p['35.1']) ? (float)$p['35.1'] : null;
+        $w['Schmutzwasserbehaelter']     = isset($p['26.1']) ? (int)$p['26.1'] : null;
+        $w['SchmutzwasserbehaelterRest'] = isset($p['26.2']) ? (float)$p['26.2'] : null;
 
         if (isset($p['4.25'])) {
             $w['Station'] = [0 => 'Bereit', 1 => 'Wäscht', 2 => 'Trocknet', 3 => 'Roboter kehrt zurück', 4 => 'Pausiert', 5 => 'Füllt Wasser', 6 => 'Füllt Wasser', 7 => 'Kehrt zum Trocknen zurück'][(int)$p['4.25']] ?? 'Zustand ' . (int)$p['4.25'];

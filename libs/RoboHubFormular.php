@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.2.5' => [
+            '• Saugroboter: zusätzlich Abwasserauslassfilter und Schmutzwasserbehälter des Roboters (% und Reststunden), sofern das Modell sie meldet.',
+        ],
         '0.2.4' => [
             '• Reststunden der Verbrauchsteile wie in den Hersteller-Apps: Sauger (Hauptbürste, Seitenbürste, Filter, Sensoren, Mopp/Walze) und Mäher (Messer, Reinigungsbürste, Wartung) — z. B. für eine Erinnerung vor dem Wechsel.',
         ],
