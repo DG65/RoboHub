@@ -927,6 +927,7 @@ PEM;
     {
         $termine = [];
         $roh = [];
+        $protokoll = [];      // je Platz/Generation die Antwort — für „📋 Rohdaten", falls nichts gefunden wird
         foreach ([-1, 0, 1] as $platz) {
             foreach ([2, 3] as $gen) {
                 try {
@@ -935,8 +936,10 @@ PEM;
                     if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
                         throw $e;
                     }
+                    $protokoll[] = 'Platz ' . $platz . ' V' . $gen . ': ' . $e->getMessage();
                     continue;
                 }
+                $protokoll[] = 'Platz ' . $platz . ' V' . $gen . ': ' . substr((string)json_encode($info), 0, 200);
                 if (!is_array($info) || !isset($info['l'], $info['v'])) {
                     continue;
                 }
@@ -966,7 +969,7 @@ PEM;
                 break;
             }
         }
-        return [$termine, implode("\n", $roh)];
+        return [$termine, $roh !== [] ? implode("\n", $roh) : implode("\n", $protokoll)];
     }
 
     /** Antwort-„d" einer Konfigurationskanal-Abfrage (2.50), r ≠ 0 = Fehler. */
@@ -978,7 +981,7 @@ PEM;
             $erstes = json_decode($erstes, true);
         }
         if (!is_array($erstes) || (isset($erstes['r']) && (int)$erstes['r'] !== 0)) {
-            throw new RoboHubFehler('Mäher lehnt ' . $anfrage['t'] . ' ab.');
+            throw new RoboHubFehler('Mäher lehnt ' . $anfrage['t'] . ' ab (' . substr((string)json_encode($out['out'] ?? $out), 0, 160) . ').');
         }
         return $erstes['d'] ?? null;
     }

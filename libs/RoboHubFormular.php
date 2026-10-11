@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.9.2' => [
+            '• Mähroboter: Findet RoboHub keinen Mäh-Plan, stehen die Antworten des Mähers in „📋 Rohdaten" (Fehlersuche).',
+        ],
         '0.9.1' => [
             '• Mähroboter: Mäh-Pläne aus der Hersteller-App (Name, Wochentage, Uhrzeit, ganze Fläche oder Zonen) als Variable, auf der Kachel und im Formular — vorerst nur Anzeige.',
         ],
