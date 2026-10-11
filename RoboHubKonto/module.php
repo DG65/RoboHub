@@ -477,7 +477,7 @@ class RoboHubKonto extends IPSModule
             $schnapp[$did]['p'] = array_replace((array)$schnapp[$did]['p'], $delta);
             $daten = $this->treiber()->normalisiere((string)$schnapp[$did]['modell'], $schnapp[$did]['p']);
             $daten['online'] = true;
-            $daten['echtzeit'] = array_keys($delta);
+            $daten['echtzeit'] = $delta;   // geänderte Rohwerte mit Werten (für den Verlauf am Roboter)
             $this->SendDataToChildren((string)json_encode(['DataID' => self::DATA_ZUM_KIND, 'Geraet' => (string)$did, 'Daten' => $daten]));
             $this->mqttStand(['letzte' => time(), 'anzahl' => (int)((json_decode($this->ReadAttributeString('Mqtt'), true)['anzahl'] ?? 0)) + 1]);
         }

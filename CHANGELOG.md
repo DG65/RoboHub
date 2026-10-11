@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3 (11.10.2026)
+
+- Echtzeit live bestätigt: Beide Konten verbunden (TLS mit Hersteller-CA, `CertificateAuthority`
+  als base64(PEM) funktioniert), Anmeldung angenommen, Meldungen kommen an (7 in 4 Minuten).
+- „📋 Rohdaten" zeigen zusätzlich die letzten 20 Echtzeit-Meldungen mit ihren Rohwerten
+  (`echtzeitVerlauf`) — zur Klärung, wie das Gerät App-Änderungen meldet.
+
 ## 0.4.2 (11.10.2026)
 
 - Fix (zweiter Anlauf): Auch `RequireParent()` in `ApplyChanges()` legte bei Dietmars

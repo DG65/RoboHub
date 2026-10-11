@@ -47,6 +47,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('Raeume', '{}');
         $this->RegisterAttributeString('Bild', '');
         $this->RegisterAttributeInteger('LetzteEchtzeit', 0);
+        $this->RegisterAttributeString('EchtzeitVerlauf', '[]');
         $this->RegisterAttributeInteger('RaeumeStand', 0);
         $this->RegisterAttributeString('Optionen', '{}');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
@@ -135,7 +136,12 @@ class RoboHubGeraet extends IPSModule
         }
         $this->uebernimm($d['Daten']);
         $this->WriteAttributeInteger('LetzteEchtzeit', time());
-        $this->SendDebug('Echtzeit', 'geändert: ' . implode(', ', (array)($d['Daten']['echtzeit'] ?? [])), 0);
+        // Verlauf der letzten 20 Meldungen (Rohwerte) — zur Fehlersuche in „📋 Rohdaten".
+        $delta = (array)($d['Daten']['echtzeit'] ?? []);
+        $verlauf = json_decode($this->ReadAttributeString('EchtzeitVerlauf'), true) ?: [];
+        array_unshift($verlauf, ['zeit' => date('d.m.Y H:i:s'), 'werte' => $delta]);
+        $this->WriteAttributeString('EchtzeitVerlauf', (string)json_encode(array_slice($verlauf, 0, 20)));
+        $this->SendDebug('Echtzeit', json_encode($delta), 0);
         $this->kachelAktualisieren();
         return '';
     }
@@ -214,7 +220,16 @@ class RoboHubGeraet extends IPSModule
     public function Rohdaten(): string
     {
         $roh = $this->ReadAttributeString('LetzteRohdaten');
-        return $roh === '' ? 'ℹ️ Noch keine Rohdaten — erst einmal „Jetzt aktualisieren".' : $roh;
+        if ($roh === '') {
+            return 'ℹ️ Noch keine Rohdaten — erst einmal „Jetzt aktualisieren".';
+        }
+        $daten = json_decode($roh, true);
+        $verlauf = json_decode($this->ReadAttributeString('EchtzeitVerlauf'), true) ?: [];
+        if (!is_array($daten) || count($verlauf) === 0) {
+            return $roh;
+        }
+        $daten['echtzeitVerlauf'] = $verlauf;   // neueste zuerst, bleibt gültiges JSON
+        return (string)json_encode($daten, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
 
     // -----------------------------------------------------------------

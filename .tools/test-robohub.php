@@ -751,6 +751,8 @@ mqttVomServer($konto, substr($publish, 10));
 check('vollständige Nachricht → Zustand „Reinigt" sofort am Roboter', variable(2000, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT);
 check('… und Akku 77 %', variable(2000, 'Akku')['value'] === 77);
 check('Roboter merkt sich die Echtzeit-Meldung', $geraet->ReadAttributeInteger('LetzteEchtzeit') >= time() - 2);
+$rv = json_decode($geraet->Rohdaten(), true);
+check('Verlauf mit Rohwerten in den Rohdaten (gültiges JSON)', is_array($rv) && ($rv['echtzeitVerlauf'][0]['werte']['3.1'] ?? null) === 77, substr($geraet->Rohdaten(), -300));
 $rTakt = new ReflectionMethod('RoboHubGeraet', 'taktSekunden');
 check('mit Echtzeit kein 30-s-Schnelltakt, obwohl der Roboter reinigt', $rTakt->invoke($geraet) === 120);
 check('Kachel wurde sofort aktualisiert', strpos((string)end($geraet->visu), '"zustand":1') !== false);
