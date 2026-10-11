@@ -217,7 +217,8 @@
 - **Live (12.10.2026 00:35, Barny in der Station, 0.8.0):** Anforderung beantwortet, Bild 374×394, Weg der letzten
   Reinigung 138 Punkte, Roboter = Station. **Live-Rahmen ohne `seg_inf`** (Raumnummern nur in den Bildpunkten)
   → seit 0.8.1 Namen aus dem Attribut `Raeume` (Gerät → Konto → Treiber `$geraet['raeume']`).
-  Offen: Verhalten während einer echten Reinigung, Pfeilrichtung, Mäher.
+  0.8.1 live (00:37): 7 Räume farbig + Namen (Palette 11), Weg 138 Punkte, Roboter auf Station, Winkel 269.
+  Offen: Verhalten während einer echten Reinigung, Pfeilrichtung (Kachel zeigt bei 269° nach unten), Mäher.
 
 ## Prüfen
 
