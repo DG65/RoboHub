@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.3.4' => [
+            '• Kachel zeigt das Produktbild deines Roboters (wie in der Hersteller-App) mit farbigem Zustandsring; ohne Bild bleibt das Symbol.',
+        ],
         '0.3.3' => [
             '• Kachel: Farbstufen der Verbrauchsteile wie in den Hersteller-Apps — rot nur bei 0–5 %, gelb („bald ersetzen") bis 35 %.',
         ],

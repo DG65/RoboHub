@@ -45,6 +45,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('WebSchluessel', '');
 
         $this->RegisterAttributeString('Raeume', '{}');
+        $this->RegisterAttributeString('Bild', '');
         $this->RegisterAttributeInteger('RaeumeStand', 0);
         $this->RegisterAttributeString('Optionen', '{}');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
@@ -308,6 +309,9 @@ class RoboHubGeraet extends IPSModule
         $optionen = (array)($daten['optionen'] ?? []);
 
         $this->SetValue('Erreichbar', (bool)($daten['online'] ?? true));
+        if (isset($daten['bild']) && (string)$daten['bild'] !== $this->ReadAttributeString('Bild')) {
+            $this->WriteAttributeString('Bild', (string)$daten['bild']);
+        }
         if (array_key_exists('Zustand', $werte) && $werte['Zustand'] !== null) {
             $this->SetValue('Zustand', (int)$werte['Zustand']);
         }
@@ -602,6 +606,7 @@ class RoboHubGeraet extends IPSModule
 
         return (string)json_encode([
             'klasse'      => $klasse,
+            'bild'        => $this->ReadAttributeString('Bild'),
             'zustand'     => $zustand,
             'zustandText' => RoboHubModell::zustandsName($zustand, $klasse),
             'unterzeile'  => implode(' · ', $unter),

@@ -212,7 +212,8 @@ function check(string $was, bool $ok, string $detail = ''): void
 function abschnitt(string $t): void { echo "\n[$t]\n"; }
 function variable(int $inst, string $ident) { $id = IPS_GetObjectIDByIdent($ident, $inst); return $id === false ? null : $GLOBALS['OBJ'][$id]; }
 
-$saugerRecord = ['did' => '-112663880', 'model' => 'dreame.vacuum.r95475', 'customName' => 'Aqua10', 'online' => true, 'latestStatus' => 13, 'battery' => 100, 'bindDomain' => '10000.mt.eu.iot.dreame.tech:19973', 'ver' => '4.3.9_1234'];
+$saugerRecord = ['did' => '-112663880', 'model' => 'dreame.vacuum.r95475', 'customName' => 'Aqua10', 'online' => true, 'latestStatus' => 13, 'battery' => 100, 'bindDomain' => '10000.mt.eu.iot.dreame.tech:19973', 'ver' => '4.3.9_1234',
+    'deviceInfo' => ['mainImage' => ['imageUrl' => 'https://oss.iot.dreame.tech/pub/pic/000000/ali_dreame/dreame.vacuum.r95475/bild.png', 'smallImageUrl' => '']]];
 $maeherRecord = ['did' => '777', 'model' => 'mova.mower.g2529c', 'customName' => '', 'deviceInfo' => ['displayName' => 'MOVA 600'], 'online' => true, 'battery' => 80];
 
 // ===========================================================================
@@ -436,6 +437,11 @@ foreach ($k['teile'] ?? [] as $t) { if ($t['name'] === 'Hauptbürste') { $haupt 
 check('Kachel: Verbrauchsteil mit % und Stunden', $haupt == ['name' => 'Hauptbürste', 'prozent' => 88, 'stunden' => 169], json_encode($haupt));
 check('Kachel: Räume aus der Karte', count($k['raeume'] ?? []) === 3);
 check('Kachel: kein Schlüssel in den Daten', ($k['key'] ?? 'x') === '');
+check('Kachel: Produktbild aus der Geräteliste', ($k['bild'] ?? '') === 'https://oss.iot.dreame.tech/pub/pic/000000/ali_dreame/dreame.vacuum.r95475/bild.png');
+check('Bild: nur https, kein Einschleusen von HTML', RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'http://x/a.png']]]) === ''
+    && RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'https://x/a.png" onerror="alert(1)']]]) === ''
+    && RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => ''], 'icon' => ['imageUrl' => 'https://x/i.png']]]) === 'https://x/i.png');
+check('Mäher ohne Bild in der Liste → kein Bild (Symbol als Ersatz)', RoboHubDreame::bildVon([]) === '');
 check('Kachel: Station meldet Staubbeutel „Prüfen" als Hinweis', in_array('🗑️ Staubbeutel: Prüfen', $k['hinweise'] ?? [], true), json_encode($k['hinweise'] ?? []));
 
 $geraet->visu = [];

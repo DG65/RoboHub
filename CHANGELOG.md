@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.4 (11.10.2026)
+
+- Kachel: offizielles Produktbild statt Haus-Symbol (Dietmars Wunsch). Quelle:
+  `deviceInfo.mainImage.imageUrl` der Geräteliste (Ersatz overlook/icon/popup), nur
+  https; die Kachel lädt es direkt vom Hersteller-Server, nichts wird kopiert. Zustand als
+  farbiger Ring + kleines Symbol; ohne Bild oder bei Ladefehler wie bisher das Symbol.
+
 ## 0.3.3 (11.10.2026)
 
 - Kachel: Farbstufen der Verbrauchsteile an die Hersteller-Apps angelehnt (Dietmars

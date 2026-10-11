@@ -21,6 +21,9 @@ body.eigen{background:var(--seite);padding-top:14px}
 .status{display:flex;align-items:center;gap:.9em}
 .sym{width:3.6em;height:3.6em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1em;flex:none}
 .sym span{font-size:2.1em;line-height:1}
+.geraet{position:relative;width:5.4em;height:5.4em;flex:none;border-radius:1.1em;border:.18em solid;background:var(--fl);display:flex;align-items:center;justify-content:center}
+.geraet img{max-width:92%;max-height:92%;object-fit:contain}
+.geraet .marke{position:absolute;right:-.45em;bottom:-.45em;width:1.9em;height:1.9em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85em;border:.15em solid var(--seite)}
 .titel{min-width:0}.titel b{display:block;font-size:1.45em;font-weight:600;line-height:1.2}
 .titel span{display:block;font-size:.85em;color:var(--fg2);margin-top:.15em}
 .akku{margin:1em 0 .2em;display:flex;align-items:center;gap:.7em}
@@ -62,7 +65,7 @@ var ZUSTAND = {
 // MOVAhome nennt 34 % „Bald ersetzen" und 72 % „In gutem Zustand".
 var TEIL_ROT = 5, TEIL_GELB = 35;
 var BEFEHLE = [[1, '▶️ Start'], [2, '⏸️ Pause'], [4, '🏠 Station'], [5, '📍 Orten']];
-var daten = null, gewaehlt = [], alleTeile = false, rueck = '';
+var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false;
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
 function farbe(n) { return 'background:var(--' + n + 'bg);color:var(--' + n + ')'; }
@@ -90,7 +93,16 @@ function zeichnen() {
   var bedienbar = !d.eigen || d.bedienung;
   var akkuFarbe = d.akku == null ? 'grau' : (d.akku <= 15 ? 'rot' : (d.akku <= 35 ? 'gelb' : 'gruen'));
 
-  var l = '<div class="status"><div class="sym" style="' + farbe(z[1]) + '"><span>' + (d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0]) + '</span></div>';
+  var symbol = d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0];
+  // Produktbild des Herstellers mit Zustandsring + Zustandssymbol; ohne Bild
+  // (oder wenn es nicht lädt) wie bisher nur das Symbol im Farbkreis.
+  var l = '<div class="status">';
+  if (d.bild && !bildFehlt) {
+    l += '<div class="geraet" style="border-color:var(--' + z[1] + ')"><img src="' + esc(d.bild) + '" alt="" onerror="bildFehlt=true;zeichnen()">'
+      + '<div class="marke" style="' + farbe(z[1]) + '">' + symbol + '</div></div>';
+  } else {
+    l += '<div class="sym" style="' + farbe(z[1]) + '"><span>' + symbol + '</span></div>';
+  }
   l += '<div class="titel"><b>' + esc(d.zustandText) + '</b>' + (d.unterzeile ? '<span>' + esc(d.unterzeile) + '</span>' : '') + '</div></div>';
   l += '<div class="akku"><div class="balken"><i style="width:' + (d.akku || 0) + '%;background:var(--' + akkuFarbe + ')"></i></div>';
   l += '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? '⚡ lädt' : '🔋') + '</span></div>';

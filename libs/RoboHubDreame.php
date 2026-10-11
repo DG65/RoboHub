@@ -190,6 +190,23 @@ class RoboHubDreame implements RoboHubTreiber
         return $out;
     }
 
+    /**
+     * Offizielles Produktbild aus der Geräteliste (deviceInfo.mainImage,
+     * ersatzweise overlook/icon — Feldnamen aus ioBroker main.js, Beispiel-
+     * datensatz). Nur https-Adressen; das Bild wird nicht kopiert, sondern
+     * von der Kachel direkt beim Hersteller geladen (wie in der App).
+     */
+    public static function bildVon(array $record): string
+    {
+        foreach (['mainImage', 'overlook', 'icon', 'popup'] as $feld) {
+            $url = (string)($record['deviceInfo'][$feld]['imageUrl'] ?? '');
+            if (preg_match('#^https://[^\s"\'<>]+$#', $url)) {
+                return $url;
+            }
+        }
+        return '';
+    }
+
     /** Sauger oder Mäher — ioBroker erkennt Mäher ebenfalls am Modellnamen. */
     public static function klasseVon(string $modell): string
     {
@@ -292,6 +309,7 @@ class RoboHubDreame implements RoboHubTreiber
             $daten['werte'] += $this->maeherVerschleiss($buendel, $did);
         }
         $daten['online'] = $online;
+        $daten['bild'] = self::bildVon($eintrag);
         $daten['bloecke'] = ['ok' => $ok, 'fehl' => $fehl];
         $daten['roh'] = [
             'modell'        => $modell,

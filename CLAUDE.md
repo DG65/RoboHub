@@ -110,6 +110,11 @@
   (Dietmars Screenshot 21:47). **0.3.1 live in Dietmars Kachel-Visualisierung bestätigt (21:51, Screenshot):** keine Überlappung, zweispaltig, dunkler Modus korrekt. **0.3.2 live bestätigt (21:55):** gleiche Starthöhe, großes Symbol, Mäher-Teile offen, Stand unten. Ampelschwellen seit 0.3.3 an die Apps angelehnt: rot ≤ 5 %, gelb ≤ 35 % (`TEIL_ROT`/`TEIL_GELB` in module.html); exakte App-Grenze liegt bei MOVA zwischen 34 und 72 %, nicht weiter belegt. Vorschau-Generator mit nachgebildetem Titelstreifen + dunklem
   Modus lag im Scratchpad (`vorschau.py`), nicht im Repo.
 
+- **Produktbild (0.3.4):** `RoboHubDreame::bildVon()` aus listV2 `deviceInfo.*.imageUrl`
+  (öffentlich auf oss.iot.dreame.tech, ohne Anmeldung abrufbar, HTTP 200 geprüft), Attribut
+  `Bild`, Kachel lädt direkt (Hotlink, keine Kopie — Bildrechte beim Hersteller). Ob MOVA ein
+  Bild liefert: live offen.
+
 ## Prüfen
 
 ```
