@@ -239,7 +239,9 @@
   mit `{"m":"r","r":3}` → seit 0.9.3 zuerst Tabellenform SCHDI/SCHDC (EvotecIT: für MOVA bevorzugt).
   **Live 0.9.3 gelesen:** ein Plan (aus) mit Termin täglich 12:00 ganze Fläche + drei leere Platzhalter-Tabellen
   (Feld 2 = 1, Feld 5 = 7, Bedeutung unbekannt). 0.9.4 zeigt „⏸️ Plan 1 · täglich 12:00 · alles" = MOVAhome (Dietmar
-  bestätigt 12.10.2026 01:05). Schalten seit 0.9.5 (SCHDS, Bedingungen siehe CHANGELOG) — **live offen**;
+  bestätigt 12.10.2026 01:05). Schalten seit 0.9.5 (SCHDS): **live bestätigt 12.10.2026 10:32–10:33** — Plan 1 ein
+  (Mäher bestätigt, Zustand „Lädt (6)"), sofort wieder aus (bestätigt); Plan ist wieder aus. App-Anzeige des
+  Zwischenstands nicht abgewartet (12:00-Termin zu nah). Früher Hinweis „Testidee";
   Testidee: deaktivierten Plan kurz ein- und wieder aus, weit weg von 12:00.
 
 ## Prüfen
