@@ -1471,6 +1471,9 @@ PEM;
             $this->aktion($buendel, $did, 2, 50, [['m' => 'a', 'p' => 0, 'o' => 102, 'd' => ['region' => $zonen]]]);
             return 'Mähen ' . (count($zonen) === 1 ? 'der Zone' : 'von ' . count($zonen) . ' Zonen') . ' gesendet.';
         }
+        if ($befehl === 'raumeinstellung' && !$maeher) {
+            return $this->raumEinstellungSetzen($buendel, $geraet, (int)($parameter['raum'] ?? -1), (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
+        }
         if ($befehl === 'zeitplan' && $maeher) {
             return $this->maehPlanSchalten($buendel, $did, (string)($geraet['modell'] ?? ''), (int)($parameter['tabelle'] ?? -1), !empty($parameter['an']));
         }
@@ -1781,6 +1784,55 @@ PEM;
     private const RAUM_WASSER = [1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch'];
     private const RAUM_MODUS = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen', 3 => 'Erst saugen, dann wischen'];
 
+    // Grenzen der änderbaren Raum-Einstellungen (App: 4 Saugstufen, 1–3 Durchgänge, 4 Modi).
+    private const RAUM_GRENZEN = ['Saugstufe' => [0, 3, 0], 'Durchgaenge' => [1, 3, 2], 'Modus' => [0, 3, 4]];
+
+    /**
+     * Eine Raum-Einstellung ändern wie Tasshack set_cleanset: cleanset frisch aus dem
+     * Live-Rahmen, einen Wert ändern, für ALLE Räume senden — action 6.2, piid 4 =
+     * {"customeClean": [[Raum, Saugstufe, Wasser, Durchgänge, Modus, Rest …], …]}
+     * (Lese-Liste ohne Index 3 = Reihenfolge, die geht über „cleanOrder"). Nur ruhend.
+     */
+    private function raumEinstellungSetzen(array $buendel, array $geraet, int $raum, string $feld, int $wert): string
+    {
+        if (!isset(self::RAUM_GRENZEN[$feld])) {
+            throw new RoboHubFehler('Diese Raum-Einstellung lässt sich nicht ändern: ' . $feld);
+        }
+        [$min, $max, $index] = self::RAUM_GRENZEN[$feld];
+        if ($wert < $min || $wert > $max) {
+            throw new RoboHubFehler($feld . ' muss zwischen ' . $min . ' und ' . $max . ' liegen.');
+        }
+        $did = (string)$geraet['id'];
+        $p = $this->leseProperties($buendel, $did, [[2, 1], [4, 25], [27, 3]]);
+        $zustand = $this->normalisiereSauger($p)['werte']['Zustand'] ?? RoboHubModell::ZUSTAND_UNBEKANNT;
+        if (!in_array($zustand, [RoboHubModell::ZUSTAND_BEREIT, RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::ZUSTAND_GELADEN, RoboHubModell::ZUSTAND_STATIONSARBEIT, RoboHubModell::ZUSTAND_SCHLAF], true)) {
+            throw new RoboHubFehler('Raum-Einstellungen lassen sich nur ändern, wenn der Roboter nicht reinigt.');
+        }
+        $roh = $this->liveRahmen($buendel, $geraet);
+        $cs = $roh['json']['cleanset'] ?? null;
+        if (is_string($cs)) {
+            $cs = json_decode($cs, true);
+        }
+        if (!is_array($cs) || !isset($cs[(string)$raum]) || !is_array($cs[(string)$raum]) || count($cs[(string)$raum]) <= $index) {
+            throw new RoboHubFehler('Raum-Einstellungen für diesen Raum nicht lesbar — nichts geändert.');
+        }
+        if ($feld === 'Modus') {
+            // App-Wert → Leitungswert (bei Mopp-Anhebung 0↔2 getauscht, Live-Befund Barny).
+            $wert = self::tauscheModus($wert, $this->hatMoppAnhebung($p + (array)($geraet['stand'] ?? [])));
+        }
+        $cs[(string)$raum][$index] = $wert;
+        $liste = [];
+        foreach ($cs as $id => $w) {
+            if (!is_numeric($id) || !is_array($w) || count($w) < 3) {
+                continue;
+            }
+            $w = array_values($w);
+            $liste[] = array_merge([(int)$id, (int)$w[0], (int)$w[1], (int)$w[2]], array_map('intval', array_slice($w, 4)));
+        }
+        $this->aktion($buendel, $did, 6, 2, [['piid' => 4, 'value' => (string)json_encode(['customeClean' => $liste], JSON_UNESCAPED_SLASHES)]]);
+        return 'Raum-Einstellung gesendet.';
+    }
+
     /**
      * Rückgabe ['raumEinstellungen' => [ID => [...]], 'raumEinstellungenAn' => bool|null,
      * 'raumEinstellungenRoh' => cleanset] — leer, wenn der Kartentext kein cleanset trägt.
@@ -1801,6 +1853,7 @@ PEM;
             }
             $wasser = (int)$w[1];
             $e = [
+                'saugstufeWert' => (int)$w[0],
                 'saugstufe'   => self::RAUM_SAUGSTUFE[(int)$w[0]] ?? 'Stufe ' . (int)$w[0],
                 'wasser'      => ($wasser >= 2 && $wasser <= 4) ? self::RAUM_WASSER[$wasser - 1] : 'Feuchte ' . $wasser,
                 'durchgaenge' => (int)$w[2],
@@ -1808,6 +1861,7 @@ PEM;
             ];
             if (isset($w[4])) {
                 $m = self::tauscheModus((int)$w[4], $moppAnhebung);
+                $e['modusWert'] = $m;
                 $e['modus'] = self::RAUM_MODUS[$m] ?? 'Modus ' . (int)$w[4];
             }
             $aus[(int)$id] = $e;
@@ -1869,6 +1923,15 @@ PEM;
         if (self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER) {
             return $this->maehKarte($buendel, $did, true) + ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0];
         }
+        $roh = $this->liveRahmen($buendel, $geraet);
+        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
+        return $this->liveKarteAus($roh, $raeume, $geraet);
+    }
+
+    /** Aktuellen Vollrahmen holen und dekodieren (für Live-Karte und Raum-Einstellungen). */
+    private function liveRahmen(array $buendel, array $geraet): array
+    {
+        $did = (string)$geraet['id'];
         $modell = (string)($geraet['modell'] ?? '');
         // Aktuellen Vollrahmen („I") anfordern wie Tasshack _request_i_map:
         // action 6.1 mit 6.2 = {"req_type":1,"frame_type":"I","force_type":1}.
@@ -1913,7 +1976,11 @@ PEM;
             $this->dbg('Live-Karte', 'Kein aktueller Kartenrahmen (Antwort: ' . json_encode($erg['out'] ?? []) . ').');
             throw new RoboHubFehler('Der Roboter hat keine aktuelle Karte geliefert.');
         }
-        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
+        return $roh;
+    }
+
+    private function liveKarteAus(array $roh, array $raeume, array $geraet): array
+    {
         if ($raeume === []) {
             // Live-Rahmen ohne seg_inf: Namen aus der gespeicherten Karte (vom Roboter mitgegeben).
             foreach ((array)($geraet['raeume'] ?? []) as $id => $name) {

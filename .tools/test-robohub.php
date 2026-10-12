@@ -1453,7 +1453,7 @@ FakeCloud::$maehplan = '';
 abschnitt('Einstellungen je Raum');
 $cs = ['3' => [1, 3, 2, 2, 2, 0], '5' => [2, 16, 1, 1, 0, 0], 'x' => [1], '7' => [0, 2]];
 $re = RoboHubDreame::raumEinstellungenAus(['cleanset' => json_encode($cs), 'customeClean' => 1]);
-check('cleanset (auch als Text): Raum 3 Standard, Wasser Mittel, 2×, Saugen und Wischen', ($re['raumEinstellungen'][3] ?? null) == ['saugstufe' => 'Standard', 'wasser' => 'Mittel', 'durchgaenge' => 2, 'reihenfolge' => 2, 'modus' => 'Saugen und Wischen'], json_encode($re['raumEinstellungen'][3] ?? null, JSON_UNESCAPED_UNICODE));
+check('cleanset (auch als Text): Raum 3 Standard, Wasser Mittel, 2×, Saugen und Wischen', ($re['raumEinstellungen'][3] ?? null) == ['saugstufeWert' => 1, 'saugstufe' => 'Standard', 'wasser' => 'Mittel', 'durchgaenge' => 2, 'reihenfolge' => 2, 'modusWert' => 2, 'modus' => 'Saugen und Wischen'], json_encode($re['raumEinstellungen'][3] ?? null, JSON_UNESCAPED_UNICODE));
 check('… Raum 5: Feuchte-Stufe 16 (Wert > 4), Stark, Saugen', ($re['raumEinstellungen'][5]['wasser'] ?? '') === 'Feuchte 16' && $re['raumEinstellungen'][5]['saugstufe'] === 'Stark' && $re['raumEinstellungen'][5]['modus'] === 'Saugen');
 check('… unvollständige Einträge übergangen, „customeClean" = an', count($re['raumEinstellungen']) === 2 && $re['raumEinstellungenAn'] === true);
 $getauscht = RoboHubDreame::raumEinstellungenAus(['cleanset' => $cs], true)['raumEinstellungen'];
@@ -1479,6 +1479,45 @@ FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($
 $geraet->LiveKarteLaden();
 $rv = (string)variable(2000, 'RaumEinstellungen')['value'];
 check('Live-Karte bringt neue Einstellungen (Küche jetzt Turbo, Schalter an)', strpos($rv, '2. Küche: Saugen · Turbo') !== false && strpos($rv, '⏸️') === false, $rv);
+// Ändern: frischer Live-Rahmen, ein Wert, alle Räume zurück (ohne Reihenfolge-Index 3).
+function customeClean(): ?array
+{
+    foreach (FakeCloud::befehle() as $b) {
+        if ($b['method'] === 'action' && $b['params']['siid'] === 6 && $b['params']['aiid'] === 2) {
+            return json_decode($b['params']['in'][0]['value'], true)['customeClean'] ?? null;
+        }
+    }
+    return null;
+}
+$csLive = ['3' => [1, 3, 2, 2, 2, 546, 0, 2, 0], '5' => [2, 16, 1, 1, 0, 0], '7' => [0, 2]];
+FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . json_encode(['cleanset' => $csLive, 'customeClean' => 1]))), '+/', '-_')]];
+FakeCloud::$props['2.1'] = 13;
+$geraet->LiveKarteLaden();
+FakeCloud::$anfragen = [];
+$GLOBALS['LOG'] = [];
+$t = $geraet->RaumEinstellungSetzen(3, 'Saugstufe', 2);
+check('Saugstufe Küche → Stark: action 6.2 piid 4, alle gültigen Räume, ohne Reihenfolge', customeClean() === [[3, 2, 3, 2, 2, 546, 0, 2, 0], [5, 2, 16, 1, 0, 0]] && strpos($t, '📤') === 0, json_encode(customeClean()) . ' ' . $t);
+check('… danach Live-Karte neu geholt, im Protokoll', count(array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action' && $b['params']['siid'] === 6 && $b['params']['aiid'] === 1; })) === 2 && strpos(implode("\n", $GLOBALS['LOG']), 'Raum-Einstellung') !== false);
+FakeCloud::$anfragen = [];
+$geraet->RaumEinstellungSetzen(5, 'Modus', 0);
+check('Modus „Saugen" bei Mopp-Anhebung → Leitung 2', (customeClean()[1][4] ?? null) === 2, json_encode(customeClean()));
+FakeCloud::$anfragen = [];
+$geraet->RaumEinstellungSetzen(3, 'Durchgaenge', 3);
+check('Durchgänge → Index 3 der Sendeliste', (customeClean()[0][3] ?? null) === 3, json_encode(customeClean()));
+FakeCloud::$anfragen = [];
+$t = $geraet->RaumEinstellungSetzen(3, 'Durchgaenge', 4);
+check('Durchgänge 4 → abgelehnt, nichts gesendet', strpos($t, '⛔') === 0 && customeClean() === null, $t);
+$t = $geraet->RaumEinstellungSetzen(9, 'Saugstufe', 1);
+check('unbekannter Raum → abgelehnt', strpos($t, '⛔') === 0 && customeClean() === null);
+$t = $geraet->RaumEinstellungSetzen(3, 'Wasser', 1);
+check('nicht änderbares Feld → abgelehnt', strpos($t, '⛔') === 0 && customeClean() === null);
+FakeCloud::$props['2.1'] = 1;
+$t = $geraet->RaumEinstellungSetzen(3, 'Saugstufe', 0);
+check('Roboter reinigt → abgelehnt, nichts gesendet', strpos($t, 'nicht reinigt') !== false && customeClean() === null, $t);
+FakeCloud::$props['2.1'] = 13;
+$geraet->Aktualisieren();
+$formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+check('Formular: Panel „Einstellungen je Raum" mit Auswahlfeldern', strpos($formKlar, 'Einstellungen je Raum (2)') !== false && strpos($formKlar, 'ROBO_RaumEinstellungSetzen($id, 3, \"Saugstufe\", $RS_3)') !== false && strpos($formKlar, '"name":"RM_5"') !== false, substr($formKlar, 0, 0));
 FakeCloud::$karte = $klar;
 FakeCloud::$liveOut = [];
 

@@ -252,6 +252,9 @@
 - **Live (12.10.2026 10:50):** nur der Live-Rahmen trägt `cleanset` (Barny: `[1,3,1,R,2,546,0,2,0]` je Raum, 9 Werte).
   App: „Saugen, Standard" je Raum → Modus 0↔2 getauscht wie 4.23 (seit 0.10.1); Reihenfolge = App. Wasser 3 /
   Wisch-Einstellungen 546 (=0x222) bei „Saugen" in der App nicht sichtbar, Bedeutung offen.
+- Schreiben seit 0.11.0 (Modus/Saugstufe/Durchgänge). Sendeliste spiegelt die Lese-Liste ohne Index 3 —
+  bei Barny also 9 Werte (Tasshack baut je nach Fähigkeiten 6–8). **Live offen**; Testidee: eine Saugstufe
+  ändern, in der App prüfen, zurückstellen.
 
 ## Prüfen
 
