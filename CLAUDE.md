@@ -244,6 +244,13 @@
   Zwischenstands nicht abgewartet (12:00-Termin zu nah); Endstand „aus" in MOVAhome von Dietmar bestätigt. Früher Hinweis „Testidee";
   Testidee: deaktivierten Plan kurz ein- und wieder aus, weit weg von 12:00.
 
+## Einstellungen je Raum (0.10.0)
+
+- Lesen aus `cleanset` (+ `customeClean`) im Kartentext; Schreiben bei Tasshack: action 6.2, piid 4 =
+  `{"customeClean": [[Raum, Saugstufe, Wasser, Durchgänge, (Modus), (Wisch-Einstellungen), …]]}` — **ohne**
+  Reihenfolge (Index 3 der Lese-Liste); Liste für ALLE Räume. Noch nicht gebaut.
+- **Live offen:** ob Barnys gespeicherte Karte/Live-Rahmen `cleanset` tragen, Bedeutung von Wasser/Modus gegen App.
+
 ## Prüfen
 
 ```

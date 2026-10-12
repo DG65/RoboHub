@@ -961,7 +961,7 @@ $t = $maeher->RaeumeReinigen('1,3,3');
 $c = FakeCloud::befehle()[0] ?? [];
 check('mehrere Zonen „1,3,3" → region [1,3], Rückmeldung', ($c['params']['in'][0]['d']['region'] ?? null) === [1, 3] && strpos($t, '2 Zonen') !== false, $t);
 $k = kachelJson($maeher->GetVisualizationTile());
-check('Kachel des Mähers zeigt die Zonen', count($k['raeume'] ?? []) === 3 && $k['raeume'][0] == ['id' => 1, 'name' => 'Vorgarten']);
+check('Kachel des Mähers zeigt die Zonen', count($k['raeume'] ?? []) === 3 && $k['raeume'][0]['id'] === 1 && $k['raeume'][0]['name'] === 'Vorgarten');
 FakeCloud::$anfragen = [];
 check('Zonen-Start ohne Zone → abgelehnt, nichts gesendet', strpos($maeher->RaeumeReinigen('0'), '⛔') === 0 && count(FakeCloud::befehle()) === 0);
 check('Treiber selbst lehnt Zone 0 ab (Skript-Weg über das Konto)', strpos(json_decode($konto2->ForwardData(json_encode(['Aktion' => 'befehl', 'Geraet' => '777', 'Befehl' => 'raum', 'Parameter' => ['raeume' => [0]]])), true)['fehler'] ?? '', 'Keine Zone') !== false && count(FakeCloud::befehle()) === 0);
@@ -1449,6 +1449,35 @@ $maeher->RaeumeLaden();
 check('Pläne kommen auch ohne Karte an', strpos((string)variable(2100, 'Zeitplaene')['value'], 'Ohne Karte') !== false);
 FakeCloud::$geraeteDaten = $merkeDaten;
 FakeCloud::$maehplan = '';
+
+abschnitt('Einstellungen je Raum');
+$cs = ['3' => [1, 3, 2, 1, 2, 0], '5' => [2, 16, 1, 2, 0, 0], 'x' => [1], '7' => [0, 2]];
+$re = RoboHubDreame::raumEinstellungenAus(['cleanset' => json_encode($cs), 'customeClean' => 1]);
+check('cleanset (auch als Text): Raum 3 Standard, Wasser Mittel, 2×, Saugen und Wischen', ($re['raumEinstellungen'][3] ?? null) == ['saugstufe' => 'Standard', 'wasser' => 'Mittel', 'durchgaenge' => 2, 'reihenfolge' => 1, 'modus' => 'Saugen und Wischen'], json_encode($re['raumEinstellungen'][3] ?? null, JSON_UNESCAPED_UNICODE));
+check('… Raum 5: Feuchte-Stufe 16 (Wert > 4), Stark, Saugen', ($re['raumEinstellungen'][5]['wasser'] ?? '') === 'Feuchte 16' && $re['raumEinstellungen'][5]['saugstufe'] === 'Stark' && $re['raumEinstellungen'][5]['modus'] === 'Saugen');
+check('… unvollständige Einträge übergangen, „customeClean" = an', count($re['raumEinstellungen']) === 2 && $re['raumEinstellungenAn'] === true);
+check('ohne cleanset → nichts', RoboHubDreame::raumEinstellungenAus(['seg_inf' => []]) === []);
+
+$segsC = ['3' => ['type' => 4, 'index' => 0], '5' => ['type' => 0, 'name' => base64_encode('Bad')]];
+FakeCloud::$props['6.8'] = json_encode(['object_name' => 'ali_dreame/123/map']);
+FakeCloud::$karte = strtr(base64_encode(gzcompress($kopfB . $pix . json_encode(['seg_inf' => $segsC, 'cleanset' => $cs, 'customeClean' => 0]))), '+/', '-_');
+$geraet->RaeumeLaden();
+$rv = (string)(variable(2000, 'RaumEinstellungen')['value'] ?? '');
+check('Variable „Einstellungen je Raum" mit Raumnamen', strpos($rv, 'Küche: Standard · 2× · Saugen und Wischen · Wasser Mittel') !== false && strpos($rv, 'Bad: Stark · 1× · Saugen · Feuchte 16') !== false, $rv);
+check('… in der App ausgeschaltet → Hinweis oben', strpos($rv, '⏸️ In der App ausgeschaltet') === 0);
+$k = kachelJson($geraet->GetVisualizationTile());
+$kueche = array_values(array_filter($k['raeume'], function ($r) { return $r['name'] === 'Küche'; }))[0] ?? [];
+check('Kachel: Raumknopf trägt die Einstellungen', ($kueche['info'] ?? '') === 'Standard · 2× · Saugen und Wischen · Wasser Mittel', json_encode($kueche, JSON_UNESCAPED_UNICODE));
+check('Rohdaten enthalten das cleanset', strpos($geraet->Rohdaten(), '"raumEinstellungenRoh"') !== false);
+// Live-Rahmen mit cleanset aktualisiert die Anzeige (z. B. in der App geändert).
+$cs2 = $cs;
+$cs2['3'][0] = 3;
+FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . json_encode(['cleanset' => $cs2, 'customeClean' => 1]))), '+/', '-_')]];
+$geraet->LiveKarteLaden();
+$rv = (string)variable(2000, 'RaumEinstellungen')['value'];
+check('Live-Karte bringt neue Einstellungen (Küche jetzt Turbo, Schalter an)', strpos($rv, 'Küche: Turbo') !== false && strpos($rv, '⏸️') === false, $rv);
+FakeCloud::$karte = $klar;
+FakeCloud::$liveOut = [];
 
 abschnitt('Fehlerpfade');
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);

@@ -46,6 +46,7 @@ button:active{transform:scale(.97)}
 .chip{font-size:.9em;padding:.35em .9em;border-radius:2em;border:1px solid var(--rand);background:transparent}
 .chip.an{background:var(--blaubg);border-color:var(--blau);color:var(--blau)}
 .los{margin-top:.6em;width:100%}
+.raumeinst{font-size:.8em;color:var(--fg2);margin-top:.35em}
 .info{display:flex;flex-wrap:wrap;gap:.45em}.info span{font-size:.85em;padding:.3em .8em;border-radius:2em;background:var(--graubg)}
 .teil{display:flex;justify-content:space-between;gap:.6em;font-size:.92em;padding:.28em 0;border-bottom:1px solid var(--rand)}
 .teil:last-of-type{border-bottom:none}
@@ -169,7 +170,11 @@ function zeichnen() {
   var r = '';
   if (bedienbar && (d.raeume || []).length) {
     r += '<div class="block"><p class="abschnitt">' + (d.klasse === 'maeher' ? 'Zone mähen' : 'Raum reinigen') + '</p><div class="chips">';
-    d.raeume.forEach(function (x) { r += '<button class="chip' + (gewaehlt.indexOf(x.id) >= 0 ? ' an' : '') + '" onclick="raumWaehlen(' + x.id + ')">' + esc(x.name) + '</button>'; });
+    d.raeume.forEach(function (x) { r += '<button class="chip' + (gewaehlt.indexOf(x.id) >= 0 ? ' an' : '') + '"' + (x.info ? ' title="' + esc(x.info) + '"' : '') + ' onclick="raumWaehlen(' + x.id + ')">' + esc(x.name) + '</button>'; });
+    // Einstellungen der gewählten Räume (aus der App) unter den Knöpfen — so sieht man vor dem Start, was passiert.
+    d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0 && x.info; }).forEach(function (x) {
+      r += '<div class="raumeinst">' + esc(x.name) + ': ' + esc(x.info) + '</div>';
+    });
     r += '</div>';
     if (gewaehlt.length) {
       var namen = d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0; }).map(function (x) { return x.name; }).join(', ');

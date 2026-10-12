@@ -1650,6 +1650,7 @@ PEM;
         }
         $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
         $bild = RoboHubKartenbild::sauger($roh, $raeume);
+        $bild += self::raumEinstellungenAus($roh['json']);
         if ($bild['bild'] === '') {
             $this->dbg('Karte', 'Räume gelesen, aber kein Kartenbild erzeugbar (' . $roh['breite'] . '×' . $roh['hoehe'] . ').');
         } else {
@@ -1771,6 +1772,49 @@ PEM;
         ];
     }
 
+    // Einstellungen je Raum („cleanset" im Kartentext, Tasshack map.py): je Raum-ID eine
+    // Liste [Saugstufe, Wasser/Feuchte, Durchgänge, Reihenfolge, Modus, Wisch-Einstellungen, …].
+    // Wasser: Tasshack liest 2–4 als Wassermenge (Wert − 1 = Niedrig/Mittel/Hoch), größere
+    // Werte als Feuchte-Stufe (Geräte mit 28.1). Modus wie 4.23 ohne Tausch (live zu prüfen).
+    private const RAUM_SAUGSTUFE = [0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo'];
+    private const RAUM_WASSER = [1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch'];
+    private const RAUM_MODUS = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen', 3 => 'Erst saugen, dann wischen'];
+
+    /**
+     * Rückgabe ['raumEinstellungen' => [ID => [...]], 'raumEinstellungenAn' => bool|null,
+     * 'raumEinstellungenRoh' => cleanset] — leer, wenn der Kartentext kein cleanset trägt.
+     */
+    public static function raumEinstellungenAus(array $json): array
+    {
+        $cs = $json['cleanset'] ?? null;
+        if (is_string($cs)) {
+            $cs = json_decode($cs, true);
+        }
+        if (!is_array($cs) || $cs === []) {
+            return [];
+        }
+        $aus = [];
+        foreach ($cs as $id => $w) {
+            if (!is_numeric($id) || !is_array($w) || count($w) < 3) {
+                continue;
+            }
+            $wasser = (int)$w[1];
+            $e = [
+                'saugstufe'   => self::RAUM_SAUGSTUFE[(int)$w[0]] ?? 'Stufe ' . (int)$w[0],
+                'wasser'      => ($wasser >= 2 && $wasser <= 4) ? self::RAUM_WASSER[$wasser - 1] : 'Feuchte ' . $wasser,
+                'durchgaenge' => (int)$w[2],
+                'reihenfolge' => isset($w[3]) ? (int)$w[3] : null,
+            ];
+            if (isset($w[4])) {
+                $e['modus'] = self::RAUM_MODUS[(int)$w[4]] ?? 'Modus ' . (int)$w[4];
+            }
+            $aus[(int)$id] = $e;
+        }
+        ksort($aus);
+        $an = isset($json['customeClean']) ? (int)$json['customeClean'] === 1 : null;
+        return ['raumEinstellungen' => $aus, 'raumEinstellungenAn' => $an, 'raumEinstellungenRoh' => $cs];
+    }
+
     public static function raeumeAusSegmenten(array $segmente): array
     {
         $raeume = [];
@@ -1875,6 +1919,7 @@ PEM;
             }
         }
         $bild = RoboHubKartenbild::sauger($roh, $raeume, true);
+        $bild += self::raumEinstellungenAus($roh['json']);
         $this->dbg('Live-Karte', $roh['breite'] . '×' . $roh['hoehe'] . ', Kodierung „' . $bild['kodierung'] . '", Weg ' . count($bild['weg'] ?? []) . ' Stücke, Roboter ' . json_encode($bild['roboter'] ?? null));
         unset($bild['kodierung']);
         return ['raeume' => $raeume] + $bild;

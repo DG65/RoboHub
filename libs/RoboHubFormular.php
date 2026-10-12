@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.10.0' => [
+            '• Saugroboter: Einstellungen je Raum aus der Hersteller-App (Saugstufe, Durchgänge, Modus, Wasser/Feuchte) — als Variable und auf der Kachel unter den gewählten Räumen. Ändern folgt.',
+        ],
         '0.9.5' => [
             '• Mähroboter: Mäh-Pläne ein- und ausschalten (Formular, Kachel, Skript) — nur wenn der Mäher ruht; der Mäher bestätigt jede Änderung, danach werden alle Pläne neu gelesen.',
         ],

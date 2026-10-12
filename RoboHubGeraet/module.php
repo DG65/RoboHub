@@ -59,6 +59,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('Optionen', '{}');
         $this->RegisterAttributeString('Zeitplaene', '[]');
         $this->RegisterAttributeString('ZeitplanRoh', '');
+        $this->RegisterAttributeString('RaumEinstellungen', '{}');
         $this->RegisterAttributeString('Schreibbar', '[]');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
         $this->RegisterAttributeString('LetzterFehler', '');
@@ -315,12 +316,16 @@ class RoboHubGeraet extends IPSModule
         }
         $daten = json_decode($roh, true);
         $verlauf = json_decode($this->ReadAttributeString('EchtzeitVerlauf'), true) ?: [];
-        if (!is_array($daten) || (count($verlauf) === 0 && $this->ReadAttributeString('ZeitplanRoh') === '')) {
+        if (!is_array($daten) || (count($verlauf) === 0 && $this->ReadAttributeString('ZeitplanRoh') === '' && $this->ReadAttributeString('RaumEinstellungen') === '{}')) {
             return $roh;
         }
         $daten['echtzeitVerlauf'] = $verlauf;   // neueste zuerst, bleibt gültiges JSON
         if ($this->ReadAttributeString('ZeitplanRoh') !== '') {
             $daten['zeitplanRoh'] = $this->ReadAttributeString('ZeitplanRoh');
+        }
+        $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
+        if (isset($re['roh'])) {
+            $daten['raumEinstellungenRoh'] = ['an' => $re['an'] ?? null, 'cleanset' => $re['roh']];
         }
         return (string)json_encode($daten, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
@@ -426,6 +431,46 @@ class RoboHubGeraet extends IPSModule
             return ['ok' => false, 'fehler' => 'Unerwartete Antwort der Konto-Instanz.'];
         }
         return $antwort;
+    }
+
+    /** Einstellungen je Raum aus Karte/Live-Karte merken; Variable nach dem Laden der Raumnamen. */
+    private function raumEinstellungenMerken(array $d): void
+    {
+        if (!isset($d['raumEinstellungen']) || !is_array($d['raumEinstellungen'])) {
+            return;
+        }
+        $this->WriteAttributeString('RaumEinstellungen', (string)json_encode([
+            'raeume' => $d['raumEinstellungen'], 'an' => $d['raumEinstellungenAn'] ?? null, 'roh' => $d['raumEinstellungenRoh'] ?? null,
+        ]));
+    }
+
+    private function raumEinstellungenVariable(): void
+    {
+        $zeilen = $this->raumEinstellungenZeilen();
+        if ($zeilen === []) {
+            return;
+        }
+        $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
+        $kopf = ($re['an'] ?? null) === false ? "⏸️ In der App ausgeschaltet — es gelten die allgemeinen Einstellungen.\n" : '';
+        $this->MaintainVariable('RaumEinstellungen', 'Einstellungen je Raum', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 96, true);
+        $this->SetValue('RaumEinstellungen', $kopf . implode("\n", $zeilen));
+    }
+
+    /** „Küche: Standard · 1× · Saugen und Wischen · Wasser Mittel" je Raum. */
+    private function raumEinstellungenZeilen(): array
+    {
+        $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
+        $namen = json_decode($this->ReadAttributeString('Raeume'), true) ?: [];
+        $zeilen = [];
+        foreach ((array)($re['raeume'] ?? []) as $id => $e) {
+            $teile = [(string)$e['saugstufe'], (int)$e['durchgaenge'] . '×'];
+            if (!empty($e['modus'])) {
+                $teile[] = $e['modus'];
+            }
+            $teile[] = (strpos((string)$e['wasser'], 'Feuchte') === 0 ? '' : 'Wasser ') . $e['wasser'];
+            $zeilen[(int)$id] = ($namen[(string)$id] ?? $namen[(int)$id] ?? 'Raum ' . $id) . ': ' . implode(' · ', $teile);
+        }
+        return $zeilen;
     }
 
     private function zeitplanSchaltbar(array $t): bool
@@ -649,6 +694,8 @@ class RoboHubGeraet extends IPSModule
             return '⛔ ' . $antwort['fehler'];
         }
         $d = (array)$antwort['daten'];
+        $this->raumEinstellungenMerken($d);
+        $this->raumEinstellungenVariable();
         if ((string)($d['bild'] ?? '') === '') {
             return 'ℹ️ Keine aktuelle Karte geliefert.';
         }
@@ -712,6 +759,7 @@ class RoboHubGeraet extends IPSModule
         if (isset($daten['zeitplanRoh'])) {
             $this->WriteAttributeString('ZeitplanRoh', (string)$daten['zeitplanRoh']);
         }
+        $this->raumEinstellungenMerken($daten);
         $raeume = [];
         foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;
@@ -739,6 +787,7 @@ class RoboHubGeraet extends IPSModule
         if (isset($daten['zeitplaene']) && is_array($daten['zeitplaene'])) {
             $this->zeitplaeneUebernehmen($daten['zeitplaene']);
         }
+        $this->raumEinstellungenVariable();
         $this->kachelAktualisieren();
         return '✅ ' . count($raeume) . ' Räume/Zonen: ' . implode(', ', $raeume) . '.';
     }
@@ -985,8 +1034,9 @@ class RoboHubGeraet extends IPSModule
         }
 
         $raeume = [];
+        $einst = $this->raumEinstellungenZeilen();
         foreach (json_decode($this->ReadAttributeString('Raeume'), true) ?: [] as $id => $name) {
-            $raeume[] = ['id' => (int)$id, 'name' => (string)$name];
+            $raeume[] = ['id' => (int)$id, 'name' => (string)$name, 'info' => isset($einst[(int)$id]) ? substr($einst[(int)$id], strlen((string)$name) + 2) : ''];
         }
         $fehler = (string)($this->wert('Fehler') ?? '');
         $abruf = $this->ReadAttributeInteger('LetzterAbruf');
