@@ -1650,7 +1650,7 @@ PEM;
         }
         $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
         $bild = RoboHubKartenbild::sauger($roh, $raeume);
-        $bild += self::raumEinstellungenAus($roh['json']);
+        $bild += self::raumEinstellungenAus($roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
         if ($bild['bild'] === '') {
             $this->dbg('Karte', 'Räume gelesen, aber kein Kartenbild erzeugbar (' . $roh['breite'] . '×' . $roh['hoehe'] . ').');
         } else {
@@ -1775,7 +1775,8 @@ PEM;
     // Einstellungen je Raum („cleanset" im Kartentext, Tasshack map.py): je Raum-ID eine
     // Liste [Saugstufe, Wasser/Feuchte, Durchgänge, Reihenfolge, Modus, Wisch-Einstellungen, …].
     // Wasser: Tasshack liest 2–4 als Wassermenge (Wert − 1 = Niedrig/Mittel/Hoch), größere
-    // Werte als Feuchte-Stufe (Geräte mit 28.1). Modus wie 4.23 ohne Tausch (live zu prüfen).
+    // Werte als Feuchte-Stufe (Geräte mit 28.1). Modus wie 4.23 — mit Mopp-Anhebung 0↔2
+    // getauscht (Live-Befund Barny 12.10.2026: Leitung 2 = App „Saugen").
     private const RAUM_SAUGSTUFE = [0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo'];
     private const RAUM_WASSER = [1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch'];
     private const RAUM_MODUS = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen', 3 => 'Erst saugen, dann wischen'];
@@ -1784,7 +1785,7 @@ PEM;
      * Rückgabe ['raumEinstellungen' => [ID => [...]], 'raumEinstellungenAn' => bool|null,
      * 'raumEinstellungenRoh' => cleanset] — leer, wenn der Kartentext kein cleanset trägt.
      */
-    public static function raumEinstellungenAus(array $json): array
+    public static function raumEinstellungenAus(array $json, bool $moppAnhebung = false): array
     {
         $cs = $json['cleanset'] ?? null;
         if (is_string($cs)) {
@@ -1806,7 +1807,8 @@ PEM;
                 'reihenfolge' => isset($w[3]) ? (int)$w[3] : null,
             ];
             if (isset($w[4])) {
-                $e['modus'] = self::RAUM_MODUS[(int)$w[4]] ?? 'Modus ' . (int)$w[4];
+                $m = self::tauscheModus((int)$w[4], $moppAnhebung);
+                $e['modus'] = self::RAUM_MODUS[$m] ?? 'Modus ' . (int)$w[4];
             }
             $aus[(int)$id] = $e;
         }
@@ -1919,7 +1921,7 @@ PEM;
             }
         }
         $bild = RoboHubKartenbild::sauger($roh, $raeume, true);
-        $bild += self::raumEinstellungenAus($roh['json']);
+        $bild += self::raumEinstellungenAus($roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
         $this->dbg('Live-Karte', $roh['breite'] . '×' . $roh['hoehe'] . ', Kodierung „' . $bild['kodierung'] . '", Weg ' . count($bild['weg'] ?? []) . ' Stücke, Roboter ' . json_encode($bild['roboter'] ?? null));
         unset($bild['kodierung']);
         return ['raeume' => $raeume] + $bild;

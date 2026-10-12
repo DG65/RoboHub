@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1 (12.10.2026)
+
+- Live-Befund 0.10.0 (Barny): `cleanset` steht nur im Live-Rahmen, nicht in der gespeicherten Karte; alle Räume
+  `[1,3,1,Reihenfolge,2,546,0,2,0]`, `customeClean` 1. App zeigt „Saugen, Standard" → Modus je Raum ist bei
+  Mopp-Anhebung genauso getauscht wie 4.23 (Leitung 2 = Saugen). Reihenfolge = App (Dietmar bestätigt).
+- Anzeige: Modus zuerst, Räume in Reinigungsreihenfolge mit Nummer, Wasser nur bei Modi mit Wischen.
+  Konto gibt dem Treiber den letzten Rohstand mit (`$geraet['stand']`) für die Mopp-Anhebungs-Erkennung.
+
 ## 0.10.0 (12.10.2026)
 
 - Neu: **Einstellungen je Raum** lesen — `cleanset` aus dem Kartentext (gespeicherte Karte und Live-Rahmen,

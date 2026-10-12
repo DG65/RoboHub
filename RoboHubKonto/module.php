@@ -245,6 +245,8 @@ class RoboHubKonto extends IPSModule
         }
 
         $geraet = $this->findeGeraet((string)($anfrage['Geraet'] ?? ''));
+        // Letzter vollständiger Rohstand (z. B. für die Mopp-Anhebungs-Erkennung bei Raum-Einstellungen).
+        $geraet['stand'] = (array)((json_decode($this->ReadAttributeString('Schnappschuss'), true) ?: [])[(string)$geraet['id']]['p'] ?? []);
         $buendel = $this->gueltigesBuendel();
         try {
             if ($aktion === 'zustand') {

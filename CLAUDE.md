@@ -249,7 +249,9 @@
 - Lesen aus `cleanset` (+ `customeClean`) im Kartentext; Schreiben bei Tasshack: action 6.2, piid 4 =
   `{"customeClean": [[Raum, Saugstufe, Wasser, Durchgänge, (Modus), (Wisch-Einstellungen), …]]}` — **ohne**
   Reihenfolge (Index 3 der Lese-Liste); Liste für ALLE Räume. Noch nicht gebaut.
-- **Live offen:** ob Barnys gespeicherte Karte/Live-Rahmen `cleanset` tragen, Bedeutung von Wasser/Modus gegen App.
+- **Live (12.10.2026 10:50):** nur der Live-Rahmen trägt `cleanset` (Barny: `[1,3,1,R,2,546,0,2,0]` je Raum, 9 Werte).
+  App: „Saugen, Standard" je Raum → Modus 0↔2 getauscht wie 4.23 (seit 0.10.1); Reihenfolge = App. Wasser 3 /
+  Wisch-Einstellungen 546 (=0x222) bei „Saugen" in der App nicht sichtbar, Bedeutung offen.
 
 ## Prüfen
 

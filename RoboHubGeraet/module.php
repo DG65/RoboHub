@@ -462,13 +462,25 @@ class RoboHubGeraet extends IPSModule
         $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
         $namen = json_decode($this->ReadAttributeString('Raeume'), true) ?: [];
         $zeilen = [];
-        foreach ((array)($re['raeume'] ?? []) as $id => $e) {
-            $teile = [(string)$e['saugstufe'], (int)$e['durchgaenge'] . '×'];
+        $liste = (array)($re['raeume'] ?? []);
+        // In Reinigungsreihenfolge (wie die App), Räume ohne Reihenfolge ans Ende.
+        uksort($liste, function ($a, $b) use ($liste): int {
+            $ra = (int)($liste[$a]['reihenfolge'] ?? 0) ?: 999;
+            $rb = (int)($liste[$b]['reihenfolge'] ?? 0) ?: 999;
+            return $ra <=> $rb ?: ((int)$a <=> (int)$b);
+        });
+        foreach ($liste as $id => $e) {
+            $teile = [];
             if (!empty($e['modus'])) {
                 $teile[] = $e['modus'];
             }
-            $teile[] = (strpos((string)$e['wasser'], 'Feuchte') === 0 ? '' : 'Wasser ') . $e['wasser'];
-            $zeilen[(int)$id] = ($namen[(string)$id] ?? $namen[(int)$id] ?? 'Raum ' . $id) . ': ' . implode(' · ', $teile);
+            array_push($teile, (string)$e['saugstufe'], (int)$e['durchgaenge'] . '×');
+            // Wasser nur, wenn auch gewischt wird (die App blendet es sonst aus).
+            if (empty($e['modus']) || strpos((string)$e['modus'], 'Wischen') !== false || strpos((string)$e['modus'], 'wischen') !== false) {
+                $teile[] = (strpos((string)$e['wasser'], 'Feuchte') === 0 ? '' : 'Wasser ') . $e['wasser'];
+            }
+            $nr = (int)($e['reihenfolge'] ?? 0);
+            $zeilen[(int)$id] = ($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? $namen[(int)$id] ?? 'Raum ' . $id) . ': ' . implode(' · ', $teile);
         }
         return $zeilen;
     }
@@ -1036,7 +1048,7 @@ class RoboHubGeraet extends IPSModule
         $raeume = [];
         $einst = $this->raumEinstellungenZeilen();
         foreach (json_decode($this->ReadAttributeString('Raeume'), true) ?: [] as $id => $name) {
-            $raeume[] = ['id' => (int)$id, 'name' => (string)$name, 'info' => isset($einst[(int)$id]) ? substr($einst[(int)$id], strlen((string)$name) + 2) : ''];
+            $raeume[] = ['id' => (int)$id, 'name' => (string)$name, 'info' => isset($einst[(int)$id]) ? (string)preg_replace('/^(\d+\. )?' . preg_quote((string)$name, '/') . ': /u', '', $einst[(int)$id]) : ''];
         }
         $fehler = (string)($this->wert('Fehler') ?? '');
         $abruf = $this->ReadAttributeInteger('LetzterAbruf');

@@ -1451,11 +1451,13 @@ FakeCloud::$geraeteDaten = $merkeDaten;
 FakeCloud::$maehplan = '';
 
 abschnitt('Einstellungen je Raum');
-$cs = ['3' => [1, 3, 2, 1, 2, 0], '5' => [2, 16, 1, 2, 0, 0], 'x' => [1], '7' => [0, 2]];
+$cs = ['3' => [1, 3, 2, 2, 2, 0], '5' => [2, 16, 1, 1, 0, 0], 'x' => [1], '7' => [0, 2]];
 $re = RoboHubDreame::raumEinstellungenAus(['cleanset' => json_encode($cs), 'customeClean' => 1]);
-check('cleanset (auch als Text): Raum 3 Standard, Wasser Mittel, 2×, Saugen und Wischen', ($re['raumEinstellungen'][3] ?? null) == ['saugstufe' => 'Standard', 'wasser' => 'Mittel', 'durchgaenge' => 2, 'reihenfolge' => 1, 'modus' => 'Saugen und Wischen'], json_encode($re['raumEinstellungen'][3] ?? null, JSON_UNESCAPED_UNICODE));
+check('cleanset (auch als Text): Raum 3 Standard, Wasser Mittel, 2×, Saugen und Wischen', ($re['raumEinstellungen'][3] ?? null) == ['saugstufe' => 'Standard', 'wasser' => 'Mittel', 'durchgaenge' => 2, 'reihenfolge' => 2, 'modus' => 'Saugen und Wischen'], json_encode($re['raumEinstellungen'][3] ?? null, JSON_UNESCAPED_UNICODE));
 check('… Raum 5: Feuchte-Stufe 16 (Wert > 4), Stark, Saugen', ($re['raumEinstellungen'][5]['wasser'] ?? '') === 'Feuchte 16' && $re['raumEinstellungen'][5]['saugstufe'] === 'Stark' && $re['raumEinstellungen'][5]['modus'] === 'Saugen');
 check('… unvollständige Einträge übergangen, „customeClean" = an', count($re['raumEinstellungen']) === 2 && $re['raumEinstellungenAn'] === true);
+$getauscht = RoboHubDreame::raumEinstellungenAus(['cleanset' => $cs], true)['raumEinstellungen'];
+check('mit Mopp-Anhebung: Leitung 2 → Saugen, 0 → Saugen und Wischen, 1 bleibt Wischen', $getauscht[3]['modus'] === 'Saugen' && $getauscht[5]['modus'] === 'Saugen und Wischen' && RoboHubDreame::raumEinstellungenAus(['cleanset' => ['1' => [1, 3, 1, 1, 1]]], true)['raumEinstellungen'][1]['modus'] === 'Wischen');
 check('ohne cleanset → nichts', RoboHubDreame::raumEinstellungenAus(['seg_inf' => []]) === []);
 
 $segsC = ['3' => ['type' => 4, 'index' => 0], '5' => ['type' => 0, 'name' => base64_encode('Bad')]];
@@ -1463,11 +1465,12 @@ FakeCloud::$props['6.8'] = json_encode(['object_name' => 'ali_dreame/123/map']);
 FakeCloud::$karte = strtr(base64_encode(gzcompress($kopfB . $pix . json_encode(['seg_inf' => $segsC, 'cleanset' => $cs, 'customeClean' => 0]))), '+/', '-_');
 $geraet->RaeumeLaden();
 $rv = (string)(variable(2000, 'RaumEinstellungen')['value'] ?? '');
-check('Variable „Einstellungen je Raum" mit Raumnamen', strpos($rv, 'Küche: Standard · 2× · Saugen und Wischen · Wasser Mittel') !== false && strpos($rv, 'Bad: Stark · 1× · Saugen · Feuchte 16') !== false, $rv);
+// Testgerät hat Mopp-Anhebung (4.25 + 27.3) → Leitung 2 = „Saugen", 0 = „Saugen und Wischen" (Live-Befund Barny).
+check('Variable in Reihenfolge, Modus getauscht, Wasser nur beim Wischen', strpos($rv, "1. Bad: Saugen und Wischen · Stark · 1× · Feuchte 16\n2. Küche: Saugen · Standard · 2×") !== false, $rv);
 check('… in der App ausgeschaltet → Hinweis oben', strpos($rv, '⏸️ In der App ausgeschaltet') === 0);
 $k = kachelJson($geraet->GetVisualizationTile());
 $kueche = array_values(array_filter($k['raeume'], function ($r) { return $r['name'] === 'Küche'; }))[0] ?? [];
-check('Kachel: Raumknopf trägt die Einstellungen', ($kueche['info'] ?? '') === 'Standard · 2× · Saugen und Wischen · Wasser Mittel', json_encode($kueche, JSON_UNESCAPED_UNICODE));
+check('Kachel: Raumknopf trägt die Einstellungen (ohne Nummer und Name)', ($kueche['info'] ?? '') === 'Saugen · Standard · 2×', json_encode($kueche, JSON_UNESCAPED_UNICODE));
 check('Rohdaten enthalten das cleanset', strpos($geraet->Rohdaten(), '"raumEinstellungenRoh"') !== false);
 // Live-Rahmen mit cleanset aktualisiert die Anzeige (z. B. in der App geändert).
 $cs2 = $cs;
@@ -1475,7 +1478,7 @@ $cs2['3'][0] = 3;
 FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . json_encode(['cleanset' => $cs2, 'customeClean' => 1]))), '+/', '-_')]];
 $geraet->LiveKarteLaden();
 $rv = (string)variable(2000, 'RaumEinstellungen')['value'];
-check('Live-Karte bringt neue Einstellungen (Küche jetzt Turbo, Schalter an)', strpos($rv, 'Küche: Turbo') !== false && strpos($rv, '⏸️') === false, $rv);
+check('Live-Karte bringt neue Einstellungen (Küche jetzt Turbo, Schalter an)', strpos($rv, '2. Küche: Saugen · Turbo') !== false && strpos($rv, '⏸️') === false, $rv);
 FakeCloud::$karte = $klar;
 FakeCloud::$liveOut = [];
 
