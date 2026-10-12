@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.2 (12.10.2026)
+
+- Live-Befund (Barny, Küche 16:07–16:14): Start mit Wahl, Live-Karte während der Reinigung, Pause/Fortsetzen/Stopp/
+  Zur Station bestätigt. Nach der Rückkehr lieferte der letzte Rahmen keinen Weg mehr und überschrieb den fertigen
+  Weg → jetzt bleibt bei leerem Weg außerhalb der Arbeit der bisherige stehen; bei neuer Arbeit wird er ersetzt.
+
 ## 0.12.1 (12.10.2026)
 
 - Live 0.12.0: Symcons `MaintainVariable` benennt eine vorhandene Variable nicht um — Variable hieß weiter

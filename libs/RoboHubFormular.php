@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.12.2' => [
+            '• Live-Karte: Der fertige Weg bleibt nach der Arbeit stehen, auch wenn der Roboter ihn in der Station löscht.',
+        ],
         '0.12.1' => [
             '• Die Variable „Einstellungen je Raum" wird in „Raum-Einstellungen im Roboter" umbenannt (nur, wenn sie noch den alten Namen trägt).',
         ],

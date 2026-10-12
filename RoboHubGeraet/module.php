@@ -791,10 +791,16 @@ class RoboHubGeraet extends IPSModule
         if ((string)($d['bild'] ?? '') === '') {
             return 'ℹ️ Keine aktuelle Karte geliefert.';
         }
+        $weg = array_values((array)($d['weg'] ?? []));
+        if ($weg === [] && !$this->ReadAttributeBoolean('LiveAktiv')) {
+            // Nach Auftragsende löscht der Roboter den Weg im Kartenrahmen (Live-Befund Barny
+            // 12.10.2026) — der fertige Weg soll bis zur nächsten Arbeit stehen bleiben.
+            $weg = (array)((json_decode($this->ReadAttributeString('Karte'), true) ?: [])['weg'] ?? []);
+        }
         $this->WriteAttributeString('Karte', (string)json_encode([
             'bild' => (string)$d['bild'], 'marken' => array_values((array)($d['marken'] ?? [])),
             'station' => $d['station'] ?? null, 'format' => (float)($d['format'] ?? 1.0),
-            'geometrie' => $d['geometrie'] ?? null, 'weg' => array_values((array)($d['weg'] ?? [])),
+            'geometrie' => $d['geometrie'] ?? null, 'weg' => $weg,
             'roboter' => $d['roboter'] ?? null, 'live' => time(),
         ]));
         $this->kachelAktualisieren();

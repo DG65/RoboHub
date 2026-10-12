@@ -1275,6 +1275,15 @@ FakeCloud::$anfragen = [];
 $geraet->Aktualisieren();
 check('… danach keine weiteren Anforderungen', count(array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action'; })) === 0);
 check('fertiger Weg bleibt bis zur nächsten Arbeit stehen', isset(kachelJson($geraet->GetVisualizationTile())['karte']['weg']));
+// Live-Befund Barny: nach Auftragsende kommt der Rahmen ohne Weg — der alte Weg bleibt.
+$wegVorher = kachelJson($geraet->GetVisualizationTile())['karte']['weg'];
+FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . json_encode(['seg_inf' => $segsB]))), '+/', '-_')]];
+$geraet->LiveKarteLaden();
+check('Rahmen ohne Weg nach Auftragsende → fertiger Weg bleibt stehen', count($wegVorher) > 0 && kachelJson($geraet->GetVisualizationTile())['karte']['weg'] == $wegVorher);
+$geraet->WriteAttributeBoolean('LiveAktiv', true);   // neue Arbeit beginnt: leerer Weg ist richtig
+$geraet->LiveKarteLaden();
+check('… während der Arbeit ersetzt ein leerer Weg den alten (neuer Auftrag)', (kachelJson($geraet->GetVisualizationTile())['karte']['weg'] ?? null) === []);
+$geraet->WriteAttributeBoolean('LiveAktiv', false);
 FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . $lJson)), '+/', '-_')]];
 check('Kartentext direkt in der Antwort (6.1) wird ebenfalls genommen', strpos($geraet->LiveKarteLaden(), '✅') === 0);
 // Live-Befund Barny: Live-Rahmen ohne seg_inf → Namen aus der gespeicherten Raumliste, Räume trotzdem farbig.
