@@ -168,6 +168,8 @@ class FakeCloud extends RoboHubDreame
     public static $kanal = [];              // alle Anfragen an 2.50 (t)
     public static $tabellen = null;         // MOVA-Tabellenform: Antwort auf SCHDI je Platz (Platz => d), null = r 3
     public static $tabTermine = [];         // 'Tabelle/Termin' => Antwort auf SCHDC
+    public static $schds = [];              // gesendete SCHDS-Daten
+    public static $schdsWirkt = true;       // false = Mäher bestätigt, übernimmt aber nicht
     public static $liveOut = [];            // Antwort out auf action 6.1 (Live-Kartenanforderung)
     public static $liveDatei = '';          // Inhalt der Zwischendatei „live/…"
     public static $karte = null;        // Kartentext (mapstr[0].map)
@@ -232,6 +234,20 @@ class FakeCloud extends RoboHubDreame
                         return [200, $r3];
                     }
                     return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['m' => 'r', 'r' => 0, 'd' => self::$tabellen[$platz] ?? []])]]]])];
+                }
+                if (is_array($in) && ($in['t'] ?? '') === 'SCHDS' && ($in['m'] ?? '') === 's') {
+                    self::$schds[] = $in['d'];
+                    if (self::$schdsWirkt) {
+                        [$tab, $an] = $in['d'];
+                        foreach (self::$tabellen[intdiv($tab, 2)] as $i => $t) {
+                            if ($t[0] === $tab) {
+                                self::$tabellen[intdiv($tab, 2)][$i][1] = $an;
+                            } elseif ($an === 1) {
+                                self::$tabellen[intdiv($tab, 2)][$i][1] = 0;   // Nachbarplan geht aus (EvotecIT)
+                            }
+                        }
+                    }
+                    return [200, json_encode(['code' => 0, 'data' => ['result' => ['code' => 0, 'out' => [json_encode(['m' => 'r', 'r' => 0])]]]])];
                 }
                 if (is_array($in) && ($in['t'] ?? '') === 'SCHDC') {
                     $k = ($in['d'][0] ?? '') . '/' . ($in['d'][1] ?? '');
@@ -1390,6 +1406,40 @@ FakeCloud::$tabellen = [0 => [[0, 0, 1, '', [[0, 41976294]], 7], [1, 0, 1, '', [
 FakeCloud::$tabTermine = ['0/0' => [0, 1, 0, 720, [0, 1, 2, 3, 4, 5, 6], []]];
 $maeher->RaeumeLaden();
 check('LiDAX-Livedaten: genau ein Plan „⏸️ Plan 1 · täglich 12:00 · alles", Platzhalter ausgeblendet', variable(2100, 'Zeitplaene')['value'] === '⏸️ Plan 1 · täglich 12:00 · alles', (string)variable(2100, 'Zeitplaene')['value']);
+check('Tabellen-Plan ist schaltbar (Kachel)', (kachelJson($maeher->GetVisualizationTile())['zeitplaene'][0]['schaltbar'] ?? false) === true);
+FakeCloud::$props['2.1'] = 13;
+FakeCloud::$schds = [];
+$GLOBALS['LOG'] = [];
+$t = $maeher->ZeitplanSchalten(0, true);
+check('Mäh-Plan einschalten: SCHDS [0, 1], bestätigt, neu gelesen', FakeCloud::$schds === [[0, 1]] && strpos($t, '📤') === 0 && variable(2100, 'Zeitplaene')['value'] === '✅ Plan 1 · täglich 12:00 · alles', $t . ' / ' . variable(2100, 'Zeitplaene')['value']);
+check('… im Protokoll festgehalten', strpos(implode("\n", $GLOBALS['LOG']), 'Mäh-Plan 1 eingeschaltet') !== false);
+FakeCloud::$schds = [];
+$maeher->ZeitplanSchalten(0, false);
+check('Mäh-Plan ausschalten: SCHDS [0, 0]', FakeCloud::$schds === [[0, 0]] && variable(2100, 'Zeitplaene')['value'] === '⏸️ Plan 1 · täglich 12:00 · alles');
+FakeCloud::$props['2.1'] = 19;
+FakeCloud::$schds = [];
+$t = $maeher->ZeitplanSchalten(0, true);
+check('Mäher mäht → Schalten abgelehnt, nichts gesendet', FakeCloud::$schds === [] && strpos($t, '⛔') === 0 && strpos($t, 'ruht') !== false, $t);
+FakeCloud::$props['2.1'] = 13;
+FakeCloud::$tabTermine['0/0'][1] = 0;     // einziger Termin in der App ausgeschaltet
+$t = $maeher->ZeitplanSchalten(0, true);
+check('Plan ohne aktiven Termin → Einschalten abgelehnt', FakeCloud::$schds === [] && strpos($t, 'ohne aktiven Termin') !== false, $t);
+FakeCloud::$tabTermine['0/0'][1] = 1;
+FakeCloud::$schdsWirkt = false;
+$t = $maeher->ZeitplanSchalten(0, true);
+check('Mäher übernimmt nicht → klare Meldung statt „eingeschaltet"', strpos($t, 'nicht bestätigt') !== false, $t);
+FakeCloud::$schdsWirkt = true;
+$t = (new ReflectionMethod('RoboHubGeraet', 'zeitplanSchaltbar'))->invoke($maeher, ['art' => 'maeher', 'tabelle' => 0, 'an' => false, 'eintraege' => []]);
+// Zweite Karte: Tabelle 2 (= Plan 1 auf Karte 2) — gleiche Plan-Nummer wie Tabelle 0, eigene Kennung.
+FakeCloud::$tabellen[1] = [[2, 0, 1, '', [[7, 1]], 7], [3, 0, 1, '', [], 7]];
+FakeCloud::$tabTermine['2/7'] = [7, 1, 0, 600, [6], []];
+$maeher->RaeumeLaden();
+check('zwei Karten: „Plan 1" und „Plan 1 (Karte 2)" getrennt', strpos((string)variable(2100, 'Zeitplaene')['value'], '⏸️ Plan 1 (Karte 2) · Sa 10:00 · alles') !== false, (string)variable(2100, 'Zeitplaene')['value']);
+FakeCloud::$schds = [];
+$maeher->ZeitplanSchalten(2, true);
+check('… Schalten trifft Tabelle 2, nicht Tabelle 0', FakeCloud::$schds === [[2, 1]], json_encode(FakeCloud::$schds));
+FakeCloud::$tabellen[1] = [[2, 0, 1, '', [], 7], [3, 0, 1, '', [], 7]];
+check('Plan ohne Termine, aus → nicht schaltbar (Ausschalten wäre unnötig, Einschalten unmöglich)', $t === false);
 FakeCloud::$tabellen = null;
 FakeCloud::$tabTermine = [];
 $merkeDaten = FakeCloud::$geraeteDaten;

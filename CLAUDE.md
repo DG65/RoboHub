@@ -239,7 +239,8 @@
   mit `{"m":"r","r":3}` → seit 0.9.3 zuerst Tabellenform SCHDI/SCHDC (EvotecIT: für MOVA bevorzugt).
   **Live 0.9.3 gelesen:** ein Plan (aus) mit Termin täglich 12:00 ganze Fläche + drei leere Platzhalter-Tabellen
   (Feld 2 = 1, Feld 5 = 7, Bedeutung unbekannt). 0.9.4 zeigt „⏸️ Plan 1 · täglich 12:00 · alles" = MOVAhome (Dietmar
-  bestätigt 12.10.2026 01:05). Schalten der Mäh-Pläne noch nicht gebaut.
+  bestätigt 12.10.2026 01:05). Schalten seit 0.9.5 (SCHDS, Bedingungen siehe CHANGELOG) — **live offen**;
+  Testidee: deaktivierten Plan kurz ein- und wieder aus, weit weg von 12:00.
 
 ## Prüfen
 

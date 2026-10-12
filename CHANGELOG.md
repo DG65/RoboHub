@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.5 (12.10.2026)
+
+- Neu: **Mäh-Pläne schalten** (Tabellenform) nach EvotecIT `plan_table_enabled`: Zustand 2.1 frisch lesen —
+  nur ruhend (bereit/lädt/geladen); SCHDI frisch lesen; Einschalten nur mit mindestens einem aktiven Termin
+  (SCHDC); `{"m":"s","t":"SCHDS","d":[Tabelle, 1/0]}`; danach SCHDI erneut — nur bei bestätigtem Schalter
+  „eingeschaltet/ausgeschaltet", sonst Fehlermeldung. Danach alle Pläne neu gelesen (Einschalten kann den
+  Nachbarplan derselben Karte ausschalten), Protokolleintrag.
+- Plan-Kennung = Tabellennummer (eindeutig über Karten), Anzeige „Plan n" je Karte, ab Karte 2 mit Zusatz.
+- Noch nicht live geschaltet.
+
 ## 0.9.4 (12.10.2026)
 
 - Mäh-Pläne live gelesen (0.9.3, LiDAX): `SCHDI 0` = `[[0,0,1,"",[[0,41976294]],7],[1,0,1,"",[],7]]`,

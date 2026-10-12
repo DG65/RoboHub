@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.9.5' => [
+            '• Mähroboter: Mäh-Pläne ein- und ausschalten (Formular, Kachel, Skript) — nur wenn der Mäher ruht; der Mäher bestätigt jede Änderung, danach werden alle Pläne neu gelesen.',
+        ],
         '0.9.4' => [
             '• Mäh-Pläne: leere Platzhalter ausgeblendet, „täglich"/„werktags" zusammengefasst, Pläne ohne Namen ab „Plan 1" gezählt.',
         ],

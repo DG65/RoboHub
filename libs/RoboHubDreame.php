@@ -1033,12 +1033,64 @@ PEM;
                 $tage[$e['tag']] = true;
             }
             $termine[] = [
-                'id' => (int)$t[0] - 2 * $platz, 'an' => (int)$t[1] === 1, 'ungueltig' => false,
+                // id = Tabellennummer (eindeutig über alle Karten), nummer = Plan auf dieser Karte.
+                'id' => (int)$t[0], 'nummer' => (int)$t[0] - 2 * $platz, 'an' => (int)$t[1] === 1, 'ungueltig' => false,
                 'name' => (string)$t[3], 'art' => 'maeher', 'tage' => array_keys($tage), 'einmalig' => false,
                 'zeit' => $eintraege[0]['von'] ?? '', 'eintraege' => $eintraege, 'platz' => $platz, 'tabelle' => (int)$t[0],
             ];
         }
         return $termine;
+    }
+
+    /**
+     * Mäh-Plan (Tabelle) ein-/ausschalten wie EvotecIT plan_table_enabled:
+     * nur bei ruhendem Mäher (Station/bereit — EvotecIT schedule_write_block_reason),
+     * Einschalten nur mit mindestens einem aktiven Termin, Befehl
+     * {"m":"s","t":"SCHDS","d":[Tabelle, 1/0]}, danach die Schalter beider Tabellen des
+     * Kartenplatzes neu lesen — Einschalten kann den Nachbarplan ausschalten.
+     */
+    private function maehPlanSchalten(array $buendel, string $did, string $modell, int $tabelle, bool $an): string
+    {
+        if ($tabelle < 0) {
+            throw new RoboHubFehler('Unbekannter Mäh-Plan.');
+        }
+        $p = $this->leseProperties($buendel, $did, [[2, 1]]);
+        $zustand = $this->normalisiereMaeher($p, $modell)['werte']['Zustand'] ?? RoboHubModell::ZUSTAND_UNBEKANNT;
+        if (!in_array($zustand, [RoboHubModell::ZUSTAND_BEREIT, RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::ZUSTAND_GELADEN], true)) {
+            throw new RoboHubFehler('Mäh-Pläne lassen sich nur schalten, wenn der Mäher ruht (in der Station oder bereit) — bitte die laufende Aufgabe erst beenden.');
+        }
+        $platz = intdiv($tabelle, 2);
+        $vorher = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDI', 'd' => [2 * $platz, 2 * $platz + 1]]);
+        $ziel = null;
+        foreach ((array)$vorher as $t) {
+            if (is_array($t) && (int)($t[0] ?? -1) === $tabelle) {
+                $ziel = $t;
+            }
+        }
+        if ($ziel === null) {
+            throw new RoboHubFehler('Diesen Mäh-Plan meldet der Mäher nicht (mehr).');
+        }
+        if ($an) {
+            $aktiv = false;
+            foreach ((array)($ziel[4] ?? []) as $ref) {
+                $termin = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDC', 'd' => [$tabelle, (int)($ref[0] ?? -1)]]);
+                if (self::maeherTabellenTermin($termin) !== []) {
+                    $aktiv = true;
+                    break;
+                }
+            }
+            if (!$aktiv) {
+                throw new RoboHubFehler('Ein Mäh-Plan ohne aktiven Termin lässt sich nicht einschalten.');
+            }
+        }
+        $this->maeherKanal($buendel, $did, ['m' => 's', 't' => 'SCHDS', 'd' => [$tabelle, $an ? 1 : 0]]);
+        $nachher = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDI', 'd' => [2 * $platz, 2 * $platz + 1]]);
+        foreach ((array)$nachher as $t) {
+            if (is_array($t) && (int)($t[0] ?? -1) === $tabelle && (int)($t[1] ?? -1) === ($an ? 1 : 0)) {
+                return 'Mäh-Plan ' . ($an ? 'eingeschaltet' : 'ausgeschaltet') . '.';
+            }
+        }
+        throw new RoboHubFehler('Der Mäher hat das Schalten nicht bestätigt — bitte in der App prüfen.');
     }
 
     /** SCHDC-Antwort → Einträge je Wochentag (leer, wenn der Termin aus ist). */
@@ -1418,6 +1470,9 @@ PEM;
             }
             $this->aktion($buendel, $did, 2, 50, [['m' => 'a', 'p' => 0, 'o' => 102, 'd' => ['region' => $zonen]]]);
             return 'Mähen ' . (count($zonen) === 1 ? 'der Zone' : 'von ' . count($zonen) . ' Zonen') . ' gesendet.';
+        }
+        if ($befehl === 'zeitplan' && $maeher) {
+            return $this->maehPlanSchalten($buendel, $did, (string)($geraet['modell'] ?? ''), (int)($parameter['tabelle'] ?? -1), !empty($parameter['an']));
         }
         if ($befehl === 'zeitplan' && !$maeher) {
             return $this->zeitplanSchalten($buendel, $did, (int)($parameter['id'] ?? 0), !empty($parameter['an']));

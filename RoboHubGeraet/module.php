@@ -282,16 +282,28 @@ class RoboHubGeraet extends IPSModule
     /** ROBO_ZeitplanSchalten($id, int $termin, bool $an): string — Zeitplan der Hersteller-App ein-/ausschalten. */
     public function ZeitplanSchalten(int $termin, bool $an): string
     {
-        $bekannt = false;
+        $bekannt = null;
         foreach (json_decode($this->ReadAttributeString('Zeitplaene'), true) ?: [] as $t) {
             if ((int)($t['id'] ?? -1) === $termin) {
-                $bekannt = true;
+                $bekannt = $t;
             }
         }
-        if (!$bekannt) {
+        if ($bekannt === null) {
             return '⛔ Unbekannter Zeitplan: ' . $termin;
         }
-        return $this->befehlText('zeitplan', ['id' => $termin, 'an' => $an]);
+        if (($bekannt['art'] ?? '') !== 'maeher') {
+            return $this->befehlText('zeitplan', ['id' => $termin, 'an' => $an]);
+        }
+        if (!isset($bekannt['tabelle'])) {
+            return '⛔ Dieser Mäh-Plan lässt sich (noch) nicht schalten.';
+        }
+        $text = $this->befehlText('zeitplan', ['tabelle' => (int)$bekannt['tabelle'], 'an' => $an]);
+        if (strpos($text, '⛔') !== 0) {
+            // Der Mäher hat bestätigt; Pläne neu lesen (Nachbarplan kann sich mitgeschaltet haben).
+            $this->protokolliere('Mäh-Plan ' . ((int)($bekannt['nummer'] ?? $termin) + 1) . ' ' . ($an ? 'eingeschaltet' : 'ausgeschaltet') . '.');
+            $this->ladeRaeume();
+        }
+        return $text;
     }
 
     /** ROBO_Rohdaten($id): string — letzte Rohantwort des Herstellers (zur Fehlersuche). */
@@ -416,6 +428,18 @@ class RoboHubGeraet extends IPSModule
         return $antwort;
     }
 
+    private function zeitplanSchaltbar(array $t): bool
+    {
+        if (!empty($t['ungueltig'])) {
+            return false;
+        }
+        if (($t['art'] ?? '') === 'maeher') {
+            // Einschalten braucht einen aktiven Termin; Ausschalten geht immer.
+            return isset($t['tabelle']) && (!empty($t['an']) || !empty($t['eintraege']));
+        }
+        return true;
+    }
+
     private function zeitplaeneUebernehmen(array $termine): void
     {
         $this->WriteAttributeString('Zeitplaene', (string)json_encode(array_values($termine)));
@@ -443,7 +467,8 @@ class RoboHubGeraet extends IPSModule
             $teile[] = $tageText . ' ' . $wann;
         }
         // Ohne Namen wie in der App gezählt: erster Plan = „Plan 1".
-        $kopf = trim((string)($t['name'] ?? '')) !== '' ? 'Plan „' . $t['name'] . '"' : 'Plan ' . ((int)$t['id'] + 1);
+        $kopf = trim((string)($t['name'] ?? '')) !== '' ? 'Plan „' . $t['name'] . '"' : 'Plan ' . ((int)($t['nummer'] ?? $t['id']) + 1)
+            . ((int)($t['platz'] ?? 0) > 0 ? ' (Karte ' . ((int)$t['platz'] + 1) . ')' : '');
         return $kopf . ($teile === [] ? ' · ohne Termine' : ' · ' . implode('; ', $teile));
     }
 
@@ -981,8 +1006,8 @@ class RoboHubGeraet extends IPSModule
             'raeume'      => $raeume,
             'karte'       => $this->kachelKarte(),
             'zeitplaene'  => array_map(function (array $t): array {
-                // Mäh-Pläne vorerst nur anzeigen (Schalten erst nach Live-Bestätigung des Lesens).
-                return ['id' => (int)$t['id'], 'an' => (bool)$t['an'], 'text' => $this->zeitplanText($t), 'schaltbar' => empty($t['ungueltig']) && ($t['art'] ?? '') !== 'maeher'];
+                // Mäh-Pläne nur aus der Tabellenform schaltbar (dort ist der Schaltweg belegt).
+                return ['id' => (int)$t['id'], 'an' => (bool)$t['an'], 'text' => $this->zeitplanText($t), 'schaltbar' => $this->zeitplanSchaltbar($t)];
             }, json_decode($this->ReadAttributeString('Zeitplaene'), true) ?: []),
             'teile'       => $teile,
             'stand'       => $abruf > 0 ? date('H:i:s', $abruf) : '',
@@ -1157,12 +1182,12 @@ class RoboHubGeraet extends IPSModule
             return null;
         }
         $items = [['type' => 'Label', 'caption' => $this->klasse() === RoboHubModell::KLASSE_MAEHER
-            ? 'Mäh-Pläne aus der Hersteller-App (nur Anzeige). Anlegen, ändern und schalten geht in der App.'
+            ? 'Mäh-Pläne aus der Hersteller-App. Anlegen und ändern geht nur dort; hier lassen sie sich ein- und ausschalten, solange der Mäher ruht (Station oder bereit). Einschalten kann einen anderen Plan derselben Karte ausschalten.'
             : 'Zeitpläne aus der Hersteller-App. Anlegen und ändern geht nur dort, hier lassen sie sich ein- und ausschalten.']];
         foreach ($termine as $t) {
             $items[] = ['type' => 'RowLayout', 'items' => [
                 ['type' => 'Label', 'caption' => ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t), 'width' => '520px'],
-                ['type' => 'Button', 'caption' => $t['an'] ? 'Ausschalten' : 'Einschalten', 'visible' => empty($t['ungueltig']) && ($t['art'] ?? '') !== 'maeher',
+                ['type' => 'Button', 'caption' => $t['an'] ? 'Ausschalten' : 'Einschalten', 'visible' => $this->zeitplanSchaltbar($t),
                     'onClick' => 'echo ROBO_ZeitplanSchalten($id, ' . (int)$t['id'] . ', ' . ($t['an'] ? 'false' : 'true') . ');'],
             ]];
         }
