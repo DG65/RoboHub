@@ -255,6 +255,13 @@
 - Schreiben seit 0.11.0 (Modus/Saugstufe/Durchgänge). Sendeliste spiegelt die Lese-Liste ohne Index 3 —
   bei Barny also 9 Werte (Tasshack baut je nach Fähigkeiten 6–8). **Live offen**; Testidee: eine Saugstufe
   ändern, in der App prüfen, zurückstellen.
+- **Live-Befunde 12.10.2026 14:10–14:35 (Barny, Küche):** RoboHub-Schreiben „Stark" → im Gerät (Live-Rahmen) angekommen
+  und im Gerätelog (Echtzeit 99.98, zlib-JSON `generalRule`, Eintrag `acmds … customeClean`) protokolliert, App zeigte
+  weiter „Standard". App-Änderungen „Leise"/„Standard" → weder im Live-Rahmen noch im Gerätelog. Gespeicherte Karte
+  (auch `map` statt `thb`): kein cleanset. `get_properties 6.3` = "". Echtzeit-6.3 kam nach RoboHubs Schreiben
+  (`ali_dreame/DB152110/2066117758/0`, 38 KB, Felder u. a. `customeClean`, **kein** `cleanset`). Cloud-Gerätedaten
+  (`getDeviceData`): nur App-Oberflächen-Schalter. → Ablageort der App-Raumeinstellungen unbekannt; Küche im Gerät
+  wieder auf Standard (14:33). Schreiben nicht freigeben, bis geklärt.
 
 ## Prüfen
 
