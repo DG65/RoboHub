@@ -39,7 +39,8 @@ function IPS_GetObjectIDByIdent(string $ident, int $parent) {
 }
 function IPS_SemaphoreEnter(string $n, int $ms): bool { return true; }
 function IPS_SemaphoreLeave(string $n): bool { return true; }
-function IPS_LogMessage(string $s, string $m): bool { $GLOBALS['LOG'][] = "$s: $m"; return true; }
+const KL_MESSAGE = 10201;
+const KL_WARNING = 10204;
 function IPS_GetLibrary(string $guid): array { $l = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true); return ['Version' => $l['version'] . '-beta.1', 'Build' => $l['build']]; }
 function IPS_SetProperty(int $id, string $n, $v): bool { $GLOBALS['INST'][$id]->props[$n] = $v; return true; }
 function IPS_ApplyChanges(int $id): bool { $GLOBALS['INST'][$id]->ApplyChanges(); return true; }
@@ -115,6 +116,7 @@ class IPSModule
     public function SetTimerInterval(string $n, int $ms): void { $this->timers[$n] = $ms; }
     public function RegisterMessage(int $s, int $m): void {}
     public function SendDebug(string $a, string $b, int $c): void { $this->debug[] = "$a: $b"; }
+    public function LogMessage(string $m, int $t): void { $GLOBALS['LOG'][] = $m; $GLOBALS['LOGSTUFE'][] = $t; }
     public function UpdateFormField(string $n, string $p, $v): void { $this->fields[] = [$n, $p, $v]; }
     public $elternMeldung = null;           // null = normal; false = HasActiveParent() meldet fälschlich „nein" (Live-Befund)
     public function HasActiveParent(): bool { return $this->elternMeldung ?? ($this->parent !== null); }
@@ -757,7 +759,7 @@ $t = $geraet->VerbrauchsteilZuruecksetzen('Filter');
 $c = FakeCloud::befehle()[0] ?? [];
 check('Sauger: Filter zurücksetzen = action 11.1', ($c['method'] ?? '') === 'action' && $c['params']['siid'] === 11 && $c['params']['aiid'] === 1, json_encode($c));
 check('… Rückmeldung mit Vorher-Wert', strpos($t, '✅') === 0 && strpos($t, 'vorher') !== false, $t);
-check('… dauerhaft protokolliert', strpos(implode("\n", $GLOBALS['LOG']), 'Filter zurückgesetzt') !== false);
+check('… dauerhaft protokolliert (als Meldung)', strpos(implode("\n", $GLOBALS['LOG']), 'Filter zurückgesetzt') !== false && end($GLOBALS['LOGSTUFE']) === KL_MESSAGE);
 check('… danach neu abgerufen (Kachel zeigt neuen Stand)', count(FakeCloud::befehle()) > 1 && FakeCloud::befehle()[1]['method'] === 'get_properties');
 foreach (['Hauptbuerste' => [9, 1], 'Seitenbuerste' => [10, 1], 'Sensoren' => [16, 1]] as $teil => [$si, $ai]) {
     FakeCloud::$anfragen = [];
@@ -776,7 +778,7 @@ $GLOBALS['OBJ'][$abwId] = $abw;
 check('Mäher-Teil beim Sauger (keine Variable) → abgelehnt', strpos($geraet->VerbrauchsteilZuruecksetzen('Messer'), '⛔') === 0 && count(FakeCloud::befehle()) === 0);
 FakeCloud::$ablehnen = ['11.1' => true];
 $t = $geraet->VerbrauchsteilZuruecksetzen('Filter');
-check('Roboter lehnt ab → Fehlermeldung, kein „zurückgesetzt" im Protokoll', strpos($t, '⛔') === 0 && strpos(end($GLOBALS['LOG']) ?: '', 'fehlgeschlagen') !== false, $t);
+check('Roboter lehnt ab → Fehlermeldung, kein „zurückgesetzt" im Protokoll', strpos($t, '⛔') === 0 && strpos(end($GLOBALS['LOG']) ?: '', 'fehlgeschlagen') !== false && end($GLOBALS['LOGSTUFE']) === KL_WARNING, $t);
 FakeCloud::$ablehnen = [];
 $geraet->visu = [];
 FakeCloud::$anfragen = [];
@@ -1694,6 +1696,14 @@ check('keine ColorValue/ColorActive-Schlüssel (Mobile-App-Absturz)', strpos($qu
 check('kein Sys_GetURLContentEx (kann kein POST)', !preg_match('/Sys_GetURLContentEx\s*\(/', $quelltext));
 check('keine Mojibake-Umlaute', strpos($quelltext, 'Ã') === false);
 check('Kontakt-E-Mail nur im Lizenz-Panel (einmal)', substr_count($quelltext, 'dietmar@gureth.eu') === 1);
+
+// Store-Review (SUITE.md Checkliste 15): Modulklassen loggen nur über $this->LogMessage.
+$quellen = '';
+foreach (array_merge(glob(__DIR__ . '/../*/module.php'), glob(__DIR__ . '/../libs/*.php')) as $datei) {
+    $quellen .= file_get_contents($datei);
+}
+check('kein IPS_LogMessage in den Modulen', strpos($quellen, 'IPS_LogMessage') === false);
+check('Fehler als Warnung, Erfolge als Meldung protokolliert', in_array(KL_WARNING, $GLOBALS['LOGSTUFE'] ?? [], true) && in_array(KL_MESSAGE, $GLOBALS['LOGSTUFE'] ?? [], true));
 
 echo "\n" . ($fails === 0 ? '✅ Alle Prüfungen bestanden.' : "❌ $fails Prüfung(en) fehlgeschlagen.") . "\n";
 exit($fails === 0 ? 0 : 1);

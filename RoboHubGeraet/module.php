@@ -301,7 +301,7 @@ class RoboHubGeraet extends IPSModule
         $vorher = (int)$this->wert($teil);
         $antwort = $this->frageKonto(['Aktion' => 'zuruecksetzen', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Teil' => $teil]);
         if (!$antwort['ok']) {
-            $this->protokolliere($name . ' zurücksetzen fehlgeschlagen: ' . $antwort['fehler']);
+            $this->protokolliere($name . ' zurücksetzen fehlgeschlagen: ' . $antwort['fehler'], KL_WARNING);
             return '⛔ ' . $antwort['fehler'];
         }
         // Dauerhaft festhalten — so ist später nachvollziehbar, wann gewechselt wurde.
@@ -423,7 +423,7 @@ class RoboHubGeraet extends IPSModule
             IPS_DisconnectInstance($this->InstanceID);
         }
         if (!IPS_ConnectInstance($this->InstanceID, $ziel)) {
-            $this->protokolliere('Verbinden mit Konto #' . $ziel . ' fehlgeschlagen.');
+            $this->protokolliere('Verbinden mit Konto #' . $ziel . ' fehlgeschlagen.', KL_WARNING);
             return '⛔ Verbinden mit Konto #' . $ziel . ' fehlgeschlagen.';
         }
         $text = '🔗 Mit Konto „' . IPS_GetName($ziel) . '" (#' . $ziel . ') verbunden — dort ist dieses Gerät registriert.';
@@ -435,7 +435,7 @@ class RoboHubGeraet extends IPSModule
     {
         $antwort = $this->frageKonto(['Aktion' => 'befehl', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Befehl' => $befehl, 'Parameter' => $parameter]);
         if (!$antwort['ok']) {
-            $this->protokolliere('Befehl „' . $befehl . '" fehlgeschlagen: ' . $antwort['fehler']);
+            $this->protokolliere('Befehl „' . $befehl . '" fehlgeschlagen: ' . $antwort['fehler'], KL_WARNING);
             return '⛔ ' . $antwort['fehler'];
         }
         // Gesendet ist nicht ausgeführt: Zustand gleich nachziehen und
@@ -708,7 +708,7 @@ class RoboHubGeraet extends IPSModule
             }
         }
         if ($fehler !== null) {
-            $this->protokolliere($fehler);
+            $this->protokolliere($fehler, KL_WARNING);
             $this->kachelAktualisieren('⛔ ' . $fehler);
             return null;
         }
@@ -984,9 +984,9 @@ class RoboHubGeraet extends IPSModule
         return @IPS_GetObjectIDByIdent($ident, $this->InstanceID) !== false;
     }
 
-    private function protokolliere(string $text): void
+    private function protokolliere(string $text, int $stufe = KL_MESSAGE): void
     {
-        IPS_LogMessage('RoboHub Roboter #' . $this->InstanceID, $text);
+        $this->LogMessage($text, $stufe);
     }
 
     // -----------------------------------------------------------------

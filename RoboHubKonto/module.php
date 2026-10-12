@@ -121,7 +121,7 @@ class RoboHubKonto extends IPSModule
             $buendel = $this->treiber()->anmelden($konto, $pass, (string)$this->ReadPropertyString('Region'));
         } catch (Throwable $e) {
             $this->WriteAttributeString('LetzterFehler', $e->getMessage());
-            $this->protokolliere('Anmeldung fehlgeschlagen: ' . $e->getMessage());
+            $this->protokolliere('Anmeldung fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
             return $this->melde('⛔ Anmeldung fehlgeschlagen: ' . $e->getMessage());
         }
         $this->WriteAttributeString('Buendel', (string)json_encode($buendel));
@@ -357,12 +357,12 @@ class RoboHubKonto extends IPSModule
         }
         $id = @IPS_CreateInstance(self::CLIENT_SOCKET);
         if (!$id) {
-            $this->protokolliere('Client Socket für die Echtzeit-Meldungen ließ sich nicht anlegen.');
+            $this->protokolliere('Client Socket für die Echtzeit-Meldungen ließ sich nicht anlegen.', KL_WARNING);
             return;
         }
         IPS_SetName($id, 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')');
         if (!IPS_ConnectInstance($this->InstanceID, $id)) {
-            $this->protokolliere('Client Socket #' . $id . ' ließ sich nicht verbinden.');
+            $this->protokolliere('Client Socket #' . $id . ' ließ sich nicht verbinden.', KL_WARNING);
         }
     }
 
@@ -414,7 +414,7 @@ class RoboHubKonto extends IPSModule
             return;
         }
         if (time() - (int)($stand['lebenszeichen'] ?? 0) > 3 * self::MQTT_KEEPALIVE) {
-            $this->protokolliere('Echtzeit-Verbindung antwortet nicht mehr — verbinde neu.');
+            $this->protokolliere('Echtzeit-Verbindung antwortet nicht mehr — verbinde neu.', KL_WARNING);
             $this->echtzeitKonfigurieren(true);
             return;
         }
@@ -446,7 +446,7 @@ class RoboHubKonto extends IPSModule
                 if ($code !== 0) {
                     $text = 'Echtzeit-Anmeldung abgelehnt: ' . RoboHubMqtt::connackText($code);
                     $this->mqttStand(['zustand' => 'fehler', 'text' => $text]);
-                    $this->protokolliere($text);
+                    $this->protokolliere($text, KL_WARNING);
                     return;
                 }
                 $topics = [];
@@ -656,7 +656,7 @@ class RoboHubKonto extends IPSModule
         if ($e->anmeldungNoetig) {
             $this->WriteAttributeString('Buendel', '');
         }
-        $this->protokolliere($e->getMessage());
+        $this->protokolliere($e->getMessage(), KL_WARNING);
         $this->aktualisiereStatus();
     }
 
@@ -736,9 +736,9 @@ class RoboHubKonto extends IPSModule
         return $text;
     }
 
-    private function protokolliere(string $text): void
+    private function protokolliere(string $text, int $stufe = KL_MESSAGE): void
     {
-        IPS_LogMessage('RoboHub Konto #' . $this->InstanceID, $text);
+        $this->LogMessage($text, $stufe);
     }
 
     // -----------------------------------------------------------------

@@ -2,6 +2,12 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.12.5 (12.10.2026)
+
+- Store-Review (SUITE.md Checkliste 15, Hinweis der EMS-Sitzung): Protokoll über `$this->LogMessage` statt
+  `IPS_LogMessage` (Konto und Roboter je eine Stelle). Fehler als `KL_WARNING`, sonst `KL_MESSAGE`.
+  Prüfstand: kein `IPS_LogMessage` in Modulquellen, Stufe bei Rücksetzen/Fehlschlag geprüft (Mutationen gefangen).
+
 ## 0.12.4 (12.10.2026)
 
 - Forum-Thread steht: Panel „Rückmeldungen" verweist jetzt auf
@@ -160,11 +166,3 @@
     (App-Änderungen bleiben). Ungültige Termine werden nicht geschaltet. Anlegen/Ändern bleibt in der App.
 - Mäher: Zeitplan-Rohtext (`SCHEDULE` aus den Gerätedaten) in „📋 Rohdaten" — Format noch nicht entschlüsselt.
 - Noch nicht live geprüft.
-
-## 0.8.1 (12.10.2026)
-
-- Fix Live-Karte: Barnys Live-Rahmen (r9547a) trägt kein `seg_inf` — Räume waren grau und ohne Namen.
-  Jetzt Namen aus der gespeicherten Raumliste (Roboter gibt sie mit), Kodierungswahl auch über diese
-  Liste, und jeder Raum im Bild bekommt eine Farbe, auch ohne Namen.
-- Live bestätigt (0.8.0, Barny in der Station): Anforderung 6.1 beantwortet, Weg der letzten Reinigung
-  (138 Punkte) und Roboter auf der Station.

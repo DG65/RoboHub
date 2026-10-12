@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.12.5' => [
+            '• Einträge im Symcon-Protokoll stehen jetzt unter dem Namen der Instanz, Fehler (z. B. fehlgeschlagene Befehle oder Anmeldung) als Warnung.',
+        ],
         '0.12.4' => [
             '• Rückmeldungen gehen jetzt in den RoboHub-Thread im Symcon-Forum (Knopf im Panel „Rückmeldungen").',
         ],
