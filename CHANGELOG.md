@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.3 (12.10.2026)
+
+- Live 0.11.2: kein Kartenobjekt gefunden. Jetzt steht in „📋 Rohdaten" unter `raumEinstellungenRoh.kartenobjektInfo`,
+  was 6.3 liefert und woran das Lesen scheitert.
+
 ## 0.11.2 (12.10.2026)
 
 - Live 0.11.1: auch die vollständige gespeicherte Karte trägt kein `cleanset`. Nach ioBroker mapController

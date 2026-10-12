@@ -1657,8 +1657,10 @@ PEM;
         $bild = RoboHubKartenbild::sauger($roh, $raeume);
         // Raum-Einstellungen mit dem Stand der App stehen im Kartenobjekt hinter 6.3 (ioBroker
         // mapController _loadCleansetFromObject); die Karte selbst trägt keine.
-        $objekt = $this->kartenObjekt($buendel, $geraet);
+        $info = '';
+        $objekt = $this->kartenObjekt($buendel, $geraet, $info);
         $bild += self::raumEinstellungenAus($objekt ?? $roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
+        $bild['kartenobjektInfo'] = $info;
         if ($objekt !== null) {
             $bild['raumEinstellungenQuelle'] = 'kartenobjekt';
         }
@@ -1797,7 +1799,7 @@ PEM;
      * entpackt JSON ab dem ersten „{" mit u. a. „cleanset" (ioBroker mapController). Name
      * ggf. „Name,Schlüssel" bzw. als JSON-Liste. null, wenn nicht lesbar oder ohne cleanset.
      */
-    private function kartenObjekt(array $buendel, array $geraet): ?array
+    private function kartenObjekt(array $buendel, array $geraet, string &$info = ''): ?array
     {
         $did = (string)$geraet['id'];
         try {
@@ -1806,9 +1808,11 @@ PEM;
             if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
                 throw $e;
             }
+            $info = '6.3 nicht lesbar: ' . $e->getMessage();
             return null;
         }
         $name = $p['6.3'] ?? '';
+        $info = '6.3 = ' . substr((string)json_encode($name), 0, 200);
         if (is_string($name) && strpos($name, '[') === 0) {
             $name = (string)((json_decode($name, true) ?: [''])[0] ?? '');
         }
@@ -1821,14 +1825,17 @@ PEM;
             'did' => $did, 'model' => (string)($geraet['modell'] ?? ''), 'filename' => $datei, 'region' => (string)($buendel['region'] ?? 'eu'),
         ])['data'] ?? '';
         if (!is_string($url) || $url === '') {
+            $info .= ' | keine Download-Adresse';
             return null;
         }
         [$status, $inhalt] = $this->http('GET', $url, ['Accept: */*'], null);
         if ($status !== 200 || $inhalt === '') {
+            $info .= ' | Download HTTP ' . $status;
             return null;
         }
         $json = self::kartenObjektLesen(trim($inhalt), $schluessel);
-        $this->dbg('Kartenobjekt', $datei . ': ' . ($json === null ? 'nicht lesbar' : 'Schlüssel ' . implode(', ', array_keys($json))));
+        $info .= ' | ' . strlen($inhalt) . ' Zeichen, Anfang ' . json_encode(substr($inhalt, 0, 12)) . ' | ' . ($json === null ? 'nicht lesbar' : 'Schlüssel ' . implode(', ', array_keys($json)));
+        $this->dbg('Kartenobjekt', $datei . ': ' . $info);
         return ($json !== null && isset($json['cleanset'])) ? $json : null;
     }
 

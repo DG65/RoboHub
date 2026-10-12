@@ -809,6 +809,11 @@ class RoboHubGeraet extends IPSModule
             $this->WriteAttributeString('ZeitplanRoh', (string)$daten['zeitplanRoh']);
         }
         $this->raumEinstellungenMerken($daten, (string)($daten['raumEinstellungenQuelle'] ?? 'gespeicherteKarte'));
+        if (isset($daten['kartenobjektInfo'])) {
+            $q = json_decode($this->ReadAttributeString('RaumEinstellungenQuellen'), true) ?: [];
+            $q['kartenobjektInfo'] = date('d.m.Y H:i:s') . ' ' . $daten['kartenobjektInfo'];
+            $this->WriteAttributeString('RaumEinstellungenQuellen', (string)json_encode($q));
+        }
         $raeume = [];
         foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;
