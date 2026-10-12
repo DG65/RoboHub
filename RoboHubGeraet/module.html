@@ -47,6 +47,8 @@ button:active{transform:scale(.97)}
 .chip.an{background:var(--blaubg);border-color:var(--blau);color:var(--blau)}
 .los{margin-top:.6em;width:100%}
 .raumeinst{font-size:.8em;color:var(--fg2);margin-top:.35em}
+.startzeile{display:flex;flex-wrap:wrap;gap:.4em;margin-top:.6em}
+.startwahl{font:inherit;font-size:.85em;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:.7em;padding:.35em .5em;max-width:100%}
 .info{display:flex;flex-wrap:wrap;gap:.45em}.info span{font-size:.85em;padding:.3em .8em;border-radius:2em;background:var(--graubg)}
 .teil{display:flex;justify-content:space-between;gap:.6em;font-size:.92em;padding:.28em 0;border-bottom:1px solid var(--rand)}
 .teil:last-of-type{border-bottom:none}
@@ -86,6 +88,13 @@ var ZUSTAND = {
 var TEIL_ROT = 5, TEIL_GELB = 35;
 var BEFEHLE = [[1, '▶️ Start'], [2, '⏸️ Pause'], [4, '🏠 Station'], [5, '📍 Orten']];
 var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '';
+// Startwerte wie das „benutzerdefiniert"-Fenster der App, −1 = wie eingestellt.
+var startModus = -1, startSaug = -1, startDurch = -1;
+function auswahl(name, wert, optionen) {
+  return '<select class="startwahl" onchange="' + name + '=Number(this.value)">' + optionen.map(function (o) {
+    return '<option value="' + o[0] + '"' + (o[0] === wert ? ' selected' : '') + '>' + o[1] + '</option>';
+  }).join('') + '</select>';
+}
 
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
 function farbe(n) { return 'background:var(--' + n + 'bg);color:var(--' + n + ')'; }
@@ -178,7 +187,15 @@ function zeichnen() {
     r += '</div>';
     if (gewaehlt.length) {
       var namen = d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0; }).map(function (x) { return x.name; }).join(', ');
-      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + gewaehlt.join(',') + '\',\'' + (d.klasse === 'maeher' ? 'Mähen ' : 'Reinigung ') + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + (d.klasse === 'maeher' ? ' mähen' : ' reinigen') + '</button>';
+      var wert = gewaehlt.join(',');
+      if (d.klasse !== 'maeher') {
+        r += '<div class="startzeile">'
+          + auswahl('startModus', startModus, [[-1, 'Modus wie eingestellt'], [0, 'Saugen'], [1, 'Wischen'], [2, 'Saugen und Wischen'], [3, 'Erst saugen, dann wischen']])
+          + auswahl('startSaug', startSaug, [[-1, 'Saugstufe wie eingestellt'], [0, 'Leise'], [1, 'Standard'], [2, 'Stark'], [3, 'Turbo']])
+          + auswahl('startDurch', startDurch, [[-1, '1×'], [2, '2×'], [3, '3×']]) + '</div>';
+        wert += '|' + startModus + '|' + startSaug + '|' + startDurch;
+      }
+      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + (d.klasse === 'maeher' ? 'Mähen ' : 'Reinigung ') + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + (d.klasse === 'maeher' ? ' mähen' : ' reinigen') + '</button>';
     }
     r += '</div>';
   }

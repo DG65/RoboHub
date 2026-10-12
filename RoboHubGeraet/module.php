@@ -126,8 +126,8 @@ class RoboHubGeraet extends IPSModule
                 $this->kachelAktualisieren($this->ZeitplanSchalten((int)$tid, $an === '1'));
                 return;
             case 'Raeume':
-                // Aus der Kachel: mehrere Räume als „3,5".
-                $this->fuehreAus('raum', ['raeume' => array_values(array_filter(array_map('intval', explode(',', (string)$Value))))]);
+                // Aus der Kachel: „3,5" oder mit Startwerten „3,5|0|1|2" (Modus|Saugstufe|Durchgänge, −1 = wie eingestellt).
+                $this->fuehreAus('raum', self::raumStart((string)$Value));
                 return;
             default:
                 if (in_array($Ident, $this->schreibbar(), true)) {
@@ -256,6 +256,33 @@ class RoboHubGeraet extends IPSModule
     }
 
     /**
+     * ROBO_RaeumeReinigenMit($id, "3,5", $modus, $saugstufe, $durchgaenge): string — wie das
+     * Startfenster der App: Modus 0 Saugen, 1 Wischen, 2 Saugen und Wischen, 3 Erst saugen,
+     * dann wischen; Saugstufe 0 Leise … 3 Turbo; Durchgänge 1–3; −1 = wie eingestellt.
+     */
+    public function RaeumeReinigenMit(string $raumIDs, int $modus, int $saugstufe, int $durchgaenge): string
+    {
+        $ids = array_values(array_filter(array_map('intval', explode(',', $raumIDs))));
+        if (count($ids) === 0) {
+            return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
+        }
+        return $this->befehlText('raum', ['raeume' => $ids, 'modus' => $modus, 'saugstufe' => $saugstufe, 'durchgaenge' => $durchgaenge]);
+    }
+
+    /** „3,5|0|1|2" → Befehlsparameter (Räume, Modus, Saugstufe, Durchgänge). */
+    private static function raumStart(string $wert): array
+    {
+        $teile = explode('|', $wert);
+        $p = ['raeume' => array_values(array_filter(array_map('intval', explode(',', $teile[0]))))];
+        foreach (['modus' => 1, 'saugstufe' => 2, 'durchgaenge' => 3] as $schluessel => $i) {
+            if (isset($teile[$i]) && is_numeric($teile[$i]) && (int)$teile[$i] >= 0) {
+                $p[$schluessel] = (int)$teile[$i];
+            }
+        }
+        return $p;
+    }
+
+    /**
      * ROBO_VerbrauchsteilZuruecksetzen($id, string $teil): string — setzt den
      * Verschleißzähler eines Teils auf 100 % zurück (nach Wechsel/Reinigung).
      * $teil = Ident der Prozent-Variable, z. B. „Filter", „Hauptbuerste", „Messer".
@@ -312,28 +339,14 @@ class RoboHubGeraet extends IPSModule
     }
 
     /**
-     * ROBO_RaumEinstellungSetzen($id, int $raum, string $feld, int $wert): string — Einstellung je Raum
-     * ändern wie in der App. $feld: „Saugstufe" (0 Leise … 3 Turbo), „Durchgaenge" (1–3),
-     * „Modus" (0 Saugen, 1 Wischen, 2 Saugen und Wischen, 3 Erst saugen, dann wischen).
+     * ROBO_RaumEinstellungSetzen($id, int $raum, string $feld, int $wert): string — vorerst gesperrt
+     * (seit 0.12.0). Der Treiber-Weg (6.2 customeClean) bleibt für spätere Klärung erhalten.
      */
     public function RaumEinstellungSetzen(int $raum, string $feld, int $wert): string
     {
-        $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
-        if (!isset($re['raeume'][(string)$raum]) && !isset($re['raeume'][$raum])) {
-            return '⛔ Für Raum ' . $raum . ' sind keine Einstellungen bekannt (erst „Live-Karte laden").';
-        }
-        $text = $this->befehlText('raumeinstellung', ['raum' => $raum, 'feld' => $feld, 'wert' => $wert]);
-        if (strpos($text, '⛔') !== 0) {
-            $namen = json_decode($this->ReadAttributeString('Raeume'), true) ?: [];
-            $this->protokolliere('Raum-Einstellung ' . ($namen[(string)$raum] ?? 'Raum ' . $raum) . ': ' . $feld . ' = ' . $wert . '.');
-            // Was der Roboter übernommen hat, zeigt erst der neue Kartenrahmen — direkt
-            // nach dem Schreiben liefert Barny ein paar Sekunden keinen (Live-Befund).
-            if (strpos($this->LiveKarteLaden(), '⛔') === 0) {
-                IPS_Sleep(4000);
-                $this->LiveKarteLaden();
-            }
-        }
-        return $text;
+        // Gesperrt (Live-Befund 12.10.2026): die Hersteller-App zeigt diese gespeicherten Werte
+        // nicht an und schreibt sie nicht; wofür der Roboter sie nutzt, ist noch offen.
+        return '⛔ Das Ändern der im Roboter gespeicherten Raum-Einstellungen ist vorerst gesperrt — bitte beim Start Modus/Saugstufe wählen (ROBO_RaeumeReinigenMit).';
     }
 
     /** ROBO_Rohdaten($id): string — letzte Rohantwort des Herstellers (zur Fehlersuche). */
@@ -513,7 +526,7 @@ class RoboHubGeraet extends IPSModule
         }
         $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
         $kopf = ($re['an'] ?? null) === false ? "⏸️ In der App ausgeschaltet — es gelten die allgemeinen Einstellungen.\n" : '';
-        $this->MaintainVariable('RaumEinstellungen', 'Einstellungen je Raum', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 96, true);
+        $this->MaintainVariable('RaumEinstellungen', 'Raum-Einstellungen im Roboter', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 96, true);
         $this->SetValue('RaumEinstellungen', $kopf . implode("\n", $zeilen));
     }
 
@@ -1020,7 +1033,8 @@ class RoboHubGeraet extends IPSModule
                     [$tid, $an] = array_pad(explode(':', $wert, 2), 2, '0');
                     $text = $this->ZeitplanSchalten((int)$tid, $an === '1');
                 } else {
-                    $text = $this->RaeumeReinigen($wert);
+                    $start = self::raumStart($wert);
+                    $text = $start['raeume'] === [] ? '⛔ Keine Raum-ID angegeben.' : $this->befehlText('raum', $start);
                 }
             } catch (Throwable $e) {
                 $text = '⛔ ' . $e->getMessage();
@@ -1314,33 +1328,13 @@ class RoboHubGeraet extends IPSModule
         uksort($liste, function ($a, $b) use ($liste): int {
             return ((int)($liste[$a]['reihenfolge'] ?? 0) ?: 999) <=> ((int)($liste[$b]['reihenfolge'] ?? 0) ?: 999) ?: ((int)$a <=> (int)$b);
         });
-        $opt = function (array $werte): array {
-            $o = [];
-            foreach ($werte as $v => $c) {
-                $o[] = ['caption' => $c, 'value' => $v];
-            }
-            return $o;
-        };
-        $items = [['type' => 'Label', 'caption' => (($re['an'] ?? null) === false ? '⏸️ In der App sind die Raum-Einstellungen ausgeschaltet — Änderungen wirken erst, wenn sie dort an sind. ' : '')
-            . 'Änderungen gehen direkt an den Roboter (nur wenn er nicht reinigt); der Stand kommt aus der Live-Karte.']];
+        $items = [['type' => 'Label', 'caption' => 'Im Roboter gespeicherte Werte je Raum (aus der Live-Karte). Die Hersteller-App zeigt sie nicht an — ihr „benutzerdefiniert"-Fenster gibt Modus und Saugleistung erst beim Start mit. Das kann RoboHub genauso: Kachel → Räume wählen → Modus/Saugstufe/Durchgänge → Start, oder ROBO_RaeumeReinigenMit.']];
         foreach ($liste as $id => $e) {
             $id = (int)$id;
             $nr = (int)($e['reihenfolge'] ?? 0);
-            $zeile = [['type' => 'Label', 'caption' => ($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? 'Raum ' . $id), 'width' => '170px']];
-            if (isset($e['modusWert'])) {
-                $zeile[] = ['type' => 'Select', 'name' => 'RM_' . $id, 'caption' => 'Modus', 'value' => (int)$e['modusWert'], 'width' => '230px',
-                    'options' => $opt([0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen', 3 => 'Erst saugen, dann wischen']),
-                    'onChange' => 'echo ROBO_RaumEinstellungSetzen($id, ' . $id . ', "Modus", $RM_' . $id . ');'];
-            }
-            $zeile[] = ['type' => 'Select', 'name' => 'RS_' . $id, 'caption' => 'Saugstufe', 'value' => (int)($e['saugstufeWert'] ?? 1), 'width' => '140px',
-                'options' => $opt([0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo']),
-                'onChange' => 'echo ROBO_RaumEinstellungSetzen($id, ' . $id . ', "Saugstufe", $RS_' . $id . ');'];
-            $zeile[] = ['type' => 'Select', 'name' => 'RD_' . $id, 'caption' => 'Durchgänge', 'value' => (int)($e['durchgaenge'] ?? 1), 'width' => '110px',
-                'options' => $opt([1 => '1×', 2 => '2×', 3 => '3×']),
-                'onChange' => 'echo ROBO_RaumEinstellungSetzen($id, ' . $id . ', "Durchgaenge", $RD_' . $id . ');'];
-            $items[] = ['type' => 'RowLayout', 'items' => $zeile];
+            $items[] = ['type' => 'Label', 'caption' => ($this->raumEinstellungenZeilen()[$id] ?? (($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? 'Raum ' . $id)))];
         }
-        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🏠  Einstellungen je Raum (' . count($liste) . ')', 'items' => $items];
+        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🏠  Raum-Einstellungen im Roboter (' . count($liste) . ')', 'items' => $items];
     }
 
     private function zeitplanPanel(): ?array

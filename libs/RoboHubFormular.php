@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.12.0' => [
+            '• Raum reinigen wie das „benutzerdefiniert"-Fenster der App: auf der Kachel nach der Raumwahl Modus, Saugstufe und Durchgänge für diesen Start wählen (oder ROBO_RaeumeReinigenMit).',
+            '• Die im Roboter gespeicherten Raumwerte heißen jetzt „Raum-Einstellungen im Roboter" und sind nur noch Anzeige — die App nutzt sie nicht.',
+        ],
         '0.11.5' => [
             '• Fehlersuche: „📋 Rohdaten" zeigen die Gerätedaten der Cloud (Suche nach den Raum-Einstellungen der App).',
         ],

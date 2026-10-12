@@ -1462,7 +1462,8 @@ PEM;
             return 'Befehl „Orten" gesendet.';
         }
         if ($befehl === 'raum' && !$maeher) {
-            return $this->raumReinigung($buendel, $did, array_map('intval', (array)($parameter['raeume'] ?? [])));
+            return $this->raumReinigung($buendel, $did, array_map('intval', (array)($parameter['raeume'] ?? [])),
+                (int)($parameter['modus'] ?? -1), (int)($parameter['saugstufe'] ?? -1), (int)($parameter['durchgaenge'] ?? -1));
         }
         if ($befehl === 'raum' && $maeher) {
             // Zonenmähen: Konfigurationskanal, Operation 102 mit {"region":[IDs]}
@@ -1538,19 +1539,32 @@ PEM;
         return ['start' => 'Start', 'pause' => 'Pause', 'stopp' => 'Stopp', 'station' => 'Zur Station', 'orten' => 'Orten'][$befehl] ?? $befehl;
     }
 
-    private function raumReinigung(array $buendel, string $did, array $raeume): string
+    /**
+     * Raumreinigung wie das Startfenster der App („benutzerdefiniert"): optional Modus,
+     * Saugstufe, Durchgänge nur für diesen Start (−1 = wie eingestellt). Der Modus wird —
+     * wie in der App — vorher als Reinigungsmodus gesetzt (4.23, Read-Modify-Write),
+     * Saugstufe und Durchgänge stehen im Startbefehl (selects [Raum, Durchgänge, Saugstufe, Wasser, 1]).
+     */
+    private function raumReinigung(array $buendel, string $did, array $raeume, int $modus = -1, int $saugstufe = -1, int $durchgaenge = -1): string
     {
         if (count($raeume) === 0) {
             throw new RoboHubFehler('Kein Raum angegeben.');
         }
-        // Aktuelle Saugstufe/Wassermenge übernehmen (wie ioBroker).
+        if ($modus > 3 || $saugstufe > 3 || $durchgaenge > 3 || $durchgaenge === 0) {
+            throw new RoboHubFehler('Ungültige Startwerte (Modus 0–3, Saugstufe 0–3, Durchgänge 1–3).');
+        }
+        if ($modus >= 0) {
+            $this->setze($buendel, $did, 'Reinigungsmodus', $modus);
+        }
+        // Sonst aktuelle Saugstufe/Wassermenge übernehmen (wie ioBroker).
         $p = $this->leseProperties($buendel, $did, [[4, 4], [4, 5]]);
-        $saug = isset($p['4.4']) ? (int)$p['4.4'] : 1;
+        $saug = $saugstufe >= 0 ? $saugstufe : (isset($p['4.4']) ? (int)$p['4.4'] : 1);
         $wasser = isset($p['4.5']) ? (int)$p['4.5'] : 2;
+        $wiederholungen = $durchgaenge >= 1 ? $durchgaenge : 1;
         $selects = [];
         foreach ($raeume as $seg) {
             // Fünftes Feld fest 1 — sonst bricht Gen-5 nach dem ersten Raum ab (beide Referenzen).
-            $selects[] = [$seg, 1, $saug, $wasser, 1];
+            $selects[] = [$seg, $wiederholungen, $saug, $wasser, 1];
         }
         $this->aktion($buendel, $did, 4, 1, [['piid' => 1, 'value' => 18], ['piid' => 10, 'value' => json_encode(['selects' => $selects])]]);
         return 'Raumreinigung für ' . count($raeume) . ' Raum/Räume gesendet.';

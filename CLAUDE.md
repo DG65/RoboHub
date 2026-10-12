@@ -262,6 +262,10 @@
   (`ali_dreame/DB152110/2066117758/0`, 38 KB, Felder u. a. `customeClean`, **kein** `cleanset`). Cloud-Gerätedaten
   (`getDeviceData`): nur App-Oberflächen-Schalter. → Ablageort der App-Raumeinstellungen unbekannt; Küche im Gerät
   wieder auf Standard (14:33). Schreiben nicht freigeben, bis geklärt.
+- **Auflösung (Dietmars Bildschirmfoto 14:42):** die App-„Raumeinstellung" ist das Startfenster „benutzerdefiniert"
+  (Räume wählen → Modus/Absaugleistung → „Jetzt reinigen", kein Speichern). Werte gehen nur mit dem Start raus.
+  Seit 0.12.0: Start mit Wahl (Modus vorher 4.23, Saugstufe/Durchgänge in selects); cleanset nur Anzeige
+  „Raum-Einstellungen im Roboter", Instanz-Schreiben gesperrt. **Live offen** (echte Raumreinigung).
 
 ## Prüfen
 
