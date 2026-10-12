@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.1 (12.10.2026)
+
+- Live 0.12.0: Symcons `MaintainVariable` benennt eine vorhandene Variable nicht um — Variable hieß weiter
+  „Einstellungen je Raum". Jetzt gezielt `IPS_SetName`, nur wenn noch der alte Standardname gilt. Prüfstand
+  bildet das Live-Verhalten nach (MaintainVariable ohne Umbenennung).
+
 ## 0.12.0 (12.10.2026)
 
 - Klärung (Dietmars Bildschirmfoto): die „Raum-Einstellungen" der Dreamehome-App sind das Startfenster

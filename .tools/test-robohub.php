@@ -59,7 +59,7 @@ $GLOBALS['SKRIPTE'] = [];
 function IPS_RunScriptText(string $s): bool { $GLOBALS['SKRIPTE'][] = $s; return true; }
 $GLOBALS['NAMEN'] = [];
 function IPS_CreateInstance(string $guid): int { $s = new FakeSocket(70000 + count($GLOBALS['INST'])); $GLOBALS['ERZEUGT'][] = [$guid, $s->InstanceID]; return $s->InstanceID; }
-function IPS_SetName(int $id, string $n): bool { $GLOBALS['NAMEN'][$id] = $n; return true; }
+function IPS_SetName(int $id, string $n): bool { $GLOBALS['NAMEN'][$id] = $n; if (isset($GLOBALS['OBJ'][$id])) { $GLOBALS['OBJ'][$id]['name'] = $n; } return true; }
 function IPS_GetConfiguration(int $id): string { return json_encode($GLOBALS['INST'][$id]->config ?? []); }
 /** Nachgebildeter Client Socket: merkt sich gesendete Bytes. */
 class FakeSocket
@@ -78,7 +78,7 @@ function mqttVomServer($konto, string $bytes): void
 function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
 function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time()]; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
-function IPS_GetName(int $id): string { return $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }
+function IPS_GetName(int $id): string { return $GLOBALS['OBJ'][$id]['name'] ?? $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }
 function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0]; }
 
 class IPSModule
@@ -138,7 +138,7 @@ class IPSModule
             $GLOBALS['OBJ'][$id] = ['ident' => $ident, 'parent' => $this->InstanceID, 'type' => $type, 'value' => $def, 'name' => $name, 'pres' => $pres, 'action' => false];
         }
         $GLOBALS['OBJ'][$id]['pres'] = $pres;
-        $GLOBALS['OBJ'][$id]['name'] = $name;
+        // Wie Symcon live (Befund 12.10.2026): eine vorhandene Variable wird NICHT umbenannt.
     }
     public function EnableAction(string $ident): void { $GLOBALS['OBJ'][IPS_GetObjectIDByIdent($ident, $this->InstanceID)]['action'] = true; }
     public function SetValue(string $ident, $v): void { $id = IPS_GetObjectIDByIdent($ident, $this->InstanceID); if ($GLOBALS['OBJ'][$id]['value'] !== $v) { $GLOBALS['OBJ'][$id]['changed'] = time(); } $GLOBALS['OBJ'][$id]['value'] = $v; }
@@ -1524,6 +1524,14 @@ $geraet->Aktualisieren();
 $formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
 check('Formular: „Raum-Einstellungen im Roboter" nur Anzeige (keine Auswahlfelder)', strpos($formKlar, 'Raum-Einstellungen im Roboter (2)') !== false && strpos($formKlar, '"onChange":"echo ROBO_RaumEinstellungSetzen') === false && strpos($formKlar, 'RaeumeReinigenMit') !== false);
 check('Variable heißt „Raum-Einstellungen im Roboter"', variable(2000, 'RaumEinstellungen')['name'] === 'Raum-Einstellungen im Roboter');
+$rid = IPS_GetObjectIDByIdent('RaumEinstellungen', 2000);
+$GLOBALS['OBJ'][$rid]['name'] = 'Einstellungen je Raum';      // Stand aus 0.10/0.11
+$geraet->LiveKarteLaden();
+check('alter Standardname wird ersetzt (MaintainVariable allein benennt nicht um)', variable(2000, 'RaumEinstellungen')['name'] === 'Raum-Einstellungen im Roboter');
+$GLOBALS['OBJ'][$rid]['name'] = 'Mein Name';
+$geraet->LiveKarteLaden();
+check('… ein selbst vergebener Name bleibt', variable(2000, 'RaumEinstellungen')['name'] === 'Mein Name');
+$GLOBALS['OBJ'][$rid]['name'] = 'Raum-Einstellungen im Roboter';
 
 // Start wie das App-Fenster „benutzerdefiniert": Modus vorher (4.23), Saugstufe + Durchgänge im Startbefehl.
 function startSelects(): ?array

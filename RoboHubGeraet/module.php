@@ -527,6 +527,12 @@ class RoboHubGeraet extends IPSModule
         $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
         $kopf = ($re['an'] ?? null) === false ? "⏸️ In der App ausgeschaltet — es gelten die allgemeinen Einstellungen.\n" : '';
         $this->MaintainVariable('RaumEinstellungen', 'Raum-Einstellungen im Roboter', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 96, true);
+        // MaintainVariable benennt vorhandene Variablen nicht um — den alten Standardnamen (0.10/0.11)
+        // gezielt ersetzen, einen selbst vergebenen Namen nicht anfassen.
+        $vid = (int)IPS_GetObjectIDByIdent('RaumEinstellungen', $this->InstanceID);
+        if (IPS_GetName($vid) === 'Einstellungen je Raum') {
+            IPS_SetName($vid, 'Raum-Einstellungen im Roboter');
+        }
         $this->SetValue('RaumEinstellungen', $kopf . implode("\n", $zeilen));
     }
 
