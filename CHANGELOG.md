@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.5 (12.10.2026)
+
+- Live 0.11.4: keine 6.3-Meldung nach App-Änderung. Barnys Gerätelog (Echtzeit 99.98, zlib-JSON
+  `generalRule`) zeigt als einzigen Raum-Befehl RoboHubs eigenen `acmds … customeClean` — die App schickt ihre
+  Raum-Einstellungen also NICHT an das Gerät. Küche im Gerät auf den Ursprungswert (Standard) zurückgestellt.
+- Fehlersuche: Felder der Cloud-Gerätedaten (`iotuserdata/getDeviceData`) in „📋 Rohdaten".
+
 ## 0.11.4 (12.10.2026)
 
 - Live 0.11.3: `get_properties 6.3` liefert bei Barny "" — der Roboter meldet das Kartenobjekt nur per Echtzeit

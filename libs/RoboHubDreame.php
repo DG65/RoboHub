@@ -1671,6 +1671,22 @@ PEM;
         // Raum-Einstellungen mit dem Stand der App stehen im Kartenobjekt hinter 6.3 (ioBroker
         // mapController _loadCleansetFromObject); die Karte selbst trägt keine.
         $info = 'Kartendatei ' . json_encode($aufbau) . ' | ';
+        // Fehlersuche: Gerätedaten der Cloud (beim Mäher stehen dort Karte und Pläne) —
+        // Felder, Größen und kurze Inhalte, um den Ablageort der App-Raumeinstellungen zu finden.
+        try {
+            $gd = $this->api($buendel, '/dreame-user-iot/iotuserdata/getDeviceData', ['did' => $did])['data'] ?? null;
+            $felder = [];
+            foreach ((array)$gd as $k => $v) {
+                $s = is_string($v) ? $v : (string)json_encode($v);
+                $felder[$k] = strlen($s) <= 80 ? $s : strlen($s) . ' Zeichen: ' . substr($s, 0, 60);
+            }
+            $info .= 'Gerätedaten ' . json_encode($felder, JSON_UNESCAPED_UNICODE) . ' | ';
+        } catch (RoboHubFehler $e) {
+            if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                throw $e;
+            }
+            $info .= 'Gerätedaten: ' . $e->getMessage() . ' | ';
+        }
         $objekt = $this->kartenObjekt($buendel, $geraet, $info);
         $bild += self::raumEinstellungenAus($objekt ?? $roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
         $bild['kartenobjektInfo'] = $info;
