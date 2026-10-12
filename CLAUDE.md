@@ -265,7 +265,11 @@
 - **Auflösung (Dietmars Bildschirmfoto 14:42):** die App-„Raumeinstellung" ist das Startfenster „benutzerdefiniert"
   (Räume wählen → Modus/Absaugleistung → „Jetzt reinigen", kein Speichern). Werte gehen nur mit dem Start raus.
   Seit 0.12.0: Start mit Wahl (Modus vorher 4.23, Saugstufe/Durchgänge in selects); cleanset nur Anzeige
-  „Raum-Einstellungen im Roboter", Instanz-Schreiben gesperrt. **Live offen** (echte Raumreinigung).
+  „Raum-Einstellungen im Roboter", Instanz-Schreiben gesperrt.
+  **Live bestätigt (12.10.2026 16:07):** `ROBO_RaeumeReinigenMit(…, "6", 0, 0, 1)` → Barny saugt die Küche leise
+  (Dietmar vor Ort); Gerät: 2.1 = 1, 4.1 = 18, 4.7 = 3, 4.4 = 0 (Leise), 4.23 = 5122 (= Saugen mit Mopp-Tausch).
+- **Live-Karte während der Reinigung bestätigt (16:07–16:09):** Takt 30 s läuft, Weg wächst (29 Punkte nach 1 min),
+  Roboter bewegt sich, Echtzeit kommt laufend. Ein Abruf direkt nach dem Start lieferte keine Karte (einmalig).
 
 ## Prüfen
 
