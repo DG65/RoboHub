@@ -1655,7 +1655,13 @@ PEM;
         }
         $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
         $bild = RoboHubKartenbild::sauger($roh, $raeume);
-        $bild += self::raumEinstellungenAus($roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
+        // Raum-Einstellungen mit dem Stand der App stehen im Kartenobjekt hinter 6.3 (ioBroker
+        // mapController _loadCleansetFromObject); die Karte selbst trägt keine.
+        $objekt = $this->kartenObjekt($buendel, $geraet);
+        $bild += self::raumEinstellungenAus($objekt ?? $roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
+        if ($objekt !== null) {
+            $bild['raumEinstellungenQuelle'] = 'kartenobjekt';
+        }
         if ($bild['bild'] === '') {
             $this->dbg('Karte', 'Räume gelesen, aber kein Kartenbild erzeugbar (' . $roh['breite'] . '×' . $roh['hoehe'] . ').');
         } else {
@@ -1785,6 +1791,69 @@ PEM;
     private const RAUM_SAUGSTUFE = [0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo'];
     private const RAUM_WASSER = [1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch'];
     private const RAUM_MODUS = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen', 3 => 'Erst saugen, dann wischen'];
+
+    /**
+     * Kartenobjekt hinter 6.3 (object_name): Text in der Cloud, Base64 (URL-sicher) + zlib,
+     * entpackt JSON ab dem ersten „{" mit u. a. „cleanset" (ioBroker mapController). Name
+     * ggf. „Name,Schlüssel" bzw. als JSON-Liste. null, wenn nicht lesbar oder ohne cleanset.
+     */
+    private function kartenObjekt(array $buendel, array $geraet): ?array
+    {
+        $did = (string)$geraet['id'];
+        try {
+            $p = $this->leseProperties($buendel, $did, [[6, 3]]);
+        } catch (RoboHubFehler $e) {
+            if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                throw $e;
+            }
+            return null;
+        }
+        $name = $p['6.3'] ?? '';
+        if (is_string($name) && strpos($name, '[') === 0) {
+            $name = (string)((json_decode($name, true) ?: [''])[0] ?? '');
+        }
+        if (!is_string($name) || $name === '') {
+            $this->dbg('Kartenobjekt', '6.3 leer.');
+            return null;
+        }
+        [$datei, $schluessel] = array_pad(explode(',', $name, 2), 2, '');
+        $url = $this->api($buendel, '/dreame-user-iot/iotfile/getDownloadUrl', [
+            'did' => $did, 'model' => (string)($geraet['modell'] ?? ''), 'filename' => $datei, 'region' => (string)($buendel['region'] ?? 'eu'),
+        ])['data'] ?? '';
+        if (!is_string($url) || $url === '') {
+            return null;
+        }
+        [$status, $inhalt] = $this->http('GET', $url, ['Accept: */*'], null);
+        if ($status !== 200 || $inhalt === '') {
+            return null;
+        }
+        $json = self::kartenObjektLesen(trim($inhalt), $schluessel);
+        $this->dbg('Kartenobjekt', $datei . ': ' . ($json === null ? 'nicht lesbar' : 'Schlüssel ' . implode(', ', array_keys($json))));
+        return ($json !== null && isset($json['cleanset'])) ? $json : null;
+    }
+
+    /** Inhalt des Kartenobjekts → JSON (mit oder ohne 27-Byte-Kartenkopf, ggf. verschlüsselt). */
+    public static function kartenObjektLesen(string $text, string $schluessel = ''): ?array
+    {
+        $bin = base64_decode(strtr(explode(',', $text, 2)[0], '-_', '+/'), true);
+        if ($bin === false || $bin === '') {
+            return null;
+        }
+        $roh = @zlib_decode($bin);
+        if ($roh === false && $schluessel !== '') {
+            $klar = openssl_decrypt($bin, 'aes-256-cbc', substr(hash('sha256', $schluessel), 0, 32), OPENSSL_RAW_DATA, str_repeat("\0", 16));
+            $roh = $klar === false ? false : @zlib_decode($klar);
+        }
+        if ($roh === false) {
+            return null;
+        }
+        $start = strpos($roh, '{');
+        if ($start === false) {
+            return null;
+        }
+        $json = json_decode(substr($roh, $start), true);
+        return is_array($json) ? $json : null;
+    }
 
     // Grenzen der änderbaren Raum-Einstellungen (App: 4 Saugstufen, 1–3 Durchgänge, 4 Modi).
     private const RAUM_GRENZEN = ['Saugstufe' => [0, 3, 0], 'Durchgaenge' => [1, 3, 2], 'Modus' => [0, 3, 4]];

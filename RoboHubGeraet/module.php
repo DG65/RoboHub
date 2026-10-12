@@ -470,6 +470,11 @@ class RoboHubGeraet extends IPSModule
             $q = json_decode($this->ReadAttributeString('RaumEinstellungenQuellen'), true) ?: [];
             $q[$quelle] = ['zeit' => date('d.m.Y H:i:s'), 'an' => $d['raumEinstellungenAn'] ?? null, 'cleanset' => $d['raumEinstellungenRoh'] ?? null];
             $this->WriteAttributeString('RaumEinstellungenQuellen', (string)json_encode($q));
+            // Live-Rahmen tragen nur den Stand der letzten Kartenaufnahme (Live-Befund Barny:
+            // App-Änderung fehlte dort) — das Kartenobjekt hat Vorrang.
+            if ($quelle === 'liveKarte' && isset($q['kartenobjekt'])) {
+                return;
+            }
         }
         $this->WriteAttributeString('RaumEinstellungen', (string)json_encode([
             'raeume' => $d['raumEinstellungen'], 'an' => $d['raumEinstellungenAn'] ?? null, 'roh' => $d['raumEinstellungenRoh'] ?? null,
@@ -803,7 +808,7 @@ class RoboHubGeraet extends IPSModule
         if (isset($daten['zeitplanRoh'])) {
             $this->WriteAttributeString('ZeitplanRoh', (string)$daten['zeitplanRoh']);
         }
-        $this->raumEinstellungenMerken($daten, 'gespeicherteKarte');
+        $this->raumEinstellungenMerken($daten, (string)($daten['raumEinstellungenQuelle'] ?? 'gespeicherteKarte'));
         $raeume = [];
         foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;

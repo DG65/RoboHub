@@ -173,6 +173,7 @@ class FakeCloud extends RoboHubDreame
     public static $schdsWirkt = true;       // false = Mäher bestätigt, übernimmt aber nicht
     public static $liveOut = [];            // Antwort out auf action 6.1 (Live-Kartenanforderung)
     public static $liveDatei = '';          // Inhalt der Zwischendatei „live/…"
+    public static $objekt = '';             // Inhalt des Kartenobjekts „obj/…" (6.3)
     public static $karte = null;        // Kartentext (mapstr[0].map)
     public static $tokenZaehler = 0;
     public static $ablehnen = [];       // 'siid.aiid' => true: Aktion mit result.code -1 ablehnen
@@ -283,8 +284,12 @@ class FakeCloud extends RoboHubDreame
             return [200, json_encode(['code' => 0, 'data' => self::$geraeteDaten])];
         }
         if (strpos($url, 'iotfile/getDownloadUrl') !== false) {
-            $live = strpos((string)(json_decode((string)$body, true)['filename'] ?? ''), 'live/') === 0;
-            return [200, json_encode(['code' => 0, 'data' => $live ? 'https://download.example/live' : 'https://download.example/karte.json'])];
+            $fn = (string)(json_decode((string)$body, true)['filename'] ?? '');
+            $ziel = strpos($fn, 'live/') === 0 ? 'live' : (strpos($fn, 'obj/') === 0 ? 'obj' : 'karte.json');
+            return [200, json_encode(['code' => 0, 'data' => 'https://download.example/' . $ziel])];
+        }
+        if (strpos($url, 'download.example/obj') !== false) {
+            return [200, self::$objekt];
         }
         if (strpos($url, 'download.example/live') !== false) {
             return [200, self::$liveDatei];
@@ -1519,6 +1524,20 @@ FakeCloud::$props['2.1'] = 13;
 $geraet->Aktualisieren();
 $formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
 check('Formular: Panel „Einstellungen je Raum" mit Auswahlfeldern', strpos($formKlar, 'Einstellungen je Raum (2)') !== false && strpos($formKlar, 'ROBO_RaumEinstellungSetzen($id, 3, \"Saugstufe\", $RS_3)') !== false && strpos($formKlar, '"name":"RM_5"') !== false, substr($formKlar, 0, 0));
+// Kartenobjekt hinter 6.3 (ioBroker): Base64 + zlib, JSON mit cleanset = Stand der App.
+check('Kartenobjekt lesen: Base64/zlib, JSON ab „{"', RoboHubDreame::kartenObjektLesen(strtr(base64_encode(gzcompress('xy{"cleanset":"{}","a":1}')), '+/', '-_')) === ['cleanset' => '{}', 'a' => 1]);
+check('… verschlüsselt mit Schlüssel aus dem Namen', RoboHubDreame::kartenObjektLesen(base64_encode(openssl_encrypt(gzcompress('{"cleanset":"{}"}'), 'aes-256-cbc', substr(hash('sha256', 'K1'), 0, 32), OPENSSL_RAW_DATA, str_repeat("\0", 16))), 'K1') === ['cleanset' => '{}']);
+check('… Müll → null', RoboHubDreame::kartenObjektLesen('%%%') === null);
+$csApp = ['3' => [0, 3, 1, 2, 2, 0], '5' => [2, 16, 1, 1, 0, 0]];   // App: Küche „Leise"
+FakeCloud::$props['6.3'] = 'obj/2066117758/0';
+FakeCloud::$objekt = strtr(base64_encode(gzcompress(json_encode(['cleanset' => json_encode($csApp), 'customeClean' => 1]))), '+/', '-_');
+FakeCloud::$karte = strtr(base64_encode(gzcompress($kopfB . $pix . json_encode(['seg_inf' => $segsC]))), '+/', '-_');
+$geraet->RaeumeLaden();
+check('Raum-Einstellungen aus dem Kartenobjekt (App-Stand: Küche Leise)', strpos((string)variable(2000, 'RaumEinstellungen')['value'], '2. Küche: Saugen · Leise') !== false, (string)variable(2000, 'RaumEinstellungen')['value']);
+check('… Quelle in den Rohdaten', strpos($geraet->Rohdaten(), '"kartenobjekt"') !== false);
+$geraet->LiveKarteLaden();
+check('veralteter Live-Rahmen (Küche Stark) überschreibt den App-Stand nicht', strpos((string)variable(2000, 'RaumEinstellungen')['value'], '2. Küche: Saugen · Leise') !== false && strpos($geraet->Rohdaten(), '"liveKarte"') !== false);
+unset(FakeCloud::$props['6.3']);
 FakeCloud::$karte = $klar;
 FakeCloud::$liveOut = [];
 

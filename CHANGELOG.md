@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.2 (12.10.2026)
+
+- Live 0.11.1: auch die vollständige gespeicherte Karte trägt kein `cleanset`. Nach ioBroker mapController
+  (`_loadCleansetFromObject`) liegt der App-Stand im **Kartenobjekt hinter 6.3** (Base64 + zlib, JSON mit
+  `cleanset`); die App schreibt dorthin, das Gerät meldet danach einen neuen 6.3-Wert. RoboHub liest es beim
+  Räume-Laden; ein Live-Rahmen überschreibt diesen Stand nicht mehr.
+- Ändern (0.11.0) schreibt per 6.2 in den Gerätestand des Live-Rahmens — kam live NICHT in der App an.
+  Weg der App noch offen; bis dahin nicht verwenden.
+
 ## 0.11.1 (12.10.2026)
 
 - Live-Befund 0.11.0 (Barny, Küche): RoboHub-Änderung „Stark" kam im Live-Rahmen an, die App zeigte weiter
