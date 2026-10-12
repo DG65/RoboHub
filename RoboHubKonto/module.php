@@ -181,7 +181,7 @@ class RoboHubKonto extends IPSModule
             'anzeige'    => ($hersteller === 'mova' ? 'MOVA' : 'Dreame') . ($this->ReadPropertyString('Konto') !== '' ? ' (' . $this->ReadPropertyString('Konto') . ')' : ''),
             'angemeldet' => $this->ReadAttributeString('Buendel') !== '',
             'stand'      => $this->ReadAttributeInteger('GeraeteStand'),
-            'geraete'    => json_decode($this->ReadAttributeString('Geraete'), true) ?: [],
+            'geraete'    => json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [],
         ], JSON_UNESCAPED_UNICODE);
     }
 
@@ -235,7 +235,7 @@ class RoboHubKonto extends IPSModule
             if (!empty($anfrage['Neu']) || $stand === 0 || time() - $stand > 3600) {
                 return $this->ladeGeraete($this->gueltigesBuendel());
             }
-            return json_decode($this->ReadAttributeString('Geraete'), true) ?: [];
+            return json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [];
         }
         if ($aktion === 'info') {
             return [
@@ -246,7 +246,7 @@ class RoboHubKonto extends IPSModule
 
         $geraet = $this->findeGeraet((string)($anfrage['Geraet'] ?? ''));
         // Letzter vollständiger Rohstand (z. B. für die Mopp-Anhebungs-Erkennung bei Raum-Einstellungen).
-        $geraet['stand'] = (array)((json_decode($this->ReadAttributeString('Schnappschuss'), true) ?: [])[(string)$geraet['id']]['p'] ?? []);
+        $geraet['stand'] = (array)((json_decode((string)$this->ReadAttributeString('Schnappschuss'), true) ?: [])[(string)$geraet['id']]['p'] ?? []);
         $buendel = $this->gueltigesBuendel();
         try {
             if ($aktion === 'zustand') {
@@ -297,8 +297,8 @@ class RoboHubKonto extends IPSModule
 
     private function mqttZiel(): array
     {
-        $buendel = json_decode($this->ReadAttributeString('Buendel'), true) ?: [];
-        $geraete = json_decode($this->ReadAttributeString('Geraete'), true) ?: [];
+        $buendel = json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [];
+        $geraete = json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [];
         try {
             return $this->treiber()->mqttZiel($geraete, $buendel);
         } catch (Throwable $e) {
@@ -409,7 +409,7 @@ class RoboHubKonto extends IPSModule
     /** Timer: Verbindung am Leben halten; ohne jede Antwort seit 3 Intervallen neu verbinden. */
     public function MqttPing(): void
     {
-        $stand = json_decode($this->ReadAttributeString('Mqtt'), true) ?: [];
+        $stand = json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [];
         if (($stand['zustand'] ?? '') !== 'verbunden') {
             return;
         }
@@ -450,8 +450,8 @@ class RoboHubKonto extends IPSModule
                     return;
                 }
                 $topics = [];
-                $buendel = json_decode($this->ReadAttributeString('Buendel'), true) ?: [];
-                foreach (json_decode($this->ReadAttributeString('Geraete'), true) ?: [] as $g) {
+                $buendel = json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [];
+                foreach (json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [] as $g) {
                     $topics[] = $this->treiber()->mqttTopic($g, $buendel);
                 }
                 if (count($topics) > 0) {
@@ -477,7 +477,7 @@ class RoboHubKonto extends IPSModule
         if (count($aenderungen) === 0) {
             return;
         }
-        $schnapp = json_decode($this->ReadAttributeString('Schnappschuss'), true) ?: [];
+        $schnapp = json_decode((string)$this->ReadAttributeString('Schnappschuss'), true) ?: [];
         foreach ($aenderungen as $did => $delta) {
             // Roboterposition ist kein Gerätewert: nicht in den Schnappschuss.
             $position = $delta['_position'] ?? null;
@@ -500,7 +500,7 @@ class RoboHubKonto extends IPSModule
                 $daten['kartenobjekt'] = $objekt;
             }
             $this->SendDataToChildren((string)json_encode(['DataID' => self::DATA_ZUM_KIND, 'Geraet' => (string)$did, 'Daten' => $daten]));
-            $this->mqttStand(['letzte' => time(), 'anzahl' => (int)((json_decode($this->ReadAttributeString('Mqtt'), true)['anzahl'] ?? 0)) + 1]);
+            $this->mqttStand(['letzte' => time(), 'anzahl' => (int)((json_decode((string)$this->ReadAttributeString('Mqtt'), true)['anzahl'] ?? 0)) + 1]);
         }
         $this->WriteAttributeString('Schnappschuss', (string)json_encode($schnapp));
     }
@@ -510,21 +510,21 @@ class RoboHubKonto extends IPSModule
         if (count($p) === 0) {
             return;
         }
-        $schnapp = json_decode($this->ReadAttributeString('Schnappschuss'), true) ?: [];
+        $schnapp = json_decode((string)$this->ReadAttributeString('Schnappschuss'), true) ?: [];
         $schnapp[$did] = ['modell' => $modell, 'p' => $p];
         $this->WriteAttributeString('Schnappschuss', (string)json_encode($schnapp));
     }
 
     private function mqttStand(array $neu): void
     {
-        $stand = array_replace(json_decode($this->ReadAttributeString('Mqtt'), true) ?: [], $neu);
+        $stand = array_replace(json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [], $neu);
         $this->WriteAttributeString('Mqtt', (string)json_encode($stand));
         $this->UpdateFormField('EchtzeitZeile', 'caption', $this->echtzeitZeile());
     }
 
     private function echtzeitZeile(): string
     {
-        $s = json_decode($this->ReadAttributeString('Mqtt'), true) ?: [];
+        $s = json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [];
         if (!$this->ReadPropertyBoolean('Echtzeit')) {
             return 'ℹ️ Echtzeit ist ausgeschaltet — die Roboter werden nur per Abfrage aktualisiert.';
         }
@@ -582,7 +582,7 @@ class RoboHubKonto extends IPSModule
         $gesperrt = IPS_SemaphoreEnter($sem, 10000);
         try {
             // Nach dem Warten neu lesen — ein anderer Prozess kann schon erneuert haben.
-            $buendel = json_decode($this->ReadAttributeString('Buendel'), true) ?: $buendel;
+            $buendel = json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: $buendel;
             $neu = $this->treiber()->erneuern($buendel);
             if ($neu !== $buendel) {
                 $this->WriteAttributeString('Buendel', (string)json_encode($neu));
@@ -615,7 +615,7 @@ class RoboHubKonto extends IPSModule
     private function zustandMitBlockSperre(array $buendel, array $geraet): array
     {
         $did = (string)$geraet['id'];
-        $sperre = json_decode($this->ReadAttributeString('BlockSperre'), true) ?: [];
+        $sperre = json_decode((string)$this->ReadAttributeString('BlockSperre'), true) ?: [];
         $jetzt = time();
         $geraet['ueberspringen'] = [];
         foreach ((array)($sperre[$did] ?? []) as $block => $bis) {
@@ -676,7 +676,7 @@ class RoboHubKonto extends IPSModule
 
     private function findeGeraet(string $id): array
     {
-        foreach (json_decode($this->ReadAttributeString('Geraete'), true) ?: [] as $g) {
+        foreach (json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [] as $g) {
             if ((string)($g['id'] ?? '') === $id) {
                 return $g;
             }
@@ -711,7 +711,7 @@ class RoboHubKonto extends IPSModule
         if ($stand === 0) {
             return 'ℹ️ Noch keine Geräteliste geladen.';
         }
-        $n = count(json_decode($this->ReadAttributeString('Geraete'), true) ?: []);
+        $n = count(json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: []);
         return ($n > 0 ? '✅ ' : '⚠️ ') . $n . ' Gerät(e) gefunden (zuletzt ' . date('d.m.Y H:i:s', $stand) . ' Uhr).';
     }
 
