@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.4 (12.10.2026)
+
+- Live 0.11.3: `get_properties 6.3` liefert bei Barny "" — der Roboter meldet das Kartenobjekt nur per Echtzeit
+  nach einer App-Änderung (ioBroker `_cleansetNachladenPruefen`). Jetzt: Echtzeit-6.3 → `_objekt` →
+  Konto-Aktion `kartenobjekt` → Objekt mit genau diesem Namen laden → Raum-Einstellungen (Quelle
+  `kartenobjekt`, Vorrang vor Live-Rahmen). Nicht während Reinigung/Pause/Rückfahrt.
+- Rohdaten: Aufbau der gespeicherten Kartendatei (Felder/Größen) für die Fehlersuche.
+
 ## 0.11.3 (12.10.2026)
 
 - Live 0.11.2: kein Kartenobjekt gefunden. Jetzt steht in „📋 Rohdaten" unter `raumEinstellungenRoh.kartenobjektInfo`,

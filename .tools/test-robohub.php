@@ -1537,6 +1537,23 @@ check('Raum-Einstellungen aus dem Kartenobjekt (App-Stand: Küche Leise)', strpo
 check('… Quelle in den Rohdaten', strpos($geraet->Rohdaten(), '"kartenobjekt"') !== false);
 $geraet->LiveKarteLaden();
 check('veralteter Live-Rahmen (Küche Stark) überschreibt den App-Stand nicht', strpos((string)variable(2000, 'RaumEinstellungen')['value'], '2. Küche: Saugen · Leise') !== false && strpos($geraet->Rohdaten(), '"liveKarte"') !== false);
+// Echtzeit-Meldung 6.3 (App-Änderung) → Objekt nachladen (ioBroker _cleansetNachladenPruefen).
+$csApp2 = ['3' => [3, 3, 1, 2, 2, 0], '5' => [2, 16, 1, 1, 0, 0]];   // App: Küche Turbo
+FakeCloud::$objekt = strtr(base64_encode(gzcompress(json_encode(['cleanset' => json_encode($csApp2), 'customeClean' => 1]))), '+/', '-_');
+FakeCloud::$anfragen = [];
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 6, 'piid' => 3, 'value' => 'obj/2066117758/0']]]]), 0, 0));
+check('Echtzeit 6.3 → Kartenobjekt nachgeladen, Küche jetzt Turbo', strpos((string)variable(2000, 'RaumEinstellungen')['value'], '2. Küche: Saugen · Turbo') !== false && FakeCloud::letzte('download.example/obj') !== null, (string)variable(2000, 'RaumEinstellungen')['value']);
+check('… gemeldeter Name direkt benutzt (keine 6.3-Abfrage nötig)', json_decode(FakeCloud::letzte('getDownloadUrl')['body'], true)['filename'] === 'obj/2066117758/0');
+FakeCloud::$props['2.1'] = 1;
+$geraet->Aktualisieren();
+FakeCloud::$anfragen = [];
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, json_encode(['did' => '-112663880', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 6, 'piid' => 3, 'value' => 'obj/2066117758/0']]]]), 0, 0));
+check('… während der Reinigung nicht (ständig neue Objekte)', FakeCloud::letzte('download.example/obj') === null);
+FakeCloud::$props['2.1'] = 13;
+$geraet->Aktualisieren();
+$check63 = (new FakeCloud('dreame'))->pushLesen(json_encode(['did' => '9', 'data' => ['method' => 'properties_changed', 'params' => [['siid' => 6, 'piid' => 3, 'value' => 'a/b/0']]]]));
+check('pushLesen: 6.3 als _objekt, nicht als Gerätewert', $check63 === ['9' => ['_objekt' => 'a/b/0']], json_encode($check63));
+check('Rohdaten: Aufbau der Kartendatei für die Fehlersuche', strpos($geraet->Rohdaten(), 'Kartendatei') !== false || strpos($geraet->Rohdaten(), 'Echtzeit') !== false);
 unset(FakeCloud::$props['6.3']);
 FakeCloud::$karte = $klar;
 FakeCloud::$liveOut = [];

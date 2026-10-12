@@ -467,6 +467,9 @@ PEM;
             if ($position !== null) {
                 $out[$ziel]['_position'] = $position;
             }
+            if ($siid === 6 && $piid === 3 && is_string($e['value']) && $e['value'] !== '') {
+                $out[$ziel]['_objekt'] = $e['value'];      // neues Kartenobjekt (z. B. App-Änderung)
+            }
             if (in_array($siid, [1, 6], true) || $siid <= 0) {
                 continue;
             }
@@ -1639,6 +1642,16 @@ PEM;
             return $leer;
         }
         $karten = (array)($inhalt['mapstr'] ?? []);
+        // Aufbau der Kartendatei für die Fehlersuche (Felder und Größen, keine Inhalte).
+        $aufbau = [];
+        foreach ($inhalt as $k => $v) {
+            $aufbau[$k] = is_array($v) ? 'Liste(' . count($v) . ')' : gettype($v) . '(' . strlen((string)json_encode($v)) . ')';
+        }
+        foreach ($karten as $i => $k) {
+            foreach ((array)$k as $f => $v) {
+                $aufbau['mapstr[' . $i . '].' . $f] = gettype($v) . '(' . strlen((string)json_encode($v)) . ')';
+            }
+        }
         $erste = $karten[0] ?? null;
         foreach ($karten as $k) {
             if (is_array($k) && ((int)($k['first'] ?? -1) === 0 || (int)($k['id'] ?? -1) === 0)) {
@@ -1657,7 +1670,7 @@ PEM;
         $bild = RoboHubKartenbild::sauger($roh, $raeume);
         // Raum-Einstellungen mit dem Stand der App stehen im Kartenobjekt hinter 6.3 (ioBroker
         // mapController _loadCleansetFromObject); die Karte selbst trägt keine.
-        $info = '';
+        $info = 'Kartendatei ' . json_encode($aufbau) . ' | ';
         $objekt = $this->kartenObjekt($buendel, $geraet, $info);
         $bild += self::raumEinstellungenAus($objekt ?? $roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
         $bild['kartenobjektInfo'] = $info;
@@ -1799,20 +1812,22 @@ PEM;
      * entpackt JSON ab dem ersten „{" mit u. a. „cleanset" (ioBroker mapController). Name
      * ggf. „Name,Schlüssel" bzw. als JSON-Liste. null, wenn nicht lesbar oder ohne cleanset.
      */
-    private function kartenObjekt(array $buendel, array $geraet, string &$info = ''): ?array
+    private function kartenObjekt(array $buendel, array $geraet, string &$info = '', ?string $name = null): ?array
     {
         $did = (string)$geraet['id'];
-        try {
-            $p = $this->leseProperties($buendel, $did, [[6, 3]]);
-        } catch (RoboHubFehler $e) {
-            if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
-                throw $e;
+        if ($name === null) {
+            try {
+                $p = $this->leseProperties($buendel, $did, [[6, 3]]);
+            } catch (RoboHubFehler $e) {
+                if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
+                    throw $e;
+                }
+                $info .= '6.3 nicht lesbar: ' . $e->getMessage();
+                return null;
             }
-            $info = '6.3 nicht lesbar: ' . $e->getMessage();
-            return null;
+            $name = $p['6.3'] ?? '';
         }
-        $name = $p['6.3'] ?? '';
-        $info = '6.3 = ' . substr((string)json_encode($name), 0, 200);
+        $info .= '6.3 = ' . substr((string)json_encode($name), 0, 200);
         if (is_string($name) && strpos($name, '[') === 0) {
             $name = (string)((json_decode($name, true) ?: [''])[0] ?? '');
         }
@@ -1837,6 +1852,18 @@ PEM;
         $info .= ' | ' . strlen($inhalt) . ' Zeichen, Anfang ' . json_encode(substr($inhalt, 0, 12)) . ' | ' . ($json === null ? 'nicht lesbar' : 'Schlüssel ' . implode(', ', array_keys($json)));
         $this->dbg('Kartenobjekt', $datei . ': ' . $info);
         return ($json !== null && isset($json['cleanset'])) ? $json : null;
+    }
+
+    /**
+     * Raum-Einstellungen aus einem gemeldeten Kartenobjekt (6.3 per Echtzeit — so meldet der
+     * Roboter eine Änderung in der App; ioBroker _cleansetNachladenPruefen).
+     */
+    public function raumEinstellungenAusObjekt(array $buendel, array $geraet, string $name): array
+    {
+        $info = '';
+        $json = $this->kartenObjekt($buendel, $geraet, $info, $name);
+        $aus = $json === null ? [] : self::raumEinstellungenAus($json, $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
+        return $aus + ['kartenobjektInfo' => 'Echtzeit ' . $info];
     }
 
     /** Inhalt des Kartenobjekts → JSON (mit oder ohne 27-Byte-Kartenkopf, ggf. verschlüsselt). */

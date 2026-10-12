@@ -176,6 +176,9 @@ class RoboHubGeraet extends IPSModule
         if (is_array($d['Daten']['position'] ?? null)) {
             $this->positionUebernehmen($d['Daten']['position']);
         }
+        if (is_string($d['Daten']['kartenobjekt'] ?? null) && $this->klasse() === RoboHubModell::KLASSE_SAUGER) {
+            $this->kartenobjektNachladen($d['Daten']['kartenobjekt']);
+        }
         $this->liveSteuern();
         $this->kachelAktualisieren();
         return '';
@@ -457,6 +460,27 @@ class RoboHubGeraet extends IPSModule
             return ['ok' => false, 'fehler' => 'Unerwartete Antwort der Konto-Instanz.'];
         }
         return $antwort;
+    }
+
+    /**
+     * Neues Kartenobjekt gemeldet (App-Änderung) → Raum-Einstellungen daraus lesen.
+     * Nicht während der Arbeit: dann kommen ständig neue Objekte (ioBroker drosselt genauso).
+     */
+    private function kartenobjektNachladen(string $name): void
+    {
+        $zustand = $this->hatVariable('Zustand') ? (int)$this->GetValue('Zustand') : RoboHubModell::ZUSTAND_UNBEKANNT;
+        if (in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_PAUSIERT, RoboHubModell::ZUSTAND_ZURUECK], true)) {
+            return;
+        }
+        $antwort = $this->frageKonto(['Aktion' => 'kartenobjekt', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Name' => $name]);
+        $d = $antwort['ok'] ? (array)$antwort['daten'] : ['kartenobjektInfo' => 'Echtzeit ' . $name . ': ' . ($antwort['fehler'] ?? '?')];
+        $q = json_decode($this->ReadAttributeString('RaumEinstellungenQuellen'), true) ?: [];
+        $q['kartenobjektInfo'] = date('d.m.Y H:i:s') . ' ' . (string)($d['kartenobjektInfo'] ?? '');
+        $this->WriteAttributeString('RaumEinstellungenQuellen', (string)json_encode($q));
+        if (isset($d['raumEinstellungen'])) {
+            $this->raumEinstellungenMerken($d, 'kartenobjekt');
+            $this->raumEinstellungenVariable();
+        }
     }
 
     /** Einstellungen je Raum aus Karte/Live-Karte merken; Variable nach dem Laden der Raumnamen. */

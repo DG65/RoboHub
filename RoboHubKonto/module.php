@@ -255,6 +255,9 @@ class RoboHubKonto extends IPSModule
             if ($aktion === 'raeume') {
                 return $this->treiber()->karte($buendel, $geraet);
             }
+            if ($aktion === 'kartenobjekt') {
+                return $this->treiber()->raumEinstellungenAusObjekt($buendel, $geraet, (string)($anfrage['Name'] ?? ''));
+            }
             if ($aktion === 'livekarte') {
                 return $this->treiber()->liveKarte($buendel, $geraet + ['raeume' => (array)($anfrage['Raeume'] ?? [])]);
             }
@@ -478,7 +481,8 @@ class RoboHubKonto extends IPSModule
         foreach ($aenderungen as $did => $delta) {
             // Roboterposition ist kein Gerätewert: nicht in den Schnappschuss.
             $position = $delta['_position'] ?? null;
-            unset($delta['_position']);
+            $objekt = $delta['_objekt'] ?? null;
+            unset($delta['_position'], $delta['_objekt']);
             if (!isset($schnapp[$did])) {
                 // Noch kein vollständiger Stand (z. B. direkt nach dem Start) —
                 // ohne ihn ließen sich abgeleitete Werte nicht korrekt bilden;
@@ -491,6 +495,9 @@ class RoboHubKonto extends IPSModule
             $daten['echtzeit'] = $delta;   // geänderte Rohwerte mit Werten (für den Verlauf am Roboter)
             if ($position !== null) {
                 $daten['position'] = $position;
+            }
+            if ($objekt !== null) {
+                $daten['kartenobjekt'] = $objekt;
             }
             $this->SendDataToChildren((string)json_encode(['DataID' => self::DATA_ZUM_KIND, 'Geraet' => (string)$did, 'Daten' => $daten]));
             $this->mqttStand(['letzte' => time(), 'anzahl' => (int)((json_decode($this->ReadAttributeString('Mqtt'), true)['anzahl'] ?? 0)) + 1]);

@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.11.4' => [
+            '• Einstellungen je Raum: Ändert man sie in der Hersteller-App, meldet der Roboter das per Echtzeit — RoboHub liest die neuen Werte dann sofort.',
+        ],
         '0.11.3' => [
             '• Fehlersuche: „📋 Rohdaten" zeigen, was beim Lesen des Kartenobjekts (Raum-Einstellungen) passiert.',
         ],
