@@ -2,6 +2,24 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.8.0 (12.10.2026)
+
+- Neu: **Live-Karte** — gefahrener Weg und Roboterposition auf Kachel und IPSView-Seite.
+  - Sauger: Vollrahmen anfordern wie Tasshack `_request_i_map` (action 6.1, 6.2 =
+    `{"req_type":1,"frame_type":"I","force_type":1}`); Antwort 6.3 = Zwischendatei („Name,Schlüssel",
+    Abruf über `iotfile/getDownloadUrl`), 6.1 = Kartentext direkt, 6.13 = alte Form. Daraus aktuelles
+    Kartenbild, Weg aus „tr" (M/W/S/l absolut, L relativ, M = neues Stück) und Roboter aus dem Kopf
+    (Bytes 5/7/9, 32767 = keine Position, `nr` = ausblenden).
+  - Mäher: Mähweg aus `M_PATH` der Gerätedaten (×10, null/[32767,−32768] trennt), Position aus der
+    Echtzeit-Telemetrie 1.4 (0xCE, 20-Bit-Koordinaten in cm, ioBroker main.js).
+  - Echtzeit: Teilrahmen 6.1 (Sauger) bzw. 1.4 (Mäher) versetzen den Roboter sofort (`_position`),
+    ohne in Schnappschuss oder Echtzeit-Verlauf zu landen.
+  - Eigener Takt `LiveKarte` nur während Reinigt/Pausiert/Zurück (Sauger 30 s, Mäher 60 s), am Ende ein
+    letzter Abruf; der fertige Weg bleibt bis zur nächsten Arbeit stehen. Räume-Laden überschreibt eine
+    laufende Live-Karte nicht. Schalter „Live-Karte während der Arbeit" (Standard an).
+  - Weg auf höchstens 1500 Punkte ausgedünnt; Kachel zeichnet ihn als SVG über dem Bild.
+- Noch nicht live geprüft — braucht eine laufende Reinigung bzw. ein Mähen.
+
 ## 0.7.1 (12.10.2026)
 
 - Kartenbild (Sauger): weiße Trennlinie zwischen zwei aneinandergrenzenden Räumen (Dietmars Wunsch —

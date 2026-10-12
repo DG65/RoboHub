@@ -2,6 +2,11 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.12.4 (12.10.2026)
+
+- Forum-Thread steht: Panel „Rückmeldungen" verweist jetzt auf
+  [RoboHub im Symcon-Forum](https://community.symcon.de/t/beta-modul-robohub-dreame-saugroboter-und-mova-maehroboter-in-ip-symcon-mit-karte-live-weg-zeitplaenen-und-raumreinigung/144636), GitHub-Issues bleiben als zweiter Knopf.
+
 ## 0.12.3 (12.10.2026)
 
 - Live-Befund LiDAX (16:18–16:25, Dietmar draußen, Rasen frei): Zone mähen (o 102, Zone 1) → „Mäht", Pause → „Pausiert",
@@ -163,21 +168,3 @@
   Liste, und jeder Raum im Bild bekommt eine Farbe, auch ohne Namen.
 - Live bestätigt (0.8.0, Barny in der Station): Anforderung 6.1 beantwortet, Weg der letzten Reinigung
   (138 Punkte) und Roboter auf der Station.
-
-## 0.8.0 (12.10.2026)
-
-- Neu: **Live-Karte** — gefahrener Weg und Roboterposition auf Kachel und IPSView-Seite.
-  - Sauger: Vollrahmen anfordern wie Tasshack `_request_i_map` (action 6.1, 6.2 =
-    `{"req_type":1,"frame_type":"I","force_type":1}`); Antwort 6.3 = Zwischendatei („Name,Schlüssel",
-    Abruf über `iotfile/getDownloadUrl`), 6.1 = Kartentext direkt, 6.13 = alte Form. Daraus aktuelles
-    Kartenbild, Weg aus „tr" (M/W/S/l absolut, L relativ, M = neues Stück) und Roboter aus dem Kopf
-    (Bytes 5/7/9, 32767 = keine Position, `nr` = ausblenden).
-  - Mäher: Mähweg aus `M_PATH` der Gerätedaten (×10, null/[32767,−32768] trennt), Position aus der
-    Echtzeit-Telemetrie 1.4 (0xCE, 20-Bit-Koordinaten in cm, ioBroker main.js).
-  - Echtzeit: Teilrahmen 6.1 (Sauger) bzw. 1.4 (Mäher) versetzen den Roboter sofort (`_position`),
-    ohne in Schnappschuss oder Echtzeit-Verlauf zu landen.
-  - Eigener Takt `LiveKarte` nur während Reinigt/Pausiert/Zurück (Sauger 30 s, Mäher 60 s), am Ende ein
-    letzter Abruf; der fertige Weg bleibt bis zur nächsten Arbeit stehen. Räume-Laden überschreibt eine
-    laufende Live-Karte nicht. Schalter „Live-Karte während der Arbeit" (Standard an).
-  - Weg auf höchstens 1500 Punkte ausgedünnt; Kachel zeichnet ihn als SVG über dem Bild.
-- Noch nicht live geprüft — braucht eine laufende Reinigung bzw. ein Mähen.

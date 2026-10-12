@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.12.4' => [
+            '• Rückmeldungen gehen jetzt in den RoboHub-Thread im Symcon-Forum (Knopf im Panel „Rückmeldungen").',
+        ],
         '0.12.3' => [
             '• Kurz nach einem Modul-Update meldete Symcon manchmal „keine aktive Konto-Instanz", obwohl das Konto lief — RoboHub prüft das Konto jetzt selbst.',
         ],
@@ -171,6 +174,7 @@ trait RoboHubFormular
 
     private static $ROBOHUB_REPO_URL    = 'https://github.com/DG65/RoboHub';
     private static $ROBOHUB_ISSUES_URL  = 'https://github.com/DG65/RoboHub/issues';
+    private static $ROBOHUB_FORUM_URL   = 'https://community.symcon.de/t/beta-modul-robohub-dreame-saugroboter-und-mova-maehroboter-in-ip-symcon-mit-karte-live-weg-zeitplaenen-und-raumreinigung/144636';
     private static $ROBOHUB_LICENSE_URL = 'https://github.com/DG65/RoboHub/blob/main/LICENSE';
     private static $ROBOHUB_PAYPAL_URL  = 'https://paypal.me/DietmarGureth';
     private static $ROBOHUB_LIBRARY_GUID = '{F4D2E22D-E5F0-444D-A2FF-359C105E74FB}';
@@ -304,14 +308,14 @@ trait RoboHubFormular
         if ($this->ReadAttributeBoolean('ForumHintGone')) {
             return null;
         }
-        // Noch kein Forum-Thread: Rückmeldungen gehen bis dahin an GitHub
-        // (Präzedenzfall OCPPHub, siehe Memory feedback-suite-md-vollstaendig-lesen).
+        // Forum-Thread seit 0.12.4; GitHub bleibt als zweiter Weg für Fehlerberichte.
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
             'caption' => '💬  Rückmeldungen',
             'items' => [
-                ['type' => 'Label', 'caption' => '🧪 RoboHub ist neu. Läuft dein Roboter? Fehlt ein Wert, oder hast du ein Modell, das noch nicht dabei ist? Schreib es gern als GitHub-Issue — mit Modellname und, falls vorhanden, dem Debug-Auszug „Rohdaten".'],
-                ['type' => 'Button', 'caption' => 'Rückmeldung auf GitHub', 'onClick' => "echo '" . self::$ROBOHUB_ISSUES_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => '🧪 RoboHub ist neu. Läuft dein Roboter? Fehlt ein Wert, oder hast du ein Modell, das noch nicht dabei ist? Schreib es gern in den RoboHub-Thread im Symcon-Forum — mit Modellname und, falls vorhanden, dem Inhalt von „Rohdaten".'],
+                ['type' => 'Button', 'caption' => 'Zum Forum-Thread', 'onClick' => "echo '" . self::$ROBOHUB_FORUM_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Fehler auf GitHub melden', 'onClick' => "echo '" . self::$ROBOHUB_ISSUES_URL . "';", 'link' => true],
                 ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => $this->robohubModulePrefix() . '_AckForumHint($id);'],
             ],
         ];

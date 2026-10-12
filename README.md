@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.12.3-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.12.4-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -142,6 +142,12 @@ Die Cloud-Schnittstelle ist aus drei quelloffenen Projekten (MIT-Lizenz) nachvol
 [TA2k/ioBroker.dreame](https://github.com/TA2k/ioBroker.dreame),
 [Tasshack/dreame-vacuum](https://github.com/Tasshack/dreame-vacuum) und
 [EvotecIT/homeassistant-dreamelawnmower](https://github.com/EvotecIT/homeassistant-dreamelawnmower).
+
+## Rückmeldungen
+
+Fragen, Erfahrungen mit weiteren Modellen und Wünsche gern in den
+[RoboHub-Thread im Symcon-Forum](https://community.symcon.de/t/beta-modul-robohub-dreame-saugroboter-und-mova-maehroboter-in-ip-symcon-mit-karte-live-weg-zeitplaenen-und-raumreinigung/144636),
+Fehler auch als [GitHub-Issue](https://github.com/DG65/RoboHub/issues).
 
 ## Lizenz
 
