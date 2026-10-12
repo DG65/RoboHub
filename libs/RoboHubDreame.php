@@ -1645,7 +1645,9 @@ PEM;
                 $erste = $k;
             }
         }
-        $kartenText = is_array($erste) ? (string)($erste['thb'] ?? $erste['map'] ?? '') : '';
+        // Vollständige Karte („map") wie Tasshack; „thb" ist eine Vorschau ohne Raum-Einstellungen
+        // (Live-Befund Barny 12.10.2026) und nur noch Rückfall.
+        $kartenText = is_array($erste) ? (string)($erste['map'] ?? $erste['thb'] ?? '') : '';
         $roh = self::dekodiereKarteRoh($kartenText, (string)($geraet['modell'] ?? ''));
         if ($roh === null) {
             $this->dbg('Karte', 'Karte nicht dekodierbar (verschlüsselt mit unbekanntem Schlüssel oder anderes Format).');

@@ -60,6 +60,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('Zeitplaene', '[]');
         $this->RegisterAttributeString('ZeitplanRoh', '');
         $this->RegisterAttributeString('RaumEinstellungen', '{}');
+        $this->RegisterAttributeString('RaumEinstellungenQuellen', '{}');
         $this->RegisterAttributeString('Schreibbar', '[]');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
         $this->RegisterAttributeString('LetzterFehler', '');
@@ -322,8 +323,12 @@ class RoboHubGeraet extends IPSModule
         if (strpos($text, '⛔') !== 0) {
             $namen = json_decode($this->ReadAttributeString('Raeume'), true) ?: [];
             $this->protokolliere('Raum-Einstellung ' . ($namen[(string)$raum] ?? 'Raum ' . $raum) . ': ' . $feld . ' = ' . $wert . '.');
-            // Was der Roboter übernommen hat, zeigt erst der neue Kartenrahmen.
-            $this->LiveKarteLaden();
+            // Was der Roboter übernommen hat, zeigt erst der neue Kartenrahmen — direkt
+            // nach dem Schreiben liefert Barny ein paar Sekunden keinen (Live-Befund).
+            if (strpos($this->LiveKarteLaden(), '⛔') === 0) {
+                IPS_Sleep(4000);
+                $this->LiveKarteLaden();
+            }
         }
         return $text;
     }
@@ -344,9 +349,9 @@ class RoboHubGeraet extends IPSModule
         if ($this->ReadAttributeString('ZeitplanRoh') !== '') {
             $daten['zeitplanRoh'] = $this->ReadAttributeString('ZeitplanRoh');
         }
-        $re = json_decode($this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
-        if (isset($re['roh'])) {
-            $daten['raumEinstellungenRoh'] = ['an' => $re['an'] ?? null, 'cleanset' => $re['roh']];
+        $quellen = json_decode($this->ReadAttributeString('RaumEinstellungenQuellen'), true) ?: [];
+        if ($quellen !== []) {
+            $daten['raumEinstellungenRoh'] = $quellen;
         }
         return (string)json_encode($daten, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     }
@@ -455,10 +460,16 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Einstellungen je Raum aus Karte/Live-Karte merken; Variable nach dem Laden der Raumnamen. */
-    private function raumEinstellungenMerken(array $d): void
+    private function raumEinstellungenMerken(array $d, string $quelle = ''): void
     {
         if (!isset($d['raumEinstellungen']) || !is_array($d['raumEinstellungen'])) {
             return;
+        }
+        if ($quelle !== '') {
+            // Beide Quellen getrennt für „📋 Rohdaten" (gespeicherte Karte vs. Live-Rahmen).
+            $q = json_decode($this->ReadAttributeString('RaumEinstellungenQuellen'), true) ?: [];
+            $q[$quelle] = ['zeit' => date('d.m.Y H:i:s'), 'an' => $d['raumEinstellungenAn'] ?? null, 'cleanset' => $d['raumEinstellungenRoh'] ?? null];
+            $this->WriteAttributeString('RaumEinstellungenQuellen', (string)json_encode($q));
         }
         $this->WriteAttributeString('RaumEinstellungen', (string)json_encode([
             'raeume' => $d['raumEinstellungen'], 'an' => $d['raumEinstellungenAn'] ?? null, 'roh' => $d['raumEinstellungenRoh'] ?? null,
@@ -727,7 +738,7 @@ class RoboHubGeraet extends IPSModule
             return '⛔ ' . $antwort['fehler'];
         }
         $d = (array)$antwort['daten'];
-        $this->raumEinstellungenMerken($d);
+        $this->raumEinstellungenMerken($d, 'liveKarte');
         $this->raumEinstellungenVariable();
         if ((string)($d['bild'] ?? '') === '') {
             return 'ℹ️ Keine aktuelle Karte geliefert.';
@@ -792,7 +803,7 @@ class RoboHubGeraet extends IPSModule
         if (isset($daten['zeitplanRoh'])) {
             $this->WriteAttributeString('ZeitplanRoh', (string)$daten['zeitplanRoh']);
         }
-        $this->raumEinstellungenMerken($daten);
+        $this->raumEinstellungenMerken($daten, 'gespeicherteKarte');
         $raeume = [];
         foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;

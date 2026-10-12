@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.11.1' => [
+            '• Gespeicherte Karte wird jetzt in voller Fassung gelesen (statt der Vorschau). Nach dem Ändern einer Raum-Einstellung wird die Karte bei Bedarf ein zweites Mal gelesen.',
+        ],
         '0.11.0' => [
             '• Saugroboter: Einstellungen je Raum ändern — Modus, Saugstufe und Durchgänge im Formular („🏠 Einstellungen je Raum") oder per ROBO_RaumEinstellungSetzen. Nur wenn der Roboter nicht reinigt.',
         ],
