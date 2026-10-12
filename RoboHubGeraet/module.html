@@ -189,9 +189,10 @@ function zeichnen() {
       var namen = d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0; }).map(function (x) { return x.name; }).join(', ');
       var wert = gewaehlt.join(',');
       if (d.klasse !== 'maeher') {
+        var wahl = d.startWahl || {};
         r += '<div class="startzeile">'
-          + auswahl('startModus', startModus, [[-1, 'Modus wie eingestellt'], [0, 'Saugen'], [1, 'Wischen'], [2, 'Saugen und Wischen'], [3, 'Erst saugen, dann wischen']])
-          + auswahl('startSaug', startSaug, [[-1, 'Saugstufe wie eingestellt'], [0, 'Leise'], [1, 'Standard'], [2, 'Stark'], [3, 'Turbo']])
+          + ((wahl.modus || []).length ? auswahl('startModus', startModus, [[-1, 'Modus wie eingestellt']].concat(wahl.modus)) : '')
+          + ((wahl.saug || []).length ? auswahl('startSaug', startSaug, [[-1, 'Saugstufe wie eingestellt']].concat(wahl.saug)) : '')
           + auswahl('startDurch', startDurch, [[-1, '1×'], [2, '2×'], [3, '3×']]) + '</div>';
         wert += '|' + startModus + '|' + startSaug + '|' + startDurch;
       }

@@ -1,14 +1,15 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.12.5-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.13.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Spenden-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
-Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, als erster
-Hersteller **Dreame** und **MOVA** über deren Cloud (Apps „Dreamehome" und „MOVAhome").
+Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
+**Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome") sowie **Roborock** (App „Roborock")
+über die jeweilige Hersteller-Cloud.
 
 ## Was tut dieses Modul?
 
@@ -38,6 +39,9 @@ Skripten oder Visualisierung etwas ändert.
    „🔑 Jetzt anmelden".
 3. Für jedes weitere Hersteller-Konto (z. B. MOVAhome für den Mäher) eine weitere
    Konto-Instanz anlegen und anmelden.
+   **Roborock** meldet sich ohne Passwort an: Hersteller „Roborock" wählen, E-Mail eintragen,
+   „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail ins Feld eintragen, „Übernehmen",
+   „🔑 Jetzt anmelden". Die Region findet Roborock selbst.
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -130,6 +134,10 @@ nicht offiziell dokumentiert und kann sich ändern.
 - Live geprüft mit Dreame Aqua10 Ultra Roller Complete und MOVA LiDAX Ultra 1000. Andere
   Dreame-/MOVA-Modelle derselben Apps sollten funktionieren, sind aber ungeprüft —
   Rückmeldungen sind willkommen.
+- **Roborock** (seit 0.13.0): nach dem Protokoll von python-roborock gebaut und gegen dessen
+  Testdaten geprüft, aber noch an keinem echten Gerät. Unterstützt sind Geräte mit dem
+  Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als
+  „noch nicht unterstützt". Noch ohne Kartenbild, Echtzeit-Meldungen und Zeitpläne.
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
   Start gibt es über „Raum reinigen mit Wahl".
@@ -138,10 +146,12 @@ nicht offiziell dokumentiert und kann sich ändern.
 
 ## Danksagung
 
-Die Cloud-Schnittstelle ist aus drei quelloffenen Projekten (MIT-Lizenz) nachvollzogen:
+Die Cloud-Schnittstelle von Dreame/MOVA ist aus drei quelloffenen Projekten (MIT-Lizenz) nachvollzogen:
 [TA2k/ioBroker.dreame](https://github.com/TA2k/ioBroker.dreame),
 [Tasshack/dreame-vacuum](https://github.com/Tasshack/dreame-vacuum) und
 [EvotecIT/homeassistant-dreamelawnmower](https://github.com/EvotecIT/homeassistant-dreamelawnmower).
+Der Roborock-Treiber folgt [Python-roborock/python-roborock](https://github.com/Python-roborock/python-roborock)
+(Apache-2.0); dessen Antwortbeispiele liegen unverändert im Prüfstand (`.tools/roborock/`).
 
 ## Rückmeldungen
 

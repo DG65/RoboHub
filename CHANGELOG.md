@@ -2,6 +2,30 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.13.0 (12.10.2026)
+
+- **Neuer Treiber Roborock** (`libs/RoboHubRoborock.php`, Hersteller „roborock" im Konto), nach
+  python-roborock (Apache-2.0):
+  - Anmeldung per E-Mail-Code (getUrlByEmail → v4 Code → key/sign + Vertragsversion → login/code),
+    kein Passwort; gespeichert wird nur das Nutzer-Bündel (rriot + token). Neuer Knopf
+    `ROBOHUB_CodeAnfordern`, das Passwortfeld nimmt bei Roborock den Code.
+  - Geräte und Raumnamen über die Web-API (Hawk-HMAC-SHA256), Gerätschlüssel bleiben im Konto
+    (`GeraeteListe` gibt sie nicht heraus).
+  - Zustand und Befehle über den Roborock-MQTT-Server: Rahmen „1.0" (AES-128-ECB mit
+    md5(Zeitstempel kodiert + Gerätschlüssel + Salz), CRC32), Nutzlast mit Sicherheitsdaten, je Abruf
+    eine kurze TLS-Sitzung, geprüft gegen DigiCert Global Root G2 (Name + Kette, nie abschaltbar).
+  - Werte: Zustand, Fehler, Akku, Fläche, Dauer, Saugstufe/Wassermenge (Auswahl), Verbrauchsteile
+    in % und Reststunden, Station (dss), Gesamtstatistik, Nicht stören, Lautstärke.
+  - Befehle: Start (setzt pausierte Raum-/Zonenreinigung fort), Pause, Stopp, Station, Orten, Räume
+    mit Saugstufe und Durchgängen (Rückfall auf einfache Segmentliste), Verbrauchsteile zurücksetzen.
+  - Noch nicht: Kartenbild, Echtzeit über das Konto, Zeitpläne, Protokolle A01/B01.
+- Kachel: Auswahl „Raum reinigen mit Wahl" aus den Treiber-Optionen statt fest verdrahteter
+  Dreame-Werte (für Dreame unverändert).
+- Prüfstand: Referenzwerte aus unabhängiger Nachbildung (Python-Standardbibliothek + openssl) und
+  python-roborock-Tests (Endpunkt, Nutzlast), Antwortbeispiele aus python-roborock; 15 Mutationen
+  gefangen. TLS-Aufbau aus PHP gegen mqtt-eu-3.roborock.com mit der eigenen Wurzel geprüft (falscher
+  Name abgelehnt). **Nicht an einem echten Roborock getestet** (Dietmar hat keinen).
+
 ## 0.12.5 (12.10.2026)
 
 - Store-Review (SUITE.md Checkliste 15, Hinweis der EMS-Sitzung): Protokoll über `$this->LogMessage` statt
@@ -153,16 +177,3 @@
   auch dann, wenn keine Karte vorliegt.
 - Sauger-Zeitpläne live bestätigt (0.9.0): Barnys Termin „09:00 · Mo, Mi, Fr · alle Räume · Saugen" = App,
   Aus- und Wiedereinschalten am Gerät angekommen.
-
-## 0.9.0 (12.10.2026)
-
-- Neu: **Zeitpläne** (Sauger) aus 8.2 — Format nach Tasshack (`_schedule_changed`: Zustand 1/2 an, 3 ungültig,
-  Feld 4 „0" einmalig) und ioBroker `lib/schedule.js` (Wochentagsmaske ab Sonntag, Arten Räume / Alle Räume /
-  Kurzbefehl mit Bitlagen für Raum, Durchgänge, Saugstufe, Modus).
-  - Variable „Zeitpläne" (Klartext mit Raumnamen), Kachel-Abschnitt mit an/aus-Knopf, Formular-Panel
-    „🗓️ Zeitpläne" mit Ein-/Ausschalten, `ROBO_ZeitplanSchalten($id, $termin, $an)`, IPSView-Seite nur mit
-    Freigabe + Schlüssel.
-  - Schalten wie ioBroker: 8.2 frisch lesen, nur Feld 1 des Termins ändern, alles zurückschreiben
-    (App-Änderungen bleiben). Ungültige Termine werden nicht geschaltet. Anlegen/Ändern bleibt in der App.
-- Mäher: Zeitplan-Rohtext (`SCHEDULE` aus den Gerätedaten) in „📋 Rohdaten" — Format noch nicht entschlüsselt.
-- Noch nicht live geprüft.

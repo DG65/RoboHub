@@ -286,6 +286,28 @@
   Klingen 34 % / 33,6 h → 100 % / 100 h, Reinigungsbürste 87 % / 433,6 h und Wartung 71 % / 42,9 h unverändert;
   MOVAhome zeigt 100 % / 100 h (Dietmar). Damit ist der Mäher-Weg (2.50 CMS) bestätigt.
 
+## Roborock-Treiber (0.13.0)
+
+- Quelle: Python-roborock/python-roborock (Apache-2.0, Stand 12.10.2026), lokal geklont im Scratchpad
+  (`ref/python-roborock`). Wichtig: web_api.py, protocol.py, protocols/v1_protocol.py, data/v1/*.
+- Anmeldung nur per E-Mail-Code (Credential-Regel: kein Passwort). Ablauf: getUrlByEmail (findet Server
+  + Land) → /api/v4/email/code/send → /api/v3/key/sign (x-mercy-ks/k) + /api/v3/app/agreement/latest →
+  /api/v4/auth/email/login/code. header_clientid = base64(md5(Konto + md5("RoboHub" + Konto))) — muss bei
+  Code und Login gleich sein. Ohne Land: v1 sendEmailCode/loginWithCode.
+- Bündel = rriot (u, s, h, k, r.a/r.m) + token. Kein Ablauf bekannt; HTTP 401 → neu anmelden.
+- Web-API: getHomeDetail (Authorization: token) → rrHomeId; /v3/user/homes/{id} mit Hawk
+  (HMAC-SHA256 über u:s:nonce:ts:md5(Pfad)::, Schlüssel h).
+- Gerät: MQTT `ssl://mqtt-eu-N.roborock.com:8883`, Benutzer md5(u:k)[2:10], Passwort md5(s:k)[16:],
+  rr/m/i/{u}/{benutzer}/{duid} hin, rr/m/o/… zurück. Rahmen „1.0" ohne Längenpräfix, Protokoll 101/102,
+  Nutzlast {"dps":{"101":"{id,method,params,security}"},"t"}; security.endpoint = b64(md5(k)[8:14]).
+  Je Abruf eine kurze TLS-Sitzung (`mqttAustausch`, im Prüfstand ersetzt) — keine Konto-Echtzeit.
+- TLS: Wurzel DigiCert Global Root G2 (`RoboHubRoborock::MQTT_WURZEL`, SHA-256 CB:3C:…:CB:5F), Datei in
+  sys_get_temp_dir. Nie ohne Prüfung verbinden.
+- **Nicht live geprüft** — Dietmar hat keinen Roborock. Erste Tester aus dem Forum abwarten; Rohdaten
+  (`roh.properties`) zeigen, was ein Gerät liefert. Offene Punkte: Kartenbild (Protokoll 301,
+  get_map_v1, CBC mit Nonce), Echtzeit (Konto-Socket, Rahmen je duid entschlüsseln), Zeitpläne
+  (get_timer), Reinigungsmodus je Start, A01/B01-Geräte.
+
 ## Prüfen
 
 ```

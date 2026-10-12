@@ -2,6 +2,19 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.9.0 (12.10.2026)
+
+- Neu: **Zeitpläne** (Sauger) aus 8.2 — Format nach Tasshack (`_schedule_changed`: Zustand 1/2 an, 3 ungültig,
+  Feld 4 „0" einmalig) und ioBroker `lib/schedule.js` (Wochentagsmaske ab Sonntag, Arten Räume / Alle Räume /
+  Kurzbefehl mit Bitlagen für Raum, Durchgänge, Saugstufe, Modus).
+  - Variable „Zeitpläne" (Klartext mit Raumnamen), Kachel-Abschnitt mit an/aus-Knopf, Formular-Panel
+    „🗓️ Zeitpläne" mit Ein-/Ausschalten, `ROBO_ZeitplanSchalten($id, $termin, $an)`, IPSView-Seite nur mit
+    Freigabe + Schlüssel.
+  - Schalten wie ioBroker: 8.2 frisch lesen, nur Feld 1 des Termins ändern, alles zurückschreiben
+    (App-Änderungen bleiben). Ungültige Termine werden nicht geschaltet. Anlegen/Ändern bleibt in der App.
+- Mäher: Zeitplan-Rohtext (`SCHEDULE` aus den Gerätedaten) in „📋 Rohdaten" — Format noch nicht entschlüsselt.
+- Noch nicht live geprüft.
+
 ## 0.8.1 (12.10.2026)
 
 - Fix Live-Karte: Barnys Live-Rahmen (r9547a) trägt kein `seg_inf` — Räume waren grau und ohne Namen.

@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.13.0' => [
+            '• Neu: Roborock-Saugroboter (App „Roborock"). Anmeldung ohne Passwort per E-Mail-Code, danach Zustand, Akku, Verbrauchsteile, Räume, Start/Pause/Stopp/Station/Orten, Raum reinigen mit Saugstufe und Durchgängen, Nicht stören und Lautstärke.',
+            '• Noch ohne Kartenbild und Echtzeit-Meldungen; nicht an einem echten Roborock geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',
+            '• Kachel: Die Auswahl bei „Raum reinigen mit Wahl" zeigt die Saugstufen und Modi, die dein Roboter wirklich kennt.',
+        ],
         '0.12.5' => [
             '• Einträge im Symcon-Protokoll stehen jetzt unter dem Namen der Instanz, Fehler (z. B. fehlgeschlagene Befehle oder Anmeldung) als Warnung.',
         ],

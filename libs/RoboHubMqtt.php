@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 // ===========================================================================
 // Schlanker MQTT-3.1.1-Client (nur, was RoboHub braucht): CONNECT,
-// SUBSCRIBE, PINGREQ, DISCONNECT, PUBACK senden; CONNACK, SUBACK, PUBLISH,
-// PINGRESP lesen. Die TCP/TLS-Verbindung hält Symcons Client Socket; diese
+// SUBSCRIBE, PUBLISH (QoS 0), PINGREQ, DISCONNECT, PUBACK senden; CONNACK, SUBACK, PUBLISH,
+// PINGRESP lesen. Die TCP/TLS-Verbindung hält Symcons Client Socket (bzw. beim
+// Roborock-Treiber ein eigener kurzer TLS-Strom); diese
 // Klasse baut nur die Pakete (Bytes) und zerlegt den empfangenen Datenstrom.
 //
 // Paketaufbau nach OASIS MQTT 3.1.1, Kap. 2 (fester Kopf + „Remaining
@@ -42,6 +43,12 @@ final class RoboHubMqtt
             $nutzlast .= self::text((string)$t) . chr($qos);
         }
         return self::paket((self::SUBSCRIBE << 4) | 0x02, pack('n', $paketId) . $nutzlast);
+    }
+
+    /** PUBLISH mit QoS 0 (3.3): fester Kopf 0x30, Topic, Inhalt. */
+    public static function publish(string $topic, string $inhalt): string
+    {
+        return self::paket(self::PUBLISH << 4, self::text($topic) . $inhalt);
     }
 
     public static function pingreq(): string

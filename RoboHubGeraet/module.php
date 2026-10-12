@@ -1173,6 +1173,8 @@ class RoboHubGeraet extends IPSModule
             'info'        => $info,
             'raeume'      => $raeume,
             'karte'       => $this->kachelKarte(),
+            // Auswahl für „Raum reinigen mit Wahl" aus den Treiber-Optionen (herstellerneutral).
+            'startWahl'   => $this->startWahl(),
             'zeitplaene'  => array_map(function (array $t): array {
                 // Mäh-Pläne nur aus der Tabellenform schaltbar (dort ist der Schaltweg belegt).
                 return ['id' => (int)$t['id'], 'an' => (bool)$t['an'], 'text' => $this->zeitplanText($t), 'schaltbar' => $this->zeitplanSchaltbar($t)];
@@ -1185,6 +1187,20 @@ class RoboHubGeraet extends IPSModule
             'key'         => $key,
             'hook'        => $this->hookPfad(),
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** Auswahllisten für den Start mit Wahl: [['wert', 'text'], …] je Modus/Saugstufe; leer = keine Auswahl. */
+    private function startWahl(): array
+    {
+        $optionen = json_decode((string)$this->ReadAttributeString('Optionen'), true) ?: [];
+        $liste = function (string $ident) use ($optionen): array {
+            $aus = [];
+            foreach ((array)($optionen[$ident] ?? []) as $wert => $text) {
+                $aus[] = [(int)$wert, (string)$text];
+            }
+            return $aus;
+        };
+        return ['modus' => $liste('Reinigungsmodus'), 'saug' => $liste('Saugstufe')];
     }
 
     /** Wert einer eigenen Variable oder null, wenn es sie (noch) nicht gibt. */
