@@ -241,7 +241,7 @@
   (Feld 2 = 1, Feld 5 = 7, Bedeutung unbekannt). 0.9.4 zeigt „⏸️ Plan 1 · täglich 12:00 · alles" = MOVAhome (Dietmar
   bestätigt 12.10.2026 01:05). Schalten seit 0.9.5 (SCHDS): **live bestätigt 12.10.2026 10:32–10:33** — Plan 1 ein
   (Mäher bestätigt, Zustand „Lädt (6)"), sofort wieder aus (bestätigt); Plan ist wieder aus. App-Anzeige des
-  Zwischenstands nicht abgewartet (12:00-Termin zu nah). Früher Hinweis „Testidee";
+  Zwischenstands nicht abgewartet (12:00-Termin zu nah); Endstand „aus" in MOVAhome von Dietmar bestätigt. Früher Hinweis „Testidee";
   Testidee: deaktivierten Plan kurz ein- und wieder aus, weit weg von 12:00.
 
 ## Prüfen

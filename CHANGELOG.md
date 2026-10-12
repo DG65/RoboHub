@@ -8,7 +8,7 @@
   „eingeschaltet/ausgeschaltet", sonst Fehlermeldung. Danach alle Pläne neu gelesen (Einschalten kann den
   Nachbarplan derselben Karte ausschalten), Protokolleintrag.
 - Plan-Kennung = Tabellennummer (eindeutig über Karten), Anzeige „Plan n" je Karte, ab Karte 2 mit Zusatz.
-- Noch nicht live geschaltet.
+- Live bestätigt (LiDAX, 12.10.2026): ein und wieder aus, Endstand in MOVAhome bestätigt.
 
 ## 0.9.4 (12.10.2026)
 
