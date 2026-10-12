@@ -187,7 +187,7 @@ class RoboHubGeraet extends IPSModule
     /** ROBO_Aktualisieren($id): string — Zustand sofort abrufen. */
     public function Aktualisieren(): string
     {
-        if (!$this->HasActiveParent()) {
+        if (!$this->kontoAktiv()) {
             $this->ordneKontoZu();
         }
         $antwort = $this->frageKonto(['Aktion' => 'zustand', 'Geraet' => $this->ReadPropertyString('GeraetID')]);
@@ -456,10 +456,24 @@ class RoboHubGeraet extends IPSModule
         return true;
     }
 
+    /**
+     * Konto verbunden und aktiv? HasActiveParent() meldete live kurz nach einem Modul-Update
+     * mehrfach „nein", obwohl das Konto längst aktiv war (Befund 12.10.2026) — dann den Status
+     * der übergeordneten Instanz selbst prüfen.
+     */
+    private function kontoAktiv(): bool
+    {
+        if ($this->HasActiveParent()) {
+            return true;
+        }
+        $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        return $eltern > 0 && (int)(IPS_GetInstance($eltern)['InstanceStatus'] ?? 0) === IS_ACTIVE;
+    }
+
     /** Sendet an die Konto-Instanz; liefert immer ['ok' => bool, ...]. */
     protected function frageKonto(array $anfrage): array
     {
-        if (!$this->HasActiveParent()) {
+        if (!$this->kontoAktiv()) {
             return ['ok' => false, 'fehler' => 'Keine aktive RoboHub-Konto-Instanz verbunden — bitte unter „Übergeordnete Instanz" ein angemeldetes Konto wählen.'];
         }
         $anfrage['DataID'] = self::DATA_ZUM_KONTO;

@@ -79,7 +79,7 @@ function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
 function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time()]; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return $GLOBALS['OBJ'][$id]['name'] ?? $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }
-function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0]; }
+function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0, 'InstanceStatus' => ($m && isset($m->status)) ? $m->status : 102]; }
 
 class IPSModule
 {
@@ -116,7 +116,8 @@ class IPSModule
     public function RegisterMessage(int $s, int $m): void {}
     public function SendDebug(string $a, string $b, int $c): void { $this->debug[] = "$a: $b"; }
     public function UpdateFormField(string $n, string $p, $v): void { $this->fields[] = [$n, $p, $v]; }
-    public function HasActiveParent(): bool { return $this->parent !== null; }
+    public $elternMeldung = null;           // null = normal; false = HasActiveParent() meldet fälschlich „nein" (Live-Befund)
+    public function HasActiveParent(): bool { return $this->elternMeldung ?? ($this->parent !== null); }
     public $puffer = [];
     // Wie live beobachtet: RequireParent() legt bei Bestandsinstanzen nichts an.
     public function RequireParent(string $guid): void {}
@@ -1605,6 +1606,16 @@ check('Rohdaten: Aufbau der Kartendatei für die Fehlersuche', strpos($geraet->R
 unset(FakeCloud::$props['6.3']);
 FakeCloud::$karte = $klar;
 FakeCloud::$liveOut = [];
+
+abschnitt('Konto-Erkennung nach Modul-Update');
+$geraet->elternMeldung = false;   // Symcon meldet kurz nach dem Update „kein aktiver Parent"
+FakeCloud::$anfragen = [];
+check('HasActiveParent() fälschlich „nein", Konto aber aktiv → Abruf klappt trotzdem', strpos($geraet->Aktualisieren(), '✅') === 0);
+$merkeStatus = $konto->status;
+$konto->status = 104;
+check('Konto wirklich nicht aktiv → klare Meldung', strpos($geraet->Aktualisieren(), 'Keine aktive RoboHub-Konto-Instanz') !== false);
+$konto->status = $merkeStatus;
+$geraet->elternMeldung = null;
 
 abschnitt('Fehlerpfade');
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);

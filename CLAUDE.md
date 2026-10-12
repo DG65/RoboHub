@@ -274,6 +274,15 @@
   Pause → Raumreinigung läuft weiter (4.1 = 18, 4.7 = 3); Pause (2.2) → „Pausiert (3)"; Stopp (4.2) → „Leerlauf (2)",
   4.1 = 17, 4.7 = 0; Zur Station (3.1) → „Fährt zur Station (5)". Live-Karte zeichnete bis zum Stopp (195 Punkte).
 
+## Mäher live (12.10.2026 16:18–16:25)
+
+- Zone mähen (2.50 o 102 region [1]) ✅, Pause 5.4 ✅ („Pausiert (3)"), Stopp 5.2 ✅ („Bereit (2)"), Station 5.3 ✅.
+- Echtzeit vom Mäher kommt (vorher nie gesehen — kam erst mit Arbeit): 2.1, 3.1, 2.50 `{"t":"TASK","d":{"o":102,
+  "region_id":[1],"exe":true,…}}`, 2.56 `{"status":[[Zone,Zustand]]}`, 300.1 `{"value":[1,0]}`.
+- Position aus 1.4 (ioBroker-Bitlage) passt zur MOVAhome-Karte (Dietmar). Mähweg M_PATH in getDeviceData blieb leer —
+  MOVA schreibt ihn vermutlich erst gegen Ende/nach der Aufgabe; offen.
+- `HasActiveParent()` nach Modul-Update unzuverlässig → `kontoAktiv()` prüft den Elternstatus selbst (0.12.3).
+
 ## Prüfen
 
 ```

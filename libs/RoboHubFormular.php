@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.12.3' => [
+            '• Kurz nach einem Modul-Update meldete Symcon manchmal „keine aktive Konto-Instanz", obwohl das Konto lief — RoboHub prüft das Konto jetzt selbst.',
+        ],
         '0.12.2' => [
             '• Live-Karte: Der fertige Weg bleibt nach der Arbeit stehen, auch wenn der Roboter ihn in der Station löscht.',
         ],
