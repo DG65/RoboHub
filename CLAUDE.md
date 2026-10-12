@@ -282,6 +282,9 @@
 - Position aus 1.4 (ioBroker-Bitlage) passt zur MOVAhome-Karte (Dietmar). Mähweg M_PATH in getDeviceData blieb leer —
   MOVA schreibt ihn vermutlich erst gegen Ende/nach der Aufgabe; offen.
 - `HasActiveParent()` nach Modul-Update unzuverlässig → `kontoAktiv()` prüft den Elternstatus selbst (0.12.3).
+- **Klingen zurücksetzen live bestätigt (12.10.2026 16:30, nach echtem Klingenwechsel):** CMS Read-Modify-Write →
+  Klingen 34 % / 33,6 h → 100 % / 100 h, Reinigungsbürste 87 % / 433,6 h und Wartung 71 % / 42,9 h unverändert;
+  MOVAhome zeigt 100 % / 100 h (Dietmar). Damit ist der Mäher-Weg (2.50 CMS) bestätigt.
 
 ## Prüfen
 
