@@ -270,6 +270,9 @@
   (Dietmar vor Ort); Gerät: 2.1 = 1, 4.1 = 18, 4.7 = 3, 4.4 = 0 (Leise), 4.23 = 5122 (= Saugen mit Mopp-Tausch).
 - **Live-Karte während der Reinigung bestätigt (16:07–16:09):** Takt 30 s läuft, Weg wächst (29 Punkte nach 1 min),
   Roboter bewegt sich, Echtzeit kommt laufend. Ein Abruf direkt nach dem Start lieferte keine Karte (einmalig).
+- **Pause/Fortsetzen/Stopp am Sauger live bestätigt (12.10.2026 16:11–16:13, Barny, Dietmar vor Ort):** Start (2.1) bei
+  Pause → Raumreinigung läuft weiter (4.1 = 18, 4.7 = 3); Pause (2.2) → „Pausiert (3)"; Stopp (4.2) → „Leerlauf (2)",
+  4.1 = 17, 4.7 = 0; Zur Station (3.1) → „Fährt zur Station (5)". Live-Karte zeichnete bis zum Stopp (195 Punkte).
 
 ## Prüfen
 
