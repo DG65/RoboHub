@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.4.3-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.12.3-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -58,7 +58,7 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
 - **Kartenbild** auf Kachel und IPSView-Seite: Räume bzw. Mähzonen mit Namen zum Antippen.
 - **Raum reinigen mit Wahl** wie das „benutzerdefiniert"-Fenster der App: Modus, Saugstufe und
   Durchgänge nur für diesen Start.
-- **Zeitpläne** (Saugroboter) aus der Hersteller-App anzeigen und ein-/ausschalten.
+- **Zeitpläne** (Saug- und Mähroboter) aus der Hersteller-App anzeigen und ein-/ausschalten.
 - **Live-Karte** während der Arbeit: gefahrener Weg und Roboterposition, fertiger Weg bleibt danach stehen.
 - **Nicht stören** (an/aus, Beginn, Ende) und **Lautstärke**: direkt schaltbar, bei Saug- und
   Mährobotern.
@@ -105,6 +105,8 @@ ROBO_Stoppen($id);
 ROBO_ZurStation($id);
 ROBO_Orten($id);
 ROBO_RaeumeReinigen($id, "3,5"); // Raum-IDs zeigt das Formular
+ROBO_RaeumeReinigenMit($id, "3", 0, 0, 1); // Modus, Saugstufe, Durchgänge nur für diesen Start, -1 = wie eingestellt
+ROBO_LiveKarteLaden($id);
 ROBO_VerbrauchsteilZuruecksetzen($id, "Filter"); // nach Wechsel/Reinigung, Ident der %-Variable
 ROBO_Aktualisieren($id);
 IPS_RequestAction($id, 'Befehl', 1); // 1 Start, 2 Pause, 3 Stopp, 4 Station, 5 Orten
@@ -123,18 +125,23 @@ der Symcon-Datenbank, wie bei jedem Cloud-Modul.
 RoboHub spricht mit der Hersteller-Cloud über dieselbe Schnittstelle wie die App. Sie ist
 nicht offiziell dokumentiert und kann sich ändern.
 
-## Grenzen (Version 0.1)
+## Grenzen
 
-- Keine Kartenansicht; Karten- und Positionsdaten aus den Echtzeit-Meldungen werden nicht
-  ausgewertet.
-- Mäher: noch keine Zonen-Auswahl.
+- Live geprüft mit Dreame Aqua10 Ultra Roller Complete und MOVA LiDAX Ultra 1000. Andere
+  Dreame-/MOVA-Modelle derselben Apps sollten funktionieren, sind aber ungeprüft —
+  Rückmeldungen sind willkommen.
+- Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
+- Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
+  Start gibt es über „Raum reinigen mit Wahl".
+- Mäher: der gefahrene Mähweg auf der Live-Karte ist noch nicht bestätigt, die Position schon.
 - Andere Regionen als „Europa" sind ungeprüft.
 
 ## Danksagung
 
-Die Cloud-Schnittstelle ist aus zwei quelloffenen Projekten (MIT-Lizenz) nachvollzogen:
-[TA2k/ioBroker.dreame](https://github.com/TA2k/ioBroker.dreame) und
-[Tasshack/dreame-vacuum](https://github.com/Tasshack/dreame-vacuum).
+Die Cloud-Schnittstelle ist aus drei quelloffenen Projekten (MIT-Lizenz) nachvollzogen:
+[TA2k/ioBroker.dreame](https://github.com/TA2k/ioBroker.dreame),
+[Tasshack/dreame-vacuum](https://github.com/Tasshack/dreame-vacuum) und
+[EvotecIT/homeassistant-dreamelawnmower](https://github.com/EvotecIT/homeassistant-dreamelawnmower).
 
 ## Lizenz
 
