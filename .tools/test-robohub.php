@@ -1648,6 +1648,7 @@ $ohneKonto->ApplyChanges();
 check('ohne Konto-Instanz verständliche Meldung', strpos($ohneKonto->Aktualisieren(), 'Keine aktive RoboHub-Konto-Instanz') !== false);
 
 require __DIR__ . '/test-roborock.inc.php';
+require __DIR__ . '/test-worx.inc.php';
 
 abschnitt('Formulare (Konvention)');
 $libVersion = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version'];

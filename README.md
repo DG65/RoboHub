@@ -1,15 +1,16 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.13.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.14.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Spenden-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
-**Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome") sowie **Roborock** (App „Roborock")
-über die jeweilige Hersteller-Cloud.
+**Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock") sowie
+den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape** und **Ferrex** — jeweils über die
+Hersteller-Cloud.
 
 ## Was tut dieses Modul?
 
@@ -42,6 +43,8 @@ Skripten oder Visualisierung etwas ändert.
    **Roborock** meldet sich ohne Passwort an: Hersteller „Roborock" wählen, E-Mail eintragen,
    „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail ins Feld eintragen, „Übernehmen",
    „🔑 Jetzt anmelden". Die Region findet Roborock selbst.
+   **Worx, Kress, LandXcape, Ferrex**: Marke wählen, E-Mail und Passwort der App eintragen,
+   „Übernehmen", „🔑 Jetzt anmelden" — gespeichert bleibt nur der Erneuerungsschlüssel.
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -138,6 +141,10 @@ nicht offiziell dokumentiert und kann sich ändern.
   Testdaten geprüft, aber noch an keinem echten Gerät. Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als
   „noch nicht unterstützt". Noch ohne Kartenbild, Echtzeit-Meldungen und Zeitpläne.
+- **Worx, Kress, LandXcape, Ferrex** (seit 0.14.0): nach ioBroker.worx gebaut, an keinem echten
+  Gerät geprüft. Zustand kommt aus dem letzten Status, den der Mäher an die Cloud meldet; Befehle
+  gehen über MQTT (WebSocket). Noch ohne Zonen, Zeitpläne, Regenverzögerung, Echtzeit-Meldungen
+  und Messer-Rücksetzen; „Orten" gibt es bei diesen Mähern nicht.
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
   Start gibt es über „Raum reinigen mit Wahl".
@@ -152,6 +159,10 @@ Die Cloud-Schnittstelle von Dreame/MOVA ist aus drei quelloffenen Projekten (MIT
 [EvotecIT/homeassistant-dreamelawnmower](https://github.com/EvotecIT/homeassistant-dreamelawnmower).
 Der Roborock-Treiber folgt [Python-roborock/python-roborock](https://github.com/Python-roborock/python-roborock)
 (Apache-2.0); dessen Antwortbeispiele liegen unverändert im Prüfstand (`.tools/roborock/`).
+Der Worx-/Kress-/LandXcape-/Ferrex-Treiber folgt
+[iobroker-community-adapters/ioBroker.worx](https://github.com/iobroker-community-adapters/ioBroker.worx) (MIT);
+die Anmeldung am Befehlsserver ist mit [MTrab/pyworxcloud](https://github.com/MTrab/pyworxcloud) abgeglichen
+(GPL-3.0, nur als Protokollbeschreibung genutzt, kein Code übernommen).
 
 ## Rückmeldungen
 

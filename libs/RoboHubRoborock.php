@@ -709,6 +709,11 @@ PEM;
     // Echtzeit über die Konto-Verbindung: noch nicht gebaut
     // =================================================================
 
+    public function echtzeitMoeglich(): bool
+    {
+        return false;
+    }
+
     public function mqttZiel(array $geraete, array $buendel): array
     {
         return ['', 0];
@@ -926,8 +931,8 @@ PEM;
     }
 
     // -----------------------------------------------------------------
-    // MQTT-Sitzung (TLS, geprüft gegen MQTT_WURZEL). Eigene Methode, damit
-    // der Prüfstand sie ersetzen kann.
+    // MQTT-Sitzung (RoboHubMqttSitzung, TLS geprüft gegen MQTT_WURZEL).
+    // Eigene Methode, damit der Prüfstand sie ersetzen kann.
     // -----------------------------------------------------------------
 
     /**
@@ -937,21 +942,11 @@ PEM;
      */
     protected function mqttAustausch(string $host, int $port, string $benutzer, string $passwort, string $abo, string $ziel, array $rahmen, callable $verarbeite, float $frist): void
     {
-        $kontext = stream_context_create(['ssl' => [
-            'verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $host,
-            'cafile' => self::caDatei(), 'SNI_enabled' => true,
-        ]]);
-        $fehlerNr = 0;
-        $fehlerText = '';
-        $sock = @stream_socket_client('tls://' . $host . ':' . $port, $fehlerNr, $fehlerText, 8, STREAM_CLIENT_CONNECT, $kontext);
-        if ($sock === false) {
-            throw new RoboHubFehler('Roborock-Server nicht erreichbar (' . $host . ': ' . $fehlerText . ').');
-        }
         $ende = microtime(true) + $frist;
-        $puffer = '';
+        $sitzung = RoboHubMqttSitzung::oeffnen($host, $port, self::MQTT_WURZEL, null, $ende);
         try {
-            fwrite($sock, RoboHubMqtt::connect('robohub_' . bin2hex(random_bytes(6)), $benutzer, $passwort, 30));
-            $p = $this->mqttWarte($sock, $puffer, $ende, RoboHubMqtt::CONNACK, null);
+            $sitzung->senden(RoboHubMqtt::connect('robohub_' . bin2hex(random_bytes(6)), $benutzer, $passwort, 30));
+            $p = $sitzung->warte(RoboHubMqtt::CONNACK, null, $ende);
             if ($p === null) {
                 throw new RoboHubFehler('Roborock-Server hat die Anmeldung nicht beantwortet.');
             }
@@ -961,57 +956,20 @@ PEM;
                 $e->anmeldungNoetig = in_array($code, [4, 5], true);
                 throw $e;
             }
-            fwrite($sock, RoboHubMqtt::subscribe(1, [$abo], 0));
-            if ($this->mqttWarte($sock, $puffer, $ende, RoboHubMqtt::SUBACK, null) === null) {
+            $sitzung->senden(RoboHubMqtt::subscribe(1, [$abo], 0));
+            if ($sitzung->warte(RoboHubMqtt::SUBACK, null, $ende) === null) {
                 throw new RoboHubFehler('Roborock-Server hat das Abonnement nicht bestätigt.');
             }
             foreach ($rahmen as $r) {
-                fwrite($sock, RoboHubMqtt::publish($ziel, $r));
+                $sitzung->senden(RoboHubMqtt::publish($ziel, $r));
             }
-            $this->mqttWarte($sock, $puffer, $ende, RoboHubMqtt::PUBLISH, function (array $paket) use ($abo, $verarbeite): bool {
+            $sitzung->warte(RoboHubMqtt::PUBLISH, function (array $paket) use ($abo, $verarbeite): bool {
                 $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
                 return $pub['topic'] === $abo && $verarbeite($pub['payload']);
-            });
-            fwrite($sock, RoboHubMqtt::disconnect());
+            }, $ende);
         } finally {
-            fclose($sock);
+            $sitzung->schliessen();
         }
-    }
-
-    /** Liest, bis ein Paket des Typs kommt (und $passt es annimmt) oder die Frist um ist. */
-    private function mqttWarte($sock, string &$puffer, float $ende, int $typ, ?callable $passt): ?array
-    {
-        while (true) {
-            foreach (RoboHubMqtt::zerlegen($puffer) as $paket) {
-                if ($paket['typ'] === $typ && ($passt === null || $passt($paket))) {
-                    return $paket;
-                }
-            }
-            $rest = $ende - microtime(true);
-            if ($rest <= 0) {
-                return null;
-            }
-            $lesen = [$sock];
-            $schreiben = null;
-            $ausnahme = null;
-            if (@stream_select($lesen, $schreiben, $ausnahme, (int)$rest, (int)(($rest - floor($rest)) * 1000000)) < 1) {
-                return null;
-            }
-            $stueck = fread($sock, 65536);
-            if ($stueck === false || ($stueck === '' && feof($sock))) {
-                return null;
-            }
-            $puffer .= $stueck;
-        }
-    }
-
-    private static function caDatei(): string
-    {
-        $datei = sys_get_temp_dir() . '/robohub-roborock-' . substr(md5(self::MQTT_WURZEL), 0, 8) . '.pem';
-        if (!is_file($datei)) {
-            file_put_contents($datei, self::MQTT_WURZEL);
-        }
-        return $datei;
     }
 
     // =================================================================

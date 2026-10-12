@@ -2,6 +2,28 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.14.0 (13.10.2026)
+
+- **Neuer Treiber Worx/Kress/LandXcape/Ferrex** (`libs/RoboHubWorx.php`, nach ioBroker.worx, MIT):
+  - Anmeldung OAuth „password" je Marke (eigener Login-Server und App-Client), danach nur der
+    rotierende Erneuerungsschlüssel; Passwort wird verworfen.
+  - Geräte und Zustand aus `/api/v2/product-items?status=1` (letzter vom Mäher gemeldeter Status):
+    Statuscodes ls (Zu Hause + Laden = Lädt, Regenverzögerung = Wetterpause), Fehler le, Akku,
+    Laden, Regensensor, Mähzeit gesamt.
+  - Befehle Start 1 / Pause 2 / Stopp 2 / Zur Station 3 über MQTT an `mqtt_topics.command_in`:
+    WebSocket `/mqtt` zum AWS-IoT-Endpunkt (Amazon Root CA 1 gepinnt), Zugangsschlüssel im
+    Benutzernamen (wie pyworxcloud), QoS 1 mit Bestätigung. Nachricht wie ioBroker sendPing
+    (Draht-Mäher sn/tm/dt, Vision-Mäher uuid/ISO-Zeit).
+- **Gemeinsame MQTT-Sitzung** `libs/RoboHubMqttSitzung.php` (TLS immer geprüft, wahlweise WebSocket
+  nach RFC 6455); Roborock nutzt sie jetzt auch. `RoboHubMqtt`: PUBLISH mit QoS 1, CONNECT ohne
+  Passwort.
+- Konto: zentrale Herstellerliste (Auswahl, Anzeige, Code-Anmeldung, Regionswahl); Region nur noch
+  bei Dreame/MOVA; Echtzeit-Hinweis je Treiber (`echtzeitMoeglich`).
+- Prüfstand: WebSocket-Werte aus RFC 6455, MQTT-Benutzername gegen Python `urllib.quote`, echte
+  Treiberwahl je Hersteller; 18 Mutationen gefangen. Echt geprüft: WebSocket-Handschlag mit
+  iot.eu-west-1.worxlandroid.com (101 + Accept), falsche Wurzel abgelehnt — ohne Anmeldung.
+  **Nicht an einem echten Mäher getestet.**
+
 ## 0.13.0 (12.10.2026)
 
 - **Neuer Treiber Roborock** (`libs/RoboHubRoborock.php`, Hersteller „roborock" im Konto), nach
@@ -164,16 +186,3 @@
 
 - Mäh-Pläne: LiDAX lieferte live keinen Plan (in 1,6 s, ohne Fehlermeldung), obwohl einer existiert. Jetzt
   stehen die Antworten je Kartenplatz/Generation in „📋 Rohdaten" (`zeitplanRoh`), Ablehnungen mit Rohantwort.
-
-## 0.9.1 (12.10.2026)
-
-- Neu: **Mäh-Pläne** lesen (Quelle EvotecIT/homeassistant-dreamelawnmower, MIT: schedule.py,
-  schedule_read_plan.py, schedule_document.py). Über 2.50 je Kartenplatz −1/0/1: `SCHDIV2` (sonst 3) →
-  Länge/Version (0xFFFF = leer), dann `SCHDDV2` in 100-Byte-Stücken → `{"d": [[ID, an, Name, Base64]]}`.
-  Termin-Bytes: 7 Byte Kopf (Tag/Art, Start, Ende, tatsächliches Ende, Zonenzahl) + Zonen; gerahmte Form
-  0xAA…0xED nur mit Start. Anzeige „Plan „Name" · Mo, Mi 09:00–12:00 · alles; Sa … · Zone".
-  Nur Anzeige — Schalten (`SCHDSV`) erst nach Live-Bestätigung.
-- Fix (Prüfstand gefunden): Zeitpläne werden nach den Raum-/Zonennamen übernommen (sonst alte Namen) und
-  auch dann, wenn keine Karte vorliegt.
-- Sauger-Zeitpläne live bestätigt (0.9.0): Barnys Termin „09:00 · Mo, Mi, Fr · alle Räume · Saugen" = App,
-  Aus- und Wiedereinschalten am Gerät angekommen.

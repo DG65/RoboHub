@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 // ===========================================================================
 // Schlanker MQTT-3.1.1-Client (nur, was RoboHub braucht): CONNECT,
-// SUBSCRIBE, PUBLISH (QoS 0), PINGREQ, DISCONNECT, PUBACK senden; CONNACK, SUBACK, PUBLISH,
+// SUBSCRIBE, PUBLISH (QoS 0/1), PINGREQ, DISCONNECT, PUBACK senden; CONNACK, SUBACK, PUBLISH,
 // PINGRESP lesen. Die TCP/TLS-Verbindung hält Symcons Client Socket (bzw. beim
 // Roborock-Treiber ein eigener kurzer TLS-Strom); diese
 // Klasse baut nur die Pakete (Bytes) und zerlegt den empfangenen Datenstrom.
@@ -25,13 +25,13 @@ final class RoboHubMqtt
     public const PINGRESP    = 13;
     public const DISCONNECT  = 14;
 
-    /** CONNECT mit Benutzer/Passwort, Clean Session (3.1). */
+    /** CONNECT mit Benutzer (und Passwort, falls nicht leer), Clean Session (3.1). */
     public static function connect(string $clientId, string $benutzer, string $passwort, int $keepalive): string
     {
         $variabel = self::text('MQTT') . "\x04"                     // Protokollname + Level 4 (= 3.1.1)
-            . chr(0x80 | 0x40 | 0x02)                               // Benutzer, Passwort, Clean Session
+            . chr(0x80 | ($passwort !== '' ? 0x40 : 0) | 0x02)      // Benutzer, ggf. Passwort, Clean Session
             . pack('n', $keepalive);
-        $nutzlast = self::text($clientId) . self::text($benutzer) . self::text($passwort);
+        $nutzlast = self::text($clientId) . self::text($benutzer) . ($passwort !== '' ? self::text($passwort) : '');
         return self::paket(self::CONNECT << 4, $variabel . $nutzlast);
     }
 
@@ -45,10 +45,10 @@ final class RoboHubMqtt
         return self::paket((self::SUBSCRIBE << 4) | 0x02, pack('n', $paketId) . $nutzlast);
     }
 
-    /** PUBLISH mit QoS 0 (3.3): fester Kopf 0x30, Topic, Inhalt. */
-    public static function publish(string $topic, string $inhalt): string
+    /** PUBLISH (3.3): QoS 0 ohne, QoS 1 mit Paket-ID (Bestätigung per PUBACK). */
+    public static function publish(string $topic, string $inhalt, int $qos = 0, int $paketId = 0): string
     {
-        return self::paket(self::PUBLISH << 4, self::text($topic) . $inhalt);
+        return self::paket((self::PUBLISH << 4) | ($qos << 1), self::text($topic) . ($qos > 0 ? pack('n', $paketId) : '') . $inhalt);
     }
 
     public static function pingreq(): string

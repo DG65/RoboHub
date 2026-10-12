@@ -2,6 +2,19 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.9.1 (12.10.2026)
+
+- Neu: **Mäh-Pläne** lesen (Quelle EvotecIT/homeassistant-dreamelawnmower, MIT: schedule.py,
+  schedule_read_plan.py, schedule_document.py). Über 2.50 je Kartenplatz −1/0/1: `SCHDIV2` (sonst 3) →
+  Länge/Version (0xFFFF = leer), dann `SCHDDV2` in 100-Byte-Stücken → `{"d": [[ID, an, Name, Base64]]}`.
+  Termin-Bytes: 7 Byte Kopf (Tag/Art, Start, Ende, tatsächliches Ende, Zonenzahl) + Zonen; gerahmte Form
+  0xAA…0xED nur mit Start. Anzeige „Plan „Name" · Mo, Mi 09:00–12:00 · alles; Sa … · Zone".
+  Nur Anzeige — Schalten (`SCHDSV`) erst nach Live-Bestätigung.
+- Fix (Prüfstand gefunden): Zeitpläne werden nach den Raum-/Zonennamen übernommen (sonst alte Namen) und
+  auch dann, wenn keine Karte vorliegt.
+- Sauger-Zeitpläne live bestätigt (0.9.0): Barnys Termin „09:00 · Mo, Mi, Fr · alle Räume · Saugen" = App,
+  Aus- und Wiedereinschalten am Gerät angekommen.
+
 ## 0.9.0 (12.10.2026)
 
 - Neu: **Zeitpläne** (Sauger) aus 8.2 — Format nach Tasshack (`_schedule_changed`: Zustand 1/2 an, 3 ungültig,

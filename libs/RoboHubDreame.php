@@ -364,6 +364,11 @@ class RoboHubDreame implements RoboHubTreiber
      * dem letzten vollständigen Stand plus den geänderten Werten, damit
      * abgeleitete Werte (z. B. Reinigungsmodus-Tausch) korrekt bleiben.
      */
+    public function echtzeitMoeglich(): bool
+    {
+        return true;
+    }
+
     public function normalisiere(string $modell, array $p): array
     {
         return self::klasseVon($modell) === RoboHubModell::KLASSE_MAEHER

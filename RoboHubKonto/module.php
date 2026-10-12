@@ -5,7 +5,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RoboHubModell.php';
 require_once __DIR__ . '/../libs/RoboHubFormular.php';
 require_once __DIR__ . '/../libs/RoboHubDreame.php';
+require_once __DIR__ . '/../libs/RoboHubMqttSitzung.php';
 require_once __DIR__ . '/../libs/RoboHubRoborock.php';
+require_once __DIR__ . '/../libs/RoboHubWorx.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -28,6 +30,17 @@ require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 class RoboHubKonto extends IPSModule
 {
     use RoboHubFormular;
+
+    // Hersteller: Wert im Select => [Anzeige im Select, Kurzname, Anmeldung per Code, Regionswahl].
+    private const HERSTELLER = [
+        'dreame'    => ['Dreame (App „Dreamehome")', 'Dreame', false, true],
+        'mova'      => ['MOVA (App „MOVAhome")', 'MOVA', false, true],
+        'roborock'  => ['Roborock (App „Roborock")', 'Roborock', true, false],
+        'worx'      => ['Worx Landroid (App „Landroid")', 'Worx', false, false],
+        'kress'     => ['Kress (App „Kress Mission")', 'Kress', false, false],
+        'landxcape' => ['LandXcape (App „LandXcape")', 'LandXcape', false, false],
+        'ferrex'    => ['Ferrex (App „Smart Mower")', 'Ferrex', false, false],
+    ];
 
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
     private const DATA_ZUM_KIND  = '{4949DAA0-C934-4184-91E2-2D3E90D4DC24}';
@@ -129,7 +142,7 @@ class RoboHubKonto extends IPSModule
         $this->WriteAttributeString('LetzterFehler', '');
         $this->WriteAttributeInteger('WarteBis', 0);
 
-        $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, ' . ($this->ReadPropertyString('Hersteller') === 'roborock' ? 'der Code' : 'das Passwort') . ' wurde verworfen.';
+        $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, ' . ($this->perCode() ? 'der Code' : 'das Passwort') . ' wurde verworfen.';
         try {
             $geraete = $this->ladeGeraete($buendel);
             $text .= "\n" . $this->geraeteZusammenfassung($geraete);
@@ -208,7 +221,7 @@ class RoboHubKonto extends IPSModule
         }, json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: []);
         return (string)json_encode([
             'hersteller' => $hersteller,
-            'anzeige'    => (['mova' => 'MOVA', 'roborock' => 'Roborock'][$hersteller] ?? 'Dreame') . ($this->ReadPropertyString('Konto') !== '' ? ' (' . $this->ReadPropertyString('Konto') . ')' : ''),
+            'anzeige'    => (self::HERSTELLER[$hersteller][1] ?? $hersteller) . ($this->ReadPropertyString('Konto') !== '' ? ' (' . $this->ReadPropertyString('Konto') . ')' : ''),
             'angemeldet' => $this->ReadAttributeString('Buendel') !== '',
             'stand'      => $this->ReadAttributeInteger('GeraeteStand'),
             'geraete'    => $geraete,
@@ -560,8 +573,9 @@ class RoboHubKonto extends IPSModule
         if (!$this->ReadPropertyBoolean('Echtzeit')) {
             return 'ℹ️ Echtzeit ist ausgeschaltet — die Roboter werden nur per Abfrage aktualisiert.';
         }
-        if ($this->ReadPropertyString('Hersteller') === 'roborock') {
-            return 'ℹ️ Für Roborock gibt es noch keine Echtzeit-Meldungen — die Roboter werden per Abfrage aktualisiert.';
+        $treiber = $this->treiber();
+        if (method_exists($treiber, 'echtzeitMoeglich') && !$treiber->echtzeitMoeglich()) {
+            return 'ℹ️ Für ' . (self::HERSTELLER[$this->ReadPropertyString('Hersteller')][1] ?? 'diesen Hersteller') . ' gibt es noch keine Echtzeit-Meldungen — die Roboter werden per Abfrage aktualisiert.';
         }
         switch ($s['zustand'] ?? '') {
             case 'verbunden':
@@ -585,6 +599,12 @@ class RoboHubKonto extends IPSModule
     // Intern
     // -----------------------------------------------------------------
 
+    /** Meldet sich dieser Hersteller per E-Mail-Code statt Passwort an? */
+    private function perCode(): bool
+    {
+        return (bool)(self::HERSTELLER[$this->ReadPropertyString('Hersteller')][2] ?? false);
+    }
+
     /** Hersteller-Treiber; im Prüfstand über $GLOBALS austauschbar. */
     protected function treiber(): RoboHubTreiber
     {
@@ -592,7 +612,13 @@ class RoboHubKonto extends IPSModule
             return ($GLOBALS['robohubTreiberFabrik'])($this->ReadPropertyString('Hersteller'));
         }
         $hersteller = (string)$this->ReadPropertyString('Hersteller');
-        $treiber = $hersteller === 'roborock' ? new RoboHubRoborock() : new RoboHubDreame($hersteller);
+        if ($hersteller === 'roborock') {
+            $treiber = new RoboHubRoborock();
+        } elseif (isset(RoboHubWorx::MARKEN[$hersteller])) {
+            $treiber = new RoboHubWorx($hersteller);
+        } else {
+            $treiber = new RoboHubDreame($hersteller);
+        }
         $treiber->debug = function (string $thema, string $text): void {
             $this->SendDebug($thema, $text, 0);
         };
@@ -789,7 +815,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA und Roborock). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock sowie Worx, Kress, LandXcape und Ferrex). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -808,7 +834,12 @@ class RoboHubKonto extends IPSModule
 
     private function kontoPanel(): array
     {
-        $roborock = $this->ReadPropertyString('Hersteller') === 'roborock';
+        $roborock = $this->perCode();
+        $mitRegion = (bool)(self::HERSTELLER[$this->ReadPropertyString('Hersteller')][3] ?? true);
+        $auswahl = [];
+        foreach (self::HERSTELLER as $wert => [$text]) {
+            $auswahl[] = ['caption' => $text, 'value' => $wert];
+        }
         $angemeldet = $this->ReadAttributeString('Buendel') !== '';
         $fehler = $this->ReadAttributeString('LetzterFehler');
         if ($angemeldet) {
@@ -827,12 +858,8 @@ class RoboHubKonto extends IPSModule
             'type' => 'ExpansionPanel', 'expanded' => true,
             'caption' => '🔑  Konto',
             'items' => [
-                ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => [
-                    ['caption' => 'Dreame (App „Dreamehome")', 'value' => 'dreame'],
-                    ['caption' => 'MOVA (App „MOVAhome")', 'value' => 'mova'],
-                    ['caption' => 'Roborock (App „Roborock")', 'value' => 'roborock'],
-                ]],
-                ['type' => 'Select', 'name' => 'Region', 'caption' => 'Region des Kontos', 'options' => RoboHubDreame::regionen(), 'visible' => !$roborock],
+                ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => $auswahl],
+                ['type' => 'Select', 'name' => 'Region', 'caption' => 'Region des Kontos', 'options' => RoboHubDreame::regionen(), 'visible' => $mitRegion],
                 ['type' => 'ValidationTextBox', 'name' => 'Konto', 'caption' => 'E-Mail des Kontos'],
                 ['type' => 'Label', 'visible' => $roborock, 'caption' => 'Roborock meldet sich ohne Passwort an: E-Mail eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Die Region findet Roborock selbst.'],
                 ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'caption' => $roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'],
@@ -842,7 +869,7 @@ class RoboHubKonto extends IPSModule
                     ['type' => 'Button', 'caption' => '🔑 Jetzt anmelden', 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
                     ['type' => 'Button', 'caption' => '⏏️ Abmelden', 'onClick' => 'echo ROBOHUB_Abmelden($id);'],
                 ]],
-                ['type' => 'PopupButton', 'caption' => 'Welche Region hat mein Konto?', 'width' => '460px', 'popup' => [
+                ['type' => 'PopupButton', 'caption' => 'Welche Region hat mein Konto?', 'width' => '460px', 'visible' => $mitRegion, 'popup' => [
                     'caption' => 'Welche Region hat mein Konto?',
                     'items' => [
                         ['type' => 'Label', 'caption' => 'Die Region richtet sich nach dem Land, das du bei der Registrierung in der App gewählt hast — für Deutschland, Österreich und die Schweiz ist das „Europa".'],

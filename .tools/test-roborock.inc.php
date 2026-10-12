@@ -130,11 +130,12 @@ $a = RoboHubRoborock::antwortLesen('{"t":1,"dps":{"102":"{\"id\":7,\"result\":\"
 check('„unknown_method" wird Fehler', $a['id'] === 7 && strpos((string)$a['fehler'], 'unbekannt') !== false);
 check('Raumzuordnung: Liste und einzelnes Paar', RoboHubRoborock::raumZuordnung([[16, '3031886'], [17, '3031880']]) === [16 => '3031886', 17 => '3031880'] && RoboHubRoborock::raumZuordnung([16, 3031886]) === [16 => '3031886']);
 
-$quelle = (new ReflectionMethod('RoboHubRoborock', 'mqttAustausch'));
+$quelle = (new ReflectionMethod('RoboHubMqttSitzung', 'oeffnen'));
 $zeilen = array_slice(file($quelle->getFileName()), $quelle->getStartLine() - 1, $quelle->getEndLine() - $quelle->getStartLine() + 1);
 $text = implode('', $zeilen);
 check('MQTT-TLS prüft Zertifikat und Namen gegen die eigene Wurzel (nie abschaltbar)', substr_count($text, "'verify_peer' => true") === 1 && strpos($text, "'verify_peer_name' => true") !== false
-    && strpos($text, "'cafile' => self::caDatei()") !== false && strpos($text, '=> false') === false && strpos($text, "'tls://'") !== false);
+    && strpos($text, '\'cafile\' => self::caDatei($wurzelPem)') !== false && strpos($text, '=> false') === false && strpos($text, "'tls://'") !== false
+    && strpos(implode('', array_slice(file((new ReflectionMethod('RoboHubRoborock', 'mqttAustausch'))->getFileName()), 0)), 'RoboHubMqttSitzung::oeffnen($host, $port, self::MQTT_WURZEL') !== false);
 check('Wurzelzertifikat ist DigiCert Global Root G2', strtoupper(implode(':', str_split(openssl_x509_fingerprint(RoboHubRoborock::MQTT_WURZEL, 'sha256'), 2)))
     === 'CB:3C:CB:B7:60:31:E5:E0:13:8F:8D:D3:9A:23:F9:DE:47:FF:C3:5E:43:C1:14:4C:EA:27:D4:6A:5A:B1:CB:5F');
 

@@ -308,6 +308,21 @@
   get_map_v1, CBC mit Nonce), Echtzeit (Konto-Socket, Rahmen je duid entschlüsseln), Zeitpläne
   (get_timer), Reinigungsmodus je Start, A01/B01-Geräte.
 
+## Worx-/Kress-/LandXcape-/Ferrex-Treiber (0.14.0)
+
+- Quelle: ioBroker.worx (MIT, Stand 02.10.2026, Scratchpad `ref/ioBroker.worx`); MQTT-Anmeldung mit
+  pyworxcloud (GPL-3.0!) abgeglichen — nur Protokollwissen, KEIN Code übernehmen.
+- Marken-Tabelle `RoboHubWorx::MARKEN` (API-Host, Login-Server, Client-ID, MQTT-Präfix).
+- Zustand nur per HTTP (`product-items/{sn}?status=1`, `last_status.payload.{cfg,dat}`), keine
+  MQTT-Abfrage nötig. Befehle über `RoboHubMqttSitzung` (WebSocket `/mqtt`, Amazon Root CA 1),
+  Benutzername `robohub?jwt=<p0>.<p1>&x-amz-customauthorizer-name=''&x-amz-customauthorizer-signature=<p2>`
+  (Token: `_`→`/`, `-`→`+`, Teile url-kodiert mit `/` erhalten), kein Passwort, Client-ID
+  `{Präfix}/USER/{user_id}/robohub/{zufall}` — ob „robohub" als Kategorie akzeptiert wird, ist offen
+  (ioBroker nutzt „iobroker", pyworxcloud „homeassistant").
+- WebSocket-Handschlag live geprüft (13.10.2026, ohne Anmeldung). **Kein Gerät live getestet.**
+- Offen: Zonen (mz/mzv), Zeitpläne (sc), Regenverzögerung (rd), Echtzeit (command_out), Messer-
+  Rücksetzen (`counters/blade/reset`, braucht ein Lebensdauer-Modell), Vision-Besonderheiten.
+
 ## Prüfen
 
 ```
