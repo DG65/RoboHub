@@ -52,6 +52,7 @@ function IPS_GetInstanceListByModuleID(string $g): array
     return $o;
 }
 function IPS_ConnectInstance(int $id, int $parent): bool { $GLOBALS['CONNECTS'][] = [$id, $parent]; $GLOBALS['INST'][$id]->parent = $GLOBALS['INST'][$parent]; return true; }
+function IPS_DeleteInstance(int $id): bool { $GLOBALS['GELOESCHT'][] = $id; unset($GLOBALS['INST'][$id]); return true; }
 function IPS_DisconnectInstance(int $id): bool { $GLOBALS['INST'][$id]->parent = null; return true; }
 function ROBOHUB_GeraeteListe(int $id): string { return $GLOBALS['INST'][$id]->GeraeteListe(); }
 function ROBOHUB_GeraeteSuchen(int $id): string { return $GLOBALS['INST'][$id]->GeraeteSuchen(); }
@@ -1092,6 +1093,15 @@ $konto->parent = null;
 check('Bestandskonto hat noch keinen Socket', $konto->parent === null);
 $GLOBALS['ERZEUGT'] = [];
 $konto->ApplyChanges();
+check('ApplyChanges legt den Socket NICHT sofort an (Konsole darf zuerst), sondern stellt den Timer', $GLOBALS['ERZEUGT'] === [] && ($konto->timers['Verbindung'] ?? 0) > 0);
+// Konsole war schneller: Timer findet einen Socket vor → kein zweiter.
+$konsole = new FakeSocket(69990);
+$konto->parent = $konsole;
+$konto->VerbindungPruefen();
+check('Socket der Konsole vorhanden → RoboHub legt keinen zweiten an', $GLOBALS['ERZEUGT'] === [] && $konto->parent === $konsole && $konto->timers['Verbindung'] === 0);
+$konto->parent = null;
+unset($GLOBALS['INST'][69990]);
+$konto->VerbindungPruefen();
 $socket = $konto->parent;
 check('ApplyChanges legt den Client Socket selbst an und verbindet ihn', count($GLOBALS['ERZEUGT']) === 1 && $GLOBALS['ERZEUGT'][0][0] === '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}' && $socket instanceof FakeSocket);
 check('… mit sprechendem Namen', strpos($GLOBALS['NAMEN'][$socket->InstanceID] ?? '', 'RoboHub Echtzeit (') === 0);

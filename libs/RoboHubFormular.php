@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.14.1' => [
+            '• Beim Neuanlegen eines Kontos erschien „Konnte nicht zur Instanz verbinden … hat bereits ein übergeordnetes Objekt" — behoben. RoboHub legt die Verbindungsinstanz nur noch selbst an, wenn nach einigen Sekunden keine da ist.',
+            '• Konten ohne Echtzeit-Meldungen (Roborock, Worx, Kress, LandXcape, Ferrex) bekommen keine überflüssige Verbindungsinstanz mehr.',
+        ],
         '0.14.0' => [
             '• Neu: Mähroboter von Worx (Landroid), Kress, LandXcape und Ferrex. Anmeldung mit E-Mail und Passwort (danach verworfen), Zustand, Akku, Laden, Fehler, Regen, Mähzeit gesamt; Start, Pause, Stopp, Zur Station.',
             '• Noch ohne Zonen, Zeitpläne und Echtzeit-Meldungen; nicht an einem echten Gerät geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',

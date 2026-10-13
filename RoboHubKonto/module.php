@@ -83,6 +83,9 @@ class RoboHubKonto extends IPSModule
         $this->registerFormAttributes();
 
         $this->RegisterTimer('Erneuern', 0, 'ROBOHUB_Erneuern($_IPS[\'TARGET\']);');
+        // Client Socket erst verzögert selbst anlegen: beim Neuanlegen bietet die Konsole ihn selbst an
+        // (Forum 13.10.2026: „hat bereits ein übergeordnetes Objekt", wenn RoboHub schneller war).
+        $this->RegisterTimer('Verbindung', 0, 'ROBOHUB_VerbindungPruefen($_IPS[\'TARGET\']);');
     }
 
     public function ApplyChanges()
@@ -94,7 +97,9 @@ class RoboHubKonto extends IPSModule
             return;
         }
         $this->aktualisiereStatus();
-        $this->verbindungSicherstellen();
+        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) === 0 && $this->brauchtSocket()) {
+            $this->SetTimerInterval('Verbindung', 15000);
+        }
         $this->elternBeobachten();
         $this->echtzeitKonfigurieren(false);
     }
@@ -395,9 +400,29 @@ class RoboHubKonto extends IPSModule
      * in Symcons offiziellen Stubs (SymconStubs ModuleStubs::RequireParent):
      * anlegen, benennen, verbinden — nur ausdrücklich.
      */
+    /**
+     * Timer: fehlt der Client Socket noch (Bestandskonten — dort legt Symcon ihn
+     * über RequireParent nicht an), legt RoboHub ihn selbst an. Verzögert, damit
+     * die Konsole beim Neuanlegen ihren eigenen zuerst einhängen kann.
+     */
+    public function VerbindungPruefen(): void
+    {
+        $this->SetTimerInterval('Verbindung', 0);
+        $this->verbindungSicherstellen();
+        $this->elternBeobachten();
+        $this->echtzeitKonfigurieren(false);
+    }
+
+    /** Nur Hersteller mit Echtzeit über die Konto-Verbindung brauchen einen Client Socket. */
+    private function brauchtSocket(): bool
+    {
+        $treiber = $this->treiber();
+        return !method_exists($treiber, 'echtzeitMoeglich') || $treiber->echtzeitMoeglich();
+    }
+
     private function verbindungSicherstellen(): void
     {
-        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) !== 0) {
+        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) !== 0 || !$this->brauchtSocket()) {
             return;
         }
         $id = @IPS_CreateInstance(self::CLIENT_SOCKET);
@@ -405,10 +430,12 @@ class RoboHubKonto extends IPSModule
             $this->protokolliere('Client Socket für die Echtzeit-Meldungen ließ sich nicht anlegen.', KL_WARNING);
             return;
         }
-        IPS_SetName($id, 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')');
-        if (!IPS_ConnectInstance($this->InstanceID, $id)) {
-            $this->protokolliere('Client Socket #' . $id . ' ließ sich nicht verbinden.', KL_WARNING);
+        // Inzwischen doch verbunden (z. B. von der Konsole)? Dann den eigenen wieder entfernen.
+        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) !== 0 || !@IPS_ConnectInstance($this->InstanceID, $id)) {
+            @IPS_DeleteInstance($id);
+            return;
         }
+        IPS_SetName($id, 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')');
     }
 
     private function elternBeobachten(): void
