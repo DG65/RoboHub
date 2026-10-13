@@ -2,6 +2,24 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.17.0 (13.10.2026)
+
+- **Neuer Treiber Husqvarna Automower** (`libs/RoboHubHusqvarna.php`, nach aioautomower, MIT), offizielle
+  Automower Connect API:
+  - Anmeldung `client_credentials` mit Application Key/Secret (Husqvarna-Entwicklerportal); beides bleibt
+    nach Dietmars Entscheidung im Bündel, Token (24 h) wird damit erneuert. Köpfe Bearer,
+    `Authorization-Provider: husqvarna`, `X-Api-Key`.
+  - Ein gemeinsamer Abruf `/mowers` für alle Mäher eines Kontos, 5 Minuten zwischengespeichert
+    (Limit 10.000/Monat), nach Befehlen verworfen; HTTP 429 → Konto wartet 1 h.
+  - Zustand aus state/activity/restrictedReason (Wettersensor/Frost = Wetterpause), Fehlercodes deutsch,
+    Akku, Laden, Mähzeit gesamt; Arbeitsbereiche als Zonen. Befehle: Start (180 min) bzw.
+    ResumeSchedule nach Pause, Pause, ParkUntilNextSchedule (Zur Station), ParkUntilFurtherNotice
+    (Stopp), StartInWorkArea.
+- Konto: Felder „Application Key"/„Application Secret", Anleitung Entwicklerportal, ehrlicher Hinweis.
+- Prüfstand: Anmeldung, Köpfe, gemeinsamer Abruf, Zustände, Befehle, Erneuerung, Limit; 14 Mutationen
+  gefangen. Live (ohne Konto): Token-Endpunkt antwortet auf unbekannten Schlüssel mit `invalid_client`.
+  **Kein echter Mäher getestet.**
+
 ## 0.16.0 (13.10.2026)
 
 - **Neuer Treiber iRobot Roomba/Braava** (`libs/RoboHubIrobot.php`, nach roombapy, MIT), lokal ohne Cloud:
@@ -206,13 +224,3 @@
   Variable „Einstellungen je Raum", Kachel zeigt die Einstellungen der gewählten Räume vor dem Start,
   Rohwerte in „📋 Rohdaten". Ändern (Tasshack `UPDATE_MAP_DATA` 6.2 mit `{"customeClean": [...]}`) folgt nach
   dem Live-Abgleich.
-
-## 0.9.5 (12.10.2026)
-
-- Neu: **Mäh-Pläne schalten** (Tabellenform) nach EvotecIT `plan_table_enabled`: Zustand 2.1 frisch lesen —
-  nur ruhend (bereit/lädt/geladen); SCHDI frisch lesen; Einschalten nur mit mindestens einem aktiven Termin
-  (SCHDC); `{"m":"s","t":"SCHDS","d":[Tabelle, 1/0]}`; danach SCHDI erneut — nur bei bestätigtem Schalter
-  „eingeschaltet/ausgeschaltet", sonst Fehlermeldung. Danach alle Pläne neu gelesen (Einschalten kann den
-  Nachbarplan derselben Karte ausschalten), Protokolleintrag.
-- Plan-Kennung = Tabellennummer (eindeutig über Karten), Anzeige „Plan n" je Karte, ab Karte 2 mit Zusatz.
-- Live bestätigt (LiDAX, 12.10.2026): ein und wieder aus, Endstand in MOVAhome bestätigt.

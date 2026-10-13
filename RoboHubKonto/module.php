@@ -10,6 +10,7 @@ require_once __DIR__ . '/../libs/RoboHubRoborock.php';
 require_once __DIR__ . '/../libs/RoboHubWorx.php';
 require_once __DIR__ . '/../libs/RoboHubEcovacs.php';
 require_once __DIR__ . '/../libs/RoboHubIrobot.php';
+require_once __DIR__ . '/../libs/RoboHubHusqvarna.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -44,6 +45,7 @@ class RoboHubKonto extends IPSModule
         'ferrex'    => ['Ferrex (App „Smart Mower")', 'Ferrex', false, false],
         'ecovacs'   => ['Ecovacs Deebot/GOAT (App „Ecovacs Home")', 'Ecovacs', false, true],
         'irobot'    => ['iRobot Roomba/Braava (lokal im Heimnetz, ohne Cloud)', 'iRobot', false, false],
+        'husqvarna' => ['Husqvarna Automower (offizielle Automower Connect API)', 'Husqvarna', false, false],
     ];
 
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
@@ -172,9 +174,14 @@ class RoboHubKonto extends IPSModule
         $this->WriteAttributeString('LetzterFehler', '');
         $this->WriteAttributeInteger('WarteBis', 0);
 
-        $text = $this->ReadPropertyString('Hersteller') === 'ecovacs'
-            ? '✅ Angemeldet. Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts (nicht das Passwort selbst), um sich alle 7 Tage selbst neu anzumelden. Abmelden löscht ihn.'
-            : '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, ' . ($this->perCode() ? 'der Code' : 'das Passwort') . ' wurde verworfen.';
+        $hersteller = $this->ReadPropertyString('Hersteller');
+        if ($hersteller === 'ecovacs') {
+            $text = '✅ Angemeldet. Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts (nicht das Passwort selbst), um sich alle 7 Tage selbst neu anzumelden. Abmelden löscht ihn.';
+        } elseif ($hersteller === 'husqvarna') {
+            $text = '✅ Angemeldet. Application Key und Secret bleiben im Konto gespeichert, weil Husqvarna den Zugang nur damit erneuert (alle 24 h). Im Entwicklerportal kannst du sie jederzeit widerrufen; Abmelden löscht sie hier.';
+        } else {
+            $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, ' . ($this->perCode() ? 'der Code' : 'das Passwort') . ' wurde verworfen.';
+        }
         try {
             $geraete = $this->ladeGeraete($buendel);
             $text .= "\n" . $this->geraeteZusammenfassung($geraete);
@@ -697,6 +704,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubEcovacs();
         } elseif ($hersteller === 'irobot') {
             $treiber = new RoboHubIrobot();
+        } elseif ($hersteller === 'husqvarna') {
+            $treiber = new RoboHubHusqvarna();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -896,7 +905,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot sowie Worx, Kress, LandXcape und Ferrex). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot sowie Husqvarna, Worx, Kress, LandXcape und Ferrex). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -919,6 +928,7 @@ class RoboHubKonto extends IPSModule
         $roborock = $this->perCode() || $this->ReadAttributeString('AnmeldeVorstufe') !== '';
         $ecovacs = $this->ReadPropertyString('Hersteller') === 'ecovacs';
         $lokal = $this->ReadPropertyString('Hersteller') === 'irobot';
+        $husqvarna = $this->ReadPropertyString('Hersteller') === 'husqvarna';
         $mitRegion = (bool)(self::HERSTELLER[$this->ReadPropertyString('Hersteller')][3] ?? true);
         $auswahl = [];
         foreach (self::HERSTELLER as $wert => [$text]) {
@@ -944,10 +954,11 @@ class RoboHubKonto extends IPSModule
             'items' => [
                 ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => $auswahl],
                 ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs ? 'Land des Kontos (wie in der App)' : 'Region des Kontos', 'options' => $ecovacs ? RoboHubEcovacs::regionen() : RoboHubDreame::regionen(), 'visible' => $mitRegion],
-                ['type' => 'ValidationTextBox', 'name' => 'Konto', 'caption' => $lokal ? 'IP-Adresse des Roboters' : 'E-Mail des Kontos'],
+                ['type' => 'ValidationTextBox', 'name' => 'Konto', 'caption' => $lokal ? 'IP-Adresse des Roboters' : ($husqvarna ? 'Application Key' : 'E-Mail des Kontos')],
+                ['type' => 'Label', 'visible' => $husqvarna, 'caption' => 'Husqvarna nutzt die offizielle Schnittstelle: Auf developer.husqvarnagroup.cloud mit dem Husqvarna-Konto anmelden, „Create application" (Redirect-URL beliebig, z. B. http://localhost), die APIs „Authentication API" und „Automower Connect API" verbinden, dann Application Key und Application Secret hier eintragen. Limit: 10.000 Abfragen im Monat — RoboHub fragt deshalb höchstens alle 5 Minuten ab.'],
                 ['type' => 'Label', 'visible' => $lokal, 'caption' => 'iRobot läuft lokal, ohne Cloud: Roboter auf die Station stellen, IP-Adresse eintragen, „Übernehmen". Dann am Roboter die HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, und sofort „🔑 Jetzt anmelden" drücken. Für einen weiteren Roboter dasselbe mit dessen IP.'],
                 ['type' => 'Label', 'visible' => $roborock, 'caption' => 'Roborock meldet sich ohne Passwort an: E-Mail eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Die Region findet Roborock selbst.'],
-                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'],
+                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : ($husqvarna ? 'Application Secret (bleibt im Konto gespeichert)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)')],
                 ['type' => 'Label', 'name' => 'Ergebnis', 'caption' => $zeile],
                 ['type' => 'RowLayout', 'items' => [
                     ['type' => 'Button', 'caption' => '📧 Code anfordern', 'visible' => $roborock, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],

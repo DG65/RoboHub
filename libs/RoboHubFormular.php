@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.17.0' => [
+            '• Neu: Husqvarna Automower über die offizielle Automower Connect API. Application Key und Secret aus dem Husqvarna-Entwicklerportal eintragen (sie bleiben gespeichert). Zustand, Akku, Fehler, Wetterpause, Mähzeit; Start, Pause, Parken, Arbeitsbereich mähen.',
+            '• Wegen des Limits von 10.000 Abfragen im Monat teilen sich alle Mäher eines Kontos eine Abfrage höchstens alle 5 Minuten. Nicht an einem echten Mäher geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',
+        ],
         '0.16.0' => [
             '• Neu: iRobot Roomba/Braava — lokal im Heimnetz, ganz ohne Cloud. IP eintragen, HOME-Taste halten bis Töne kommen, koppeln. Zustand, Akku, Fehler, Behälter, Statistik; Start/Fortsetzen, Pause, Stopp, Zur Station, Orten.',
             '• Sicherheit: RoboHub merkt sich beim Koppeln das Zertifikat des Roboters und lehnt danach jedes andere ab. Nicht an einem echten Roboter geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',

@@ -1661,6 +1661,7 @@ require __DIR__ . '/test-roborock.inc.php';
 require __DIR__ . '/test-worx.inc.php';
 require __DIR__ . '/test-ecovacs.inc.php';
 require __DIR__ . '/test-irobot.inc.php';
+require __DIR__ . '/test-husqvarna.inc.php';
 
 abschnitt('Formulare (Konvention)');
 $libVersion = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version'];

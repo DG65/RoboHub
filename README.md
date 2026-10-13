@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.16.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.17.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -9,7 +9,7 @@
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
-**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava (lokal, ohne Cloud) sowie
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava (lokal, ohne Cloud), **Husqvarna Automower** (offizielle API) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape** und **Ferrex** — jeweils über die
 Hersteller-Cloud.
 
@@ -52,6 +52,10 @@ Skripten oder Visualisierung etwas ändert.
    **iRobot** (lokal): Hersteller „iRobot" wählen, IP-Adresse des Roboters eintragen, „Übernehmen". Roboter
    steht auf der Station: HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, dann sofort „🔑 Jetzt
    anmelden". Für weitere Roboter dasselbe mit deren IP — sie landen im selben Konto.
+   **Husqvarna**: Auf [developer.husqvarnagroup.cloud](https://developer.husqvarnagroup.cloud/) mit dem
+   Husqvarna-Konto anmelden, eine Anwendung anlegen (Redirect-URL beliebig, z. B. `http://localhost`),
+   „Authentication API" und „Automower Connect API" verbinden. Application Key ins Feld „Application Key",
+   Application Secret ins Feld darunter, anmelden.
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -137,7 +141,9 @@ Zugang läuft nach 7 Tagen ab und lässt sich nur mit dem Passwort erneuern. Rob
 einen md5-Hash des Passworts (nicht das Passwort selbst) im Konto, um sich selbst neu anzumelden;
 „Abmelden" löscht ihn. **iRobot** arbeitet lokal: Das Gerätepasswort des Roboters bleibt im Konto, und
 weil jeder Roboter ein selbst ausgestelltes Zertifikat hat, merkt sich RoboHub beim Koppeln dessen
-Fingerabdruck und lehnt danach jede Verbindung mit einem anderen Zertifikat ab. Er steht nicht im Formular und nicht im Protokoll — Symcon
+Fingerabdruck und lehnt danach jede Verbindung mit einem anderen Zertifikat ab. **Husqvarna:**
+Application Key und Secret bleiben im Konto, weil die offizielle Schnittstelle den Zugang (24 h) nur
+damit erneuert; du kannst sie im Entwicklerportal jederzeit widerrufen. Er steht nicht im Formular und nicht im Protokoll — Symcon
 verschlüsselt gespeicherte Werte aber grundsätzlich nicht, er liegt also im Klartext in
 der Symcon-Datenbank, wie bei jedem Cloud-Modul.
 
@@ -166,6 +172,10 @@ nicht offiziell dokumentiert und kann sich ändern.
   herausgeben, gehen (noch) nicht. Ein Roboter erlaubt nur eine lokale Verbindung gleichzeitig — läuft
   daneben z. B. Home Assistant lokal, stören sich beide. Ohne Räume (Namen nur in der Cloud),
   Verschleißteile, Karte und Echtzeit.
+- **Husqvarna Automower** (seit 0.17.0): offizielle Automower Connect API nach aioautomower, an keinem
+  echten Mäher geprüft (Token-Adresse live bestätigt). Daten höchstens 5 Minuten alt (Limit 10.000
+  Abfragen/Monat), „Start" mäht 3 Stunden bzw. setzt nach einer Pause den Zeitplan fort. Noch ohne
+  Echtzeit (WebSocket), Zeitpläne, Schnitthöhe, Messer-Rücksetzen; Gardena folgt.
 - **Segway Navimow**: zurückgestellt — der einzige Zugang ist das Partner-Login von Home Assistant.
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
@@ -188,7 +198,8 @@ die Anmeldung am Befehlsserver ist mit [MTrab/pyworxcloud](https://github.com/MT
 Der Ecovacs-Treiber ist nach der Protokollbeschreibung von
 [DeebotUniverse/client.py](https://github.com/DeebotUniverse/client.py) neu geschrieben (GPL-3.0, kein Code
 übernommen; die Liste der Geräteklassen ist daraus abgeleitet).
-Der iRobot-Treiber folgt [pschmitt/roombapy](https://github.com/pschmitt/roombapy) (MIT).
+Der iRobot-Treiber folgt [pschmitt/roombapy](https://github.com/pschmitt/roombapy) (MIT), der
+Husqvarna-Treiber [Thomas55555/aioautomower](https://github.com/Thomas55555/aioautomower) (MIT).
 
 ## Rückmeldungen
 

@@ -351,6 +351,19 @@
 - Prüfstand: `.tools/roomba-nachbau.php` (echtes TLS/UDP/MQTT) — läuft max. 60 s, wird per proc_terminate beendet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 
+## Husqvarna-Treiber (0.17.0)
+
+- Quelle: Thomas55555/aioautomower (MIT, Stand 12.10.2026, Scratchpad `ref/aioautomower`).
+- Token: POST `https://api.authentication.husqvarnagroup.dev/v1/oauth2/token` form
+  `grant_type=client_credentials&client_id=<Key>&client_secret=<Secret>` (live: unbekannter Key →
+  400 invalid_client). API `https://api.amc.husqvarna.dev/v1/` mit Bearer + `Authorization-Provider:
+  husqvarna` + `X-Api-Key`.
+- Dietmars Entscheidung 13.10.2026: Key + Secret im Bündel (Memory robohub-zugangsdaten-ausnahmen).
+- Zwischenspeicher `sys_get_temp_dir()/robohub-husqvarna-<md5(key)>.json`, 300 s, nach Befehl gelöscht.
+- Offen: WebSocket `wss://ws.openapi.husqvarna.dev/v1` (Echtzeit, spart Abfragen), Zeitpläne/Schnitthöhe/
+  Scheinwerfer (settings/calendar), resetCuttingBladeUsageTime, Gardena smart system (gleicher Token,
+  eigene API `api.smart.gardena.dev/v2`).
+
 ## Prüfen
 
 ```
