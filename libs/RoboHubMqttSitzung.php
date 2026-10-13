@@ -51,6 +51,15 @@ final class RoboHubMqttSitzung
         return $sitzung;
     }
 
+    /**
+     * Übernimmt einen bereits geprüften TLS-Strom (iRobot: Gerätezertifikat per
+     * gemerktem Fingerabdruck geprüft, siehe RoboHubIrobot::geraetVerbinden).
+     */
+    public static function ausStrom($sock): self
+    {
+        return new self($sock, false);
+    }
+
     public function senden(string $mqtt): void
     {
         fwrite($this->sock, $this->ws ? self::wsRahmen($mqtt, random_bytes(4)) : $mqtt);

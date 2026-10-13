@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.16.0' => [
+            '• Neu: iRobot Roomba/Braava — lokal im Heimnetz, ganz ohne Cloud. IP eintragen, HOME-Taste halten bis Töne kommen, koppeln. Zustand, Akku, Fehler, Behälter, Statistik; Start/Fortsetzen, Pause, Stopp, Zur Station, Orten.',
+            '• Sicherheit: RoboHub merkt sich beim Koppeln das Zertifikat des Roboters und lehnt danach jedes andere ab. Nicht an einem echten Roboter geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',
+        ],
         '0.15.0' => [
             '• Neu: Ecovacs-Saugroboter (Deebot) und -Mähroboter (GOAT), App „Ecovacs Home". Land wählen, mit E-Mail und Passwort anmelden; verlangt Ecovacs eine Bestätigung, kommt ein Code per E-Mail.',
             '• Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts, um sich alle 7 Tage selbst neu anzumelden (Abmelden löscht ihn). Nicht an einem echten Gerät geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',

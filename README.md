@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.15.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.16.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -9,7 +9,7 @@
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
-**Ecovacs** Deebot und GOAT (App „Ecovacs Home") sowie
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava (lokal, ohne Cloud) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape** und **Ferrex** — jeweils über die
 Hersteller-Cloud.
 
@@ -49,6 +49,9 @@ Skripten oder Visualisierung etwas ändert.
    **Ecovacs**: Land des Kontos wählen, E-Mail und Passwort eintragen, anmelden. Verlangt Ecovacs eine
    Bestätigung, „📧 Code anfordern", den Code aus der E-Mail ins Passwortfeld, „Übernehmen", erneut
    anmelden.
+   **iRobot** (lokal): Hersteller „iRobot" wählen, IP-Adresse des Roboters eintragen, „Übernehmen". Roboter
+   steht auf der Station: HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, dann sofort „🔑 Jetzt
+   anmelden". Für weitere Roboter dasselbe mit deren IP — sie landen im selben Konto.
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -132,7 +135,9 @@ Das Passwort wird nur für die Erstanmeldung verwendet und danach verworfen; ges
 bleibt der Zugangsschlüssel. **Ausnahme Ecovacs:** Ecovacs kennt keinen Erneuerungsschlüssel, der
 Zugang läuft nach 7 Tagen ab und lässt sich nur mit dem Passwort erneuern. RoboHub behält deshalb
 einen md5-Hash des Passworts (nicht das Passwort selbst) im Konto, um sich selbst neu anzumelden;
-„Abmelden" löscht ihn. Er steht nicht im Formular und nicht im Protokoll — Symcon
+„Abmelden" löscht ihn. **iRobot** arbeitet lokal: Das Gerätepasswort des Roboters bleibt im Konto, und
+weil jeder Roboter ein selbst ausgestelltes Zertifikat hat, merkt sich RoboHub beim Koppeln dessen
+Fingerabdruck und lehnt danach jede Verbindung mit einem anderen Zertifikat ab. Er steht nicht im Formular und nicht im Protokoll — Symcon
 verschlüsselt gespeicherte Werte aber grundsätzlich nicht, er liegt also im Klartext in
 der Symcon-Datenbank, wie bei jedem Cloud-Modul.
 
@@ -156,6 +161,11 @@ nicht offiziell dokumentiert und kann sich ändern.
   geprüft (die signierte Anfrage an die Ecovacs-Anmeldung ist live bestätigt). Ältere Modelle mit
   XML-Protokoll meldet RoboHub als „noch nicht unterstützt". Raumnamen nur bei Modellen mit
   unkomprimierter Raumliste; noch ohne Kartenbild, Echtzeit und Zeitpläne.
+- **iRobot** (seit 0.16.0): lokal nach roombapy gebaut, gegen einen nachgestellten Roboter mit echtem
+  TLS/MQTT geprüft, an keinem echten Gerät. Modelle, die ihr Passwort nur über die iRobot-Cloud
+  herausgeben, gehen (noch) nicht. Ein Roboter erlaubt nur eine lokale Verbindung gleichzeitig — läuft
+  daneben z. B. Home Assistant lokal, stören sich beide. Ohne Räume (Namen nur in der Cloud),
+  Verschleißteile, Karte und Echtzeit.
 - **Segway Navimow**: zurückgestellt — der einzige Zugang ist das Partner-Login von Home Assistant.
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
@@ -178,6 +188,7 @@ die Anmeldung am Befehlsserver ist mit [MTrab/pyworxcloud](https://github.com/MT
 Der Ecovacs-Treiber ist nach der Protokollbeschreibung von
 [DeebotUniverse/client.py](https://github.com/DeebotUniverse/client.py) neu geschrieben (GPL-3.0, kein Code
 übernommen; die Liste der Geräteklassen ist daraus abgeleitet).
+Der iRobot-Treiber folgt [pschmitt/roombapy](https://github.com/pschmitt/roombapy) (MIT).
 
 ## Rückmeldungen
 

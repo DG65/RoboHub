@@ -339,6 +339,18 @@
 - Offen: Kartenbild, Echtzeit (MQTT mq-ww…), Zeitpläne, getMapSet_V2 (LZMA, in PHP nicht eingebaut),
   XML-Geräte, Wasser-/Moppstufen, Station.
 
+## iRobot-Treiber (0.16.0)
+
+- Quelle: pschmitt/roombapy (MIT, Stand 06.10.2026, Scratchpad `ref/roombapy`).
+- Lokal: UDP 5678 „irobotmcs" (Unicast an die IP), Passwort per TLS 8883 + Magie `f005efcc3b2900`
+  (Antwort ab Byte 7), MQTT 8883 mit Client-ID = Benutzer = BLID. Nur EINE lokale Verbindung je Roboter.
+- TLS: Dietmars Entscheidung 13.10.2026 = Trust on first use (Fingerabdruck beim Koppeln, danach Pflicht).
+  `verify_peer` ist dabei aus — NUR in `RoboHubIrobot::geraetVerbinden`, nie in `RoboHubMqttSitzung::oeffnen`
+  (Prüfstand prüft beides). PHP kann OpenSSLs „legacy renegotiation" nicht einschalten — ältere Roboter
+  könnten deshalb den Handschlag verweigern (roombapy braucht es für „some robots").
+- Prüfstand: `.tools/roomba-nachbau.php` (echtes TLS/UDP/MQTT) — läuft max. 60 s, wird per proc_terminate beendet.
+- Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
+
 ## Prüfen
 
 ```
