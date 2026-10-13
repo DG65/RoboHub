@@ -103,10 +103,22 @@ class RoboHubKonfigurator extends IPSModule
                     'konto'      => (string)($info['anzeige'] ?? ('#' . $kid)),
                     'online'     => !empty($g['online']) ? 'online' : 'offline',
                     'instanceID' => $vorhanden[$id] ?? 0,
+                    // Kette Roboter → Konto (Symcon-Doku Konfigurator, Variante 2): Der Konfigurator
+                    // hat keine eigene übergeordnete Instanz, Symcon 9.1 verlangt dann die Kette und
+                    // nutzt das vorhandene Konto, dessen Einstellungen passen (Forum 13.10.2026).
                     'create'     => [
-                        'moduleID'      => self::GERAET_GUID,
-                        'name'          => (string)($g['name'] ?? $id),
-                        'configuration' => ['GeraetID' => $id, 'Modell' => (string)($g['modell'] ?? ''), 'Klasse' => $klasse],
+                        [
+                            'moduleID'      => self::GERAET_GUID,
+                            'name'          => (string)($g['name'] ?? $id),
+                            'configuration' => ['GeraetID' => $id, 'Modell' => (string)($g['modell'] ?? ''), 'Klasse' => $klasse],
+                        ],
+                        [
+                            'moduleID'      => self::KONTO_GUID,
+                            'configuration' => [
+                                'Hersteller' => (string)IPS_GetProperty($kid, 'Hersteller'),
+                                'Konto'      => (string)IPS_GetProperty($kid, 'Konto'),
+                            ],
+                        ],
                     ],
                 ];
             }

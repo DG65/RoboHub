@@ -416,10 +416,14 @@ array_walk_recursive($form, function () {});
 foreach ($form['elements'] as $e) { foreach (($e['items'] ?? []) as $i) { if (($i['type'] ?? '') === 'Configurator') { $liste = $i; } } }
 check('Konfigurator-Liste mit 2 Geräten', $liste !== null && count($liste['values']) === 2);
 $m = $liste['values'][1] ?? [];
-check('Mäher als Rasenmähroboter erkannt', ($m['klasse'] ?? '') === 'Rasenmähroboter' && ($m['create']['configuration']['Klasse'] ?? '') === 'maeher');
+check('Mäher als Rasenmähroboter erkannt', ($m['klasse'] ?? '') === 'Rasenmähroboter' && ($m['create'][0]['configuration']['Klasse'] ?? '') === 'maeher');
 check('Anzeigename-Ersatz aus deviceInfo.displayName', ($m['name'] ?? '') === 'MOVA 600');
-check('negative did bleibt String', ($liste['values'][0]['create']['configuration']['GeraetID'] ?? null) === '-112663880');
-check('kein erfundener parent-Schlüssel in create', !isset($liste['values'][0]['create']['parent']));
+check('negative did bleibt String', ($liste['values'][0]['create'][0]['configuration']['GeraetID'] ?? null) === '-112663880');
+check('kein erfundener parent-Schlüssel in create', !isset($liste['values'][0]['create']['parent']) && !isset($liste['values'][0]['create'][0]['parent']));
+$kette = $liste['values'][0]['create'] ?? [];
+check('create ist die Kette Roboter → Konto (Symcon 9.1 verlangt sie ohne Konfigurator-Elternteil)', count($kette) === 2
+    && $kette[0]['moduleID'] === '{631DA85B-5985-4C25-B222-E47FDD49E302}' && $kette[1]['moduleID'] === '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}'
+    && $kette[1]['configuration'] === ['Hersteller' => 'dreame', 'Konto' => 'nutzer@example.org'] && $kette[0]['name'] === 'Aqua10', json_encode($kette));
 
 abschnitt('Sauger r95475: Zustand ohne 2.1/3.1 im Poll');
 $geraet = new RoboHubGeraet(2000);
@@ -1066,6 +1070,9 @@ foreach ((array)$werte as $w) { $proKonto[(string)$w['id']] = $w['konto'] ?? '';
 check('Sauger und Mäher in EINER Liste', isset($proKonto['-112663880'], $proKonto['777']), json_encode($proKonto));
 check('Spalte Konto nennt Hersteller + E-Mail', strpos($proKonto['-112663880'], 'Dreame (nutzer@example.org)') === 0 && strpos($proKonto['777'], 'MOVA (n@example.org)') === 0, json_encode($proKonto, JSON_UNESCAPED_UNICODE));
 check('kein create-parent (Symcon verbindet, Roboter korrigiert)', !isset($werte[0]['create']['parent']));
+$kettenKonto = [];
+foreach ((array)$werte as $w) { $kettenKonto[(string)$w['id']] = $w['create'][1]['configuration']['Hersteller'] ?? ''; }
+check('Kette zeigt je Gerät auf sein eigenes Konto (Dreame/MOVA)', ($kettenKonto['-112663880'] ?? '') === 'dreame' && ($kettenKonto['777'] ?? '') === 'mova', json_encode($kettenKonto));
 $kz = '';
 foreach (array_reverse($cfg->fields) as $f) { if ($f[0] === 'KontenZeile') { $kz = $f[2]; break; } }
 check('Konten-Detailzeile mit 🔗 je angemeldetem Konto', substr_count($kz, '🔗') === 2, $kz);

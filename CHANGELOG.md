@@ -2,6 +2,16 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.2 (13.10.2026)
+
+- Fix (Forum, Torsten, Symcon 9.1 „Rust"): Erstellen über den Konfigurator meldete „Die erstellte Instanz
+  wird nicht als Liste erstellt. Sie benötigt eine eigene Verbindung oder ist nicht mit der Verbindung des
+  Konfigurators kompatibel." Der Konfigurator hat seit 0.2.0 keine eigene übergeordnete Instanz; nach
+  Symcon-Doku (Konfigurator, `create` Variante 2) wird jetzt die Kette Roboter → Konto angegeben
+  (Konto über Hersteller + Kontofeld), Symcon nutzt das vorhandene Konto. Die Selbstzuordnung der
+  Roboter bleibt als Sicherheitsnetz.
+- Torstens L10 (`dreame.vacuum.r5023a`) liefert laut Rohdaten alle Blöcke — Anmeldung und Abruf laufen.
+
 ## 0.18.1 (13.10.2026)
 
 - Fix (Forum, Torsten, Windows-Symcon): Anlegen eines Roboters brach ab mit „Warning: Entry in parameter
@@ -220,14 +230,3 @@
 - Gespeicherte Karte jetzt aus `mapstr[].map` (vollständig, wie Tasshack) statt `thb` (Vorschau, ohne cleanset).
 - „📋 Rohdaten" zeigen die Raum-Einstellungen beider Quellen getrennt (gespeicherte Karte / Live-Rahmen).
 - Nach dem Schreiben: Live-Karte bei Fehlschlag nach 4 s ein zweites Mal lesen.
-
-## 0.11.0 (12.10.2026)
-
-- Neu: **Raum-Einstellungen ändern** (Modus, Saugstufe, Durchgänge) nach Tasshack `set_cleanset`:
-  Zustand frisch lesen (nicht während Reinigung/Pause/Rückfahrt), `cleanset` frisch aus dem Live-Rahmen,
-  einen Wert ändern, action 6.2 piid 4 = `{"customeClean": [[Raum, Saugstufe, Wasser, Durchgänge, Modus,
-  Rest…], …]}` für alle Räume (Reihenfolge-Index 3 nicht mitgesendet). Modus App→Leitung mit Mopp-Tausch.
-  Danach Live-Karte neu → Anzeige zeigt, was der Roboter übernommen hat. Protokolleintrag.
-- Formular-Panel „🏠 Einstellungen je Raum" mit Auswahlfeldern je Raum (in Reinigungsreihenfolge),
-  `ROBO_RaumEinstellungSetzen($id, $raum, "Saugstufe"|"Durchgaenge"|"Modus", $wert)`.
-- Wasser/Feuchte und Reihenfolge bleiben vorerst nur Anzeige. Noch nicht live geprüft.

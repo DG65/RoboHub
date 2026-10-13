@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.2' => [
+            '• Konfigurator: Unter Symcon 9.1 kam beim Erstellen „Die erstellte Instanz wird nicht als Liste erstellt …" — behoben. Der Konfigurator gibt jetzt die Kette Roboter → Konto an, Symcon hängt den Roboter direkt an das passende Konto.',
+        ],
         '0.18.1' => [
             '• Beim Anlegen eines Roboters brach neuere Symcon-Versionen mit „Entry in parameter OPTIONS includes unknown sub-parameters" ab — behoben (Auswahllisten nach der Symcon-Dokumentation).',
         ],
