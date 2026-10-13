@@ -2,6 +2,13 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.9.3 (12.10.2026)
+
+- Mäh-Pläne: LiDAX lehnt `SCHDIV2/3` mit `r 3` ab (Live-Befund 0.9.2). Jetzt zuerst die Tabellenform, die
+  EvotecIT für MOVA bevorzugt (`schedule_tables.py`): `SCHDI [2·Platz, 2·Platz+1]` → Tabellen mit Name, an,
+  Termin-Verweisen; je Termin `SCHDC [Tabelle, Termin]` → an, Art, Start-Minute, Tage, Zonen. Nur Startzeit;
+  ausgeschaltete Termine werden (wie bei EvotecIT) weggelassen. Danach erst die Dokumentform.
+
 ## 0.9.2 (12.10.2026)
 
 - Mäh-Pläne: LiDAX lieferte live keinen Plan (in 1,6 s, ohne Fehlermeldung), obwohl einer existiert. Jetzt

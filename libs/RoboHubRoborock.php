@@ -161,7 +161,7 @@ PEM;
     }
 
     /** Schritt 1: Roborock schickt einen Anmeldecode an die E-Mail. */
-    public function codeAnfordern(string $konto): string
+    public function codeAnfordern(string $konto, array $vorstufe = []): string
     {
         $info = $this->kontoServer($konto);
         $kopf = $this->grundKopf($konto) + ['Content-Type' => 'application/x-www-form-urlencoded', 'header_clientlang' => 'de'];
@@ -1059,7 +1059,6 @@ PEM;
         $text = curl_exec($ch);
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $fehler = curl_error($ch);
-        curl_close($ch);
         if ($text === false) {
             return [0, $fehler];
         }

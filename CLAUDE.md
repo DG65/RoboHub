@@ -323,6 +323,22 @@
 - Offen: Zonen (mz/mzv), Zeitpläne (sc), Regenverzögerung (rd), Echtzeit (command_out), Messer-
   Rücksetzen (`counters/blade/reset`, braucht ein Lebensdauer-Modell), Vision-Besonderheiten.
 
+## Ecovacs-Treiber (0.15.0)
+
+- Quelle: DeebotUniverse/client.py (GPL-3.0!) nur als Protokollbeschreibung — kein Code übernehmen,
+  nur Fakten (Endpunkte, Felder, App-Schlüssel, Klassenlisten). Scratchpad `ref/client.py`.
+- Dietmars Entscheidung 13.10.2026: md5(Passwort) im Bündel, weil kein Erneuerungsschlüssel existiert
+  (Zugang 7 Tage). Siehe Memory robohub-zugangsdaten-ausnahmen. Nie in Formular/Protokoll.
+- Ablauf: `gl-{land}-api.ecovacs.com/v1/private/{land}/EN/{geraetId}/global_e/3.14.0/google_play/1/<endpunkt>`
+  (GET, authSign = md5(Key + sortierte k=v aus Meta+Parametern + Secret)), dann
+  `gl-{land}-openapi.ecovacs.com/v1/global/auth/getAuthCode`, dann `portal-{kontinent}.ecouser.net/api/users/user.do`
+  loginByItToken. Geräte-ID (geraetId) bleibt im Bündel stabil — neue ID kann Bestätigung (1013) auslösen.
+- Befehle: POST `portal-…/api/iot/devmanager.do?mid=&did=&td=q&u=…` mit {cmdName, payload{header,body{data}},
+  payloadType j, toId, toRes, toType, auth{…}}; Antwort {ret ok, resp{body{code,msg,data}}}, errno 4200 offline.
+- Live 13.10.2026: signierte `common/getConfig` ohne Konto angenommen (Signatur/URL/App-Kennung bestätigt).
+- Offen: Kartenbild, Echtzeit (MQTT mq-ww…), Zeitpläne, getMapSet_V2 (LZMA, in PHP nicht eingebaut),
+  XML-Geräte, Wasser-/Moppstufen, Station.
+
 ## Prüfen
 
 ```

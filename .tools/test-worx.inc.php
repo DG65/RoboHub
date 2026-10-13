@@ -215,7 +215,7 @@ check('unvollständiger WebSocket-Rahmen wartet auf den Rest', RoboHubMqttSitzun
 $fabrik = $GLOBALS['robohubTreiberFabrik'];
 unset($GLOBALS['robohubTreiberFabrik']);
 $wahl = [];
-foreach (['dreame' => 'RoboHubDreame', 'mova' => 'RoboHubDreame', 'roborock' => 'RoboHubRoborock', 'worx' => 'RoboHubWorx', 'kress' => 'RoboHubWorx', 'landxcape' => 'RoboHubWorx', 'ferrex' => 'RoboHubWorx'] as $h => $klasse) {
+foreach (['dreame' => 'RoboHubDreame', 'mova' => 'RoboHubDreame', 'roborock' => 'RoboHubRoborock', 'worx' => 'RoboHubWorx', 'kress' => 'RoboHubWorx', 'landxcape' => 'RoboHubWorx', 'ferrex' => 'RoboHubWorx', 'ecovacs' => 'RoboHubEcovacs'] as $h => $klasse) {
     $tk = new RoboHubKonto(5900 + count($wahl));
     $tk->props['Hersteller'] = $h;
     $tk->Create();

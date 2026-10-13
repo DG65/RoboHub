@@ -443,7 +443,6 @@ PEM;
         $text = curl_exec($ch);
         $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $fehler = curl_error($ch);
-        curl_close($ch);
         if ($text === false) {
             return [0, $fehler];
         }

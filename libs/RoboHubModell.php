@@ -210,4 +210,9 @@ final class RoboHubFehler extends Exception
     public $warteSekunden = 0;
     /** true = Zugangsschlüssel ungültig, neue Anmeldung nötig. */
     public $anmeldungNoetig = false;
+    /**
+     * Zwischenstand einer zweistufigen Anmeldung (z. B. Ecovacs verlangt eine
+     * Bestätigung per E-Mail-Code). Leer = keine zweite Stufe.
+     */
+    public $vorstufe = [];
 }

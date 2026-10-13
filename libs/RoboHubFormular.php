@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.15.0' => [
+            '• Neu: Ecovacs-Saugroboter (Deebot) und -Mähroboter (GOAT), App „Ecovacs Home". Land wählen, mit E-Mail und Passwort anmelden; verlangt Ecovacs eine Bestätigung, kommt ein Code per E-Mail.',
+            '• Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts, um sich alle 7 Tage selbst neu anzumelden (Abmelden löscht ihn). Nicht an einem echten Gerät geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',
+        ],
         '0.14.1' => [
             '• Beim Neuanlegen eines Kontos erschien „Konnte nicht zur Instanz verbinden … hat bereits ein übergeordnetes Objekt" — behoben. RoboHub legt die Verbindungsinstanz nur noch selbst an, wenn nach einigen Sekunden keine da ist.',
             '• Konten ohne Echtzeit-Meldungen (Roborock, Worx, Kress, LandXcape, Ferrex) bekommen keine überflüssige Verbindungsinstanz mehr.',

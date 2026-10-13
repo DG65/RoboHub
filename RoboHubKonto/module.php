@@ -8,6 +8,7 @@ require_once __DIR__ . '/../libs/RoboHubDreame.php';
 require_once __DIR__ . '/../libs/RoboHubMqttSitzung.php';
 require_once __DIR__ . '/../libs/RoboHubRoborock.php';
 require_once __DIR__ . '/../libs/RoboHubWorx.php';
+require_once __DIR__ . '/../libs/RoboHubEcovacs.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -40,6 +41,7 @@ class RoboHubKonto extends IPSModule
         'kress'     => ['Kress (App „Kress Mission")', 'Kress', false, false],
         'landxcape' => ['LandXcape (App „LandXcape")', 'LandXcape', false, false],
         'ferrex'    => ['Ferrex (App „Smart Mower")', 'Ferrex', false, false],
+        'ecovacs'   => ['Ecovacs Deebot/GOAT (App „Ecovacs Home")', 'Ecovacs', false, true],
     ];
 
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
@@ -67,6 +69,8 @@ class RoboHubKonto extends IPSModule
         $this->RegisterPropertyString('Passwort', '');
 
         $this->RegisterAttributeString('Buendel', '');
+        // Zweistufige Anmeldung (Ecovacs-Gerätebestätigung): Zwischenstand bis zum Code.
+        $this->RegisterAttributeString('AnmeldeVorstufe', '');
         $this->RegisterAttributeString('Geraete', '[]');
         $this->RegisterAttributeInteger('GeraeteStand', 0);
         $this->RegisterAttributeInteger('WarteBis', 0);
@@ -136,18 +140,36 @@ class RoboHubKonto extends IPSModule
         if ($konto === '' || $pass === '') {
             return $this->melde('⛔ Bitte zuerst Konto (E-Mail) und Passwort (bei Roborock: den Code aus der E-Mail) eintragen, „Übernehmen" klicken und dann anmelden.');
         }
+        $treiber = $this->treiber();
+        $vorstufe = json_decode((string)$this->ReadAttributeString('AnmeldeVorstufe'), true) ?: [];
         try {
-            $buendel = $this->treiber()->anmelden($konto, $pass, (string)$this->ReadPropertyString('Region'));
+            if ($vorstufe !== [] && method_exists($treiber, 'anmeldenMitCode')) {
+                $buendel = $treiber->anmeldenMitCode($konto, $pass, $vorstufe);
+            } else {
+                $buendel = $treiber->anmelden($konto, $pass, (string)$this->ReadPropertyString('Region'));
+            }
         } catch (Throwable $e) {
             $this->WriteAttributeString('LetzterFehler', $e->getMessage());
             $this->protokolliere('Anmeldung fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
+            if ($e instanceof RoboHubFehler && $e->vorstufe !== []) {
+                // Zweite Stufe nötig: Zwischenstand merken, Passwortfeld für den Code freimachen.
+                $this->WriteAttributeString('AnmeldeVorstufe', (string)json_encode($e->vorstufe));
+                $text = '📧 ' . $e->getMessage();
+                $this->UpdateFormField('Ergebnis', 'caption', $text);
+                IPS_SetProperty($this->InstanceID, 'Passwort', '');
+                IPS_ApplyChanges($this->InstanceID);
+                return $text;
+            }
             return $this->melde('⛔ Anmeldung fehlgeschlagen: ' . $e->getMessage());
         }
+        $this->WriteAttributeString('AnmeldeVorstufe', '');
         $this->WriteAttributeString('Buendel', (string)json_encode($buendel));
         $this->WriteAttributeString('LetzterFehler', '');
         $this->WriteAttributeInteger('WarteBis', 0);
 
-        $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, ' . ($this->perCode() ? 'der Code' : 'das Passwort') . ' wurde verworfen.';
+        $text = $this->ReadPropertyString('Hersteller') === 'ecovacs'
+            ? '✅ Angemeldet. Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts (nicht das Passwort selbst), um sich alle 7 Tage selbst neu anzumelden. Abmelden löscht ihn.'
+            : '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, ' . ($this->perCode() ? 'der Code' : 'das Passwort') . ' wurde verworfen.';
         try {
             $geraete = $this->ladeGeraete($buendel);
             $text .= "\n" . $this->geraeteZusammenfassung($geraete);
@@ -181,7 +203,7 @@ class RoboHubKonto extends IPSModule
             return $this->melde('ℹ️ Dieser Hersteller meldet sich mit dem Passwort an — kein Code nötig.');
         }
         try {
-            $text = $treiber->codeAnfordern($konto);
+            $text = $treiber->codeAnfordern($konto, json_decode((string)$this->ReadAttributeString('AnmeldeVorstufe'), true) ?: []);
         } catch (Throwable $e) {
             $this->protokolliere('Code anfordern fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
             return $this->melde('⛔ ' . $e->getMessage());
@@ -193,6 +215,7 @@ class RoboHubKonto extends IPSModule
     public function Abmelden(): string
     {
         $this->WriteAttributeString('Buendel', '');
+        $this->WriteAttributeString('AnmeldeVorstufe', '');
         $this->WriteAttributeString('Geraete', '[]');
         $this->WriteAttributeInteger('GeraeteStand', 0);
         $this->aktualisiereStatus();
@@ -643,6 +666,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubRoborock();
         } elseif (isset(RoboHubWorx::MARKEN[$hersteller])) {
             $treiber = new RoboHubWorx($hersteller);
+        } elseif ($hersteller === 'ecovacs') {
+            $treiber = new RoboHubEcovacs();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -842,7 +867,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock sowie Worx, Kress, LandXcape und Ferrex). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs sowie Worx, Kress, LandXcape und Ferrex). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -851,6 +876,7 @@ class RoboHubKonto extends IPSModule
     {
         return [
             'Anmelden: Hersteller und Region wählen, E-Mail und Passwort deines Hersteller-Kontos eintragen, „Übernehmen", dann „🔑 Jetzt anmelden". Das Passwort wird nach erfolgreicher Anmeldung sofort verworfen; gespeichert bleibt nur der Zugangsschlüssel.',
+            'Ecovacs: Land wählen, E-Mail und Passwort eintragen, anmelden. Verlangt Ecovacs eine Bestätigung, „📧 Code anfordern", den Code ins Passwortfeld eintragen, „Übernehmen", erneut anmelden. Weil Ecovacs keinen Erneuerungsschlüssel kennt, behält RoboHub einen Hash des Passworts für die automatische Neuanmeldung alle 7 Tage.',
             'Roborock: ohne Passwort — „📧 Code anfordern", den Code aus der E-Mail ins Feld eintragen, „Übernehmen", „🔑 Jetzt anmelden". Zustand und Befehle laufen verschlüsselt über den Roborock-Server; Kartenbild und Echtzeit-Meldungen folgen später.',
             'Sicherheit: Symcon verschlüsselt gespeicherte Werte nicht. Der Zugangsschlüssel steht nicht im Formular und nicht im Protokoll, liegt aber im Klartext in der Symcon-Datenbank — wie bei jedem Cloud-Modul.',
             'Mehrere Konten (z. B. ein Dreamehome-Konto für den Saugroboter und ein MOVAhome-Konto für den Mäher): je Konto eine eigene Konto-Instanz anlegen. Der Konfigurator zeigt trotzdem alle Roboter in einer Liste, und jeder Roboter verbindet sich selbst mit dem Konto, zu dem er gehört.',
@@ -861,7 +887,8 @@ class RoboHubKonto extends IPSModule
 
     private function kontoPanel(): array
     {
-        $roborock = $this->perCode();
+        $roborock = $this->perCode() || $this->ReadAttributeString('AnmeldeVorstufe') !== '';
+        $ecovacs = $this->ReadPropertyString('Hersteller') === 'ecovacs';
         $mitRegion = (bool)(self::HERSTELLER[$this->ReadPropertyString('Hersteller')][3] ?? true);
         $auswahl = [];
         foreach (self::HERSTELLER as $wert => [$text]) {
@@ -886,7 +913,7 @@ class RoboHubKonto extends IPSModule
             'caption' => '🔑  Konto',
             'items' => [
                 ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => $auswahl],
-                ['type' => 'Select', 'name' => 'Region', 'caption' => 'Region des Kontos', 'options' => RoboHubDreame::regionen(), 'visible' => $mitRegion],
+                ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs ? 'Land des Kontos (wie in der App)' : 'Region des Kontos', 'options' => $ecovacs ? RoboHubEcovacs::regionen() : RoboHubDreame::regionen(), 'visible' => $mitRegion],
                 ['type' => 'ValidationTextBox', 'name' => 'Konto', 'caption' => 'E-Mail des Kontos'],
                 ['type' => 'Label', 'visible' => $roborock, 'caption' => 'Roborock meldet sich ohne Passwort an: E-Mail eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Die Region findet Roborock selbst.'],
                 ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'caption' => $roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'],
@@ -896,7 +923,7 @@ class RoboHubKonto extends IPSModule
                     ['type' => 'Button', 'caption' => '🔑 Jetzt anmelden', 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
                     ['type' => 'Button', 'caption' => '⏏️ Abmelden', 'onClick' => 'echo ROBOHUB_Abmelden($id);'],
                 ]],
-                ['type' => 'PopupButton', 'caption' => 'Welche Region hat mein Konto?', 'width' => '460px', 'visible' => $mitRegion, 'popup' => [
+                ['type' => 'PopupButton', 'caption' => 'Welche Region hat mein Konto?', 'width' => '460px', 'visible' => $mitRegion && !$ecovacs, 'popup' => [
                     'caption' => 'Welche Region hat mein Konto?',
                     'items' => [
                         ['type' => 'Label', 'caption' => 'Die Region richtet sich nach dem Land, das du bei der Registrierung in der App gewählt hast — für Deutschland, Österreich und die Schweiz ist das „Europa".'],

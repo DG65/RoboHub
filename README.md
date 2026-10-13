@@ -1,14 +1,15 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.14.1-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.15.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Spenden-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
-**Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock") sowie
+**Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home") sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape** und **Ferrex** — jeweils über die
 Hersteller-Cloud.
 
@@ -45,6 +46,9 @@ Skripten oder Visualisierung etwas ändert.
    „🔑 Jetzt anmelden". Die Region findet Roborock selbst.
    **Worx, Kress, LandXcape, Ferrex**: Marke wählen, E-Mail und Passwort der App eintragen,
    „Übernehmen", „🔑 Jetzt anmelden" — gespeichert bleibt nur der Erneuerungsschlüssel.
+   **Ecovacs**: Land des Kontos wählen, E-Mail und Passwort eintragen, anmelden. Verlangt Ecovacs eine
+   Bestätigung, „📧 Code anfordern", den Code aus der E-Mail ins Passwortfeld, „Übernehmen", erneut
+   anmelden.
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -125,7 +129,10 @@ Variable „Zustand" wenige Sekunden später.
 ## Sicherheit und Datenschutz
 
 Das Passwort wird nur für die Erstanmeldung verwendet und danach verworfen; gespeichert
-bleibt der Zugangsschlüssel. Er steht nicht im Formular und nicht im Protokoll — Symcon
+bleibt der Zugangsschlüssel. **Ausnahme Ecovacs:** Ecovacs kennt keinen Erneuerungsschlüssel, der
+Zugang läuft nach 7 Tagen ab und lässt sich nur mit dem Passwort erneuern. RoboHub behält deshalb
+einen md5-Hash des Passworts (nicht das Passwort selbst) im Konto, um sich selbst neu anzumelden;
+„Abmelden" löscht ihn. Er steht nicht im Formular und nicht im Protokoll — Symcon
 verschlüsselt gespeicherte Werte aber grundsätzlich nicht, er liegt also im Klartext in
 der Symcon-Datenbank, wie bei jedem Cloud-Modul.
 
@@ -145,6 +152,11 @@ nicht offiziell dokumentiert und kann sich ändern.
   Gerät geprüft. Zustand kommt aus dem letzten Status, den der Mäher an die Cloud meldet; Befehle
   gehen über MQTT (WebSocket). Noch ohne Zonen, Zeitpläne, Regenverzögerung, Echtzeit-Meldungen
   und Messer-Rücksetzen; „Orten" gibt es bei diesen Mähern nicht.
+- **Ecovacs** (seit 0.15.0): Deebot-Sauger und GOAT-Mäher mit JSON-Protokoll, an keinem echten Gerät
+  geprüft (die signierte Anfrage an die Ecovacs-Anmeldung ist live bestätigt). Ältere Modelle mit
+  XML-Protokoll meldet RoboHub als „noch nicht unterstützt". Raumnamen nur bei Modellen mit
+  unkomprimierter Raumliste; noch ohne Kartenbild, Echtzeit und Zeitpläne.
+- **Segway Navimow**: zurückgestellt — der einzige Zugang ist das Partner-Login von Home Assistant.
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
   Start gibt es über „Raum reinigen mit Wahl".
@@ -163,6 +175,9 @@ Der Worx-/Kress-/LandXcape-/Ferrex-Treiber folgt
 [iobroker-community-adapters/ioBroker.worx](https://github.com/iobroker-community-adapters/ioBroker.worx) (MIT);
 die Anmeldung am Befehlsserver ist mit [MTrab/pyworxcloud](https://github.com/MTrab/pyworxcloud) abgeglichen
 (GPL-3.0, nur als Protokollbeschreibung genutzt, kein Code übernommen).
+Der Ecovacs-Treiber ist nach der Protokollbeschreibung von
+[DeebotUniverse/client.py](https://github.com/DeebotUniverse/client.py) neu geschrieben (GPL-3.0, kein Code
+übernommen; die Liste der Geräteklassen ist daraus abgeleitet).
 
 ## Rückmeldungen
 

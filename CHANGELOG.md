@@ -2,6 +2,28 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.15.0 (13.10.2026)
+
+- **Neuer Treiber Ecovacs** (`libs/RoboHubEcovacs.php`), neu geschrieben nach der Protokollbeschreibung von
+  DeebotUniverse/client.py (GPL-3.0, kein Code übernommen):
+  - Anmeldung: signierte private API (`user/login`, md5-Passwort), Auth-Code, `loginByItToken` am Portal
+    des Kontinents. Gerätebestätigung (Code 1013) zweistufig: RSA-verschlüsselte E-Mail
+    (`common/getConfig` → `user/sendEmailVerifyCode`), Code → `user/verifyDevice`.
+  - Zugangsdaten nach Dietmars Entscheidung: md5-Hash im Bündel (Attribut), automatische Neuanmeldung
+    vor Ablauf (7 Tage); Abmelden löscht ihn.
+  - Geräte aus `GetDeviceList` + `GetGlobalDeviceList`; Befehle per HTTP `iot/devmanager.do` (JSON).
+    Klassenlisten (XML / clean_V2 / Mäher) aus deebot_client/hardware abgeleitet.
+  - Zustand (getCleanInfo[_V2], Laden, Akku, Fehler), Saugstufe, Verschleiß (brush/sideBrush/heap/unitCare/
+    roundMop bzw. blade/lensBrush), Gesamtstatistik, Lautstärke; Räume über getCachedMapInfo → getMapSet →
+    getMapSubSet (Raumtyp-Namen deutsch). Befehle Start/Fortsetzen, Pause, Stopp, Station, Orten (Ton),
+    Räume (spotArea), Saugstufe, Lautstärke, Verschleiß zurücksetzen.
+- Konto: Herstellerliste um Ecovacs (Land statt Region), zweistufige Anmeldung allgemein
+  (`RoboHubFehler::$vorstufe`, Attribut `AnmeldeVorstufe`, `anmeldenMitCode`).
+- `curl_close()` entfernt (seit PHP 8.0 wirkungslos, unter 8.5 veraltet).
+- Prüfstand: Signatur gegen Python-Referenz, RSA mit eigenem Schlüsselpaar, Bestätigungsablauf,
+  Neuanmeldung mit Hash; 19 Mutationen gefangen. Live geprüft (ohne Konto): signierte Abfrage
+  `common/getConfig` von Ecovacs angenommen, 1024-Bit-Schlüssel geliefert. **Kein Gerät live getestet.**
+
 ## 0.14.1 (13.10.2026)
 
 - Fix (Forum, Torsten, Dreame L10): Beim Neuanlegen eines Kontos meldete die Konsole „Konnte nicht zur
@@ -184,10 +206,3 @@
   `SCHDC 0/0` = `[0,1,0,720,[0..6],[]]` → ein Plan, aus, täglich 12:00 ganze Fläche; `SCHDI 1` nur leere Tabellen.
 - Leere Platzhalter-Tabellen (ohne Name und Termine) ausgeblendet; 7 Tage = „täglich", Mo–Fr = „werktags";
   Pläne ohne Namen ab „Plan 1" gezählt.
-
-## 0.9.3 (12.10.2026)
-
-- Mäh-Pläne: LiDAX lehnt `SCHDIV2/3` mit `r 3` ab (Live-Befund 0.9.2). Jetzt zuerst die Tabellenform, die
-  EvotecIT für MOVA bevorzugt (`schedule_tables.py`): `SCHDI [2·Platz, 2·Platz+1]` → Tabellen mit Name, an,
-  Termin-Verweisen; je Termin `SCHDC [Tabelle, Termin]` → an, Art, Start-Minute, Tage, Zonen. Nur Startzeit;
-  ausgeschaltete Termine werden (wie bei EvotecIT) weggelassen. Danach erst die Dokumentform.
