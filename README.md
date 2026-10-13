@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.17.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.18.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -9,7 +9,7 @@
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
-**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava (lokal, ohne Cloud), **Husqvarna Automower** (offizielle API) sowie
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava (lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape** und **Ferrex** — jeweils über die
 Hersteller-Cloud.
 
@@ -56,6 +56,8 @@ Skripten oder Visualisierung etwas ändert.
    Husqvarna-Konto anmelden, eine Anwendung anlegen (Redirect-URL beliebig, z. B. `http://localhost`),
    „Authentication API" und „Automower Connect API" verbinden. Application Key ins Feld „Application Key",
    Application Secret ins Feld darunter, anmelden.
+   **GARDENA**: genauso, nur „GARDENA smart system API" statt „Automower Connect API" mit der Anwendung
+   verbinden (eine Anwendung kann beide haben).
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -175,7 +177,10 @@ nicht offiziell dokumentiert und kann sich ändern.
 - **Husqvarna Automower** (seit 0.17.0): offizielle Automower Connect API nach aioautomower, an keinem
   echten Mäher geprüft (Token-Adresse live bestätigt). Daten höchstens 5 Minuten alt (Limit 10.000
   Abfragen/Monat), „Start" mäht 3 Stunden bzw. setzt nach einer Pause den Zeitplan fort. Noch ohne
-  Echtzeit (WebSocket), Zeitpläne, Schnitthöhe, Messer-Rücksetzen; Gardena folgt.
+  Echtzeit (WebSocket), Zeitpläne, Schnitthöhe, Messer-Rücksetzen.
+- **GARDENA smart system** (seit 0.18.0): Mähroboter über die offizielle Schnittstelle nach py-smart-gardena,
+  an keinem echten Mäher geprüft. Daten höchstens 15 Minuten alt (enges Abfragelimit). „Pause" gibt es
+  bei GARDENA nicht. Ventile, Sensoren und Steckdosen bindet RoboHub nicht ein.
 - **Segway Navimow**: zurückgestellt — der einzige Zugang ist das Partner-Login von Home Assistant.
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
@@ -199,7 +204,8 @@ Der Ecovacs-Treiber ist nach der Protokollbeschreibung von
 [DeebotUniverse/client.py](https://github.com/DeebotUniverse/client.py) neu geschrieben (GPL-3.0, kein Code
 übernommen; die Liste der Geräteklassen ist daraus abgeleitet).
 Der iRobot-Treiber folgt [pschmitt/roombapy](https://github.com/pschmitt/roombapy) (MIT), der
-Husqvarna-Treiber [Thomas55555/aioautomower](https://github.com/Thomas55555/aioautomower) (MIT).
+Husqvarna-Treiber [Thomas55555/aioautomower](https://github.com/Thomas55555/aioautomower) (MIT), der
+GARDENA-Treiber [py-smart-gardena](https://github.com/py-smart-gardena/py-smart-gardena) (MIT).
 
 ## Rückmeldungen
 

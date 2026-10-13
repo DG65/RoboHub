@@ -364,6 +364,13 @@
   Scheinwerfer (settings/calendar), resetCuttingBladeUsageTime, Gardena smart system (gleicher Token,
   eigene API `api.smart.gardena.dev/v2`).
 
+## GARDENA-Treiber (0.18.0)
+
+- Quelle: py-smart-gardena (MIT, Scratchpad `ref/py-smart-gardena`). `RoboHubGardena extends RoboHubHusqvarna`.
+- API `https://api.smart.gardena.dev/v2/`, gleiche Köpfe wie Husqvarna; Befehle per PUT (202).
+- Abfragelimit unklar belegt (Quellen nennen 3.000/Monat bzw. 700/Woche) → 900 s Zwischenspeicher.
+- Offen: WebSocket (`POST /v2/websocket` liefert URL) für Echtzeit, Ventile/Sensoren/Steckdosen.
+
 ## Prüfen
 
 ```

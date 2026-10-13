@@ -59,7 +59,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
         if (!preg_match('/^[0-9a-f-]{20,}$/i', $schluessel)) {
             throw new RoboHubFehler('Bitte den Application Key aus dem Husqvarna-Entwicklerportal eintragen (nicht die E-Mail).');
         }
-        return $this->tokenHolen(['marke' => 'husqvarna', 'appKey' => $schluessel, 'appGeheimnis' => $geheimnis]);
+        return $this->tokenHolen(['marke' => $this->marke(), 'appKey' => $schluessel, 'appGeheimnis' => $geheimnis]);
     }
 
     public function erneuern(array $buendel): array
@@ -80,7 +80,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
         }
         $j = json_decode($text, true);
         if ($status !== 200 || !is_array($j) || ($j['access_token'] ?? '') === '') {
-            $e = new RoboHubFehler('Husqvarna lehnt App-Schlüssel/Geheimnis ab (HTTP ' . $status . ') — im Entwicklerportal prüfen, ob „Authentication API" und „Automower Connect API" mit der App verbunden sind.');
+            $e = new RoboHubFehler('Husqvarna lehnt App-Schlüssel/Geheimnis ab (HTTP ' . $status . ') — im Entwicklerportal prüfen, ob „Authentication API" und „' . $this->apiName() . '" mit der App verbunden sind.');
             $e->anmeldungNoetig = in_array($status, [400, 401, 403], true);
             throw $e;
         }
@@ -121,7 +121,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
         return $daten;
     }
 
-    private function einer(array $buendel, string $id): array
+    protected function einer(array $buendel, string $id): array
     {
         foreach ($this->maeher($buendel, false) as $m) {
             if ((string)($m['id'] ?? '') === $id) {
@@ -132,7 +132,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
     }
 
     /** Alle Mäher; aus dem Zwischenspeicher, solange er jünger als $zwischenspeicherSekunden ist. */
-    private function maeher(array $buendel, bool $frisch): array
+    protected function maeher(array $buendel, bool $frisch): array
     {
         $datei = $this->speicherDatei($buendel);
         if (!$frisch && $this->zwischenspeicherSekunden > 0 && is_file($datei) && time() - (int)filemtime($datei) < $this->zwischenspeicherSekunden) {
@@ -141,17 +141,38 @@ class RoboHubHusqvarna implements RoboHubTreiber
                 return $j;
             }
         }
-        $j = $this->anfrage($buendel, 'GET', 'mowers', null);
-        $liste = array_values(array_filter((array)($j['data'] ?? []), 'is_array'));
+        $liste = $this->maeherHolen($buendel);
         if ($this->zwischenspeicherSekunden > 0) {
             @file_put_contents($datei, (string)json_encode($liste));
         }
         return $liste;
     }
 
-    private function speicherDatei(array $buendel): string
+    /** Alle Mäher frisch von der API (Gardena überschreibt das). */
+    protected function maeherHolen(array $buendel): array
     {
-        return sys_get_temp_dir() . '/robohub-husqvarna-' . substr(md5((string)$buendel['appKey']), 0, 12) . '.json';
+        $j = $this->anfrage($buendel, 'GET', 'mowers', null);
+        return array_values(array_filter((array)($j['data'] ?? []), 'is_array'));
+    }
+
+    protected function speicherDatei(array $buendel): string
+    {
+        return sys_get_temp_dir() . '/robohub-' . $this->marke() . '-' . substr(md5((string)$buendel['appKey']), 0, 12) . '.json';
+    }
+
+    protected function marke(): string
+    {
+        return 'husqvarna';
+    }
+
+    protected function apiName(): string
+    {
+        return 'Automower Connect API';
+    }
+
+    protected function apiBasis(): string
+    {
+        return self::API;
     }
 
     public function normalisiere(string $modell, array $p): array
@@ -317,7 +338,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
     // HTTP
     // =================================================================
 
-    private function anfrage(array $buendel, string $methode, string $pfad, ?array $body): array
+    protected function anfrage(array $buendel, string $methode, string $pfad, ?array $body): array
     {
         $kopf = [
             'Authorization: Bearer ' . $buendel['token'],
@@ -326,7 +347,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
             'Content-Type: application/vnd.api+json',
             'Accept: application/vnd.api+json',
         ];
-        [$status, $text] = $this->http($methode, self::API . $pfad, $kopf, $body !== null ? (string)json_encode($body) : null);
+        [$status, $text] = $this->http($methode, $this->apiBasis() . $pfad, $kopf, $body !== null ? (string)json_encode($body) : null);
         $this->dbg('HTTP', $methode . ' ' . $pfad . ' → ' . $status);
         if ($status === 0) {
             throw new RoboHubFehler('Husqvarna nicht erreichbar: ' . $text);
@@ -342,7 +363,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
             throw $e;
         }
         if ($status === 403) {
-            throw new RoboHubFehler('Husqvarna verweigert den Zugriff — ist die „Automower Connect API" mit der App verbunden?');
+            throw new RoboHubFehler('Husqvarna verweigert den Zugriff — ist die „' . $this->apiName() . '" mit der App verbunden?');
         }
         $j = json_decode($text, true);
         if ($status >= 300) {
@@ -376,7 +397,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
         return [$status, (string)$text];
     }
 
-    private function dbg(string $thema, string $text): void
+    protected function dbg(string $thema, string $text): void
     {
         if (is_callable($this->debug)) {
             ($this->debug)($thema, $text);

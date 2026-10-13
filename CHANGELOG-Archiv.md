@@ -2,6 +2,15 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.10.0 (12.10.2026)
+
+- Neu: **Einstellungen je Raum** lesen — `cleanset` aus dem Kartentext (gespeicherte Karte und Live-Rahmen,
+  Tasshack map.py): je Raum [Saugstufe, Wasser/Feuchte, Durchgänge, Reihenfolge, Modus, …]; Wasser 2–4 =
+  Niedrig/Mittel/Hoch (Wert − 1), sonst Feuchte-Stufe; `customeClean` = in der App eingeschaltet.
+  Variable „Einstellungen je Raum", Kachel zeigt die Einstellungen der gewählten Räume vor dem Start,
+  Rohwerte in „📋 Rohdaten". Ändern (Tasshack `UPDATE_MAP_DATA` 6.2 mit `{"customeClean": [...]}`) folgt nach
+  dem Live-Abgleich.
+
 ## 0.9.5 (12.10.2026)
 
 - Neu: **Mäh-Pläne schalten** (Tabellenform) nach EvotecIT `plan_table_enabled`: Zustand 2.1 frisch lesen —

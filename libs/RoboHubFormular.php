@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.0' => [
+            '• Neu: GARDENA smart system Mähroboter (Sileno) über die offizielle GARDENA-Schnittstelle — gleicher Zugang wie Husqvarna (Application Key/Secret, dazu „GARDENA smart system API" verbinden). Zustand, Akku, Fehler, Wetterpause, Betriebsstunden; Start, Parken.',
+            '• Wegen des engen Abfragelimits höchstens alle 15 Minuten. Nicht an einem echten Mäher geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',
+        ],
         '0.17.0' => [
             '• Neu: Husqvarna Automower über die offizielle Automower Connect API. Application Key und Secret aus dem Husqvarna-Entwicklerportal eintragen (sie bleiben gespeichert). Zustand, Akku, Fehler, Wetterpause, Mähzeit; Start, Pause, Parken, Arbeitsbereich mähen.',
             '• Wegen des Limits von 10.000 Abfragen im Monat teilen sich alle Mäher eines Kontos eine Abfrage höchstens alle 5 Minuten. Nicht an einem echten Mäher geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',
