@@ -141,6 +141,16 @@ class IPSModule
             $def = [false, 0, 0.0, ''][$type];
             $GLOBALS['OBJ'][$id] = ['ident' => $ident, 'parent' => $this->InstanceID, 'type' => $type, 'value' => $def, 'name' => $name, 'pres' => $pres, 'action' => false];
         }
+        // Wie neuere Symcon-Versionen: unbekannte Schlüssel in OPTIONS sind ein Fehler (Forum 13.10.2026).
+        if (is_array($pres) && isset($pres['OPTIONS'])) {
+            foreach ((array)json_decode((string)$pres['OPTIONS'], true) as $opt) {
+                foreach (array_keys((array)$opt) as $k) {
+                    if (!in_array($k, ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'], true)) {
+                        $GLOBALS['OPTIONS_FEHLER'][] = $ident . ': ' . $k;
+                    }
+                }
+            }
+        }
         $GLOBALS['OBJ'][$id]['pres'] = $pres;
         // Wie Symcon live (Befund 12.10.2026): eine vorhandene Variable wird NICHT umbenannt.
     }
@@ -1719,6 +1729,7 @@ $quellen = '';
 foreach (array_merge(glob(__DIR__ . '/../*/module.php'), glob(__DIR__ . '/../libs/*.php')) as $datei) {
     $quellen .= file_get_contents($datei);
 }
+check('Aufzählungen nur mit den Schlüsseln der Symcon-Doku (Value, Caption, IconActive, IconValue, Color)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
 check('kein IPS_LogMessage in den Modulen', strpos($quellen, 'IPS_LogMessage') === false);
 check('Fehler als Warnung, Erfolge als Meldung protokolliert', in_array(KL_WARNING, $GLOBALS['LOGSTUFE'] ?? [], true) && in_array(KL_MESSAGE, $GLOBALS['LOGSTUFE'] ?? [], true));
 

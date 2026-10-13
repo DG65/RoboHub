@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.1 (13.10.2026)
+
+- Fix (Forum, Torsten, Windows-Symcon): Anlegen eines Roboters brach ab mit „Warning: Entry in parameter
+  OPTIONS includes unknown sub-parameters" (module.php Zeile 80/81 = Zustand/Befehl). Ursache: Schlüssel
+  `Icon` in den Aufzählungs-Optionen; laut Symcon-Doku heißt er `IconValue` (Value, Caption, IconActive,
+  IconValue, Color). Ältere Versionen ignorierten das, neuere brechen ab. Die Regel in SUITE.md (Punkt 9)
+  nannte ebenfalls `Icon` — an die EMS-Sitzung gemeldet.
+- Prüfstand: MaintainVariable-Nachbildung meldet unbekannte OPTIONS-Schlüssel wie neuere Symcon-Versionen.
+
 ## 0.18.0 (13.10.2026)
 
 - **Neuer Treiber GARDENA smart system** (`libs/RoboHubGardena.php`, nach py-smart-gardena, MIT), abgeleitet
@@ -222,11 +231,3 @@
 - Formular-Panel „🏠 Einstellungen je Raum" mit Auswahlfeldern je Raum (in Reinigungsreihenfolge),
   `ROBO_RaumEinstellungSetzen($id, $raum, "Saugstufe"|"Durchgaenge"|"Modus", $wert)`.
 - Wasser/Feuchte und Reihenfolge bleiben vorerst nur Anzeige. Noch nicht live geprüft.
-
-## 0.10.1 (12.10.2026)
-
-- Live-Befund 0.10.0 (Barny): `cleanset` steht nur im Live-Rahmen, nicht in der gespeicherten Karte; alle Räume
-  `[1,3,1,Reihenfolge,2,546,0,2,0]`, `customeClean` 1. App zeigt „Saugen, Standard" → Modus je Raum ist bei
-  Mopp-Anhebung genauso getauscht wie 4.23 (Leitung 2 = Saugen). Reihenfolge = App (Dietmar bestätigt).
-- Anzeige: Modus zuerst, Räume in Reinigungsreihenfolge mit Nummer, Wasser nur bei Modi mit Wischen.
-  Konto gibt dem Treiber den letzten Rohstand mit (`$geraet['stand']`) für die Mopp-Anhebungs-Erkennung.

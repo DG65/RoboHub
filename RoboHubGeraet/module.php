@@ -974,7 +974,9 @@ class RoboHubGeraet extends IPSModule
     {
         $options = [];
         foreach ($map as $wert => $caption) {
-            $options[] = ['Value' => (int)$wert, 'Caption' => (string)$caption, 'IconActive' => false, 'Icon' => '', 'Color' => -1];
+            // Schlüssel laut Symcon-Doku (Darstellung Aufzählung): Value, Caption, IconActive, IconValue, Color.
+            // Neuere Versionen brechen bei anderen ab („unknown sub-parameters", Forum 13.10.2026).
+            $options[] = ['Value' => (int)$wert, 'Caption' => (string)$caption, 'IconActive' => false, 'IconValue' => '', 'Color' => -1];
         }
         return ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($options)];
     }

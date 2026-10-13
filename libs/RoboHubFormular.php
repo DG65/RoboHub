@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.1' => [
+            '• Beim Anlegen eines Roboters brach neuere Symcon-Versionen mit „Entry in parameter OPTIONS includes unknown sub-parameters" ab — behoben (Auswahllisten nach der Symcon-Dokumentation).',
+        ],
         '0.18.0' => [
             '• Neu: GARDENA smart system Mähroboter (Sileno) über die offizielle GARDENA-Schnittstelle — gleicher Zugang wie Husqvarna (Application Key/Secret, dazu „GARDENA smart system API" verbinden). Zustand, Akku, Fehler, Wetterpause, Betriebsstunden; Start, Parken.',
             '• Wegen des engen Abfragelimits höchstens alle 15 Minuten. Nicht an einem echten Mäher geprüft — Rückmeldungen im Forum-Thread sind sehr willkommen.',
