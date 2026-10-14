@@ -123,6 +123,10 @@
   `RequireParent` in `Create()`. Socket-Eigenschaften live an Dietmars System gelesen:
   Host/Port/Open/UseSSL/VerifyPeer/VerifyHost/CertificateAuthority/Certificate/PrivateKey/UseCertificate/Password.
   **Offen (live):** ob `CertificateAuthority` base64(PEM) erwartet (so umgesetzt) — sonst TLS-Fehler sichtbar.
+- **Symcon 9.1 „Rust" (14.10.2026, Forum Torsten):** Client Socket lehnt die Dreame-Kette ab — alle drei
+  Zertifikate beginnen 31.12.1969, rustls-webpki unterstützt nichts vor 1970 (`BadDerTime`). Seit 0.18.4:
+  Socket-Fehler ohne je erfolgte Verbindung → Echtzeit 24 h geschlossen (`EchtzeitGesperrtBis`), Grund im
+  Formular, Abfrage läuft. An Symcon gemeldet (Dietmar). Keine Lockerung der Prüfung (Dietmars Entscheidung).
 - Private Wurzel-CA in `RoboHubDreame::MQTT_WURZEL` (gültig bis 2969). SAN deckt `*.mt.<region>.iot.dreame.tech`
   und `*.mt.<region>.iot.mova-tech.com`. Nie auf `VerifyPeer=false` zurückfallen, ohne mit Dietmar zu sprechen.
 - Bytes über den Socket als UTF-8 (`mb_convert_encoding … ISO-8859-1`), Empfangspuffer base64 in `SetBuffer`.

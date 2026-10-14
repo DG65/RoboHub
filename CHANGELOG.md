@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.4 (14.10.2026)
+
+- Symcon 9.1 „Rust" (Forum, Torsten): Client Socket zum Dreame-Echtzeitserver „als fehlerhaft markiert", Konto und
+  Roboter zeigten „übergeordnete Instanz fehlerhaft". Ursache: Alle Zertifikate der Dreame-Kette (Blatt,
+  Zwischen-, Wurzel) gelten ab 31.12.1969; rustls-webpki (`src/time.rs`) unterstützt keine Zeiten vor 1970
+  und lehnt sie als BadDerTime ab. OpenSSL (Symcon ≤ 9.0, PHP) akzeptiert sie.
+- Nach Dietmars Entscheidung: Scheitert der Socket, ohne dass je eine Echtzeit-Verbindung stand, schließt
+  RoboHub ihn für 24 h (`EchtzeitGesperrtBis`), erklärt den Grund im Konto, protokolliert eine Warnung und fragt
+  weiter ab. Neuer Versuch automatisch nach 24 h (Timer `Erneuern`) oder per Knopf
+  (`ROBOHUB_EchtzeitNeuVersuchen`). Konten, deren Echtzeit schon einmal lief, verbinden wie bisher neu.
+  Zertifikatsprüfung bleibt unverändert streng (kein VerifyPeer-Abschalten).
+
 ## 0.18.3 (14.10.2026)
 
 - Fix (Forum, Torsten, Symcon 9.1): alle 2–4 Minuten „Warning: Parameter DIGITS is not defined for this
@@ -220,12 +232,3 @@
 
 - Live 0.11.2: kein Kartenobjekt gefunden. Jetzt steht in „📋 Rohdaten" unter `raumEinstellungenRoh.kartenobjektInfo`,
   was 6.3 liefert und woran das Lesen scheitert.
-
-## 0.11.2 (12.10.2026)
-
-- Live 0.11.1: auch die vollständige gespeicherte Karte trägt kein `cleanset`. Nach ioBroker mapController
-  (`_loadCleansetFromObject`) liegt der App-Stand im **Kartenobjekt hinter 6.3** (Base64 + zlib, JSON mit
-  `cleanset`); die App schreibt dorthin, das Gerät meldet danach einen neuen 6.3-Wert. RoboHub liest es beim
-  Räume-Laden; ein Live-Rahmen überschreibt diesen Stand nicht mehr.
-- Ändern (0.11.0) schreibt per 6.2 in den Gerätestand des Live-Rahmens — kam live NICHT in der App an.
-  Weg der App noch offen; bis dahin nicht verwenden.

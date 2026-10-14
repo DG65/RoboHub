@@ -87,6 +87,10 @@ class RoboHubKonto extends IPSModule
         $this->RegisterAttributeString('Schnappschuss', '{}');
         $this->RegisterAttributeString('Mqtt', '{}');
         $this->RegisterAttributeInteger('MqttEltern', 0);
+        // Echtzeit unter Symcon 9.1 (Rust-TLS): Zertifikate mit Beginn vor 1970 werden abgelehnt.
+        // Scheitert der Socket, ohne je verbunden gewesen zu sein, wird er 24 h geschlossen.
+        $this->RegisterAttributeBoolean('EchtzeitJeVerbunden', false);
+        $this->RegisterAttributeInteger('EchtzeitGesperrtBis', 0);
         $this->RegisterPropertyBoolean('Echtzeit', true);
         $this->RegisterTimer('MqttPing', 0, 'ROBOHUB_MqttPing($_IPS[\'TARGET\']);');
         $this->RequireParent(self::CLIENT_SOCKET);
@@ -107,6 +111,10 @@ class RoboHubKonto extends IPSModule
             return;
         }
         $this->aktualisiereStatus();
+        // Bestandskonten, deren Echtzeit schon lief, nie wegen eines späteren Fehlers sperren.
+        if ((json_decode((string)$this->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden') {
+            $this->WriteAttributeBoolean('EchtzeitJeVerbunden', true);
+        }
         if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) === 0 && $this->brauchtSocket()) {
             $this->SetTimerInterval('Verbindung', 15000);
         }
@@ -124,6 +132,9 @@ class RoboHubKonto extends IPSModule
         if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern')) {
             if (($Data[0] ?? 0) === IS_ACTIVE) {
                 $this->mqttAnmelden();
+            } elseif ((int)($Data[0] ?? 0) >= 200 && !$this->ReadAttributeBoolean('EchtzeitJeVerbunden')
+                && $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== '') {
+                $this->echtzeitSperren();
             } else {
                 $this->SetTimerInterval('MqttPing', 0);
                 $this->mqttStand(['zustand' => $this->ReadPropertyBoolean('Echtzeit') ? 'getrennt' : 'aus']);
@@ -303,6 +314,32 @@ class RoboHubKonto extends IPSModule
         } catch (Throwable $e) {
             // Fehler wurde in gueltigesBuendel() bereits protokolliert/Status gesetzt.
         }
+        $sperre = $this->ReadAttributeInteger('EchtzeitGesperrtBis');
+        if ($sperre > 0 && $sperre <= time()) {
+            $this->EchtzeitNeuVersuchen();
+        }
+    }
+
+    /** ROBOHUB_EchtzeitNeuVersuchen($id): geschlossene Echtzeit-Verbindung erneut öffnen. */
+    public function EchtzeitNeuVersuchen(): void
+    {
+        $this->WriteAttributeInteger('EchtzeitGesperrtBis', 0);
+        $this->echtzeitKonfigurieren(true);
+        $this->UpdateFormField('EchtzeitZeile', 'caption', $this->echtzeitZeile());
+    }
+
+    /**
+     * Der Socket ist gescheitert, bevor je eine Echtzeit-Verbindung stand — unter Symcon 9.1
+     * (Rust-TLS) lehnt er die Herstellerzertifikate ab (Beginn 31.12.1969, rustls-webpki
+     * unterstützt nichts vor 1970). Statt Fehlerstatus: Socket schließen, Grund nennen,
+     * nach 24 h erneut versuchen (falls Symcon nachbessert). Die Abfrage läuft weiter.
+     */
+    private function echtzeitSperren(): void
+    {
+        $this->WriteAttributeInteger('EchtzeitGesperrtBis', time() + 86400);
+        $this->protokolliere('Echtzeit-Verbindung schlägt fehl (unter Symcon 9.1 wird das Zertifikat des Herstellerservers abgelehnt) — Verbindung für 24 h geschlossen, die Abfrage läuft weiter.', KL_WARNING);
+        $this->echtzeitKonfigurieren(false);
+        $this->mqttStand(['zustand' => 'zertifikat']);
     }
 
     // -----------------------------------------------------------------
@@ -390,7 +427,8 @@ class RoboHubKonto extends IPSModule
     /** Einstellungen für den Client Socket (Symcon wendet sie beim Verbinden an). */
     public function GetConfigurationForParent()
     {
-        $an = $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== '';
+        $an = $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== ''
+            && $this->ReadAttributeInteger('EchtzeitGesperrtBis') <= time();
         [$host, $port] = $this->mqttZiel();
         return (string)json_encode([
             'Host'                 => $host,
@@ -433,7 +471,7 @@ class RoboHubKonto extends IPSModule
         }
         if (!$soll['Open']) {
             $this->SetTimerInterval('MqttPing', 0);
-            $this->mqttStand(['zustand' => 'aus']);
+            $this->mqttStand(['zustand' => $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time() ? 'zertifikat' : 'aus']);
         }
         if (!$anders && !($neuVerbinden && $soll['Open'])) {
             return;
@@ -588,6 +626,7 @@ class RoboHubKonto extends IPSModule
                 if (count($topics) > 0) {
                     $this->mqttSenden(RoboHubMqtt::subscribe(1, $topics, 0));
                 }
+                $this->WriteAttributeBoolean('EchtzeitJeVerbunden', true);
                 $this->mqttStand(['zustand' => 'verbunden', 'seit' => time(), 'text' => '', 'topics' => count($topics)]);
                 return;
             case RoboHubMqtt::PUBLISH:
@@ -676,6 +715,9 @@ class RoboHubKonto extends IPSModule
                 return '⚠️ Echtzeit getrennt — Symcon verbindet automatisch neu; die Abfrage läuft weiter.';
             case 'fehlt':
                 return '⚠️ Keine Verbindungsinstanz (Client Socket) — bitte „Übernehmen" klicken.';
+            case 'zertifikat':
+                return '⚠️ Die Echtzeit-Verbindung kam nicht zustande. Unter Symcon 9.1 lehnt die Verbindungsinstanz das Zertifikat des Herstellerservers ab (es gilt ab 31.12.1969, die neue TLS-Prüfung akzeptiert nichts vor 1970). RoboHub hat sie deshalb geschlossen und fragt die Roboter regelmäßig ab. Neuer Versuch am '
+                    . date('d.m.Y H:i', $this->ReadAttributeInteger('EchtzeitGesperrtBis')) . ' Uhr oder per Knopf.';
             default:
                 return $this->ReadAttributeString('Buendel') === '' ? 'ℹ️ Echtzeit startet nach der Anmeldung.' : 'ℹ️ Echtzeit noch nicht verbunden.';
         }
@@ -1008,6 +1050,7 @@ class RoboHubKonto extends IPSModule
             'items' => [
                 ['type' => 'CheckBox', 'name' => 'Echtzeit', 'caption' => 'Änderungen sofort von der Hersteller-Cloud empfangen (statt nur alle paar Minuten abzufragen)'],
                 ['type' => 'Label', 'name' => 'EchtzeitZeile', 'caption' => $this->echtzeitZeile()],
+                ['type' => 'Button', 'caption' => '🔁 Echtzeit jetzt erneut versuchen', 'visible' => $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time(), 'onClick' => 'ROBOHUB_EchtzeitNeuVersuchen($id);'],
                 ['type' => 'Label', 'caption' => 'Technik: verschlüsselte MQTT-Verbindung zum Server des Herstellers über eine eigene Client-Socket-Instanz. Das Server-Zertifikat wird gegen die Zertifizierungsstelle des Herstellers geprüft (Zertifikat und Servername) — fremde Server werden abgelehnt.'],
                 ['type' => 'Label', 'caption' => 'Die regelmäßige Abfrage läuft zusätzlich weiter (Sicherheitsnetz). Karten- und Positionsdaten werden nicht verarbeitet.'],
             ],

@@ -1147,6 +1147,17 @@ $GLOBALS['SKRIPTE'] = [];
 $konto->ApplyChanges();
 check('unveränderte Einstellungen → kein erneutes Konfigurieren (keine Neuverbindungs-Schleife)', $GLOBALS['SKRIPTE'] === []);
 
+// Symcon 9.1 (Rust-TLS): Socket scheitert, bevor je verbunden → schließen statt Fehlerstatus.
+$konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
+check('Socket scheitert vor erster Verbindung → Echtzeit 24 h geschlossen', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') > time() + 86000
+    && json_decode($konto->GetConfigurationForParent(), true)['Open'] === false);
+$fz = json_encode(json_decode($konto->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+check('Formular erklärt den Grund (Symcon 9.1, Zertifikat vor 1970) und bietet erneuten Versuch', strpos($fz, 'Symcon 9.1') !== false && strpos($fz, 'vor 1970') !== false
+    && strpos($fz, '"caption":"🔁 Echtzeit jetzt erneut versuchen","visible":true') !== false);
+$konto->WriteAttributeInteger('EchtzeitGesperrtBis', time() - 1);
+$konto->Erneuern();
+check('nach Ablauf der Sperre öffnet Erneuern die Echtzeit wieder', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') === 0 && json_decode($konto->GetConfigurationForParent(), true)['Open'] === true);
+
 $socket->gesendet = [];
 $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [IS_ACTIVE]);
 $b = json_decode($konto->ReadAttributeString('Buendel'), true);
@@ -1162,6 +1173,10 @@ mqttVomServer($konto, "\x20\x02\x00\x00");
 $sub = $socket->gesendet[0] ?? '';
 check('CONNACK 0 → SUBSCRIBE je Gerät', $sub !== '' && ord($sub[0]) === 0x82 && strpos($sub, '/status/-112663880/' . $b['uid'] . '/dreame.vacuum.r95475/eu/') !== false, bin2hex(substr($sub, 0, 8)));
 check('Formular: 🔗 verbunden', strpos(json_encode(json_decode($konto->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), '🔗 Echtzeit verbunden') !== false);
+$konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
+check('war schon verbunden → späterer Fehler sperrt NICHT (normales Neuverbinden)', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') === 0 && json_decode($konto->GetConfigurationForParent(), true)['Open'] === true);
+$konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [IS_ACTIVE]);
+mqttVomServer($konto, "\x20\x02\x00\x00");
 
 // Sauger 2000: vollständiger Stand aus früheren Abrufen liegt vor. Push 2.1 = 1 (saugt) + Akku, in zwei Stücken.
 $topic = '/status/-112663880/' . $b['uid'] . '/dreame.vacuum.r95475/eu/';

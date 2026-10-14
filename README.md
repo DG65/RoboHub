@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.18.3-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.18.4-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -93,7 +93,10 @@ MQTT-Verbindung zum Server des Herstellers. Ändert sich etwas am Roboter — Zu
 Fehler, Station —, steht es sofort in Symcon und auf der Kachel. Die Verbindung läuft über
 eine automatisch angelegte Client-Socket-Instanz; das Server-Zertifikat wird gegen die
 Zertifizierungsstelle des Herstellers geprüft (Zertifikat und Servername), fremde Server
-werden abgelehnt. Die regelmäßige Abfrage bleibt als Sicherheitsnetz, die schnelle
+werden abgelehnt. **Symcon 9.1 (Rust):** Dort lehnt die neue TLS-Prüfung die Zertifikate des
+Dreame/MOVA-Echtzeitservers ab (sie gelten ab 31.12.1969, unterstützt wird nichts vor 1970). RoboHub
+schließt die Verbindung dann selbst und fragt nur ab; einmal am Tag versucht es die Echtzeit erneut.
+Die regelmäßige Abfrage bleibt als Sicherheitsnetz, die schnelle
 30-Sekunden-Abfrage während der Arbeit entfällt, solange Meldungen ankommen.
 
 ## Kachel und IPSView
