@@ -2,6 +2,13 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.3 (14.10.2026)
+
+- Fix (Forum, Torsten, Symcon 9.1): alle 2–4 Minuten „Warning: Parameter DIGITS is not defined for this
+  presentation" (RoboHubGeraet Zeile 770). Die Wertanzeige kennt DIGITS laut Symcon-Doku nur bei Ganz- und
+  Kommazahlen; RoboHub setzte es auch bei Text-Variablen. Jetzt nur noch bei Zahlen.
+- Prüfstand: MaintainVariable-Nachbildung meldet Zahlen-Parameter der Wertanzeige bei Text/Schalter.
+
 ## 0.18.2 (13.10.2026)
 
 - Fix (Forum, Torsten, Symcon 9.1 „Rust"): Erstellen über den Konfigurator meldete „Die erstellte Instanz
@@ -222,11 +229,3 @@
   Räume-Laden; ein Live-Rahmen überschreibt diesen Stand nicht mehr.
 - Ändern (0.11.0) schreibt per 6.2 in den Gerätestand des Live-Rahmens — kam live NICHT in der App an.
   Weg der App noch offen; bis dahin nicht verwenden.
-
-## 0.11.1 (12.10.2026)
-
-- Live-Befund 0.11.0 (Barny, Küche): RoboHub-Änderung „Stark" kam im Live-Rahmen an, die App zeigte weiter
-  „Standard"; App-Änderung „Leise" erschien NICHT im Live-Rahmen → App und Live-Rahmen nutzen getrennte Stände.
-- Gespeicherte Karte jetzt aus `mapstr[].map` (vollständig, wie Tasshack) statt `thb` (Vorschau, ohne cleanset).
-- „📋 Rohdaten" zeigen die Raum-Einstellungen beider Quellen getrennt (gespeicherte Karte / Live-Rahmen).
-- Nach dem Schreiben: Live-Karte bei Fehlschlag nach 4 s ein zweites Mal lesen.

@@ -764,9 +764,15 @@ class RoboHubGeraet extends IPSModule
                 $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
                 continue;
             }
-            $pres = $typ === VARIABLETYPE_BOOLEAN
-                ? ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION]
-                : ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'SUFFIX' => $suffix, 'DIGITS' => $stellen];
+            // Wertanzeige laut Symcon-Doku: DIGITS nur bei Ganz-/Kommazahlen (Symcon 9.1 warnt sonst
+            // bei jedem Abruf „Parameter DIGITS is not defined for this presentation", Forum 14.10.2026).
+            $pres = ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION];
+            if ($typ !== VARIABLETYPE_BOOLEAN) {
+                $pres['SUFFIX'] = $suffix;
+            }
+            if ($typ === VARIABLETYPE_INTEGER || $typ === VARIABLETYPE_FLOAT) {
+                $pres['DIGITS'] = $stellen;
+            }
             $this->MaintainVariable($ident, $name, $typ, $pres, $pos, true);
             $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
         }

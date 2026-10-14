@@ -141,6 +141,14 @@ class IPSModule
             $def = [false, 0, 0.0, ''][$type];
             $GLOBALS['OBJ'][$id] = ['ident' => $ident, 'parent' => $this->InstanceID, 'type' => $type, 'value' => $def, 'name' => $name, 'pres' => $pres, 'action' => false];
         }
+        // Wie Symcon 9.1: Zahlen-Parameter der Wertanzeige nur bei Ganz-/Kommazahlen (Forum 14.10.2026).
+        if (is_array($pres) && ($pres['PRESENTATION'] ?? '') === VARIABLE_PRESENTATION_VALUE_PRESENTATION && !in_array($type, [VARIABLETYPE_INTEGER, VARIABLETYPE_FLOAT], true)) {
+            foreach (['DIGITS', 'USAGE_TYPE', 'PERCENTAGE', 'MIN', 'MAX', 'THOUSANDS_SEPARATOR', 'DECIMAL_SEPARATOR', 'INTERVALS', 'INTERVALS_ACTIVE'] as $k) {
+                if (array_key_exists($k, $pres)) {
+                    $GLOBALS['OPTIONS_FEHLER'][] = $ident . ': ' . $k . ' bei Typ ' . $type;
+                }
+            }
+        }
         // Wie neuere Symcon-Versionen: unbekannte Schlüssel in OPTIONS sind ein Fehler (Forum 13.10.2026).
         if (is_array($pres) && isset($pres['OPTIONS'])) {
             foreach ((array)json_decode((string)$pres['OPTIONS'], true) as $opt) {
@@ -1736,7 +1744,7 @@ $quellen = '';
 foreach (array_merge(glob(__DIR__ . '/../*/module.php'), glob(__DIR__ . '/../libs/*.php')) as $datei) {
     $quellen .= file_get_contents($datei);
 }
-check('Aufzählungen nur mit den Schlüsseln der Symcon-Doku (Value, Caption, IconActive, IconValue, Color)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
+check('Darstellungen nur mit Parametern der Symcon-Doku (Aufzählung: Value/Caption/IconActive/IconValue/Color; Wertanzeige: DIGITS nur bei Zahlen)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
 check('kein IPS_LogMessage in den Modulen', strpos($quellen, 'IPS_LogMessage') === false);
 check('Fehler als Warnung, Erfolge als Meldung protokolliert', in_array(KL_WARNING, $GLOBALS['LOGSTUFE'] ?? [], true) && in_array(KL_MESSAGE, $GLOBALS['LOGSTUFE'] ?? [], true));
 
