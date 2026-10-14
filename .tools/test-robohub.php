@@ -60,7 +60,16 @@ $GLOBALS['CONNECTS'] = [];
 $GLOBALS['SKRIPTE'] = [];
 function IPS_RunScriptText(string $s): bool { $GLOBALS['SKRIPTE'][] = $s; return true; }
 $GLOBALS['NAMEN'] = [];
-function IPS_CreateInstance(string $guid): int { $s = new FakeSocket(70000 + count($GLOBALS['INST'])); $GLOBALS['ERZEUGT'][] = [$guid, $s->InstanceID]; return $s->InstanceID; }
+function IPS_CreateInstance(string $guid): int
+{
+    if ($guid === '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}') {
+        $k = new RoboHubKonto(80000 + count($GLOBALS['INST']));
+        $k->Create();
+        $GLOBALS['ERZEUGT'][] = [$guid, $k->InstanceID];
+        return $k->InstanceID;
+    }
+    $s = new FakeSocket(70000 + count($GLOBALS['INST'])); $GLOBALS['ERZEUGT'][] = [$guid, $s->InstanceID]; return $s->InstanceID;
+}
 function IPS_SetName(int $id, string $n): bool { $GLOBALS['NAMEN'][$id] = $n; if (isset($GLOBALS['OBJ'][$id])) { $GLOBALS['OBJ'][$id]['name'] = $n; } return true; }
 function IPS_GetConfiguration(int $id): string { return json_encode($GLOBALS['INST'][$id]->config ?? []); }
 /** Nachgebildeter Client Socket: merkt sich gesendete Bytes. */
@@ -427,6 +436,12 @@ $m = $liste['values'][1] ?? [];
 check('Mäher als Rasenmähroboter erkannt', ($m['klasse'] ?? '') === 'Rasenmähroboter' && ($m['create'][0]['configuration']['Klasse'] ?? '') === 'maeher');
 check('Anzeigename-Ersatz aus deviceInfo.displayName', ($m['name'] ?? '') === 'MOVA 600');
 check('negative did bleibt String', ($liste['values'][0]['create'][0]['configuration']['GeraetID'] ?? null) === '-112663880');
+$GLOBALS['ERZEUGT'] = [];
+$t = $cfg->KontoAnlegen();
+$neuKonto = $GLOBALS['ERZEUGT'][0][1] ?? 0;
+check('Konfigurator legt auf Knopfdruck ein Konto an (Name „RoboHub Konto")', ($GLOBALS['ERZEUGT'][0][0] ?? '') === '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}'
+    && ($GLOBALS['NAMEN'][$neuKonto] ?? '') === 'RoboHub Konto' && strpos($t, '✅') === 0, $t);
+unset($GLOBALS['INST'][$neuKonto]);
 check('kein erfundener parent-Schlüssel in create', !isset($liste['values'][0]['create']['parent']) && !isset($liste['values'][0]['create'][0]['parent']));
 $kette = $liste['values'][0]['create'] ?? [];
 check('create ist die Kette Roboter → Konto (Symcon 9.1 verlangt sie ohne Konfigurator-Elternteil)', count($kette) === 2

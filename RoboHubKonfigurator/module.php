@@ -39,6 +39,21 @@ class RoboHubKonfigurator extends IPSModule
     }
 
     /** ROBOCFG_Suchen($id): string — Gerätelisten aller Konten neu von der Cloud holen. */
+    /**
+     * ROBOCFG_KontoAnlegen($id): string — legt eine RoboHub-Konto-Instanz an. Bequemer Weg,
+     * falls man das Konto in der Instanzauswahl der Konsole nicht findet (Splitter werden je
+     * nach Version/Filter nicht überall angezeigt; Forum 14.10.2026).
+     */
+    public function KontoAnlegen(): string
+    {
+        $id = @IPS_CreateInstance(self::KONTO_GUID);
+        if (!$id) {
+            return '⛔ Das Konto ließ sich nicht anlegen.';
+        }
+        IPS_SetName($id, 'RoboHub Konto');
+        return '✅ „RoboHub Konto" #' . $id . ' angelegt (im Objektbaum ganz oben). Dort öffnen, Hersteller wählen, Zugangsdaten eintragen, „Übernehmen", „🔑 Jetzt anmelden" — danach erscheinen die Roboter hier mit „🔎 Jetzt neu suchen".';
+    }
+
     public function Suchen(): string
     {
         $zeilen = [];
@@ -136,7 +151,7 @@ class RoboHubKonfigurator extends IPSModule
     private function suchZeile(array $konten): string
     {
         if (count($konten) === 0) {
-            return 'ℹ️ Noch keine RoboHub-Konto-Instanz vorhanden — zuerst „RoboHub Konto" anlegen und anmelden.';
+            return 'ℹ️ Noch keine RoboHub-Konto-Instanz vorhanden — mit „➕ Neues RoboHub Konto anlegen" eins anlegen und dort anmelden.';
         }
         $anzahl = 0;
         foreach ($konten as $info) {
@@ -205,7 +220,10 @@ class RoboHubKonfigurator extends IPSModule
             'type' => 'ExpansionPanel', 'expanded' => true,
             'caption' => '🤖  Roboter aller Konten',
             'items' => [
-                ['type' => 'Button', 'caption' => '🔎 Jetzt neu suchen', 'onClick' => 'echo ROBOCFG_Suchen($id);'],
+                ['type' => 'RowLayout', 'items' => [
+                    ['type' => 'Button', 'caption' => '🔎 Jetzt neu suchen', 'onClick' => 'echo ROBOCFG_Suchen($id);'],
+                    ['type' => 'Button', 'caption' => '➕ Neues RoboHub Konto anlegen', 'onClick' => 'echo ROBOCFG_KontoAnlegen($id);'],
+                ]],
                 ['type' => 'Label', 'name' => 'SuchZeile', 'caption' => $this->suchZeile($konten)],
                 [
                     'type' => 'Configurator', 'name' => 'Geraete', 'caption' => 'Geräte',

@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.5' => [
+            '• Konfigurator: neuer Knopf „➕ Neues RoboHub Konto anlegen" — falls man das Konto in der Instanzauswahl der Konsole nicht findet.',
+        ],
         '0.18.4' => [
             '• Symcon 9.1: Die Echtzeit-Verbindung zu Dreame/MOVA scheitert dort an der neuen Zertifikatsprüfung (Herstellerzertifikat gilt ab 1969). RoboHub schließt die Verbindung dann selbst, erklärt den Grund im Konto und fragt regelmäßig ab — kein Fehlerstatus mehr. Neuer Versuch einmal am Tag oder per Knopf.',
         ],

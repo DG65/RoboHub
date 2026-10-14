@@ -2,6 +2,12 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.5 (14.10.2026)
+
+- Forum (Stephen): „RoboHub Konto" in der Instanzauswahl nicht gefunden. Konfigurator hat jetzt den Knopf
+  „➕ Neues RoboHub Konto anlegen" (`ROBOCFG_KontoAnlegen`), der die Konto-Instanz direkt anlegt; Hinweistext
+  bei leerer Liste verweist darauf.
+
 ## 0.18.4 (14.10.2026)
 
 - Symcon 9.1 „Rust" (Forum, Torsten): Client Socket zum Dreame-Echtzeitserver „als fehlerhaft markiert", Konto und
@@ -227,8 +233,3 @@
   Konto-Aktion `kartenobjekt` → Objekt mit genau diesem Namen laden → Raum-Einstellungen (Quelle
   `kartenobjekt`, Vorrang vor Live-Rahmen). Nicht während Reinigung/Pause/Rückfahrt.
 - Rohdaten: Aufbau der gespeicherten Kartendatei (Felder/Größen) für die Fehlersuche.
-
-## 0.11.3 (12.10.2026)
-
-- Live 0.11.2: kein Kartenobjekt gefunden. Jetzt steht in „📋 Rohdaten" unter `raumEinstellungenRoh.kartenobjektInfo`,
-  was 6.3 liefert und woran das Lesen scheitert.
