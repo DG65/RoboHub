@@ -159,11 +159,18 @@ class IPSModule
             }
         }
         // Wie neuere Symcon-Versionen: unbekannte Schlüssel in OPTIONS sind ein Fehler (Forum 13.10.2026).
+        // Erlaubte OPTIONS-Schlüssel hängen von der Darstellung ab (Symcon-Doku, SUITE.md Stolperstein 9):
+        // Aufzählung … Color, Wertanzeige … ColorActive/ColorValue (NICHT Color).
+        $erlaubt = [
+            VARIABLE_PRESENTATION_ENUMERATION        => ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'],
+            VARIABLE_PRESENTATION_VALUE_PRESENTATION => ['Value', 'Caption', 'IconActive', 'IconValue', 'ColorActive', 'ColorValue'],
+        ];
         if (is_array($pres) && isset($pres['OPTIONS'])) {
+            $liste = $erlaubt[$pres['PRESENTATION'] ?? ''] ?? null;
             foreach ((array)json_decode((string)$pres['OPTIONS'], true) as $opt) {
                 foreach (array_keys((array)$opt) as $k) {
-                    if (!in_array($k, ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'], true)) {
-                        $GLOBALS['OPTIONS_FEHLER'][] = $ident . ': ' . $k;
+                    if ($liste === null || !in_array($k, $liste, true)) {
+                        $GLOBALS['OPTIONS_FEHLER'][] = $ident . ': ' . $k . ($liste === null ? ' (OPTIONS bei unbekannter Darstellung)' : '');
                     }
                 }
             }
@@ -1774,7 +1781,7 @@ $quellen = '';
 foreach (array_merge(glob(__DIR__ . '/../*/module.php'), glob(__DIR__ . '/../libs/*.php')) as $datei) {
     $quellen .= file_get_contents($datei);
 }
-check('Darstellungen nur mit Parametern der Symcon-Doku (Aufzählung: Value/Caption/IconActive/IconValue/Color; Wertanzeige: DIGITS nur bei Zahlen)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
+check('Darstellungen nur mit Parametern der Symcon-Doku (OPTIONS je Darstellung: Aufzählung mit Color, Wertanzeige mit ColorActive/ColorValue; DIGITS nur bei Zahlen)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
 check('kein IPS_LogMessage in den Modulen', strpos($quellen, 'IPS_LogMessage') === false);
 check('Fehler als Warnung, Erfolge als Meldung protokolliert', in_array(KL_WARNING, $GLOBALS['LOGSTUFE'] ?? [], true) && in_array(KL_MESSAGE, $GLOBALS['LOGSTUFE'] ?? [], true));
 
