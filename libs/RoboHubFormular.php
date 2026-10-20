@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.8' => [
+            '• Konfigurator unter Symcon 9.1: „Die Erstellungs-Kette für RoboHubKonto ist unvollständig" und ein doppeltes Konto — behoben. Jedes Konto bekommt jetzt einen Client Socket, auch Hersteller ohne Echtzeit (dort bleibt er geschlossen). Doppelte, leere Konten kann man löschen.',
+        ],
         '0.18.7' => [
             '• Konfigurator: Unter Symcon 9.1 brach „Erstellen" mit „Instanz … hat bereits ein übergeordnetes Objekt" ab, und Symcon nahm dabei auch das Konto wieder weg. Behoben: Der neue Roboter wartet jetzt, bis der Konfigurator ihn mit dem Konto verbunden hat.',
         ],

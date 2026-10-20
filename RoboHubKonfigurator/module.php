@@ -24,6 +24,7 @@ class RoboHubKonfigurator extends IPSModule
 
     private const KONTO_GUID  = '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}';
     private const GERAET_GUID = '{631DA85B-5985-4C25-B222-E47FDD49E302}';
+    private const SOCKET_GUID = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
 
     public function Create()
     {
@@ -134,6 +135,10 @@ class RoboHubKonfigurator extends IPSModule
                                 'Konto'      => (string)IPS_GetProperty($kid, 'Konto'),
                             ],
                         ],
+                        // Vollständige physische Kette bis zum I/O (Doku Variante 2). Ohne
+                        // Vorgaben: Jeder Client Socket des Kontos passt, das Konto stellt ihn
+                        // selbst ein. Fehlt er, gilt die Kette unter 9.1 als unvollständig.
+                        ['moduleID' => self::SOCKET_GUID, 'configuration' => new stdClass()],
                     ],
                 ];
             }

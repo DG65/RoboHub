@@ -116,7 +116,7 @@ class RoboHubKonto extends IPSModule
         if ((json_decode((string)$this->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden') {
             $this->WriteAttributeBoolean('EchtzeitJeVerbunden', true);
         }
-        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) === 0 && $this->brauchtSocket()) {
+        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) === 0) {
             $this->SetTimerInterval('Verbindung', 15000);
         }
         $this->elternBeobachten();
@@ -511,7 +511,7 @@ class RoboHubKonto extends IPSModule
         $this->echtzeitKonfigurieren(false);
     }
 
-    /** Nur Hersteller mit Echtzeit über die Konto-Verbindung brauchen einen Client Socket. */
+    /** Nur Hersteller mit Echtzeit über die Konto-Verbindung öffnen den Client Socket. */
     private function brauchtSocket(): bool
     {
         $treiber = $this->treiber();
@@ -520,7 +520,11 @@ class RoboHubKonto extends IPSModule
 
     private function verbindungSicherstellen(): void
     {
-        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) !== 0 || !$this->brauchtSocket()) {
+        // Jedes Konto bekommt einen Client Socket, auch ohne Echtzeit (dann bleibt er
+        // geschlossen): Das Modul verlangt ihn als übergeordnete Instanz, und Symcon 9.1
+        // verwendet ein Konto ohne ihn in der Konfigurator-Kette nicht wieder, sondern
+        // legt ein neues, unvollständiges an (Forum Thilo, 20.10.2026).
+        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) !== 0) {
             return;
         }
         $id = @IPS_CreateInstance(self::CLIENT_SOCKET);
@@ -533,7 +537,9 @@ class RoboHubKonto extends IPSModule
             @IPS_DeleteInstance($id);
             return;
         }
-        IPS_SetName($id, 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')');
+        IPS_SetName($id, $this->brauchtSocket()
+            ? 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')'
+            : 'RoboHub Verbindung (' . IPS_GetName($this->InstanceID) . ', ungenutzt)');
     }
 
     private function elternBeobachten(): void
@@ -701,7 +707,7 @@ class RoboHubKonto extends IPSModule
         }
         $treiber = $this->treiber();
         if (method_exists($treiber, 'echtzeitMoeglich') && !$treiber->echtzeitMoeglich()) {
-            return 'ℹ️ Für ' . (self::HERSTELLER[$this->ReadPropertyString('Hersteller')][1] ?? 'diesen Hersteller') . ' gibt es noch keine Echtzeit-Meldungen — die Roboter werden per Abfrage aktualisiert.';
+            return 'ℹ️ Für ' . (self::HERSTELLER[$this->ReadPropertyString('Hersteller')][1] ?? 'diesen Hersteller') . ' gibt es noch keine Echtzeit-Meldungen — die Roboter werden per Abfrage aktualisiert. Der Client Socket unter dem Konto bleibt deshalb geschlossen; Symcon braucht ihn nur als Verbindungsglied.';
         }
         switch ($s['zustand'] ?? '') {
             case 'verbunden':

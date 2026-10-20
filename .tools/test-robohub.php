@@ -451,7 +451,9 @@ check('Konfigurator legt auf Knopfdruck ein Konto an (Name „RoboHub Konto")', 
 unset($GLOBALS['INST'][$neuKonto]);
 check('kein erfundener parent-Schlüssel in create', !isset($liste['values'][0]['create']['parent']) && !isset($liste['values'][0]['create'][0]['parent']));
 $kette = $liste['values'][0]['create'] ?? [];
-check('create ist die Kette Roboter → Konto (Symcon 9.1 verlangt sie ohne Konfigurator-Elternteil)', count($kette) === 2
+check('create ist die Kette Roboter → Konto → Client Socket (Symcon 9.1 verlangt sie vollständig)', count($kette) === 3
+    && $kette[2]['moduleID'] === '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}' && $kette[2]['configuration'] === []
+    && strpos($cfg->GetConfigurationForm(), '"moduleID":"{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}","configuration":{}') !== false
     && $kette[0]['moduleID'] === '{631DA85B-5985-4C25-B222-E47FDD49E302}' && $kette[1]['moduleID'] === '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}'
     && $kette[1]['configuration'] === ['Hersteller' => 'dreame', 'Konto' => 'nutzer@example.org'] && $kette[0]['name'] === 'Aqua10', json_encode($kette));
 

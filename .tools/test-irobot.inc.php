@@ -75,7 +75,12 @@ $rob = $ib['roboter']['3176C41234567890'] ?? [];
 check('gekoppelt: BLID aus dem Hostnamen, Passwort geholt', strpos($t, '✅ Gekoppelt') === 0 && ($rob['passwort'] ?? '') === ':1:1700000000:GeheimesPasswort' && ($rob['name'] ?? '') === 'Krümel', $t);
 check('Fingerabdruck des Gerätezertifikats gemerkt', ($rob['fingerabdruck'] ?? '') === $n1[4]);
 check('Konto angemeldet, weiterer Roboter ergänzt (der erste bleibt)', $ik->status === 102 && count(json_decode($ik->ReadAttributeString('Geraete'), true)) === 2 && isset($ib['roboter']['ALT1']));
-check('kein Client-Socket-Timer (lokal, eine Verbindung je Roboter)', ($ik->timers['Verbindung'] ?? 0) === 0);
+check('auch lokal: Client Socket wird nachgeholt (Symcon 9.1 braucht ihn für die Konfigurator-Kette)', ($ik->timers['Verbindung'] ?? 0) === 15000);
+$GLOBALS['SKRIPTE'] = [];
+$ik->VerbindungPruefen();
+$isock = (int)(IPS_GetInstance(7000)['ConnectionID'] ?? 0);
+check('Client Socket angelegt, als ungenutzt benannt, bleibt geschlossen', $isock > 0 && strpos(IPS_GetName($isock), 'ungenutzt') !== false
+    && strpos(implode("\n", $GLOBALS['SKRIPTE']), '"Open":true') === false, IPS_GetName($isock) . ' ' . implode("\n", $GLOBALS['SKRIPTE']));
 
 $irr = new RoboHubGeraet(7100);
 $irr->props = ['GeraetID' => '3176C41234567890', 'Modell' => 'irobot.vacuum.i755840', 'Klasse' => 'sauger', 'Intervall' => 120];

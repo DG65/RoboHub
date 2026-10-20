@@ -2,6 +2,19 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.12.0 (12.10.2026)
+
+- Klärung (Dietmars Bildschirmfoto): die „Raum-Einstellungen" der Dreamehome-App sind das Startfenster
+  „benutzerdefiniert" — Modus und Saugleistung werden erst mit „Jetzt reinigen" geschickt, nirgends vorher
+  gespeichert. Das erklärt alle Befunde 0.11.x.
+- Neu: **Start mit Wahl** — `ROBO_RaeumeReinigenMit($id, "3,5", Modus, Saugstufe, Durchgänge)` (−1 = wie
+  eingestellt); Modus vorher als Reinigungsmodus (4.23, Read-Modify-Write mit Mopp-Tausch), Saugstufe und
+  Durchgänge in `selects`. Kachel: nach der Raumwahl Auswahlfelder, Wert an RequestAction/Seite als
+  „IDs|Modus|Saugstufe|Durchgänge".
+- Die im Roboter gespeicherten Raumwerte (`cleanset`) nur noch als Anzeige „Raum-Einstellungen im Roboter";
+  `ROBO_RaumEinstellungSetzen` gesperrt (Treiber-Weg 6.2 bleibt, getestet, aus der Instanz nicht erreichbar).
+- Noch nicht live geprüft (braucht eine echte Raumreinigung).
+
 ## 0.11.5 (12.10.2026)
 
 - Live 0.11.4: keine 6.3-Meldung nach App-Änderung. Barnys Gerätelog (Echtzeit 99.98, zlib-JSON

@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.8 (20.10.2026)
+
+- Forum (Thilo, Symcon 9.1, iRobot, nach 0.18.7): „Die Erstellungs-Kette für RoboHubKonto ist unvollständig", dazu
+  ein zweites Konto mit gleichem Hersteller/IP. Ursache: Konten ohne Konto-Echtzeit (iRobot, Roborock, Worx & Co.,
+  Ecovacs, Husqvarna, GARDENA) hatten bewusst keinen Client Socket; `RoboHubKonto` verlangt ihn aber in
+  `parentRequirements`. Symcon verwendet laut Doku (Konfigurator, Variante 2) nur übergeordnete Instanzen wieder,
+  „deren übergeordnete Instanzen die Anforderungen der Kette erfüllen" → Konto ohne Socket nicht wiederverwendet,
+  neues Konto angelegt, dessen Kette nicht bis zum I/O reicht. Dreame/MOVA-Konten (mit Socket) betraf es nicht.
+- Jetzt: jedes Konto bekommt einen Client Socket (bei Herstellern ohne Echtzeit „RoboHub Verbindung (…, ungenutzt)",
+  bleibt geschlossen). Die `create`-Kette reicht bis zum Client Socket (ohne Vorgaben).
+- Live an 9.1 noch nicht bestätigt; Thilo testet.
+
 ## 0.18.7 (20.10.2026)
 
 - Forum (Thilo, Symcon 9.1, Roomba 980 nach erfolgreichem Koppeln): „Erstellen" im Konfigurator → „Instanz #… hat
@@ -234,16 +246,3 @@
 - Live 0.12.0: Symcons `MaintainVariable` benennt eine vorhandene Variable nicht um — Variable hieß weiter
   „Einstellungen je Raum". Jetzt gezielt `IPS_SetName`, nur wenn noch der alte Standardname gilt. Prüfstand
   bildet das Live-Verhalten nach (MaintainVariable ohne Umbenennung).
-
-## 0.12.0 (12.10.2026)
-
-- Klärung (Dietmars Bildschirmfoto): die „Raum-Einstellungen" der Dreamehome-App sind das Startfenster
-  „benutzerdefiniert" — Modus und Saugleistung werden erst mit „Jetzt reinigen" geschickt, nirgends vorher
-  gespeichert. Das erklärt alle Befunde 0.11.x.
-- Neu: **Start mit Wahl** — `ROBO_RaeumeReinigenMit($id, "3,5", Modus, Saugstufe, Durchgänge)` (−1 = wie
-  eingestellt); Modus vorher als Reinigungsmodus (4.23, Read-Modify-Write mit Mopp-Tausch), Saugstufe und
-  Durchgänge in `selects`. Kachel: nach der Raumwahl Auswahlfelder, Wert an RequestAction/Seite als
-  „IDs|Modus|Saugstufe|Durchgänge".
-- Die im Roboter gespeicherten Raumwerte (`cleanset`) nur noch als Anzeige „Raum-Einstellungen im Roboter";
-  `ROBO_RaumEinstellungSetzen` gesperrt (Treiber-Weg 6.2 bleibt, getestet, aus der Instanz nicht erreichbar).
-- Noch nicht live geprüft (braucht eine echte Raumreinigung).

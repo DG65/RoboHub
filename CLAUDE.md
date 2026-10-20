@@ -14,7 +14,9 @@
   `RoboHubKonfigurator` (Konfigurator, `ROBOCFG_`, **seit 0.2.0 ohne Parent**: sammelt alle Konten
   über `ROBOHUB_GeraeteListe`; Roboter verbinden sich in `ordneKontoZu()` selbst mit dem Konto —
   **seit 0.18.7 ohne Verbindung erst nach 15 s** (Timer `Zuordnen`), sonst scheitert unter Symcon 9.1 die
-  `create`-Kette des Konfigurators und rollt samt Konto zurück (Forum Thilo 20.10.2026) —
+  `create`-Kette des Konfigurators und rollt samt Konto zurück (Forum Thilo 20.10.2026). **Seit 0.18.8 hat
+  jedes Konto einen Client Socket** (ohne Echtzeit geschlossen, „ungenutzt") und die Kette reicht bis zum
+  Socket — ohne ihn verwendet 9.1 das Konto nicht wieder und legt ein unvollständiges neues an —
   das ihre Geräte-ID kennt — Dietmars Wunsch „ein Konfigurator für beide Roboter"). Datenfluss Kind → Konto über
   `SendDataToParent`/`ForwardData` (DataIDs in den module.json). Nur das Konto spricht mit
   der Cloud — ein Schlüssel je Konto, Erneuerung unter Semaphore.

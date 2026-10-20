@@ -226,4 +226,4 @@ $GLOBALS['robohubTreiberFabrik'] = $fabrik;
 check('Konto wählt für jeden Hersteller den richtigen Treiber', !in_array(false, $wahl, true), json_encode($wahl));
 
 $wk->ApplyChanges();
-check('Hersteller ohne Konto-Echtzeit (Worx): kein Client-Socket-Timer', ($wk->timers['Verbindung'] ?? 0) === 0);
+check('Hersteller ohne Konto-Echtzeit (Worx): Client Socket wird trotzdem nachgeholt', ($wk->timers['Verbindung'] ?? 0) === 15000);

@@ -137,7 +137,7 @@ $ek->props['Hersteller'] = 'ecovacs';
 $ek->Create();
 $ek->props['Region'] = 'DE';
 $ek->ApplyChanges();
-check('kein Client-Socket-Timer (keine Konto-Echtzeit)', ($ek->timers['Verbindung'] ?? 0) === 0);
+check('auch ohne Konto-Echtzeit: Client Socket wird nachgeholt (bleibt zu)', ($ek->timers['Verbindung'] ?? 0) === 15000);
 $ek->props['Konto'] = 'putz@example.org';
 $ek->props['Passwort'] = 'falsch';
 check('falsches Passwort abgelehnt', strpos($ek->Anmelden(), 'E-Mail/Passwort') !== false && $ek->ReadAttributeString('AnmeldeVorstufe') === '');
