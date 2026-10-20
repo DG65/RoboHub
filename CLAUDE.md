@@ -350,9 +350,15 @@
   (Antwort ab Byte 7), MQTT 8883 mit Client-ID = Benutzer = BLID. Nur EINE lokale Verbindung je Roboter.
 - TLS: Dietmars Entscheidung 13.10.2026 = Trust on first use (Fingerabdruck beim Koppeln, danach Pflicht).
   `verify_peer` ist dabei aus — NUR in `RoboHubIrobot::geraetVerbinden`, nie in `RoboHubMqttSitzung::oeffnen`
-  (Prüfstand prüft beides). PHP kann OpenSSLs „legacy renegotiation" nicht einschalten — ältere Roboter
-  könnten deshalb den Handschlag verweigern (roombapy braucht es für „some robots").
+  (Prüfstand prüft beides). PHP kann OpenSSLs „legacy renegotiation" nicht einschalten — dafür seit 0.18.6
+  der eigene TLS-Weg (unten).
 - Prüfstand: `.tools/roomba-nachbau.php` (echtes TLS/UDP/MQTT) — läuft max. 60 s, wird per proc_terminate beendet.
+- **Eigener TLS-1.2-Weg (0.18.6, Dietmars Entscheidung 20.10.2026):** Roomba 980 (FW 2.x) ohne RFC 5746 wird von
+  OpenSSL 3 abgelehnt (Symcon-PHP 8.5 mit OpenSSL 3.5.2, live gelesen), PHP kann `OP_LEGACY_SERVER_CONNECT` nicht
+  setzen → `libs/RoboHubTls.php` (RSA + AES-CBC, keine Neuverhandlung) als Rückfall nach OpenSSL. Nur für iRobot,
+  nie für Cloud-Verbindungen. Geprüft gegen echtes OpenSSL (`roomba-nachbau.php … alt`) und Störer
+  (`tls-stoerer.php`). **An einem echten 980 noch nicht** — erster Tester: Thilo (Forum 144636/14).
+- Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 
 ## Husqvarna-Treiber (0.17.0)

@@ -107,49 +107,64 @@ class RoboHubIrobot implements RoboHubTreiber
         return $buendel;
     }
 
-    /** UDP-Anfrage „irobotmcs" an Port 5678 (Unicast an die IP). */
+    /**
+     * UDP-Anfrage „irobotmcs" an Port 5678 (Unicast an die IP), bis zu drei
+     * Versuche. Eine Antwort wird eine Stunde gemerkt: Manche Roboter (Roomba 980,
+     * Forum 20.10.2026) schweigen auf UDP, solange nach dem HOME-Druck das
+     * Koppelfenster offen ist — dann gilt die Antwort vom Klick davor.
+     */
     protected function suchen(string $ip): array
     {
+        $merk = $this->suchMerkDatei($ip);
         $sock = @stream_socket_client('udp://' . $ip . ':' . $this->suchPort, $nr, $text, 3);
         if ($sock === false) {
             throw new RoboHubFehler('Roboter unter ' . $ip . ' nicht erreichbar: ' . $text);
         }
+        $antwort = null;
         try {
-            fwrite($sock, 'irobotmcs');
-            $lesen = [$sock];
-            $schreiben = null;
-            $ausnahme = null;
-            if (@stream_select($lesen, $schreiben, $ausnahme, 3) < 1) {
-                throw new RoboHubFehler('Unter ' . $ip . ' meldet sich kein iRobot-Roboter (UDP 5678).');
+            for ($versuch = 0; $versuch < 3 && $antwort === null; $versuch++) {
+                @fwrite($sock, 'irobotmcs');
+                $lesen = [$sock];
+                $schreiben = null;
+                $ausnahme = null;
+                if (@stream_select($lesen, $schreiben, $ausnahme, 2) > 0) {
+                    $roh = json_decode((string)@fread($sock, 4096), true);
+                    $antwort = is_array($roh) ? $roh : null;
+                }
             }
-            $antwort = json_decode((string)fread($sock, 4096), true);
         } finally {
             fclose($sock);
         }
-        if (!is_array($antwort)) {
-            throw new RoboHubFehler('Unter ' . $ip . ' meldet sich kein iRobot-Roboter.');
+        if ($antwort !== null) {
+            @file_put_contents($merk, json_encode($antwort));
+            return $antwort;
         }
-        return $antwort;
+        $gemerkt = is_file($merk) && filemtime($merk) > time() - 3600 ? json_decode((string)file_get_contents($merk), true) : null;
+        if (is_array($gemerkt)) {
+            $this->dbg('Koppeln', 'UDP still, Antwort vom letzten Versuch verwendet');
+            return $gemerkt;
+        }
+        throw new RoboHubFehler('Unter ' . $ip . ' meldet sich kein iRobot-Roboter (UDP 5678). Bitte zuerst OHNE HOME-Taste „Jetzt anmelden" klicken, damit RoboHub den Roboter findet; danach HOME halten und erneut klicken.');
+    }
+
+    /** Merkdatei für die letzte UDP-Antwort unter dieser Adresse. */
+    public function suchMerkDatei(string $ip): string
+    {
+        return sys_get_temp_dir() . '/robohub-irobot-' . md5($ip) . '.json';
     }
 
     /** Passwort per TLS-Magie holen; Rückgabe [Passwort, SHA-256 des Zertifikats]. */
     protected function passwortHolen(string $ip): array
     {
-        [$sock, $fingerabdruck] = $this->geraetVerbinden($ip, null);
+        [$leitung, $fingerabdruck] = $this->geraetVerbinden($ip, null);
         try {
-            fwrite($sock, self::PASSWORT_ANFRAGE);
+            self::leitungSchreiben($leitung, self::PASSWORT_ANFRAGE);
             $roh = '';
             $laenge = 35;
             $ende = microtime(true) + 10;
             while (strlen($roh) < $laenge + 2 && microtime(true) < $ende) {
-                $lesen = [$sock];
-                $schreiben = null;
-                $ausnahme = null;
-                if (@stream_select($lesen, $schreiben, $ausnahme, 2) < 1) {
-                    break;
-                }
-                $stueck = fread($sock, 1024);
-                if ($stueck === false || $stueck === '') {
+                $stueck = self::leitungLesen($leitung, 2.0);
+                if ($stueck === null || $stueck === '') {
                     break;
                 }
                 if ($stueck === self::NICHT_UNTERSTUETZT) {
@@ -161,11 +176,11 @@ class RoboHubIrobot implements RoboHubTreiber
                 }
             }
         } finally {
-            fclose($sock);
+            self::leitungSchliessen($leitung);
         }
         $passwort = self::passwortAus($roh);
         if ($passwort === '') {
-            throw new RoboHubFehler('Der Roboter hat kein Passwort geliefert. Er muss auf der Station stehen; HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, dann sofort koppeln.');
+            throw new RoboHubFehler('Roboter gefunden, aber er hat kein Passwort geliefert. Er muss auf der Station stehen; HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, dann sofort erneut koppeln.');
         }
         return [$passwort, $fingerabdruck];
     }
@@ -179,26 +194,98 @@ class RoboHubIrobot implements RoboHubTreiber
     /**
      * TLS zum Roboter. $erwartet = null nur beim Koppeln (Zertifikat wird gemerkt);
      * sonst muss der Fingerabdruck übereinstimmen, sonst wird abgebrochen.
-     * Rückgabe [Strom, Fingerabdruck].
+     * Erst über OpenSSL; scheitert der Handschlag (ältere Firmware ohne RFC 5746,
+     * von OpenSSL 3 abgelehnt), über den eigenen TLS-1.2-Client.
+     * Rückgabe [Leitung (Strom oder RoboHubTls), Fingerabdruck].
      */
     private function geraetVerbinden(string $ip, ?string $erwartet): array
+    {
+        try {
+            [$leitung, $fingerabdruck] = $this->opensslVerbinden($ip);
+        } catch (RoboHubFehler $e1) {
+            $this->dbg('TLS', 'OpenSSL: ' . $e1->getMessage() . ' — versuche eigenen TLS-1.2-Weg');
+            try {
+                [$leitung, $fingerabdruck] = $this->eigenVerbinden($ip);
+            } catch (RoboHubFehler $e2) {
+                throw new RoboHubFehler('Roboter unter ' . $ip . ' nicht erreichbar (' . $e1->getMessage() . ' / eigener TLS-Weg: ' . $e2->getMessage() . ').');
+            }
+        }
+        if (!self::fingerabdruckPasst($erwartet, $fingerabdruck)) {
+            self::leitungSchliessen($leitung);
+            throw new RoboHubFehler('Das Zertifikat des Roboters unter ' . $ip . ' hat sich geändert — Verbindung abgelehnt. War es ein anderes Gerät, bitte neu koppeln.');
+        }
+        return [$leitung, $fingerabdruck];
+    }
+
+    protected function opensslVerbinden(string $ip): array
     {
         $kontext = stream_context_create(['ssl' => [
             // Selbst ausgestelltes Gerätezertifikat: statt Kette wird der gemerkte Fingerabdruck geprüft.
             'verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true,
             'capture_peer_cert' => true, 'ciphers' => 'DEFAULT:!DH', 'security_level' => 0,
         ]]);
+        while (openssl_error_string() !== false) {
+        }
+        error_clear_last();
         $sock = @stream_socket_client('tls://' . $ip . ':' . $this->port, $nr, $text, 8, STREAM_CLIENT_CONNECT, $kontext);
         if ($sock === false) {
-            throw new RoboHubFehler('Roboter unter ' . $ip . ' nicht erreichbar (' . $text . ').');
+            $gruende = [];
+            while (($o = openssl_error_string()) !== false) {
+                $gruende[] = $o;
+            }
+            $letzte = error_get_last()['message'] ?? '';
+            if ($gruende === [] && $letzte !== '') {
+                $gruende[] = preg_replace('/^stream_socket_client\(\): /', '', $letzte);
+            }
+            if (trim((string)$text) !== '') {
+                array_unshift($gruende, trim((string)$text));
+            }
+            throw new RoboHubFehler($gruende === [] ? 'TLS-Verbindung fehlgeschlagen' : implode('; ', array_unique($gruende)));
         }
         $zert = stream_context_get_params($sock)['options']['ssl']['peer_certificate'] ?? null;
-        $fingerabdruck = $zert ? (string)openssl_x509_fingerprint($zert, 'sha256') : '';
-        if (!self::fingerabdruckPasst($erwartet, $fingerabdruck)) {
-            fclose($sock);
-            throw new RoboHubFehler('Das Zertifikat des Roboters unter ' . $ip . ' hat sich geändert — Verbindung abgelehnt. War es ein anderes Gerät, bitte neu koppeln.');
+        return [$sock, $zert ? (string)openssl_x509_fingerprint($zert, 'sha256') : ''];
+    }
+
+    protected function eigenVerbinden(string $ip): array
+    {
+        $tls = RoboHubTls::verbinden($ip, $this->port, 8.0);
+        return [$tls, $tls->zertifikat === '' ? '' : hash('sha256', $tls->zertifikat)];
+    }
+
+    /** @param resource|RoboHubTls $leitung */
+    private static function leitungSchreiben($leitung, string $daten): void
+    {
+        if ($leitung instanceof RoboHubTls) {
+            $leitung->schreiben($daten);
+        } else {
+            fwrite($leitung, $daten);
         }
-        return [$sock, $fingerabdruck];
+    }
+
+    /** @param resource|RoboHubTls $leitung  Rückgabe Daten, '' bei Frist, null bei Ende. */
+    private static function leitungLesen($leitung, float $sekunden): ?string
+    {
+        if ($leitung instanceof RoboHubTls) {
+            return $leitung->lesen($sekunden);
+        }
+        $lesen = [$leitung];
+        $schreiben = null;
+        $ausnahme = null;
+        if (@stream_select($lesen, $schreiben, $ausnahme, (int)$sekunden, (int)(($sekunden - floor($sekunden)) * 1000000)) < 1) {
+            return '';
+        }
+        $stueck = fread($leitung, 1024);
+        return $stueck === false || $stueck === '' ? null : $stueck;
+    }
+
+    /** @param resource|RoboHubTls $leitung */
+    private static function leitungSchliessen($leitung): void
+    {
+        if ($leitung instanceof RoboHubTls) {
+            $leitung->schliessen();
+        } else {
+            @fclose($leitung);
+        }
     }
 
     /** Trust on first use: beim Koppeln (null) jedes Zertifikat, danach nur das gemerkte. */

@@ -16,7 +16,7 @@ final class RoboHubMqttSitzung
 {
     private const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
-    /** @var resource */
+    /** @var resource|RoboHubTls */
     private $sock;
     private $ws;
     private $roh = '';      // empfangene Bytes (bei WebSocket: noch nicht zerlegte Rahmen)
@@ -52,8 +52,9 @@ final class RoboHubMqttSitzung
     }
 
     /**
-     * Übernimmt einen bereits geprüften TLS-Strom (iRobot: Gerätezertifikat per
-     * gemerktem Fingerabdruck geprüft, siehe RoboHubIrobot::geraetVerbinden).
+     * Übernimmt einen bereits geprüften TLS-Strom oder eine eigene TLS-Verbindung
+     * (iRobot: Gerätezertifikat per gemerktem Fingerabdruck geprüft, siehe
+     * RoboHubIrobot::geraetVerbinden).
      */
     public static function ausStrom($sock): self
     {
@@ -62,6 +63,10 @@ final class RoboHubMqttSitzung
 
     public function senden(string $mqtt): void
     {
+        if ($this->sock instanceof RoboHubTls) {
+            $this->sock->schreiben($mqtt);
+            return;
+        }
         fwrite($this->sock, $this->ws ? self::wsRahmen($mqtt, random_bytes(4)) : $mqtt);
     }
 
@@ -82,6 +87,14 @@ final class RoboHubMqttSitzung
 
     public function schliessen(): void
     {
+        if ($this->sock instanceof RoboHubTls) {
+            try {
+                $this->sock->schreiben(RoboHubMqtt::disconnect());
+            } catch (Throwable $e) {
+            }
+            $this->sock->schliessen();
+            return;
+        }
         @fwrite($this->sock, $this->ws ? self::wsRahmen(RoboHubMqtt::disconnect(), random_bytes(4)) : RoboHubMqtt::disconnect());
         fclose($this->sock);
     }
@@ -92,6 +105,14 @@ final class RoboHubMqttSitzung
         $rest = $ende - microtime(true);
         if ($rest <= 0) {
             return false;
+        }
+        if ($this->sock instanceof RoboHubTls) {
+            $stueck = $this->sock->lesen($rest);
+            if ($stueck === null || $stueck === '') {
+                return false;
+            }
+            $this->puffer .= $stueck;
+            return true;
         }
         $lesen = [$this->sock];
         $schreiben = null;

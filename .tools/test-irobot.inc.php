@@ -8,10 +8,10 @@
 declare(strict_types=1);
 
 /** Startet einen nachgestellten Roboter; Rückgabe [Prozess, Pipes, TLS-Port, UDP-Port, Fingerabdruck, Protokolldatei]. */
-function roombaNachbau(): array
+function roombaNachbau(string $art = ''): array
 {
     $log = tempnam(sys_get_temp_dir(), 'roombalog');
-    $proc = proc_open([PHP_BINARY, __DIR__ . '/roomba-nachbau.php', $log], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    $proc = proc_open([PHP_BINARY, __DIR__ . '/roomba-nachbau.php', $log, $art], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     $zeile = trim((string)fgets($pipes[1]));
     [$port, $udp, $fp] = array_pad(explode(' ', $zeile), 3, '');
     return [$proc, $pipes, (int)$port, (int)$udp, $fp, $log];
@@ -46,6 +46,7 @@ check('stuck + Fehler 17 = Fehler „Weg versperrt", Behälter fehlt', $s['Zusta
 
 // ===========================================================================
 abschnitt('iRobot: nachgestellter Roboter (echtes TLS, UDP, MQTT)');
+@unlink((new RoboHubIrobot())->suchMerkDatei('127.0.0.1'));
 $n1 = roombaNachbau();
 check('nachgestellter Roboter läuft', $n1[2] > 0 && $n1[3] > 0 && strlen($n1[4]) === 64, json_encode([$n1[2], $n1[3], $n1[4]]));
 $fabrikIr = $GLOBALS['robohubTreiberFabrik'];
@@ -116,3 +117,121 @@ $GLOBALS['robohubTreiberFabrik'] = $fabrikIr;
 $quelle = new ReflectionMethod('RoboHubMqttSitzung', 'oeffnen');
 $text = implode('', array_slice(file($quelle->getFileName()), $quelle->getStartLine() - 1, $quelle->getEndLine() - $quelle->getStartLine() + 1));
 check('Cloud-Sitzungen bleiben streng (kein verify_peer false in oeffnen)', strpos($text, "'verify_peer' => true") !== false && strpos($text, '=> false') === false);
+
+// ===========================================================================
+abschnitt('iRobot: eigener TLS-1.2-Weg (Roomba 980, OpenSSL 3 ohne RFC 5746)');
+check('PRF nach RFC 5246 (Prüfvektor der IETF-Liste, SHA-256)', bin2hex(substr(RoboHubTls::prf(hex2bin('9bbe436ba940f017b17652849a71db35'), 'test label', hex2bin('a0ba9f936cda311827a6f796ffd5198c'), 100), 0, 16)) === 'e3f229ba727be17b8d122620557cd453');
+
+class AltRoomba extends RoboHubIrobot
+{
+    public $opensslAus = true;
+    public static $wege = [];
+    protected function opensslVerbinden(string $ip): array
+    {
+        self::$wege[] = 'openssl';
+        if ($this->opensslAus) {
+            throw new RoboHubFehler('error:0A000152:SSL routines::unsafe legacy renegotiation disabled');
+        }
+        return parent::opensslVerbinden($ip);
+    }
+    protected function eigenVerbinden(string $ip): array
+    {
+        self::$wege[] = 'eigen';
+        return parent::eigenVerbinden($ip);
+    }
+}
+$n3 = roombaNachbau('alt');
+$tls = RoboHubTls::verbinden('127.0.0.1', $n3[2], 5.0);
+check('Handschlag mit echtem OpenSSL-Server (nur RSA + AES-CBC, TLS 1.2)', in_array($tls->suite, [0x003C, 0x003D, 0x002F, 0x0035], true) && hash('sha256', $tls->zertifikat) === $n3[4], sprintf('0x%04X', $tls->suite));
+$tls->schreiben("\xf0\x05\xef\xcc\x3b\x29\x00");
+$antwort = '';
+for ($i = 0; $i < 5 && strlen($antwort) < 7; $i++) {
+    $antwort .= (string)$tls->lesen(2.0);
+}
+check('Passwort-Magie über den eigenen Weg beantwortet', RoboHubIrobot::passwortAus($antwort) === ':1:1700000000:GeheimesPasswort', bin2hex($antwort));
+check('Server schließt sauber → lesen meldet Ende', $tls->lesen(2.0) === null);
+$tls->schliessen();
+
+$GLOBALS['robohubTreiberFabrik'] = function (string $marke) use ($fabrikIr, &$n3, &$altTreiber) {
+    if ($marke !== 'irobot') {
+        return $fabrikIr($marke);
+    }
+    $altTreiber = new AltRoomba();
+    $altTreiber->port = $n3[2];
+    $altTreiber->suchPort = $n3[3];
+    return $altTreiber;
+};
+@unlink((new RoboHubIrobot())->suchMerkDatei('127.0.0.1'));
+$ak = new RoboHubKonto(7200);
+$ak->props['Hersteller'] = 'irobot';
+$ak->Create();
+$ak->ApplyChanges();
+$ak->props['Konto'] = '127.0.0.1';
+$t = $ak->Anmelden();
+$ab = json_decode($ak->ReadAttributeString('Buendel'), true)['roboter']['3176C41234567890'] ?? [];
+check('Koppeln: OpenSSL scheitert → eigener Weg, Passwort und Fingerabdruck gemerkt', strpos($t, '✅ Gekoppelt') === 0 && AltRoomba::$wege === ['openssl', 'eigen']
+    && ($ab['passwort'] ?? '') === ':1:1700000000:GeheimesPasswort' && ($ab['fingerabdruck'] ?? '') === $n3[4], $t . ' ' . json_encode(AltRoomba::$wege));
+$ar = new RoboHubGeraet(7300);
+$ar->props = ['GeraetID' => '3176C41234567890', 'Modell' => 'irobot.vacuum.r980', 'Klasse' => 'sauger', 'Intervall' => 120];
+$ar->Create();
+$ar->parent = $ak;
+$ar->ApplyChanges();
+$t = $ar->Aktualisieren();
+check('MQTT über den eigenen Weg: Zustand und Akku', variable(7300, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT && variable(7300, 'Akku')['value'] === 87, $t);
+$ar->ZurStation();
+usleep(300000);
+check('Befehl über den eigenen Weg angekommen', preg_match('/befehl cmd \{"command":"dock"/', (string)file_get_contents($n3[5])) === 1);
+
+// Koppelfenster: Roboter schweigt auf UDP → Antwort vom Klick davor (gemerkt).
+$n3[3] = 1;
+$t = $ak->Anmelden();
+check('UDP still nach HOME-Druck: gemerkte Antwort genutzt, Koppeln klappt', strpos($t, '✅ Gekoppelt') === 0, $t);
+@unlink((new RoboHubIrobot())->suchMerkDatei('127.0.0.1'));
+$t = $ak->Anmelden();
+check('ohne gemerkte Antwort: Hinweis, erst ohne HOME zu suchen', strpos($t, 'OHNE HOME-Taste') !== false, $t);
+
+// Fremdes Zertifikat auch auf dem eigenen Weg abgelehnt.
+$n4 = roombaNachbau('alt');
+$n3Port = $n3[2];
+$n3[2] = $n4[2];
+$t = $ar->Aktualisieren();
+check('eigener Weg: fremdes Zertifikat abgelehnt, keine Anmeldedaten gesendet', strpos($t, 'Zertifikat') !== false && strpos((string)file_get_contents($n4[5]), 'connect') === false, $t);
+roombaEnde($n4);
+
+// Angreifer im Netz: verfälschte Bytes müssen auffallen.
+$stoerer = function (int $ziel, string $art): array {
+    $proc = proc_open([PHP_BINARY, __DIR__ . '/tls-stoerer.php', (string)$ziel, $art], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    return [$proc, $pipes, (int)trim((string)fgets($pipes[1]))];
+};
+$stoererEnde = function (array $s): void {
+    proc_terminate($s[0]);
+    foreach ($s[1] as $p) {
+        fclose($p);
+    }
+    proc_close($s[0]);
+};
+$s1 = $stoerer($n3Port, 'sitzung');
+try {
+    RoboHubTls::verbinden('127.0.0.1', $s1[2], 5.0);
+    $fehler = '';
+} catch (RoboHubFehler $e) {
+    $fehler = $e->getMessage();
+}
+// Der Roboter merkt den abweichenden Verlauf zuerst (Alarm 51 auf unser Finished);
+// die eigene Finished-Prüfung ist zusätzliche Absicherung und so nicht erreichbar.
+check('verfälschter Handschlag (Sitzungskennung) → Verbindung abgelehnt', strpos($fehler, 'TLS-Fehler 51') !== false || strpos($fehler, 'Abschluss') !== false, $fehler);
+$stoererEnde($s1);
+$s2 = $stoerer($n3Port, 'daten');
+$fehler = '';
+try {
+    $tls = RoboHubTls::verbinden('127.0.0.1', $s2[2], 5.0);
+    $tls->schreiben("\xf0\x05\xef\xcc\x3b\x29\x00");
+    $tls->lesen(2.0);
+} catch (RoboHubFehler $e) {
+    $fehler = $e->getMessage();
+}
+check('verfälschte Nutzdaten → Prüfsumme schlägt an', strpos($fehler, 'Prüfsumme') !== false, $fehler);
+$stoererEnde($s2);
+roombaEnde($n3);
+$GLOBALS['robohubTreiberFabrik'] = $fabrikIr;
+@unlink((new RoboHubIrobot())->suchMerkDatei('127.0.0.1'));

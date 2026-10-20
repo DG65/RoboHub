@@ -3,7 +3,9 @@
  * Nachgestellter iRobot-Roboter für den Prüfstand (echte Sockets, echtes TLS):
  *   - UDP: beantwortet „irobotmcs" mit Gerätedaten
  *   - TLS (selbst ausgestelltes Zertifikat): Passwort-Magie und lokales MQTT
- * Aufruf: php roomba-nachbau.php <Protokolldatei>
+ * Aufruf: php roomba-nachbau.php <Protokolldatei> [alt]
+ *   alt = wie ein Roomba 980 mit Firmware 2.x: nur TLS 1.2 mit RSA-Schlüsseltausch
+ *         und AES-CBC (prüft RoboHubs eigenen TLS-Weg gegen echtes OpenSSL)
  * Gibt „<TLS-Port> <UDP-Port> <SHA-256 des Zertifikats>" aus und bedient
  * Verbindungen, bis der Prüfstand den Prozess beendet (spätestens nach 60 s).
  */
@@ -22,7 +24,8 @@ $datei = tempnam(sys_get_temp_dir(), 'roomba');
 file_put_contents($datei, $zertPem . $schluesselPem);
 
 $tls = stream_socket_server('tls://127.0.0.1:0', $nr, $text, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN,
-    stream_context_create(['ssl' => ['local_cert' => $datei, 'verify_peer' => false]]));
+    stream_context_create(['ssl' => ['local_cert' => $datei, 'verify_peer' => false] + (($argv[2] ?? '') === 'alt'
+        ? ['ciphers' => 'AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:@SECLEVEL=0', 'crypto_method' => STREAM_CRYPTO_METHOD_TLSv1_2_SERVER] : [])]));
 $udp = stream_socket_server('udp://127.0.0.1:0', $nr, $text, STREAM_SERVER_BIND);
 $port = (int)substr((string)strrchr(stream_socket_get_name($tls, false), ':'), 1);
 $udpPort = (int)substr((string)strrchr(stream_socket_get_name($udp, false), ':'), 1);
