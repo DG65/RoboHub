@@ -1112,7 +1112,10 @@ $neu->props = ['GeraetID' => '777', 'Modell' => 'mova.mower.g2529c', 'Klasse' =>
 $neu->Create();
 $GLOBALS['CONNECTS'] = [];
 $neu->ApplyChanges();
-check('neuer Mäher ohne Verbindung → verbindet sich selbst mit dem MOVA-Konto', $neu->parent === $konto2 && $GLOBALS['CONNECTS'] === [[2400, 1100]]);
+check('neuer Mäher ohne Verbindung: in ApplyChanges NICHT selbst verbunden (das macht der Konfigurator danach), Nachfass-Takt läuft',
+    $neu->parent === null && $GLOBALS['CONNECTS'] === [] && ($neu->timers['Zuordnen'] ?? 0) === 15000);
+$neu->RequestAction('Zuordnen', 0);
+check('… ist er nach dem Nachfass-Takt noch frei → verbindet sich selbst mit dem MOVA-Konto, Takt aus', $neu->parent === $konto2 && $GLOBALS['CONNECTS'] === [[2400, 1100]] && ($neu->timers['Zuordnen'] ?? 0) === 0);
 $falsch = new RoboHubGeraet(2401);
 $falsch->props = ['GeraetID' => '777', 'Modell' => 'mova.mower.g2529c', 'Klasse' => 'maeher', 'Intervall' => 120];
 $falsch->Create();
@@ -1127,6 +1130,7 @@ $unbekannt = new RoboHubGeraet(2402);
 $unbekannt->props = ['GeraetID' => '424242', 'Modell' => '', 'Klasse' => 'sauger', 'Intervall' => 120];
 $unbekannt->Create();
 $unbekannt->ApplyChanges();
+$unbekannt->RequestAction('Zuordnen', 0);
 check('unbekannte Geräte-ID bei zwei Konten → keine geratene Verbindung', $unbekannt->parent === null);
 $f = json_decode($neu->GetConfigurationForm(), true);
 check('Roboter-Formular zeigt verbundenes Konto (grün)', strpos(json_encode($f, JSON_UNESCAPED_UNICODE), '🔗 Konto: Instanz 1100 (#1100)') !== false);

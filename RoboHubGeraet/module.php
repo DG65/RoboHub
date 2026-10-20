@@ -69,6 +69,7 @@ class RoboHubGeraet extends IPSModule
 
         $this->RegisterTimer('Abruf', 0, 'ROBO_Aktualisieren($_IPS[\'TARGET\']);');
         $this->RegisterTimer('LiveKarte', 0, 'ROBO_LiveKarteLaden($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('Zuordnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'Zuordnen\', 0);');
     }
 
     public function ApplyChanges()
@@ -94,7 +95,16 @@ class RoboHubGeraet extends IPSModule
             $this->SetStatus(104);
             return;
         }
-        $this->ordneKontoZu();
+        // Ohne Konto erst kurz warten: Beim Anlegen über den Konfigurator verbindet Symcon den
+        // Roboter selbst NACH ApplyChanges. Wer vorher schon verbunden ist, lässt Symcon 9.1
+        // scheitern („hat bereits ein übergeordnetes Objekt") und den Konfigurator alles
+        // zurückrollen (Forum Thilo, 20.10.2026). Falsch verbundene korrigiert sofort.
+        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) === 0) {
+            $this->SetTimerInterval('Zuordnen', 15000);
+        } else {
+            $this->SetTimerInterval('Zuordnen', 0);
+            $this->ordneKontoZu();
+        }
         $this->registriereHook();
         $this->SetStatus(102);
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
@@ -113,6 +123,10 @@ class RoboHubGeraet extends IPSModule
             case 'Befehl':
                 $this->fuehreAus($this->befehlsName((int)$Value), []);
                 // Befehl ist ein Taster, kein Zustand: bleibt nicht stehen.
+                return;
+            case 'Zuordnen':
+                $this->SetTimerInterval('Zuordnen', 0);
+                $this->ordneKontoZu();
                 return;
             case 'Raum':
                 $this->fuehreAus('raum', ['raeume' => [(int)$Value]]);

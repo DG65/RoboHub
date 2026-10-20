@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.7' => [
+            '• Konfigurator: Unter Symcon 9.1 brach „Erstellen" mit „Instanz … hat bereits ein übergeordnetes Objekt" ab, und Symcon nahm dabei auch das Konto wieder weg. Behoben: Der neue Roboter wartet jetzt, bis der Konfigurator ihn mit dem Konto verbunden hat.',
+        ],
         '0.18.6' => [
             '• iRobot: Ältere Roomba (z. B. 980 mit Firmware 2.x) ließen sich nicht koppeln, weil das in Symcon eingebaute OpenSSL 3 ihre Verschlüsselung ablehnt. RoboHub spricht solche Roboter jetzt über einen eigenen TLS-1.2-Weg an, die Zertifikatsprüfung per gemerktem Fingerabdruck bleibt gleich.',
             '• iRobot: Koppeln in zwei Schritten — erst „Jetzt anmelden" (Roboter wird gesucht), dann HOME-Taste halten und noch einmal. Manche Roboter antworten während des Koppelfensters nicht auf die Suche. Fehlermeldungen nennen jetzt den genauen TLS-Grund.',
