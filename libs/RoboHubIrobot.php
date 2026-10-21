@@ -341,19 +341,25 @@ class RoboHubIrobot implements RoboHubTreiber
     protected function stand(array $r): array
     {
         $stand = [];
-        $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use (&$stand): void {
+        $themen = [];
+        $beginn = microtime(true);
+        // Ältere Roboter (980) schicken ihren Stand langsam und in vielen Stücken → 15 s Fenster.
+        $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use (&$stand, &$themen): void {
             $s->senden(RoboHubMqtt::subscribe(1, ['#'], 0));
-            $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use (&$stand): bool {
+            $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use (&$stand, &$themen): bool {
                 $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
+                $themen[] = $pub['topic'] . ' (QoS ' . $pub['qos'] . ', ' . strlen($pub['payload']) . ' B)';
                 $j = json_decode($pub['payload'], true);
                 if (is_array($j)) {
                     self::zusammenfuehren($stand, (array)($j['state']['reported'] ?? []));
                 }
                 return isset($stand['cleanMissionStatus']['phase'], $stand['batPct'], $stand['bin']);
             }, $ende);
-        });
+        }, 15.0);
+        $this->dbg('Zustand', count($themen) . ' Meldung(en) in ' . round(microtime(true) - $beginn, 1) . ' s: ' . implode(', ', array_slice($themen, 0, 20)));
         if (!isset($stand['cleanMissionStatus']) && !isset($stand['batPct'])) {
-            throw new RoboHubFehler('Der Roboter hat keinen Zustand gemeldet.');
+            throw new RoboHubFehler('Der Roboter hat keinen Zustand gemeldet (' . count($themen) . ' Meldung(en) in '
+                . round(microtime(true) - $beginn, 1) . ' s' . ($themen === [] ? '' : ': ' . implode(', ', array_slice($themen, 0, 5))) . ').');
         }
         return $stand;
     }
@@ -453,9 +459,9 @@ class RoboHubIrobot implements RoboHubTreiber
     }
 
     /** MQTT-Sitzung zum Roboter mit gemerktem Zertifikat. */
-    private function sitzung(array $r, callable $tun): void
+    private function sitzung(array $r, callable $tun, float $dauer = 8.0): void
     {
-        $ende = microtime(true) + 8.0;
+        $ende = microtime(true) + $dauer;
         [$sock] = $this->geraetVerbinden((string)$r['ip'], (string)$r['fingerabdruck']);
         $s = RoboHubMqttSitzung::ausStrom($sock);
         try {

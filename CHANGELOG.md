@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.9 (21.10.2026)
+
+- Forum (Thilo, Roomba 980, Symcon 9.0 Windows — nicht 9.1): Konfigurator-Kette mit 0.18.8 ohne Fehler, Roboter
+  angelegt, Befehl „Start" fährt los (erster echter Befehl über den eigenen TLS-Weg). Abruf meist „Der Roboter hat
+  keinen Zustand gemeldet", einmal kam ein Stand (direkt nach dem Start), danach ging nichts mehr.
+- Vermutete Ursache: `RoboHubMqttSitzung` bestätigte eingehende PUBLISH mit QoS 1/2 nicht (kein PUBACK). Ein
+  Server mit kleinem Sendefenster schickt dann nichts weiter. roombapy (paho/aiomqtt) bestätigt automatisch.
+- Jetzt: QoS 1 → PUBACK, QoS 2 → PUBREC/PUBCOMP (gilt für alle Treiber mit kurzer MQTT-Sitzung). iRobot-Stand
+  wartet 15 s statt 8 s. Fehlermeldung und Debug „Zustand" nennen Anzahl, Themen, QoS und Größe der Meldungen.
+- Prüfstand: nachgestellter alter Roomba schickt den Stand mit QoS 1 und erst nach jeder Bestätigung weiter;
+  Mutation „keine Bestätigung" gefangen.
+
 ## 0.18.8 (20.10.2026)
 
 - Forum (Thilo, Symcon 9.1, iRobot, nach 0.18.7): „Die Erstellungs-Kette für RoboHubKonto ist unvollständig", dazu
@@ -240,9 +252,3 @@
 - Live-Befund (Barny, Küche 16:07–16:14): Start mit Wahl, Live-Karte während der Reinigung, Pause/Fortsetzen/Stopp/
   Zur Station bestätigt. Nach der Rückkehr lieferte der letzte Rahmen keinen Weg mehr und überschrieb den fertigen
   Weg → jetzt bleibt bei leerem Weg außerhalb der Arbeit der bisherige stehen; bei neuer Arbeit wird er ersetzt.
-
-## 0.12.1 (12.10.2026)
-
-- Live 0.12.0: Symcons `MaintainVariable` benennt eine vorhandene Variable nicht um — Variable hieß weiter
-  „Einstellungen je Raum". Jetzt gezielt `IPS_SetName`, nur wenn noch der alte Standardname gilt. Prüfstand
-  bildet das Live-Verhalten nach (MaintainVariable ohne Umbenennung).

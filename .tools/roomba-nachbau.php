@@ -5,7 +5,8 @@
  *   - TLS (selbst ausgestelltes Zertifikat): Passwort-Magie und lokales MQTT
  * Aufruf: php roomba-nachbau.php <Protokolldatei> [alt]
  *   alt = wie ein Roomba 980 mit Firmware 2.x: nur TLS 1.2 mit RSA-Schlüsseltausch
- *         und AES-CBC (prüft RoboHubs eigenen TLS-Weg gegen echtes OpenSSL)
+ *         und AES-CBC (prüft RoboHubs eigenen TLS-Weg gegen echtes OpenSSL); Zustand
+ *         mit QoS 1 und erst nach jeder Bestätigung (PUBACK) das nächste Stück
  * Gibt „<TLS-Port> <UDP-Port> <SHA-256 des Zertifikats>" aus und bedient
  * Verbindungen, bis der Prüfstand den Prozess beendet (spätestens nach 60 s).
  */
@@ -80,10 +81,29 @@ while (time() < $schluss) {
             } elseif ($p['typ'] === RoboHubMqtt::SUBSCRIBE) {
                 fwrite($c, "\x90\x03\x00\x01\x00");
                 $t = '$aws/things/3176C41234567890/shadow/update';
-                fwrite($c, RoboHubMqtt::publish($t, json_encode(['state' => ['reported' => ['batPct' => 87, 'cleanMissionStatus' => ['cycle' => 'clean', 'phase' => 'run', 'error' => 0, 'mssnM' => 12, 'sqft' => 215]]]])));
-                fwrite($c, RoboHubMqtt::publish('wifistat', '{"state":{"reported":{"signal":{"rssi":-50}}}}'));
-                fwrite($c, RoboHubMqtt::publish($t, json_encode(['state' => ['reported' => ['bin' => ['present' => true, 'full' => false], 'bbrun' => ['hr' => 123, 'min' => 4], 'bbmssn' => ['nMssn' => 321]]]])));
+                $stuecke = [
+                    ['wifistat', '{"state":{"reported":{"signal":{"rssi":-50}}}}'],
+                    [$t, json_encode(['state' => ['reported' => ['batPct' => 87, 'cleanMissionStatus' => ['cycle' => 'clean', 'phase' => 'run', 'error' => 0, 'mssnM' => 12, 'sqft' => 215]]]])],
+                    [$t, json_encode(['state' => ['reported' => ['bin' => ['present' => true, 'full' => false], 'bbrun' => ['hr' => 123, 'min' => 4], 'bbmssn' => ['nMssn' => 321]]]])],
+                ];
+                if (($argv[2] ?? '') === 'alt') {
+                    $naechste = 1;
+                    $offen = $stuecke;
+                    [$thema, $inhalt] = array_shift($offen);
+                    fwrite($c, RoboHubMqtt::publish($thema, $inhalt, 1, $naechste));
+                } else {
+                    foreach ($stuecke as [$thema, $inhalt]) {
+                        fwrite($c, RoboHubMqtt::publish($thema, $inhalt));
+                    }
+                }
                 $log('abo');
+            } elseif ($p['typ'] === RoboHubMqtt::PUBACK) {
+                $log('puback');
+                if (!empty($offen) && unpack('n', $p['body'])[1] === $naechste) {
+                    $naechste++;
+                    [$thema, $inhalt] = array_shift($offen);
+                    fwrite($c, RoboHubMqtt::publish($thema, $inhalt, 1, $naechste));
+                }
             } elseif ($p['typ'] === RoboHubMqtt::PUBLISH) {
                 $pub = RoboHubMqtt::publishLesen($p['flags'], $p['body']);
                 $log('befehl ' . $pub['topic'] . ' ' . $pub['payload']);

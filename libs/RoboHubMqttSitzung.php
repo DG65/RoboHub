@@ -75,6 +75,7 @@ final class RoboHubMqttSitzung
     {
         while (true) {
             foreach (RoboHubMqtt::zerlegen($this->puffer) as $paket) {
+                $this->bestaetigen($paket);
                 if ($paket['typ'] === $typ && ($passt === null || $passt($paket))) {
                     return $paket;
                 }
@@ -82,6 +83,25 @@ final class RoboHubMqttSitzung
             if (!$this->lesen($ende)) {
                 return null;
             }
+        }
+    }
+
+    /**
+     * Eingehende PUBLISH mit QoS 1/2 bestätigen. Ohne Bestätigung schickt ein
+     * Server mit kleinem Sendefenster nichts weiter (Roomba 980 lieferte so nur
+     * Bruchstücke, Forum Thilo 21.10.2026).
+     */
+    private function bestaetigen(array $paket): void
+    {
+        if ($paket['typ'] === RoboHubMqtt::PUBLISH) {
+            $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
+            if ($pub['qos'] === 1) {
+                $this->senden(RoboHubMqtt::puback($pub['id']));
+            } elseif ($pub['qos'] === 2) {
+                $this->senden(RoboHubMqtt::pubrec($pub['id']));
+            }
+        } elseif ($paket['typ'] === RoboHubMqtt::PUBREL && strlen($paket['body']) >= 2) {
+            $this->senden(RoboHubMqtt::pubcomp(unpack('n', $paket['body'])[1]));
         }
     }
 

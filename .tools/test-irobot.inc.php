@@ -183,6 +183,7 @@ $ar->parent = $ak;
 $ar->ApplyChanges();
 $t = $ar->Aktualisieren();
 check('MQTT über den eigenen Weg: Zustand und Akku', variable(7300, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT && variable(7300, 'Akku')['value'] === 87, $t);
+check('Stand mit QoS 1: jedes Stück bestätigt (PUBACK), sonst käme beim 980 nichts nach', substr_count((string)file_get_contents($n3[5]), 'puback') >= 2, (string)file_get_contents($n3[5]));
 $ar->ZurStation();
 usleep(300000);
 check('Befehl über den eigenen Weg angekommen', preg_match('/befehl cmd \{"command":"dock"/', (string)file_get_contents($n3[5])) === 1);

@@ -19,6 +19,9 @@ final class RoboHubMqtt
     public const CONNACK     = 2;
     public const PUBLISH     = 3;
     public const PUBACK      = 4;
+    public const PUBREC      = 5;
+    public const PUBREL      = 6;
+    public const PUBCOMP     = 7;
     public const SUBSCRIBE   = 8;
     public const SUBACK      = 9;
     public const PINGREQ     = 12;
@@ -64,6 +67,16 @@ final class RoboHubMqtt
     public static function puback(int $paketId): string
     {
         return chr(self::PUBACK << 4) . "\x02" . pack('n', $paketId);
+    }
+
+    public static function pubrec(int $paketId): string
+    {
+        return chr(self::PUBREC << 4) . "\x02" . pack('n', $paketId);
+    }
+
+    public static function pubcomp(int $paketId): string
+    {
+        return chr(self::PUBCOMP << 4) . "\x02" . pack('n', $paketId);
     }
 
     /**

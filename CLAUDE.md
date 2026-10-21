@@ -12,12 +12,12 @@
   Hersteller-Select des Kontos, nichts an Variablen/Idents ändern.
 - Drei Module: `RoboHubKonto` (Splitter, `ROBOHUB_`), `RoboHubGeraet` (Gerät, `ROBO_`),
   `RoboHubKonfigurator` (Konfigurator, `ROBOCFG_`, **seit 0.2.0 ohne Parent**: sammelt alle Konten
-  über `ROBOHUB_GeraeteListe`; Roboter verbinden sich in `ordneKontoZu()` selbst mit dem Konto —
-  **seit 0.18.7 ohne Verbindung erst nach 15 s** (Timer `Zuordnen`), sonst scheitert unter Symcon 9.1 die
-  `create`-Kette des Konfigurators und rollt samt Konto zurück (Forum Thilo 20.10.2026). **Seit 0.18.8 hat
-  jedes Konto einen Client Socket** (ohne Echtzeit geschlossen, „ungenutzt") und die Kette reicht bis zum
-  Socket — ohne ihn verwendet 9.1 das Konto nicht wieder und legt ein unvollständiges neues an —
-  das ihre Geräte-ID kennt — Dietmars Wunsch „ein Konfigurator für beide Roboter"). Datenfluss Kind → Konto über
+  über `ROBOHUB_GeraeteListe`; Roboter verbinden sich in `ordneKontoZu()` selbst mit dem Konto, das ihre
+  Geräte-ID kennt — Dietmars Wunsch „ein Konfigurator für beide Roboter"). **Seit 0.18.7 ohne Verbindung erst
+  nach 15 s** (Timer `Zuordnen`), sonst scheitert die `create`-Kette des Konfigurators und rollt samt Konto
+  zurück. **Seit 0.18.8 hat jedes Konto einen Client Socket** (ohne Echtzeit geschlossen, „ungenutzt") und die
+  Kette reicht bis zum Socket — ohne ihn verwendet Symcon das Konto nicht wieder und legt ein unvollständiges
+  neues an (Forum Thilo 20.10.2026; Thilo hat 9.0 Windows, nicht 9.1 — betrifft also auch 9.0). Datenfluss Kind → Konto über
   `SendDataToParent`/`ForwardData` (DataIDs in den module.json). Nur das Konto spricht mit
   der Cloud — ein Schlüssel je Konto, Erneuerung unter Semaphore.
 - Klassen/Präfixe/GUIDs sind eingefroren, sobald eine Instanz existiert (TOOLKIT.md-Faustregel,
@@ -362,6 +362,8 @@
   setzen → `libs/RoboHubTls.php` (RSA + AES-CBC, keine Neuverhandlung) als Rückfall nach OpenSSL. Nur für iRobot,
   nie für Cloud-Verbindungen. Geprüft gegen echtes OpenSSL (`roomba-nachbau.php … alt`) und Störer
   (`tls-stoerer.php`). **An einem echten 980 noch nicht** — erster Tester: Thilo (Forum 144636/14).
+- **Erster echter Roomba (Thilo, 980 r980040, 21.10.2026):** eigener TLS-Weg + Koppeln + Befehl „Start" live ok.
+  Abruf scheiterte meist → 0.18.9: PUBACK für QoS 1/2 in `RoboHubMqttSitzung`, Stand-Fenster 15 s. Live offen.
 - Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 

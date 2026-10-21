@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.9' => [
+            '• iRobot: Ältere Roomba (980) meldeten beim Abruf oft „Der Roboter hat keinen Zustand gemeldet". RoboHub bestätigt jetzt jede Meldung des Roboters, damit er die nächste schickt, und wartet länger auf den vollständigen Stand. Die Fehlermeldung nennt, was angekommen ist.',
+        ],
         '0.18.8' => [
             '• Konfigurator unter Symcon 9.1: „Die Erstellungs-Kette für RoboHubKonto ist unvollständig" und ein doppeltes Konto — behoben. Jedes Konto bekommt jetzt einen Client Socket, auch Hersteller ohne Echtzeit (dort bleibt er geschlossen). Doppelte, leere Konten kann man löschen.',
         ],
