@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/RoboHubKartenbild.php';
+
 // ===========================================================================
 // RoboHub-Treiber für iRobot Roomba/Braava — lokal im Heimnetz, ohne Cloud.
 //
@@ -26,6 +28,12 @@ class RoboHubIrobot implements RoboHubTreiber
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
 
+    /** Mindestzuhörzeit beim Abruf während der Fahrt (Positionen sammeln); im Prüfstand kürzer. */
+    public $posenFenster = 5.0;
+
+    /** Positionen [x mm, y mm, Winkel °] aus dem letzten stand(). */
+    private $posen = [];
+
     /** true, wenn der letzte stand() den Roboter erreichte, aber nur Nebenmeldungen bekam. */
     private $nurStandFehlte = false;
 
@@ -47,6 +55,29 @@ class RoboHubIrobot implements RoboHubTreiber
         'chargingerror' => ['Ladefehler', RoboHubModell::ZUSTAND_FEHLER],
         'pause'         => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
         'cancelled'     => ['Abgebrochen', RoboHubModell::ZUSTAND_BEREIT],
+    ];
+
+    // Reinigungseinstellungen wie in der iRobot-App. Je Gruppe ein Wertepaar — der Roboter
+    // nimmt eine Gruppe nur vollständig an (roombapy set_preferences, am i3 gemessen).
+    private const EINSTELLUNGEN = [
+        'Saugstufe' => [
+            0 => ['Eco', ['carpetBoost' => false, 'vacHigh' => false]],
+            1 => ['Automatisch (Teppich-Boost)', ['carpetBoost' => true, 'vacHigh' => false]],
+            2 => ['Höchste Leistung', ['carpetBoost' => false, 'vacHigh' => true]],
+        ],
+        'Durchgaenge' => [
+            0 => ['Nach Raumgröße', ['noAutoPasses' => false, 'twoPass' => false]],
+            1 => ['Einmal', ['noAutoPasses' => true, 'twoPass' => false]],
+            2 => ['Zweimal', ['noAutoPasses' => true, 'twoPass' => true]],
+        ],
+        'Kantenreinigung' => [
+            0 => ['Aus', ['openOnly' => true]],
+            1 => ['An', ['openOnly' => false]],
+        ],
+        'BehaelterVoll' => [
+            0 => ['Weiter reinigen', ['binPause' => false]],
+            1 => ['Nicht reinigen, wenn voll', ['binPause' => true]],
+        ],
     ];
 
     // const.py ROOMBA_ERROR_MESSAGES (Auszug, deutsch).
@@ -364,6 +395,7 @@ class RoboHubIrobot implements RoboHubTreiber
             $this->dbg('Zustand', 'Kein neuer Stand, letzter von vor ' . $alter . ' s bleibt');
             $p = $alt;
         }
+        $this->wegMerken((string)$r['blid'], $p, $this->posen);
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
         $daten['online'] = true;
         $daten['bloecke'] = ['ok' => [0], 'fehl' => []];
@@ -384,20 +416,28 @@ class RoboHubIrobot implements RoboHubTreiber
     protected function stand(array $r): array
     {
         $this->nurStandFehlte = false;
+        $this->posen = [];
         $stand = [];
         $themen = [];
         $beginn = microtime(true);
         // Ältere Roboter (980) schicken ihren Stand langsam und in vielen Stücken → 15 s Fenster.
-        $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use (&$stand, &$themen): void {
+        // Während der Reinigung wenigstens 5 s zuhören: der 900er schickt dabei laufend seine
+        // Position (pose, mm ab Station) — daraus entsteht der Weg auf der Live-Karte.
+        $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use (&$stand, &$themen, $beginn): void {
             $s->senden(RoboHubMqtt::subscribe(1, ['#'], 0));
-            $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use (&$stand, &$themen): bool {
+            $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use (&$stand, &$themen, $beginn): bool {
                 $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
                 $themen[] = $pub['topic'] . ' (QoS ' . $pub['qos'] . ', ' . strlen($pub['payload']) . ' B)';
                 $j = json_decode($pub['payload'], true);
-                if (is_array($j)) {
-                    self::zusammenfuehren($stand, (array)($j['state']['reported'] ?? []));
+                $rep = is_array($j) ? (array)($j['state']['reported'] ?? []) : [];
+                self::zusammenfuehren($stand, $rep);
+                $pose = self::poseAus($rep);
+                if ($pose !== null) {
+                    $this->posen[] = $pose;
                 }
-                return isset($stand['cleanMissionStatus']['phase'], $stand['batPct'], $stand['bin']);
+                $fertig = isset($stand['cleanMissionStatus']['phase'], $stand['batPct'], $stand['bin']);
+                $faehrt = in_array($stand['cleanMissionStatus']['phase'] ?? '', ['run', 'hmUsrDock', 'hmMidMsn', 'hmPostMsn'], true);
+                return $fertig && (!$faehrt || microtime(true) - $beginn >= $this->posenFenster);
             }, $ende);
         }, 15.0);
         $this->dbg('Zustand', count($themen) . ' Meldung(en) in ' . round(microtime(true) - $beginn, 1) . ' s: ' . implode(', ', array_slice($themen, 0, 20)));
@@ -474,7 +514,37 @@ class RoboHubIrobot implements RoboHubTreiber
             // Der 980 schickt bbmssn nur selten, cleanMissionStatus.nMssn aber immer (Rohdaten Thilo 24.10.2026).
             $w['GesamtAnzahl'] = (int)$c['nMssn'];
         }
-        return ['werte' => $w, 'optionen' => [], 'schreibbar' => []];
+        $optionen = [];
+        foreach (self::EINSTELLUNGEN as $ident => $stufen) {
+            $wert = self::einstellungAus($p, $stufen);
+            if ($wert !== null) {
+                $w[$ident] = $wert;
+                $optionen[$ident] = array_map(function (array $s): string { return $s[0]; }, $stufen);
+            }
+        }
+        return ['werte' => $w, 'optionen' => $optionen, 'schreibbar' => []];
+    }
+
+    /** Welche Stufe passt zu den gemeldeten Schaltern? null, wenn einer fehlt oder keine passt. */
+    public static function einstellungAus(array $p, array $stufen): ?int
+    {
+        foreach ($stufen as $nr => [, $schalter]) {
+            $passt = true;
+            foreach ($schalter as $k => $v) {
+                if (!array_key_exists($k, $p) || (bool)$p[$k] !== $v) {
+                    $passt = false;
+                    break;
+                }
+            }
+            if ($passt) {
+                return $nr;
+            }
+        }
+        // carpetBoost und vacHigh beide an kommt vor: der Teppich-Boost hat Vorrang (wie Home Assistant).
+        if (isset($stufen[1][1]['carpetBoost']) && !empty($p['carpetBoost'])) {
+            return 1;
+        }
+        return null;
     }
 
     // =================================================================
@@ -493,6 +563,9 @@ class RoboHubIrobot implements RoboHubTreiber
             'station' => ['dock', 'Zur Station'],
             'orten'   => ['find', 'Orten'],
         ];
+        if ($befehl === 'setze') {
+            return $this->einstellungSetzen($r, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
+        }
         if (!isset($befehle[$befehl])) {
             throw new RoboHubFehler('Dieser Befehl wird für iRobot noch nicht unterstützt: ' . $befehl);
         }
@@ -511,6 +584,39 @@ class RoboHubIrobot implements RoboHubTreiber
     public static function kommandoNachricht(string $kommando, int $zeit): string
     {
         return (string)json_encode(['command' => $kommando, 'time' => $zeit, 'initiator' => 'localApp']);
+    }
+
+    /**
+     * Reinigungseinstellung als „delta" schicken (roombapy set_preferences) und warten,
+     * bis der Roboter die neuen Werte meldet (höchstens 8 s).
+     */
+    private function einstellungSetzen(array $r, string $feld, int $wert): string
+    {
+        $stufe = self::EINSTELLUNGEN[$feld][$wert] ?? null;
+        if ($stufe === null) {
+            throw new RoboHubFehler('Diese Einstellung gibt es bei iRobot nicht: ' . $feld . ' = ' . $wert);
+        }
+        [$name, $schalter] = $stufe;
+        $bestaetigt = false;
+        $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use ($schalter, &$bestaetigt): void {
+            $s->senden(RoboHubMqtt::subscribe(1, ['#'], 0));
+            $s->senden(RoboHubMqtt::publish('delta', (string)json_encode(['state' => $schalter])));
+            $gesehen = [];
+            $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use ($schalter, &$gesehen): bool {
+                $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
+                $rep = (array)(json_decode($pub['payload'], true)['state']['reported'] ?? []);
+                foreach ($schalter as $k => $v) {
+                    if (array_key_exists($k, $rep)) {
+                        $gesehen[$k] = (bool)$rep[$k] === $v;
+                    }
+                }
+                return count($gesehen) === count($schalter) && !in_array(false, $gesehen, true);
+            }, min($ende, microtime(true) + 8.0));
+            $bestaetigt = count($gesehen) === count($schalter) && !in_array(false, $gesehen, true);
+        }, 12.0);
+        $titel = RoboHubModell::FELDER[$feld][0] ?? $feld;
+        return $bestaetigt ? $titel . ': „' . $name . '" übernommen.'
+            : $titel . ': „' . $name . '" gesendet — der Roboter hat es (noch) nicht bestätigt.';
     }
 
     /** Phasen, an denen man sieht, dass der Roboter einen Befehl ausführt. */
@@ -621,9 +727,68 @@ class RoboHubIrobot implements RoboHubTreiber
         return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
     }
 
+    /**
+     * Live-Karte aus den beim Abruf gesammelten Positionen — ohne eigene Verbindung (der
+     * Roboter erlaubt nur eine). Ohne bekannte Position: keine Karte.
+     */
     public function liveKarte(array $buendel, array $geraet): array
     {
-        return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+        $weg = $this->wegLesen((string)($geraet['id'] ?? ''));
+        if ($weg['punkte'] === [] && $weg['zuletzt'] === null) {
+            return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+        }
+        return RoboHubKartenbild::positionsKarte(count($weg['punkte']) > 1 ? [$weg['punkte']] : [], $weg['zuletzt']);
+    }
+
+    /** pose aus einer Meldung: {"theta": °, "point": {"x": mm, "y": mm}} → [x, y, Winkel]. */
+    public static function poseAus(array $rep): ?array
+    {
+        $pt = $rep['pose']['point'] ?? null;
+        if (!is_array($pt) || !is_numeric($pt['x'] ?? null) || !is_numeric($pt['y'] ?? null)) {
+            return null;
+        }
+        return [(int)$pt['x'], (int)$pt['y'], is_numeric($rep['pose']['theta'] ?? null) ? (int)$rep['pose']['theta'] : 0];
+    }
+
+    public function wegDatei(string $blid): string
+    {
+        return sys_get_temp_dir() . '/robohub-irobot-weg-' . md5($blid) . '.json';
+    }
+
+    private function wegLesen(string $blid): array
+    {
+        $d = @json_decode((string)@file_get_contents($this->wegDatei($blid)), true);
+        return ['mission' => (string)($d['mission'] ?? ''), 'punkte' => (array)($d['punkte'] ?? []),
+            'zuletzt' => isset($d['zuletzt']) && is_array($d['zuletzt']) ? $d['zuletzt'] : null];
+    }
+
+    /**
+     * Weg der laufenden Reinigung fortschreiben. Neue Reinigung (anderer Startzeitpunkt) →
+     * neuer Weg; außerhalb einer Reinigung bleibt der letzte Weg stehen, nur die Position zählt.
+     */
+    public function wegMerken(string $blid, array $stand, array $posen): void
+    {
+        if ($posen === []) {
+            return;
+        }
+        $c = (array)($stand['cleanMissionStatus'] ?? []);
+        $weg = $this->wegLesen($blid);
+        $weg['zuletzt'] = end($posen);
+        if (($c['cycle'] ?? 'none') !== 'none') {
+            $mission = (string)(!empty($c['mssnStrtTm']) ? $c['mssnStrtTm'] : 'n' . (int)($c['nMssn'] ?? 0));
+            if ($mission !== $weg['mission']) {
+                $weg['mission'] = $mission;
+                $weg['punkte'] = [];
+            }
+            foreach ($posen as [$x, $y]) {
+                $letzter = end($weg['punkte']);
+                if ($letzter === false || abs($letzter[0] - $x) + abs($letzter[1] - $y) >= 50) {
+                    $weg['punkte'][] = [$x, $y];
+                }
+            }
+            $weg['punkte'] = array_slice($weg['punkte'], -5000);
+        }
+        @file_put_contents($this->wegDatei($blid), (string)json_encode($weg));
     }
 
     // =================================================================

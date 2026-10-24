@@ -286,6 +286,65 @@ final class RoboHubKartenbild
         return $aus;
     }
 
+    /**
+     * Karte ohne Grundriss für Roboter, die nur ihre Position melden (iRobot 900er):
+     * 1-m-Raster, Station im Ursprung, Weg und Roboter als Überlagerung der Kachel.
+     * $stuecke = Wegstücke in mm, $roboter = [x mm, y mm, Winkel °] oder null.
+     */
+    public static function positionsKarte(array $stuecke, ?array $roboter): array
+    {
+        $xs = [0.0];
+        $ys = [0.0];
+        foreach ($stuecke as $s) {
+            foreach ($s as [$x, $y]) {
+                $xs[] = (float)$x;
+                $ys[] = (float)$y;
+            }
+        }
+        if ($roboter !== null) {
+            $xs[] = (float)$roboter[0];
+            $ys[] = (float)$roboter[1];
+        }
+        $rand = 400.0;
+        $x1 = min($xs) - $rand;
+        $x2 = max($xs) + $rand;
+        $y1 = min($ys) - $rand;
+        $y2 = max($ys) + $rand;
+        // Mindestens 2 × 2 m, damit ein Roboter in der Station nicht ein riesiges Raster füllt.
+        if ($x2 - $x1 < 2000) {
+            [$x1, $x2] = [($x1 + $x2) / 2 - 1000, ($x1 + $x2) / 2 + 1000];
+        }
+        if ($y2 - $y1 < 2000) {
+            [$y1, $y2] = [($y1 + $y2) / 2 - 1000, ($y1 + $y2) / 2 + 1000];
+        }
+        $b = $x2 - $x1;
+        $h = $y2 - $y1;
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . round($b) . ' ' . round($h) . '">'
+            . '<rect width="100%" height="100%" rx="' . round(min($b, $h) * 0.03) . '" fill="#8e8e93" fill-opacity="0.12"/>';
+        $breiteLinie = max($b, $h) / 400;
+        for ($gx = ceil($x1 / 1000) * 1000; $gx <= $x2; $gx += 1000) {
+            $svg .= '<line x1="' . round($gx - $x1) . '" y1="0" x2="' . round($gx - $x1) . '" y2="' . round($h) . '" stroke="#8e8e93" stroke-opacity="0.35" stroke-width="' . round($breiteLinie, 1) . '"/>';
+        }
+        for ($gy = ceil($y1 / 1000) * 1000; $gy <= $y2; $gy += 1000) {
+            $svg .= '<line x1="0" y1="' . round($y2 - $gy) . '" x2="' . round($b) . '" y2="' . round($y2 - $gy) . '" stroke="#8e8e93" stroke-opacity="0.35" stroke-width="' . round($breiteLinie, 1) . '"/>';
+        }
+        $svg .= '</svg>';
+        $g = ['art' => 'mm', 'x1' => $x1, 'y2' => $y2, 'b' => $b, 'h' => $h];
+        $aus = [
+            'raeume'    => [],
+            'bild'      => 'data:image/svg+xml;base64,' . base64_encode($svg),
+            'marken'    => [],
+            'station'   => self::prozentPunkt($g, 0.0, 0.0),
+            'format'    => round($b / $h, 3),
+            'geometrie' => $g,
+            'weg'       => self::wegNachProzent($stuecke, $g),
+        ];
+        if ($roboter !== null) {
+            $aus['roboter'] = self::prozentPunkt($g, (float)$roboter[0], (float)$roboter[1]) + ['winkel' => (int)round((float)$roboter[2])];
+        }
+        return $aus;
+    }
+
     /** Karten-mm → Bild-% nach der Geometrie eines Kartenbilds (Sauger-Raster oder Mäher-mm). */
     public static function prozentPunkt(array $g, float $x, float $y): array
     {

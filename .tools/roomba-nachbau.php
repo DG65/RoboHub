@@ -84,7 +84,14 @@ while (time() < $schluss) {
                 $stuecke = [
                     ['wifistat', '{"state":{"reported":{"signal":{"rssi":-50}}}}'],
                     [$t, json_encode(['state' => ['reported' => ['batPct' => 87, 'cleanMissionStatus' => ['cycle' => 'clean', 'phase' => 'run', 'error' => 0, 'mssnM' => 12, 'sqft' => 215]]]])],
-                    [$t, json_encode(['state' => ['reported' => ['bin' => ['present' => true, 'full' => false], 'bbrun' => ['hr' => 123, 'min' => 4], 'bbmssn' => ['nMssn' => 321]]]])],
+                    [$t, json_encode(['state' => ['reported' => ['bin' => ['present' => true, 'full' => false], 'bbrun' => ['hr' => 123, 'min' => 4], 'bbmssn' => ['nMssn' => 321],
+                        // Einstellungen wie in Thilos Rohdaten (24.10.2026)
+                        'carpetBoost' => $einst['carpetBoost'] ?? true, 'vacHigh' => $einst['vacHigh'] ?? false, 'noAutoPasses' => $einst['noAutoPasses'] ?? false,
+                        'twoPass' => $einst['twoPass'] ?? false, 'openOnly' => $einst['openOnly'] ?? false, 'binPause' => $einst['binPause'] ?? true]]])],
+                    // Position während der Fahrt (pose in mm ab Station, Winkel in Grad)
+                    [$t, '{"state":{"reported":{"pose":{"theta":0,"point":{"x":300,"y":0}}}}}'],
+                    [$t, '{"state":{"reported":{"pose":{"theta":90,"point":{"x":1200,"y":0}}}}}'],
+                    [$t, '{"state":{"reported":{"pose":{"theta":90,"point":{"x":1200,"y":900}}}}}'],
                 ];
                 if (is_file($protokoll . '.nurfunk')) {
                     // wie der 980 sporadisch: nur Funkmeldungen, kein Stand
@@ -111,6 +118,14 @@ while (time() < $schluss) {
             } elseif ($p['typ'] === RoboHubMqtt::PUBLISH) {
                 $pub = RoboHubMqtt::publishLesen($p['flags'], $p['body']);
                 $log('befehl ' . $pub['topic'] . ' ' . $pub['payload']);
+                if ($pub['topic'] === 'delta') {
+                    // Einstellung übernehmen und wie der Roboter zurückmelden
+                    $neu = (array)(json_decode($pub['payload'], true)['state'] ?? []);
+                    $einst = $neu + ($einst ?? []);
+                    if (!is_file($protokoll . '.taub')) {
+                        fwrite($c, RoboHubMqtt::publish('$aws/things/3176C41234567890/shadow/update', json_encode(['state' => ['reported' => $neu]])));
+                    }
+                }
                 // Wie ein echter Roboter: neue Phase melden (außer der Prüfstand will Schweigen).
                 $neuePhase = ['start' => 'run', 'resume' => 'run', 'pause' => 'stop', 'stop' => 'stop', 'dock' => 'hmUsrDock'][json_decode($pub['payload'], true)['command'] ?? ''] ?? null;
                 // Wie der 980: „dock" mitten in der Reinigung wird ignoriert (erst anhalten).

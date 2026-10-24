@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.18.14-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.19.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -173,12 +173,14 @@ nicht offiziell dokumentiert und kann sich ändern.
   geprüft (die signierte Anfrage an die Ecovacs-Anmeldung ist live bestätigt). Ältere Modelle mit
   XML-Protokoll meldet RoboHub als „noch nicht unterstützt". Raumnamen nur bei Modellen mit
   unkomprimierter Raumliste; noch ohne Kartenbild, Echtzeit und Zeitpläne.
-- **iRobot** (seit 0.16.0): lokal nach roombapy gebaut, gegen einen nachgestellten Roboter mit echtem
-  TLS/MQTT geprüft, an keinem echten Gerät. Modelle, die ihr Passwort nur über die iRobot-Cloud
+- **iRobot** (seit 0.16.0): lokal nach roombapy gebaut; Abruf und Befehle an zwei Roomba 980 im Forum
+  bestätigt (Oktober 2026). Seit 0.19.0 Reinigungseinstellungen wie in der iRobot-App (Saugleistung,
+  Durchgänge, Kanten-Reinigung, Verhalten bei vollem Behälter) und eine Positionskarte mit dem Weg der
+  laufenden Reinigung — beides abschaltbar. Modelle, die ihr Passwort nur über die iRobot-Cloud
   herausgeben, gehen (noch) nicht. Ein Roboter erlaubt nur eine lokale Verbindung gleichzeitig — läuft
   daneben z. B. Home Assistant lokal, stören sich beide. Ältere Firmware (z. B. Roomba 980 mit 2.x), die
   OpenSSL 3 ablehnt, spricht RoboHub seit 0.18.6 über einen eigenen TLS-1.2-Weg an. Ohne Räume (Namen nur in der Cloud),
-  Verschleißteile, Karte und Echtzeit.
+  Verschleißteile, Grundriss und Echtzeit.
 - **Husqvarna Automower** (seit 0.17.0): offizielle Automower Connect API nach aioautomower, an keinem
   echten Mäher geprüft (Token-Adresse live bestätigt). Daten höchstens 5 Minuten alt (Limit 10.000
   Abfragen/Monat), „Start" mäht 3 Stunden bzw. setzt nach einer Pause den Zeitplan fort. Noch ohne

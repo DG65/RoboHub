@@ -33,6 +33,8 @@ $GLOBALS['INST'] = [];     // InstanceID => Modulobjekt
 
 function IPS_GetKernelRunlevel(): int { return KR_READY; }
 function IPS_Sleep(int $ms): void {}
+function IPS_SetHidden(int $id, bool $v): bool { $GLOBALS['OBJ'][$id]['hidden'] = $v; return true; }
+function IPS_GetObject(int $id): array { return ['ObjectIsHidden' => (bool)($GLOBALS['OBJ'][$id]['hidden'] ?? false), 'ObjectIdent' => $GLOBALS['OBJ'][$id]['ident'] ?? '']; }
 function IPS_GetObjectIDByIdent(string $ident, int $parent) {
     foreach ($GLOBALS['OBJ'] as $id => $o) { if ($o['ident'] === $ident && $o['parent'] === $parent) { return $id; } }
     return false;

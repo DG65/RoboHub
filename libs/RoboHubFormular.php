@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.19.0' => [
+            '• iRobot: Reinigungseinstellungen wie in der iRobot-App — Saugleistung, Reinigungsdurchgänge, Kanten-Reinigung und Verhalten bei vollem Behälter, lesbar und umstellbar.',
+            '• iRobot (900er wie der 980): Positionskarte mit dem gefahrenen Weg der laufenden Reinigung, Roboter mit Blickrichtung und Station.',
+            '• Neue Einstellung „Einstellungen des Roboters zeigen" (unter „Kachel und IPSView"): aus = Einstellungs-Variablen in der Visualisierung versteckt und nicht in der Kachel, bedienbar bleiben sie in der Konsole und per Skript. Gilt für alle Hersteller.',
+        ],
         '0.18.14' => [
             '• iRobot: „Reinigungen gesamt" erscheint jetzt bei jedem Roomba sofort, nicht erst, wenn der Roboter seine Statistik schickt.',
         ],

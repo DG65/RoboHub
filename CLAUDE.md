@@ -376,6 +376,10 @@
   980 während der Reinigung 0 → 0.18.13 Dauer aus `mssnStrtTm`. Rohdaten nach der Reinigung: `cleanMissionStatus` komplett
   auf 0 zurückgesetzt (auch `mssnStrtTm`) — Fläche kommt nie. `nMssn` immer da → 0.18.14 „Reinigungen gesamt". Der 980
   liefert außerdem `pose`, `vacHigh`/`carpetBoost`, `noAutoPasses`/`twoPass` (Ideen: Live-Position, Saugstufe/Durchgänge).
+- **Einstellungen + Position (0.19.0, Dietmars Auftrag 24.10.2026, „einstellbar machen"):** `EINSTELLUNGEN` im Treiber
+  (Paare per `delta`, roombapy set_preferences), Felder Durchgaenge/Kantenreinigung/BehaelterVoll. Positionen aus `pose`
+  beim Abruf (`posenFenster` 5 s), Weg-Datei `robohub-irobot-weg-<md5 blid>.json`, `positionsKarte()`. Geräte-Property
+  `EinstellungenZeigen` (alle Hersteller). Beschriftung der Saugleistung gegen die App offen (Thilos App zeigt „Mittel").
 - Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 

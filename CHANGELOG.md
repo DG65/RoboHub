@@ -2,6 +2,26 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.19.0 (24.10.2026)
+
+- Forum (Thilo, zwei Roomba 980): Einstellungen wie in der iRobot-App gewünscht (nicht in der Visu); Positionsanzeige
+  für ihn unwichtig. Dietmars Auftrag: beides bauen, abschaltbar.
+- iRobot-Einstellungen als Auswahl-Variablen (Weg `optionen` → `setze`), gelesen aus den Schaltern im Stand, geschrieben
+  als `delta` {"state": …} — Saugleistung (`carpetBoost`/`vacHigh`: Eco / Automatisch / Höchste Leistung, Zuordnung wie
+  Home Assistant), Durchgänge (`noAutoPasses`/`twoPass`: nach Raumgröße / einmal / zweimal) je als **Paar** (roombapy
+  `set_preferences`: halbe Gruppen ignoriert der Roboter stillschweigend), Kanten-Reinigung (`openOnly` invertiert),
+  Verhalten bei vollem Behälter (`binPause`). Rückmeldung „übernommen", wenn der Roboter die Werte zurückmeldet (≤ 8 s).
+  Neue Felder `Durchgaenge`, `Kantenreinigung`, `BehaelterVoll` (Modell, Position 33–35). Vergleich: openHAB hat alle
+  vier als Kanäle, Home Assistant nur die Saugleistung.
+- Position (900er, `pose` in mm/° ab Station): beim Abruf während der Fahrt wenigstens 5 s zuhören, Positionen je
+  Reinigung (Startzeitpunkt) in einer Temp-Datei sammeln (≥ 5 cm Abstand, höchstens 5000 Punkte). `liveKarte()` baut
+  daraus ohne eigene Verbindung `RoboHubKartenbild::positionsKarte()` (1-m-Raster, Station, Weg, Roboter mit Winkel).
+  Abschaltbar über die vorhandenen „Kartenbild zeigen"/„Live-Karte".
+- Gerät: Property `EinstellungenZeigen` (Standard an) für alle Hersteller — aus: Einstellungs-Variablen versteckt
+  (`IPS_SetHidden`), nicht im Kachel-Überblick; Aktion bleibt.
+- Prüfstand: nachgestellter Roboter liefert Einstellungen (wie Thilos Rohdaten) und Positionen, nimmt `delta` an;
+  Mutationen (Paar halbiert, Kanten vertauscht, Verstecken wirkungslos, Positionen nicht gesammelt) gefangen.
+
 ## 0.18.14 (24.10.2026)
 
 - Rohdaten Thilo (980 „Schlafzimmer", ohne App, nach einer Reinigung in der Station): `cleanMissionStatus` ist
@@ -238,25 +258,3 @@
   übernimmt ein Timer (15 s, `ROBOHUB_VerbindungPruefen`) die Anlage nur, wenn dann noch keiner da
   ist; ein inzwischen überflüssiger eigener Socket wird wieder gelöscht.
 - Hersteller ohne Konto-Echtzeit bekommen keinen Client Socket mehr.
-
-## 0.14.0 (13.10.2026)
-
-- **Neuer Treiber Worx/Kress/LandXcape/Ferrex** (`libs/RoboHubWorx.php`, nach ioBroker.worx, MIT):
-  - Anmeldung OAuth „password" je Marke (eigener Login-Server und App-Client), danach nur der
-    rotierende Erneuerungsschlüssel; Passwort wird verworfen.
-  - Geräte und Zustand aus `/api/v2/product-items?status=1` (letzter vom Mäher gemeldeter Status):
-    Statuscodes ls (Zu Hause + Laden = Lädt, Regenverzögerung = Wetterpause), Fehler le, Akku,
-    Laden, Regensensor, Mähzeit gesamt.
-  - Befehle Start 1 / Pause 2 / Stopp 2 / Zur Station 3 über MQTT an `mqtt_topics.command_in`:
-    WebSocket `/mqtt` zum AWS-IoT-Endpunkt (Amazon Root CA 1 gepinnt), Zugangsschlüssel im
-    Benutzernamen (wie pyworxcloud), QoS 1 mit Bestätigung. Nachricht wie ioBroker sendPing
-    (Draht-Mäher sn/tm/dt, Vision-Mäher uuid/ISO-Zeit).
-- **Gemeinsame MQTT-Sitzung** `libs/RoboHubMqttSitzung.php` (TLS immer geprüft, wahlweise WebSocket
-  nach RFC 6455); Roborock nutzt sie jetzt auch. `RoboHubMqtt`: PUBLISH mit QoS 1, CONNECT ohne
-  Passwort.
-- Konto: zentrale Herstellerliste (Auswahl, Anzeige, Code-Anmeldung, Regionswahl); Region nur noch
-  bei Dreame/MOVA; Echtzeit-Hinweis je Treiber (`echtzeitMoeglich`).
-- Prüfstand: WebSocket-Werte aus RFC 6455, MQTT-Benutzername gegen Python `urllib.quote`, echte
-  Treiberwahl je Hersteller; 18 Mutationen gefangen. Echt geprüft: WebSocket-Handschlag mit
-  iot.eu-west-1.worxlandroid.com (101 + Accept), falsche Wurzel abgelehnt — ohne Anmeldung.
-  **Nicht an einem echten Mäher getestet.**

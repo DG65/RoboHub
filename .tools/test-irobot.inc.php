@@ -54,6 +54,7 @@ check('stuck + Fehler 17 = Fehler „Weg versperrt", Behälter fehlt', $s['Zusta
 // ===========================================================================
 abschnitt('iRobot: nachgestellter Roboter (echtes TLS, UDP, MQTT)');
 @unlink((new RoboHubIrobot())->suchMerkDatei('127.0.0.1'));
+@unlink((new RoboHubIrobot())->wegDatei('3176C41234567890'));   // kein Weg aus einem früheren Lauf
 $n1 = roombaNachbau();
 check('nachgestellter Roboter läuft', $n1[2] > 0 && $n1[3] > 0 && strlen($n1[4]) === 64, json_encode([$n1[2], $n1[3], $n1[4]]));
 $fabrikIr = $GLOBALS['robohubTreiberFabrik'];
@@ -62,6 +63,7 @@ $GLOBALS['robohubTreiberFabrik'] = function (string $marke) use ($fabrikIr, &$n1
         return $fabrikIr($marke);
     }
     $t = new RoboHubIrobot();
+    $t->posenFenster = 0.5;
     $t->port = $n1[2];
     $t->suchPort = $n1[3];
     return $t;
@@ -172,6 +174,7 @@ $GLOBALS['robohubTreiberFabrik'] = function (string $marke) use ($fabrikIr, &$n3
         return $fabrikIr($marke);
     }
     $altTreiber = new AltRoomba();
+    $altTreiber->posenFenster = 0.5;
     $altTreiber->port = $n3[2];
     $altTreiber->suchPort = $n3[3];
     return $altTreiber;
@@ -193,6 +196,41 @@ $ar->parent = $ak;
 $ar->ApplyChanges();
 $t = $ar->Aktualisieren();
 check('MQTT über den eigenen Weg: Zustand und Akku', variable(7300, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT && variable(7300, 'Akku')['value'] === 87, $t);
+@unlink((new RoboHubIrobot())->wegDatei('3176C41234567890'));
+$ar->Aktualisieren();
+check('Einstellungen wie in der iRobot-App gelesen (Thilos Rohdaten): Automatisch, nach Raumgröße, Kanten an, bei vollem Behälter anhalten',
+    variable(7300, 'Saugstufe')['value'] === 1 && variable(7300, 'Durchgaenge')['value'] === 0 && variable(7300, 'Kantenreinigung')['value'] === 1
+    && variable(7300, 'BehaelterVoll')['value'] === 1 && variable(7300, 'Durchgaenge')['action'] === true);
+$weg = json_decode((string)@file_get_contents((new RoboHubIrobot())->wegDatei('3176C41234567890')), true);
+check('Positionen beim Abruf während der Fahrt gesammelt (Weg der laufenden Reinigung)', count($weg['punkte'] ?? []) >= 3 && ($weg['zuletzt'] ?? null) === [1200, 900, 90], json_encode($weg));
+$ar->RequestAction('Durchgaenge', 2);
+$lg = (string)file_get_contents($n3[5]);
+check('Durchgänge „Zweimal" als Paar per delta (einzeln ignoriert der Roboter es)', strpos($lg, 'befehl delta {"state":{"noAutoPasses":true,"twoPass":true}}') !== false
+    && variable(7300, 'Durchgaenge')['value'] === 2, $lg);
+$ar->RequestAction('Saugstufe', 2);
+check('Saugstufe „Höchste Leistung" = carpetBoost aus, vacHigh an', strpos((string)file_get_contents($n3[5]), '{"carpetBoost":false,"vacHigh":true}') !== false);
+$ar->Aktualisieren();
+check('Roboter meldet die neuen Werte zurück → Variablen bleiben', variable(7300, 'Durchgaenge')['value'] === 2 && variable(7300, 'Saugstufe')['value'] === 2);
+$k = kachelJson($ar->GetVisualizationTile());
+check('Kachel-Überblick zeigt die Einstellungen mit Namen', in_array('Reinigungsdurchgänge: Zweimal', $k['info'] ?? [], true), json_encode($k['info'] ?? null, JSON_UNESCAPED_UNICODE));
+$ar->props['EinstellungenZeigen'] = false;
+$ar->ApplyChanges();
+$k = kachelJson($ar->GetVisualizationTile());
+$vid = IPS_GetObjectIDByIdent('Durchgaenge', 7300);
+check('„Einstellungen zeigen" aus → Variablen versteckt, Kachel ohne Einstellungen, bedienbar bleiben sie', IPS_GetObject($vid)['ObjectIsHidden'] === true
+    && !in_array('Reinigungsdurchgänge: Zweimal', $k['info'] ?? [], true) && variable(7300, 'Durchgaenge')['action'] === true);
+$ar->props['EinstellungenZeigen'] = true;
+$ar->ApplyChanges();
+check('… wieder an → sichtbar', IPS_GetObject($vid)['ObjectIsHidden'] === false);
+$t = $ar->LiveKarteLaden();
+$k = kachelJson($ar->GetVisualizationTile());
+check('Live-Karte aus den beim Abruf gesammelten Positionen: Weg, Roboter mit Blickrichtung, Station', count($k['karte']['weg'][0] ?? []) >= 3
+    && ($k['karte']['roboter']['winkel'] ?? null) === 90 && isset($k['karte']['station']['x']) && strpos((string)($k['karte']['bild'] ?? ''), 'data:image/svg+xml') === 0, $t . ' ' . json_encode($k['karte'] ?? null));
+$ar->props['KarteZeigen'] = false;
+$ar->ApplyChanges();
+check('Positionskarte abschaltbar („Kartenbild zeigen" aus → keine Karte auf der Kachel)', kachelJson($ar->GetVisualizationTile())['karte'] === null);
+$ar->props['KarteZeigen'] = true;
+$ar->ApplyChanges();
 check('Stand mit QoS 1: jedes Stück bestätigt (PUBACK), sonst käme beim 980 nichts nach', substr_count((string)file_get_contents($n3[5]), 'puback') >= 2, (string)file_get_contents($n3[5]));
 AltRoomba::$wege = [];
 $ar->Aktualisieren();
@@ -277,3 +315,4 @@ $stoererEnde($s2);
 roombaEnde($n3);
 $GLOBALS['robohubTreiberFabrik'] = $fabrikIr;
 @unlink((new RoboHubIrobot())->suchMerkDatei('127.0.0.1'));
+@unlink((new RoboHubIrobot())->wegDatei('3176C41234567890'));
