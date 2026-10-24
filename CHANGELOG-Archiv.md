@@ -2,6 +2,16 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.14.1 (13.10.2026)
+
+- Fix (Forum, Torsten, Dreame L10): Beim Neuanlegen eines Kontos meldete die Konsole „Konnte nicht zur
+  Instanz verbinden — Instanz … hat bereits ein übergeordnetes Objekt (Code -32603)". Ursache: RoboHub
+  legte in `ApplyChanges` sofort einen eigenen Client Socket an und verband ihn (Weg für Bestandskonten,
+  bei denen `RequireParent` nichts anlegt); die Konsole wollte danach ihren eigenen einhängen. Jetzt
+  übernimmt ein Timer (15 s, `ROBOHUB_VerbindungPruefen`) die Anlage nur, wenn dann noch keiner da
+  ist; ein inzwischen überflüssiger eigener Socket wird wieder gelöscht.
+- Hersteller ohne Konto-Echtzeit bekommen keinen Client Socket mehr.
+
 ## 0.14.0 (13.10.2026)
 
 - **Neuer Treiber Worx/Kress/LandXcape/Ferrex** (`libs/RoboHubWorx.php`, nach ioBroker.worx, MIT):

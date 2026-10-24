@@ -57,25 +57,26 @@ class RoboHubIrobot implements RoboHubTreiber
         'cancelled'     => ['Abgebrochen', RoboHubModell::ZUSTAND_BEREIT],
     ];
 
-    // Reinigungseinstellungen wie in der iRobot-App. Je Gruppe ein Wertepaar — der Roboter
+    // Reinigungseinstellungen mit den Namen der iRobot-App (Bildschirmfotos Thilo 24.10.2026: Saugleistung
+    // „Mittel" = carpetBoost an, passt zu Home Assistants „Automatic"). Je Gruppe ein Wertepaar — der Roboter
     // nimmt eine Gruppe nur vollständig an (roombapy set_preferences, am i3 gemessen).
     private const EINSTELLUNGEN = [
         'Saugstufe' => [
-            0 => ['Eco', ['carpetBoost' => false, 'vacHigh' => false]],
-            1 => ['Automatisch (Teppich-Boost)', ['carpetBoost' => true, 'vacHigh' => false]],
-            2 => ['Höchste Leistung', ['carpetBoost' => false, 'vacHigh' => true]],
+            0 => ['Niedrig', ['carpetBoost' => false, 'vacHigh' => false]],
+            1 => ['Mittel', ['carpetBoost' => true, 'vacHigh' => false]],
+            2 => ['Hoch', ['carpetBoost' => false, 'vacHigh' => true]],
         ],
         'Durchgaenge' => [
-            0 => ['Nach Raumgröße', ['noAutoPasses' => false, 'twoPass' => false]],
-            1 => ['Einmal', ['noAutoPasses' => true, 'twoPass' => false]],
-            2 => ['Zweimal', ['noAutoPasses' => true, 'twoPass' => true]],
+            0 => ['Reinigung nach Raumgröße', ['noAutoPasses' => false, 'twoPass' => false]],
+            1 => ['Einfach-Reinigung', ['noAutoPasses' => true, 'twoPass' => false]],
+            2 => ['Zweifach-Reinigung', ['noAutoPasses' => true, 'twoPass' => true]],
         ],
         'Kantenreinigung' => [
             0 => ['Aus', ['openOnly' => true]],
             1 => ['An', ['openOnly' => false]],
         ],
         'BehaelterVoll' => [
-            0 => ['Weiter reinigen', ['binPause' => false]],
+            0 => ['Weiter reinigen, wenn voll', ['binPause' => false]],
             1 => ['Nicht reinigen, wenn voll', ['binPause' => true]],
         ],
     ];

@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.19.1' => [
+            '• iRobot: Die Einstellungen heißen jetzt wie in der iRobot-App (Saugleistung Niedrig/Mittel/Hoch, Einfach-/Zweifach-Reinigung, Reinigung nach Raumgröße).',
+        ],
         '0.19.0' => [
             '• iRobot: Reinigungseinstellungen wie in der iRobot-App — Saugleistung, Reinigungsdurchgänge, Kanten-Reinigung und Verhalten bei vollem Behälter, lesbar und umstellbar.',
             '• iRobot (900er wie der 980): Positionskarte mit dem gefahrenen Weg der laufenden Reinigung, Roboter mit Blickrichtung und Station.',

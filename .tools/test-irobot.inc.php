@@ -205,20 +205,20 @@ $weg = json_decode((string)@file_get_contents((new RoboHubIrobot())->wegDatei('3
 check('Positionen beim Abruf während der Fahrt gesammelt (Weg der laufenden Reinigung)', count($weg['punkte'] ?? []) >= 3 && ($weg['zuletzt'] ?? null) === [1200, 900, 90], json_encode($weg));
 $ar->RequestAction('Durchgaenge', 2);
 $lg = (string)file_get_contents($n3[5]);
-check('Durchgänge „Zweimal" als Paar per delta (einzeln ignoriert der Roboter es)', strpos($lg, 'befehl delta {"state":{"noAutoPasses":true,"twoPass":true}}') !== false
+check('Durchgänge „Zweifach-Reinigung" als Paar per delta (einzeln ignoriert der Roboter es)', strpos($lg, 'befehl delta {"state":{"noAutoPasses":true,"twoPass":true}}') !== false
     && variable(7300, 'Durchgaenge')['value'] === 2, $lg);
 $ar->RequestAction('Saugstufe', 2);
-check('Saugstufe „Höchste Leistung" = carpetBoost aus, vacHigh an', strpos((string)file_get_contents($n3[5]), '{"carpetBoost":false,"vacHigh":true}') !== false);
+check('Saugstufe „Hoch" = carpetBoost aus, vacHigh an', strpos((string)file_get_contents($n3[5]), '{"carpetBoost":false,"vacHigh":true}') !== false);
 $ar->Aktualisieren();
 check('Roboter meldet die neuen Werte zurück → Variablen bleiben', variable(7300, 'Durchgaenge')['value'] === 2 && variable(7300, 'Saugstufe')['value'] === 2);
 $k = kachelJson($ar->GetVisualizationTile());
-check('Kachel-Überblick zeigt die Einstellungen mit Namen', in_array('Reinigungsdurchgänge: Zweimal', $k['info'] ?? [], true), json_encode($k['info'] ?? null, JSON_UNESCAPED_UNICODE));
+check('Kachel-Überblick zeigt die Einstellungen mit Namen', in_array('Reinigungsdurchgänge: Zweifach-Reinigung', $k['info'] ?? [], true), json_encode($k['info'] ?? null, JSON_UNESCAPED_UNICODE));
 $ar->props['EinstellungenZeigen'] = false;
 $ar->ApplyChanges();
 $k = kachelJson($ar->GetVisualizationTile());
 $vid = IPS_GetObjectIDByIdent('Durchgaenge', 7300);
 check('„Einstellungen zeigen" aus → Variablen versteckt, Kachel ohne Einstellungen, bedienbar bleiben sie', IPS_GetObject($vid)['ObjectIsHidden'] === true
-    && !in_array('Reinigungsdurchgänge: Zweimal', $k['info'] ?? [], true) && variable(7300, 'Durchgaenge')['action'] === true);
+    && !in_array('Reinigungsdurchgänge: Zweifach-Reinigung', $k['info'] ?? [], true) && variable(7300, 'Durchgaenge')['action'] === true);
 $ar->props['EinstellungenZeigen'] = true;
 $ar->ApplyChanges();
 check('… wieder an → sichtbar', IPS_GetObject($vid)['ObjectIsHidden'] === false);

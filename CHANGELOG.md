@@ -2,6 +2,13 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.19.1 (24.10.2026)
+
+- Forum (Thilo, 0.19.0): alle vier Einstellungen am Schlafzimmer-Roomba = iRobot-App (Bildschirmfotos). **Live
+  bestätigt (Lesen).** Beschriftungen auf die App umgestellt: Saugleistung Niedrig / **Mittel (= carpetBoost)** / Hoch,
+  Durchgänge Einfach-/Zweifach-Reinigung / Reinigung nach Raumgröße, Behälter „Weiter reinigen, wenn voll" /
+  „Nicht reinigen, wenn voll". Werte und Idents unverändert, nur die Aufzählungstexte.
+
 ## 0.19.0 (24.10.2026)
 
 - Forum (Thilo, zwei Roomba 980): Einstellungen wie in der iRobot-App gewünscht (nicht in der Visu); Positionsanzeige
@@ -248,13 +255,3 @@
 - Prüfstand: Signatur gegen Python-Referenz, RSA mit eigenem Schlüsselpaar, Bestätigungsablauf,
   Neuanmeldung mit Hash; 19 Mutationen gefangen. Live geprüft (ohne Konto): signierte Abfrage
   `common/getConfig` von Ecovacs angenommen, 1024-Bit-Schlüssel geliefert. **Kein Gerät live getestet.**
-
-## 0.14.1 (13.10.2026)
-
-- Fix (Forum, Torsten, Dreame L10): Beim Neuanlegen eines Kontos meldete die Konsole „Konnte nicht zur
-  Instanz verbinden — Instanz … hat bereits ein übergeordnetes Objekt (Code -32603)". Ursache: RoboHub
-  legte in `ApplyChanges` sofort einen eigenen Client Socket an und verband ihn (Weg für Bestandskonten,
-  bei denen `RequireParent` nichts anlegt); die Konsole wollte danach ihren eigenen einhängen. Jetzt
-  übernimmt ein Timer (15 s, `ROBOHUB_VerbindungPruefen`) die Anlage nur, wenn dann noch keiner da
-  ist; ein inzwischen überflüssiger eigener Socket wird wieder gelöscht.
-- Hersteller ohne Konto-Echtzeit bekommen keinen Client Socket mehr.
