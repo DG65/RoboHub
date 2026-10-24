@@ -380,7 +380,8 @@
   (Paare per `delta`, roombapy set_preferences), Felder Durchgaenge/Kantenreinigung/BehaelterVoll. Positionen aus `pose`
   beim Abruf (`posenFenster` 5 s), Weg-Datei `robohub-irobot-weg-<md5 blid>.json`, `positionsKarte()`. Geräte-Property
   `EinstellungenZeigen` (alle Hersteller). Lesen live bestätigt (Thilo 24.10.2026, alle vier = App); 0.19.1 Namen wie App (Mittel = carpetBoost).
-  Schreiben und Positionskarte live offen.
+  Schreiben live bestätigt (0.19.1, alle vier, App übernimmt). Positionskarte live offen. Seit 0.19.2 steuert
+  `EinstellungenZeigen` nur den Kachel-Überblick (Thilo: Variablen sollen bleiben), kein IPS_SetHidden mehr.
 - Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 

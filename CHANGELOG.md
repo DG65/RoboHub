@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.19.2 (24.10.2026)
+
+- Forum (Thilo, 0.19.1): Umstellen aller vier iRobot-Einstellungen funktioniert, die App übernimmt sie — **Schreiben
+  live bestätigt.** Gleichzeitig offene iRobot-App → RoboHub-Fehler (Roboter erlaubt eine Verbindung); die Meldung nach
+  dem zweiten abgewiesenen Versuch nennt jetzt diese Ursache.
+- Wunsch: der Schalter soll nur die Kachel betreffen, nicht die Variablen. `EinstellungenZeigen` steuert jetzt nur den
+  Überblick der Kachel; `IPS_SetHidden` entfällt. Einmalige Rücknahme (Attribut `EinstellungenFreigegeben`): bei
+  ausgeschaltetem Schalter werden versteckte Einstellungs-Variablen wieder sichtbar, danach bleibt eigenes Verstecken
+  unangetastet.
+- Kachel-Überblick: Einstellungen mit Namen („Saugstufe: Hoch"), außer Reinigungsmodus.
+
 ## 0.19.1 (24.10.2026)
 
 - Forum (Thilo, 0.19.0): alle vier Einstellungen am Schlafzimmer-Roomba = iRobot-App (Bildschirmfotos). **Live
@@ -233,25 +244,3 @@
 - Prüfstand: nachgestellter Roboter (`.tools/roomba-nachbau.php`) mit echtem UDP, TLS (selbst ausgestelltes
   Zertifikat) und MQTT; Koppeln, Abruf, Befehle, zweites Gerät mit anderem Zertifikat (abgelehnt, keine
   Anmeldedaten gesendet); 11 Mutationen gefangen. **Kein echter Roboter getestet.**
-
-## 0.15.0 (13.10.2026)
-
-- **Neuer Treiber Ecovacs** (`libs/RoboHubEcovacs.php`), neu geschrieben nach der Protokollbeschreibung von
-  DeebotUniverse/client.py (GPL-3.0, kein Code übernommen):
-  - Anmeldung: signierte private API (`user/login`, md5-Passwort), Auth-Code, `loginByItToken` am Portal
-    des Kontinents. Gerätebestätigung (Code 1013) zweistufig: RSA-verschlüsselte E-Mail
-    (`common/getConfig` → `user/sendEmailVerifyCode`), Code → `user/verifyDevice`.
-  - Zugangsdaten nach Dietmars Entscheidung: md5-Hash im Bündel (Attribut), automatische Neuanmeldung
-    vor Ablauf (7 Tage); Abmelden löscht ihn.
-  - Geräte aus `GetDeviceList` + `GetGlobalDeviceList`; Befehle per HTTP `iot/devmanager.do` (JSON).
-    Klassenlisten (XML / clean_V2 / Mäher) aus deebot_client/hardware abgeleitet.
-  - Zustand (getCleanInfo[_V2], Laden, Akku, Fehler), Saugstufe, Verschleiß (brush/sideBrush/heap/unitCare/
-    roundMop bzw. blade/lensBrush), Gesamtstatistik, Lautstärke; Räume über getCachedMapInfo → getMapSet →
-    getMapSubSet (Raumtyp-Namen deutsch). Befehle Start/Fortsetzen, Pause, Stopp, Station, Orten (Ton),
-    Räume (spotArea), Saugstufe, Lautstärke, Verschleiß zurücksetzen.
-- Konto: Herstellerliste um Ecovacs (Land statt Region), zweistufige Anmeldung allgemein
-  (`RoboHubFehler::$vorstufe`, Attribut `AnmeldeVorstufe`, `anmeldenMitCode`).
-- `curl_close()` entfernt (seit PHP 8.0 wirkungslos, unter 8.5 veraltet).
-- Prüfstand: Signatur gegen Python-Referenz, RSA mit eigenem Schlüsselpaar, Bestätigungsablauf,
-  Neuanmeldung mit Hash; 19 Mutationen gefangen. Live geprüft (ohne Konto): signierte Abfrage
-  `common/getConfig` von Ecovacs angenommen, 1024-Bit-Schlüssel geliefert. **Kein Gerät live getestet.**

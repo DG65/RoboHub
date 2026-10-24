@@ -246,7 +246,11 @@ class RoboHubIrobot implements RoboHubTreiber
             }
             $this->dbg('TLS', 'Abgewiesen, neuer Versuch in 3 s: ' . $e->getMessage());
             sleep(3);
-            [$leitung, $fingerabdruck] = $this->tlsVerbinden($ip);
+            try {
+                [$leitung, $fingerabdruck] = $this->tlsVerbinden($ip);
+            } catch (RoboHubFehler $e2) {
+                throw new RoboHubFehler('Der Roboter nimmt gerade keine Verbindung an — er erlaubt nur eine gleichzeitig. Ist die iRobot-App geöffnet oder ein anderes System (z. B. Home Assistant) verbunden? (' . $e2->getMessage() . ')');
+            }
         }
         if (!self::fingerabdruckPasst($erwartet, $fingerabdruck)) {
             self::leitungSchliessen($leitung);

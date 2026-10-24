@@ -59,6 +59,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('EchtzeitVerlauf', '[]');
         $this->RegisterAttributeInteger('RaeumeStand', 0);
         $this->RegisterAttributeString('Optionen', '{}');
+        $this->RegisterAttributeBoolean('EinstellungenFreigegeben', false);
         $this->RegisterAttributeString('Zeitplaene', '[]');
         $this->RegisterAttributeString('ZeitplanRoh', '');
         $this->RegisterAttributeString('RaumEinstellungen', '{}');
@@ -108,9 +109,7 @@ class RoboHubGeraet extends IPSModule
             $this->ordneKontoZu();
         }
         $this->registriereHook();
-        foreach (self::EINSTELLUNGEN as $ident) {
-            $this->einstellungSichtbar($ident);
-        }
+        $this->einstellungenFreigeben();
         $this->SetStatus(102);
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
     }
@@ -754,20 +753,24 @@ class RoboHubGeraet extends IPSModule
         'NichtStoeren', 'NichtStoerenVon', 'NichtStoerenBis', 'Lautstaerke'];
 
     /**
-     * Einstellungs-Variablen in Visualisierungen zeigen oder verstecken (Property EinstellungenZeigen).
-     * Bedienbar bleiben sie in der Konsole und per Skript. Wunsch aus dem Forum: Einstellungen wie in der
-     * Hersteller-App, aber nicht zwingend in der Visu (Thilo, 24.10.2026).
+     * Property EinstellungenZeigen betrifft seit 0.19.2 nur noch den Überblick der Kachel (Thilo,
+     * 24.10.2026: Variablen in der Instanz sollen bleiben). 0.19.0/0.19.1 haben die Variablen bei
+     * ausgeschalteter Einstellung versteckt — das wird hier einmalig zurückgenommen.
      */
-    private function einstellungSichtbar(string $ident): void
+    private function einstellungenFreigeben(): void
     {
-        $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
-        if ($vid === false) {
+        if ($this->ReadAttributeBoolean('EinstellungenFreigegeben')) {
             return;
         }
-        $versteckt = !$this->ReadPropertyBoolean('EinstellungenZeigen');
-        if ((bool)IPS_GetObject($vid)['ObjectIsHidden'] !== $versteckt) {
-            IPS_SetHidden($vid, $versteckt);
+        if (!$this->ReadPropertyBoolean('EinstellungenZeigen')) {
+            foreach (self::EINSTELLUNGEN as $ident) {
+                $vid = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+                if ($vid !== false && (bool)IPS_GetObject($vid)['ObjectIsHidden']) {
+                    IPS_SetHidden($vid, false);
+                }
+            }
         }
+        $this->WriteAttributeBoolean('EinstellungenFreigegeben', true);
     }
 
     private function uebernimm(array $daten): void
@@ -796,14 +799,12 @@ class RoboHubGeraet extends IPSModule
                 $this->MaintainVariable($ident, $name, VARIABLETYPE_INTEGER, $this->presEnum($optionen[$ident]), $pos, true);
                 $this->EnableAction($ident);
                 $this->SetValue($ident, (int)$werte[$ident]);
-                $this->einstellungSichtbar($ident);
                 continue;
             }
             if (in_array($ident, $schreibbar, true)) {
                 $this->MaintainVariable($ident, $name, $typ, $this->presSchreibbar($typ, $suffix), $pos, true);
                 $this->EnableAction($ident);
                 $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
-                $this->einstellungSichtbar($ident);
                 continue;
             }
             // Wertanzeige laut Symcon-Doku: DIGITS nur bei Ganz-/Kommazahlen (Symcon 9.1 warnt sonst
@@ -1183,8 +1184,8 @@ class RoboHubGeraet extends IPSModule
         foreach ($einst ? ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll'] : [] as $ident) {
             $t = $this->auswahlText($ident);
             if ($t !== null) {
-                // Neuere Einstellungen mit Namen davor — „An" allein sagt in der Kachel nichts.
-                $info[] = in_array($ident, ['Durchgaenge', 'Kantenreinigung', 'BehaelterVoll'], true) ? RoboHubModell::FELDER[$ident][0] . ': ' . $t : $t;
+                // Mit Namen davor — „Hoch" oder „An" allein sagt in der Kachel nichts (Forum Thilo 24.10.2026).
+                $info[] = $ident === 'Reinigungsmodus' ? $t : RoboHubModell::FELDER[$ident][0] . ': ' . $t;
             }
         }
         if ($einst && $this->wert('NichtStoeren') !== null) {
@@ -1330,7 +1331,7 @@ class RoboHubGeraet extends IPSModule
                     ['caption' => 'Dunkel', 'value' => 2],
                 ]],
                 ['type' => 'Label', 'caption' => 'Symcon verrät einer Kachel nicht, ob die Visualisierung hell oder dunkel eingestellt ist. Ist die Schrift schlecht lesbar, hier „Hell" oder „Dunkel" fest einstellen.'],
-                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Einstellungen des Roboters (Saugstufe, Durchgänge, Nicht stören …) in Kachel und Visualisierung zeigen — aus: nur noch in der Konsole und per Skript'],
+                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Einstellungen des Roboters (Saugstufe, Durchgänge, Nicht stören …) im Überblick der Kachel zeigen — die Variablen der Instanz bleiben immer'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Kartenbild zeigen (Räume bzw. Mähzonen zum Antippen)'],
                 ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live-Karte während der Arbeit (gefahrener Weg und Roboterposition; Sauger alle 30 s, Mäher alle 60 s)'],
                 ['type' => 'Label', 'caption' => 'IPSView oder Browser: In IPSView ein WebView-Element anlegen und als Adresse http://<Symcon-IP>:3777' . $this->hookPfad() . ' eintragen. Die Seite aktualisiert sich alle 15 Sekunden selbst.'],

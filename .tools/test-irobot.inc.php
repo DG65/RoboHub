@@ -217,11 +217,20 @@ $ar->props['EinstellungenZeigen'] = false;
 $ar->ApplyChanges();
 $k = kachelJson($ar->GetVisualizationTile());
 $vid = IPS_GetObjectIDByIdent('Durchgaenge', 7300);
-check('„Einstellungen zeigen" aus → Variablen versteckt, Kachel ohne Einstellungen, bedienbar bleiben sie', IPS_GetObject($vid)['ObjectIsHidden'] === true
+check('„Einstellungen zeigen" aus → nur der Kachel-Überblick ohne Einstellungen, Variablen bleiben sichtbar und bedienbar', IPS_GetObject($vid)['ObjectIsHidden'] === false
     && !in_array('Reinigungsdurchgänge: Zweifach-Reinigung', $k['info'] ?? [], true) && variable(7300, 'Durchgaenge')['action'] === true);
+// Altlast aus 0.19.0/0.19.1: dort versteckte Variablen werden einmalig wieder sichtbar.
+IPS_SetHidden($vid, true);
+$ar->WriteAttributeBoolean('EinstellungenFreigegeben', false);
+$ar->ApplyChanges();
+check('von 0.19.0 versteckte Einstellungs-Variablen werden einmalig wieder sichtbar', IPS_GetObject($vid)['ObjectIsHidden'] === false && $ar->ReadAttributeBoolean('EinstellungenFreigegeben') === true);
+IPS_SetHidden($vid, true);   // danach selbst versteckt → bleibt so
+$ar->ApplyChanges();
+check('… danach respektiert RoboHub selbst versteckte Variablen', IPS_GetObject($vid)['ObjectIsHidden'] === true);
+IPS_SetHidden($vid, false);
 $ar->props['EinstellungenZeigen'] = true;
 $ar->ApplyChanges();
-check('… wieder an → sichtbar', IPS_GetObject($vid)['ObjectIsHidden'] === false);
+check('Kachel-Überblick: Saugstufe mit Namen („Hoch" allein sagt nichts)', in_array('Saugstufe: Hoch', kachelJson($ar->GetVisualizationTile())['info'] ?? [], true));
 $t = $ar->LiveKarteLaden();
 $k = kachelJson($ar->GetVisualizationTile());
 check('Live-Karte aus den beim Abruf gesammelten Positionen: Weg, Roboter mit Blickrichtung, Station', count($k['karte']['weg'][0] ?? []) >= 3
@@ -249,7 +258,7 @@ $n3Port = $n3[2];
 $n3[2] = 1;   // Port zu → sofort abgewiesen
 $vor = microtime(true);
 $t = $ar->Aktualisieren();
-check('abgewiesen → nach 3 s ein zweiter Versuch, dann ehrliche Meldung', microtime(true) - $vor >= 3.0 && strpos($t, 'nicht erreichbar') !== false, $t);
+check('abgewiesen → nach 3 s ein zweiter Versuch, dann Hinweis auf iRobot-App/andere Verbindung', microtime(true) - $vor >= 3.0 && strpos($t, 'iRobot-App geöffnet') !== false && strpos($t, 'nicht erreichbar') !== false, $t);
 $n3[2] = $n3Port;
 $t = $ar->ZurStation();
 check('Station mitten in der Reinigung: erst Pause, dann dock — und der Roboter fährt zur Station', strpos($t, 'Roboter meldet: Fährt zur Station') !== false

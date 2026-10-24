@@ -2,6 +2,28 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.15.0 (13.10.2026)
+
+- **Neuer Treiber Ecovacs** (`libs/RoboHubEcovacs.php`), neu geschrieben nach der Protokollbeschreibung von
+  DeebotUniverse/client.py (GPL-3.0, kein Code übernommen):
+  - Anmeldung: signierte private API (`user/login`, md5-Passwort), Auth-Code, `loginByItToken` am Portal
+    des Kontinents. Gerätebestätigung (Code 1013) zweistufig: RSA-verschlüsselte E-Mail
+    (`common/getConfig` → `user/sendEmailVerifyCode`), Code → `user/verifyDevice`.
+  - Zugangsdaten nach Dietmars Entscheidung: md5-Hash im Bündel (Attribut), automatische Neuanmeldung
+    vor Ablauf (7 Tage); Abmelden löscht ihn.
+  - Geräte aus `GetDeviceList` + `GetGlobalDeviceList`; Befehle per HTTP `iot/devmanager.do` (JSON).
+    Klassenlisten (XML / clean_V2 / Mäher) aus deebot_client/hardware abgeleitet.
+  - Zustand (getCleanInfo[_V2], Laden, Akku, Fehler), Saugstufe, Verschleiß (brush/sideBrush/heap/unitCare/
+    roundMop bzw. blade/lensBrush), Gesamtstatistik, Lautstärke; Räume über getCachedMapInfo → getMapSet →
+    getMapSubSet (Raumtyp-Namen deutsch). Befehle Start/Fortsetzen, Pause, Stopp, Station, Orten (Ton),
+    Räume (spotArea), Saugstufe, Lautstärke, Verschleiß zurücksetzen.
+- Konto: Herstellerliste um Ecovacs (Land statt Region), zweistufige Anmeldung allgemein
+  (`RoboHubFehler::$vorstufe`, Attribut `AnmeldeVorstufe`, `anmeldenMitCode`).
+- `curl_close()` entfernt (seit PHP 8.0 wirkungslos, unter 8.5 veraltet).
+- Prüfstand: Signatur gegen Python-Referenz, RSA mit eigenem Schlüsselpaar, Bestätigungsablauf,
+  Neuanmeldung mit Hash; 19 Mutationen gefangen. Live geprüft (ohne Konto): signierte Abfrage
+  `common/getConfig` von Ecovacs angenommen, 1024-Bit-Schlüssel geliefert. **Kein Gerät live getestet.**
+
 ## 0.14.1 (13.10.2026)
 
 - Fix (Forum, Torsten, Dreame L10): Beim Neuanlegen eines Kontos meldete die Konsole „Konnte nicht zur

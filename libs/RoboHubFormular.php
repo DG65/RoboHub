@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.19.2' => [
+            '• „Einstellungen des Roboters zeigen" betrifft jetzt nur noch den Überblick in der Kachel. Die Variablen der Instanz bleiben immer sichtbar; von 0.19.0 versteckte werden einmalig wieder eingeblendet.',
+            '• Kachel-Überblick: Einstellungen stehen mit ihrem Namen da („Saugstufe: Hoch" statt nur „Hoch").',
+            '• iRobot: Ist der Roboter gerade mit der iRobot-App oder einem anderen System verbunden, sagt die Fehlermeldung das jetzt.',
+        ],
         '0.19.1' => [
             '• iRobot: Die Einstellungen heißen jetzt wie in der iRobot-App (Saugleistung Niedrig/Mittel/Hoch, Einfach-/Zweifach-Reinigung, Reinigung nach Raumgröße).',
         ],
