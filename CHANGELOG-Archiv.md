@@ -2,6 +2,12 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.12.5 (12.10.2026)
+
+- Store-Review (SUITE.md Checkliste 15, Hinweis der EMS-Sitzung): Protokoll über `$this->LogMessage` statt
+  `IPS_LogMessage` (Konto und Roboter je eine Stelle). Fehler als `KL_WARNING`, sonst `KL_MESSAGE`.
+  Prüfstand: kein `IPS_LogMessage` in Modulquellen, Stufe bei Rücksetzen/Fehlschlag geprüft (Mutationen gefangen).
+
 ## 0.12.4 (12.10.2026)
 
 - Forum-Thread steht: Panel „Rückmeldungen" verweist jetzt auf

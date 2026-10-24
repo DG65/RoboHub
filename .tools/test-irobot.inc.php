@@ -42,6 +42,11 @@ check('charge mitten in der Reinigung = Lädt', $z(['batPct' => 40, 'cleanMissio
 check('stop mit Zyklus = Pausiert, ohne = Bereit', $z(['cleanMissionStatus' => ['phase' => 'stop', 'cycle' => 'clean']])['Zustand'] === RoboHubModell::ZUSTAND_PAUSIERT
     && $z(['cleanMissionStatus' => ['phase' => 'stop', 'cycle' => 'none']])['Zustand'] === RoboHubModell::ZUSTAND_BEREIT);
 $s = $z(['cleanMissionStatus' => ['phase' => 'stuck', 'cycle' => 'clean', 'error' => 17], 'bin' => ['present' => false]]);
+$dz = $z(['cleanMissionStatus' => ['phase' => 'run', 'cycle' => 'clean', 'mssnM' => 0, 'sqft' => 0, 'mssnStrtTm' => 1700000000], '_abgerufen' => 1700000000 + 8 * 60 + 30]);
+check('Dauer aus dem Startzeitpunkt, wenn mssnM beim Reinigen 0 bleibt (980)', $dz['Dauer'] === 8 && $dz['Flaeche'] === 0);
+$dz = $z(['cleanMissionStatus' => ['phase' => 'charge', 'cycle' => 'none', 'mssnM' => 0, 'mssnStrtTm' => 1700000000], '_abgerufen' => 1700009000]);
+check('… aber nicht ohne laufende Reinigung, und nie über einen unplausiblen Start', $dz['Dauer'] === 0
+    && $z(['cleanMissionStatus' => ['phase' => 'run', 'cycle' => 'clean', 'mssnM' => 3, 'mssnStrtTm' => 1], '_abgerufen' => 1700000000])['Dauer'] === 3);
 check('stuck + Fehler 17 = Fehler „Weg versperrt", Behälter fehlt', $s['Zustand'] === RoboHubModell::ZUSTAND_FEHLER && $s['Fehler'] === 'Weg versperrt (17)' && $s['Staubbeutel'] === 'Fehlt');
 
 // ===========================================================================

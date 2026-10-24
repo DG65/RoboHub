@@ -453,6 +453,14 @@ class RoboHubIrobot implements RoboHubTreiber
         }
         $w['Akku'] = $akku;
         $w['Dauer'] = isset($c['mssnM']) && is_numeric($c['mssnM']) ? (int)$c['mssnM'] : null;
+        // Der 980 zählt mssnM während der Reinigung offenbar nicht hoch (Forum Thilo 24.10.2026:
+        // „immer 0"). Dann aus dem Startzeitpunkt der Reinigung rechnen, wenn der plausibel ist.
+        $start = isset($c['mssnStrtTm']) && is_numeric($c['mssnStrtTm']) ? (int)$c['mssnStrtTm'] : 0;
+        $jetzt = (int)($p['_abgerufen'] ?? time());
+        if ($start > 0 && in_array($c['phase'] ?? '', ['run', 'stop', 'pause', 'hmMidMsn', 'hmPostMsn', 'hmUsrDock'], true)
+            && ($c['cycle'] ?? 'none') !== 'none' && $jetzt - $start >= 0 && $jetzt - $start < 6 * 3600) {
+            $w['Dauer'] = max((int)($w['Dauer'] ?? 0), intdiv($jetzt - $start, 60));
+        }
         $w['Flaeche'] = isset($c['sqft']) && is_numeric($c['sqft']) ? (int)round((float)$c['sqft'] * 0.09290304) : null;
         if (isset($p['bin']) && is_array($p['bin'])) {
             $w['Staubbeutel'] = array_key_exists('present', $p['bin']) && !$p['bin']['present'] ? 'Fehlt' : (!empty($p['bin']['full']) ? 'Voll' : 'In Ordnung');

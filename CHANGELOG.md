@@ -2,6 +2,14 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.13 (24.10.2026)
+
+- Forum (Thilo): **0.18.12 live bestätigt** — Knöpfe während eines Befehls gesperrt, „Station" beim Reinigen fährt
+  ohne Fehler heim. Fläche/Dauer blieben beim Reinigen 0 (`sqft`/`mssnM`). Dauer jetzt ersatzweise aus
+  `cleanMissionStatus.mssnStrtTm` (roombapy types.py, Unix-Zeit), nur bei laufendem Zyklus und plausiblem Start
+  (0–6 h), nie kleiner als `mssnM`. Kachel zeigt die Fläche erst ab > 0. Ob der 980 `sqft` am Ende meldet: Rohdaten
+  einer langen Reinigung angefragt.
+
 ## 0.18.12 (24.10.2026)
 
 - Forum (Thilo, 0.18.11): Farben automatisch richtig (Rahmen-Hintergrund lesbar), Start/Pause/Station/Orten aus
@@ -268,9 +276,3 @@
   python-roborock-Tests (Endpunkt, Nutzlast), Antwortbeispiele aus python-roborock; 15 Mutationen
   gefangen. TLS-Aufbau aus PHP gegen mqtt-eu-3.roborock.com mit der eigenen Wurzel geprüft (falscher
   Name abgelehnt). **Nicht an einem echten Roborock getestet** (Dietmar hat keinen).
-
-## 0.12.5 (12.10.2026)
-
-- Store-Review (SUITE.md Checkliste 15, Hinweis der EMS-Sitzung): Protokoll über `$this->LogMessage` statt
-  `IPS_LogMessage` (Konto und Roboter je eine Stelle). Fehler als `KL_WARNING`, sonst `KL_MESSAGE`.
-  Prüfstand: kein `IPS_LogMessage` in Modulquellen, Stufe bei Rücksetzen/Fehlschlag geprüft (Mutationen gefangen).

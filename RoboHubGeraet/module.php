@@ -1171,7 +1171,8 @@ class RoboHubGeraet extends IPSModule
         }
         $flaeche = $this->wert('Flaeche');
         if ($flaeche !== null && in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_PAUSIERT], true)) {
-            $info[] = '🧹 bisher ' . $flaeche . ' m² · ' . (int)$this->wert('Dauer') . ' min';
+            // Fläche erst zeigen, wenn der Roboter eine meldet (der 980 meldet sie wohl erst am Ende).
+            $info[] = '🧹 bisher ' . ((int)$flaeche > 0 ? $flaeche . ' m² · ' : '') . (int)$this->wert('Dauer') . ' min';
         }
 
         $raeume = [];

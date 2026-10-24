@@ -372,7 +372,8 @@
   Befehle aus der Kachel verpufften → 0.18.11: Sitzung bleibt nach dem Befehl offen, bis die erwartete Phase kommt
   (`ERWARTET`, ≤ 10 s). **0.18.11 live bestätigt (24.10.2026):** Start/Pause/Station/Orten aus Kachel und Skript,
   Farbschema-Automatik greift. 0.18.12: `dock` beim Reinigen erst nach `pause` (980 ignoriert es sonst, wie HA),
-  Semaphore je Roboter, Kachel sperrt Knöpfe während eines Befehls.
+  Semaphore je Roboter, Kachel sperrt Knöpfe während eines Befehls — **live bestätigt**. `sqft`/`mssnM` bleiben beim
+  980 während der Reinigung 0 → 0.18.13 Dauer aus `mssnStrtTm`; ob `sqft` am Ende kommt, offen (Rohdaten angefragt).
 - Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 
