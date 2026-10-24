@@ -111,6 +111,11 @@ while (time() < $schluss) {
             } elseif ($p['typ'] === RoboHubMqtt::PUBLISH) {
                 $pub = RoboHubMqtt::publishLesen($p['flags'], $p['body']);
                 $log('befehl ' . $pub['topic'] . ' ' . $pub['payload']);
+                // Wie ein echter Roboter: neue Phase melden (außer der Prüfstand will Schweigen).
+                $neuePhase = ['start' => 'run', 'resume' => 'run', 'pause' => 'stop', 'stop' => 'stop', 'dock' => 'hmUsrDock'][json_decode($pub['payload'], true)['command'] ?? ''] ?? null;
+                if ($neuePhase !== null && !is_file($protokoll . '.taub')) {
+                    fwrite($c, RoboHubMqtt::publish('$aws/things/3176C41234567890/shadow/update', json_encode(['state' => ['reported' => ['cleanMissionStatus' => ['phase' => $neuePhase]]]])));
+                }
             } elseif ($p['typ'] === RoboHubMqtt::DISCONNECT) {
                 $fertig = true;
             }

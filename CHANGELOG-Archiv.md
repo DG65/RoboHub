@@ -2,6 +2,15 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.12.3 (12.10.2026)
+
+- Live-Befund LiDAX (16:18–16:25, Dietmar draußen, Rasen frei): Zone mähen (o 102, Zone 1) → „Mäht", Pause → „Pausiert",
+  Stopp → „Bereit", Zur Station → „Fährt zur Station". **Erste Echtzeit-Meldungen vom Mäher** (2.1, 3.1, 2.50 TASK,
+  2.56 Zonenstatus, 300.1) und **Position aus 1.4** auf der Karte — Lage von Dietmar bestätigt. Mähweg (M_PATH) blieb
+  in den 7 Minuten leer.
+- Fix: `HasActiveParent()` meldete kurz nach Modul-Updates mehrfach „nein", obwohl das Konto Status 102 hatte
+  (Befehl ging dann nicht raus). Jetzt zusätzlich Status der übergeordneten Instanz selbst prüfen.
+
 ## 0.12.2 (12.10.2026)
 
 - Live-Befund (Barny, Küche 16:07–16:14): Start mit Wahl, Live-Karte während der Reinigung, Pause/Fortsetzen/Stopp/

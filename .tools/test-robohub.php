@@ -734,6 +734,12 @@ foreach ($k['teile'] ?? [] as $t) { if ($t['name'] === 'Hauptbürste') { $haupt 
 check('Kachel: Verbrauchsteil mit % und Stunden', $haupt == ['id' => 'Hauptbuerste', 'name' => 'Hauptbürste', 'prozent' => 88, 'stunden' => 169], json_encode($haupt));
 check('Kachel: Räume aus der Karte', count($k['raeume'] ?? []) === 3);
 check('Kachel: kein Schlüssel in den Daten', ($k['key'] ?? 'x') === '');
+$hk = ['farbschema' => $k['farbschema'] ?? null, 'hauptknopf' => $k['hauptknopf'] ?? null, 'zustand' => $k['zustand'] ?? null];
+check('Kachel: Farbschema (Standard automatisch) und Hauptknopf passend zum Zustand', $hk['farbschema'] === 0
+    && $hk['hauptknopf'] === ($hk['zustand'] === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($hk['zustand'] === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1)), json_encode($hk));
+$html = (string)file_get_contents(dirname(__DIR__) . '/RoboHubGeraet/module.html');
+check('Kachel-HTML: festes Hell/Dunkel per Klasse, Automatik schaltet nur ohne „hell" auf dunkel', strpos($html, ':root.dunkel{') !== false && strpos($html, ':root:not(.hell){') !== false
+    && strpos($html, "b[0] === d.hauptknopf") !== false);
 check('Kachel: Produktbild aus der Geräteliste', ($k['bild'] ?? '') === 'https://oss.iot.dreame.tech/pub/pic/000000/ali_dreame/dreame.vacuum.r95475/bild.png');
 check('Bild: nur https, kein Einschleusen von HTML', RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'http://x/a.png']]]) === ''
     && RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'https://x/a.png" onerror="alert(1)']]]) === ''

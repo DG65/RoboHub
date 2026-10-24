@@ -7,8 +7,10 @@
 :root{--fg:#1d1d1f;--fg2:#6e6e73;--rand:rgba(0,0,0,.12);--fl:rgba(0,0,0,.05);--seite:#ffffff;
 --gruen:#1f7a3a;--gruenbg:#e3f4e8;--blau:#0b5cad;--blaubg:#e3effb;--gelb:#8a5a00;--gelbbg:#fbf0d9;--rot:#a82a2a;--rotbg:#fbe6e6;--grau:#6e6e73;--graubg:#efeff1;
 --s:clamp(13px,calc(7px + 1.7vmin),22px)}
-@media (prefers-color-scheme:dark){:root{--fg:#f2f2f7;--fg2:#a1a1a6;--rand:rgba(255,255,255,.16);--fl:rgba(255,255,255,.07);--seite:#1c1c1e;
+@media (prefers-color-scheme:dark){:root:not(.hell){--fg:#f2f2f7;--fg2:#a1a1a6;--rand:rgba(255,255,255,.16);--fl:rgba(255,255,255,.07);--seite:#1c1c1e;
 --gruen:#7fd89a;--gruenbg:rgba(52,199,89,.18);--blau:#8cc4ff;--blaubg:rgba(10,132,255,.2);--gelb:#ffd479;--gelbbg:rgba(255,159,10,.2);--rot:#ff9b9b;--rotbg:rgba(255,69,58,.2);--grau:#a1a1a6;--graubg:rgba(255,255,255,.08)}}
+:root.dunkel{--fg:#f2f2f7;--fg2:#a1a1a6;--rand:rgba(255,255,255,.16);--fl:rgba(255,255,255,.07);--seite:#1c1c1e;
+--gruen:#7fd89a;--gruenbg:rgba(52,199,89,.18);--blau:#8cc4ff;--blaubg:rgba(10,132,255,.2);--gelb:#ffd479;--gelbbg:rgba(255,159,10,.2);--rot:#ff9b9b;--rotbg:rgba(255,69,58,.2);--grau:#a1a1a6;--graubg:rgba(255,255,255,.08)}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:transparent;color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:var(--s)}
 /* Symcon legt Instanzname + Vergrößern-Symbol als eigene Ebene über die
@@ -141,7 +143,7 @@ function zeichnen() {
   if (bedienbar) {
     l += '<div class="knoepfe">';
     BEFEHLE.forEach(function (b) {
-      l += '<button' + (b[0] === 1 ? ' class="start"' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>';
+      l += '<button' + (b[0] === d.hauptknopf ? ' class="start"' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>';
     });
     l += '</div>';
   } else if (d.eigen) {
@@ -241,11 +243,35 @@ function zeichnen() {
     + (kt ? '<div class="kartenfeld">' + kt + '</div>' : '') + '<div class="rechts">' + r + '</div></div>' + f;
 }
 
+// Symcon nennt der Kachel das Farbschema der Visualisierung nicht. Automatisch:
+// Hintergrund des umgebenden Rahmens messen (wenn der Browser ihn zeigen darf),
+// sonst bleibt es bei prefers-color-scheme. Fest „hell"/„dunkel" aus dem Formular.
+function farbschemaSetzen(wahl) {
+  var s = wahl === 1 ? 'hell' : (wahl === 2 ? 'dunkel' : hintergrundSchema());
+  document.documentElement.classList.toggle('hell', s === 'hell');
+  document.documentElement.classList.toggle('dunkel', s === 'dunkel');
+}
+function hintergrundSchema() {
+  try {
+    var el = window.frameElement;
+    while (el) {
+      var m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
+      if (m && (m.length < 4 || Number(m[3]) > 0.5)) {
+        var hell = (0.299 * m[0] + 0.587 * m[1] + 0.114 * m[2]) / 255;
+        return hell < 0.5 ? 'dunkel' : 'hell';
+      }
+      el = el.parentElement;
+    }
+  } catch (e) { /* fremder Rahmen: nicht lesbar */ }
+  return '';
+}
+
 function handleMessage(raw) {
   var neu = typeof raw === 'string' ? JSON.parse(raw) : raw;
   if (neu.rueck) { rueck = neu.rueck; } else if (daten && neu.stand !== daten.stand) { rueck = ''; }
   daten = neu;
   if (daten.eigen) { document.body.className = 'eigen'; }
+  farbschemaSetzen(daten.farbschema || 0);
   zeichnen();
 }
 </script>

@@ -486,8 +486,14 @@ class RoboHubIrobot implements RoboHubTreiber
             throw new RoboHubFehler('Dieser Befehl wird für iRobot noch nicht unterstützt: ' . $befehl);
         }
         [$kommando, $name] = $befehle[$befehl];
-        $this->kommando($r, $kommando);
-        return 'Befehl „' . $name . '" gesendet.';
+        $phase = $this->kommando($r, $kommando);
+        if ($kommando === 'find') {
+            return 'Befehl „' . $name . '" gesendet.';
+        }
+        if ($phase === null) {
+            return 'Befehl „' . $name . '" gesendet — der Roboter hat in 10 s keine Änderung gemeldet. Ist er bereit (z. B. Behälter eingesetzt, nicht angehoben)?';
+        }
+        return 'Befehl „' . $name . '" gesendet — Roboter meldet: ' . (self::PHASEN[$phase][0] ?? $phase) . '.';
     }
 
     /** Befehl wie roombapy send_command: {"command", "time", "initiator": "localApp"} auf „cmd". */
@@ -496,11 +502,43 @@ class RoboHubIrobot implements RoboHubTreiber
         return (string)json_encode(['command' => $kommando, 'time' => $zeit, 'initiator' => 'localApp']);
     }
 
-    protected function kommando(array $r, string $kommando): void
+    /** Phasen, an denen man sieht, dass der Roboter einen Befehl ausführt. */
+    private const ERWARTET = [
+        'start' => ['run'], 'resume' => ['run'], 'pause' => ['stop', 'pause'], 'stop' => ['stop'],
+        'dock'  => ['hmUsrDock', 'dock', 'charge'],
+    ];
+
+    /**
+     * Befehl senden und die Verbindung offen halten, bis der Roboter die passende Phase
+     * meldet (höchstens 10 s, roombapy bleibt ebenfalls verbunden). Ein sofortiges
+     * Trennen nach dem Senden führte am 980 dazu, dass Befehle verpufften
+     * (Forum Thilo 24.10.2026). Rückgabe: gemeldete Phase oder null.
+     */
+    protected function kommando(array $r, string $kommando): ?string
     {
-        $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use ($kommando): void {
+        $phase = null;
+        $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use ($kommando, &$phase): void {
+            $s->senden(RoboHubMqtt::subscribe(1, ['#'], 0));
             $s->senden(RoboHubMqtt::publish('cmd', self::kommandoNachricht($kommando, time())));
-        });
+            $erwartet = self::ERWARTET[$kommando] ?? [];
+            if ($erwartet === []) {
+                usleep(1500000);   // Orten: kurz verbunden bleiben, eine Antwort gibt es nicht
+                return;
+            }
+            $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use ($erwartet, &$phase): bool {
+                $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
+                $neu = json_decode($pub['payload'], true)['state']['reported']['cleanMissionStatus']['phase'] ?? null;
+                if (is_string($neu)) {
+                    $this->dbg('Befehl', 'Phase ' . $neu);
+                    if (in_array($neu, $erwartet, true)) {
+                        $phase = $neu;
+                        return true;
+                    }
+                }
+                return false;
+            }, min($ende, microtime(true) + 10.0));
+        }, 14.0);
+        return $phase;
     }
 
     /** MQTT-Sitzung zum Roboter mit gemerktem Zertifikat. */

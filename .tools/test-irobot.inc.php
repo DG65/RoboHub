@@ -206,8 +206,13 @@ $vor = microtime(true);
 $t = $ar->Aktualisieren();
 check('abgewiesen → nach 3 s ein zweiter Versuch, dann ehrliche Meldung', microtime(true) - $vor >= 3.0 && strpos($t, 'nicht erreichbar') !== false, $t);
 $n3[2] = $n3Port;
-$ar->ZurStation();
-usleep(300000);
+$t = $ar->ZurStation();
+check('Befehl wartet auf die Rückmeldung des Roboters („Fährt zur Station")', strpos($t, 'Roboter meldet: Fährt zur Station') !== false, $t);
+touch($n3[5] . '.taub');
+$vor = microtime(true);
+$t = $ar->Anhalten();   // Stand meldet „run", Pause bleibt unbestätigt
+check('ohne Reaktion: ehrlicher Hinweis nach höchstens ~10 s', strpos($t, 'keine Änderung gemeldet') !== false && microtime(true) - $vor < 14, $t);
+unlink($n3[5] . '.taub');
 check('Befehl über den eigenen Weg angekommen', preg_match('/befehl cmd \{"command":"dock"/', (string)file_get_contents($n3[5])) === 1);
 
 // Koppelfenster: Roboter schweigt auf UDP → Antwort vom Klick davor (gemerkt).

@@ -109,6 +109,8 @@
   und mit geratenem Schlüssel live abgelehnt („🔒 … nicht freigegeben"). Darstellung in Dietmars
   Kachel-Visualisierung und in IPSView noch nicht gesehen.
 
+- **Farbschema (0.18.11):** Symcon gibt der Kachel kein Hell/Dunkel mit; `prefers-color-scheme` spiegelt nur das
+  Gerät (Thilo: Gerät hell, Visu dunkel → dunkle Schrift auf dunkel). Property `Farbschema` + Rahmen-Hintergrund messen.
 - **Kachel-Layout (0.3.1):** Symcon-Titelzeile (Instanzname + ⤢) liegt als Ebene über den
   oberen ~44 px → `body{padding-top:44px}` (nicht bei `.eigen`). Erste Fassung 0.3.0 überlappte
   (Dietmars Screenshot 21:47). **0.3.1 live in Dietmars Kachel-Visualisierung bestätigt (21:51, Screenshot):** keine Überlappung, zweispaltig, dunkler Modus korrekt. **0.3.2 live bestätigt (21:55):** gleiche Starthöhe, großes Symbol, Mäher-Teile offen, Stand unten. Ampelschwellen seit 0.3.3 an die Apps angelehnt: rot ≤ 5 %, gelb ≤ 35 % (`TEIL_ROT`/`TEIL_GELB` in module.html); exakte App-Grenze liegt bei MOVA zwischen 34 und 72 %, nicht weiter belegt. Vorschau-Generator mit nachgebildetem Titelstreifen + dunklem
@@ -366,7 +368,9 @@
   Abruf scheiterte meist → 0.18.9: PUBACK für QoS 1/2 in `RoboHubMqttSitzung`, Stand-Fenster 15 s.
   **0.18.9 live bestätigt (24.10.2026, zwei 980):** alle Lagen richtig, Akku = App. Sporadisch nur `wifistat` statt
   Stand bzw. Port abgewiesen → 0.18.10: letzter Stand bis 15 min (`_abgerufen`), Wiederholung nach 3 s, gemerkter
-  TLS-Weg (Temp-Datei `robohub-irobot-tls-*`).
+  TLS-Weg (Temp-Datei `robohub-irobot-tls-*`). 0.18.10 laut Thilo „scheint zu funktionieren".
+  Befehle aus der Kachel verpufften → 0.18.11: Sitzung bleibt nach dem Befehl offen, bis die erwartete Phase kommt
+  (`ERWARTET`, ≤ 10 s). Live offen.
 - Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 

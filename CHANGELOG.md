@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.11 (24.10.2026)
+
+- Forum (Thilo, Kachel-Test, zwei 980): Kachel-Schrift dunkel auf dunklem Hintergrund — die Kachel folgte nur
+  `prefers-color-scheme` (Gerät/Browser hell, Symcon-Visualisierung dunkel). Symcon gibt einer Kachel kein Farbschema
+  mit (HTML-SDK-Doku; Verbund-Befund NRGDashboard 31.07.2026). Neu: Property `Farbschema` (0 automatisch, 1 hell,
+  2 dunkel); automatisch misst die Kachel den Hintergrund des umgebenden Rahmens (falls lesbar), sonst wie bisher.
+- „Start" war immer hervorgehoben (feste Klasse). Jetzt `hauptknopf` aus dem Zustand: Reinigen → Pause, Fehler →
+  keiner, sonst Start.
+- „Start" aus der Kachel: gesendet, aber Roomba fuhr nicht. RoboHub trennte direkt nach dem Senden. Jetzt bleibt die
+  Sitzung offen (abonniert, bestätigt), bis der Roboter die erwartete Phase meldet (start/resume → run, pause → stop,
+  dock → hmUsrDock/dock/charge), höchstens 10 s; Rückmeldung nennt die Phase oder sagt ehrlich „keine Änderung".
+- Prüfstand: nachgestellter Roboter meldet nach einem Befehl die neue Phase (Flag `.taub` = schweigt); Kachel-Felder.
+
 ## 0.18.10 (24.10.2026)
 
 - Forum (Thilo, zwei Roomba 980, einer mit, einer ohne iRobot-Cloud, 0.18.9): Abruf in allen Lagen (Station, frei,
@@ -253,12 +266,3 @@
 
 - Forum-Thread steht: Panel „Rückmeldungen" verweist jetzt auf
   [RoboHub im Symcon-Forum](https://community.symcon.de/t/beta-modul-robohub-dreame-saugroboter-und-mova-maehroboter-in-ip-symcon-mit-karte-live-weg-zeitplaenen-und-raumreinigung/144636), GitHub-Issues bleiben als zweiter Knopf.
-
-## 0.12.3 (12.10.2026)
-
-- Live-Befund LiDAX (16:18–16:25, Dietmar draußen, Rasen frei): Zone mähen (o 102, Zone 1) → „Mäht", Pause → „Pausiert",
-  Stopp → „Bereit", Zur Station → „Fährt zur Station". **Erste Echtzeit-Meldungen vom Mäher** (2.1, 3.1, 2.50 TASK,
-  2.56 Zonenstatus, 300.1) und **Position aus 1.4** auf der Karte — Lage von Dietmar bestätigt. Mähweg (M_PATH) blieb
-  in den 7 Minuten leer.
-- Fix: `HasActiveParent()` meldete kurz nach Modul-Updates mehrfach „nein", obwohl das Konto Status 102 hatte
-  (Befehl ging dann nicht raus). Jetzt zusätzlich Status der übergeordneten Instanz selbst prüfen.

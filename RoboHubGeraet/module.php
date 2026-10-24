@@ -49,6 +49,7 @@ class RoboHubGeraet extends IPSModule
         // Kartenbild für Kachel/Seite: {"bild": data-URI, "marken": [...], "station": {...}|null, "format": b/h}.
         $this->RegisterAttributeString('Karte', '{}');
         $this->RegisterPropertyBoolean('KarteZeigen', true);
+        $this->RegisterPropertyInteger('Farbschema', 0);   // 0 automatisch, 1 hell, 2 dunkel
         // Live-Karte: während der Arbeit aktuelle Karte mit Weg und Roboter holen.
         $this->RegisterPropertyBoolean('LiveKarte', true);
         $this->RegisterAttributeBoolean('LiveAktiv', false);
@@ -1205,6 +1206,9 @@ class RoboHubGeraet extends IPSModule
             'stand'       => $abruf > 0 ? date('H:i:s', $abruf) : '',
             'rueck'       => $rueckmeldung,
             'eigen'       => $eigen,
+            'farbschema'  => $this->ReadPropertyInteger('Farbschema'),
+            // Hervorgehobener Knopf: der, der gerade naheliegt (bei Fehlern keiner).
+            'hauptknopf'  => $zustand === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($zustand === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1),
             'bedienung'   => $eigen && $key !== '',
             'key'         => $key,
             'hook'        => $this->hookPfad(),
@@ -1290,6 +1294,12 @@ class RoboHubGeraet extends IPSModule
             'caption' => '📱  Kachel und IPSView',
             'items' => [
                 ['type' => 'Label', 'caption' => 'Kachel-Visualisierung: Diese Instanz ist selbst eine Kachel — einfach auf dem Dashboard platzieren. Bedienen geht dort immer (Anmeldung der Visualisierung).'],
+                ['type' => 'Select', 'name' => 'Farbschema', 'caption' => 'Farben der Kachel', 'options' => [
+                    ['caption' => 'Automatisch (Hintergrund erkennen, sonst Einstellung des Geräts)', 'value' => 0],
+                    ['caption' => 'Hell', 'value' => 1],
+                    ['caption' => 'Dunkel', 'value' => 2],
+                ]],
+                ['type' => 'Label', 'caption' => 'Symcon verrät einer Kachel nicht, ob die Visualisierung hell oder dunkel eingestellt ist. Ist die Schrift schlecht lesbar, hier „Hell" oder „Dunkel" fest einstellen.'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Kartenbild zeigen (Räume bzw. Mähzonen zum Antippen)'],
                 ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live-Karte während der Arbeit (gefahrener Weg und Roboterposition; Sauger alle 30 s, Mäher alle 60 s)'],
                 ['type' => 'Label', 'caption' => 'IPSView oder Browser: In IPSView ein WebView-Element anlegen und als Adresse http://<Symcon-IP>:3777' . $this->hookPfad() . ' eintragen. Die Seite aktualisiert sich alle 15 Sekunden selbst.'],

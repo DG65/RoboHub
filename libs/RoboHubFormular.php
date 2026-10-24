@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.11' => [
+            '• Kachel: neue Einstellung „Farben der Kachel" (automatisch, hell, dunkel). Symcon teilt einer Kachel nicht mit, ob die Visualisierung dunkel ist — bei schlecht lesbarer Schrift fest einstellen.',
+            '• Kachel: hervorgehoben ist jetzt der Knopf, der gerade naheliegt (Start, beim Reinigen Pause).',
+            '• iRobot: Befehle warten jetzt, bis der Roboter reagiert, und melden, was er tut (z. B. „Roboter meldet: Reinigt").',
+        ],
         '0.18.10' => [
             '• iRobot: Schickt der Roboter beim Abruf nur Funkmeldungen statt seines Stands (beim 980 ab und zu), bleibt der letzte Stand bis 15 Minuten stehen — keine Fehlermeldung mehr.',
             '• iRobot: Ist die Verbindung kurz belegt („Zielcomputer verweigerte die Verbindung"), versucht RoboHub es nach 3 Sekunden noch einmal. Der funktionierende Verschlüsselungsweg wird gemerkt, das spart einen vergeblichen Verbindungsversuch je Abruf.',
