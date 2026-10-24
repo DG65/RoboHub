@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.12 (24.10.2026)
+
+- Forum (Thilo, 0.18.11): Farben automatisch richtig (Rahmen-Hintergrund lesbar), Start/Pause/Station/Orten aus
+  Kachel und `ROBO_Starten` funktionieren — **iRobot-Befehle live bestätigt**. Offen waren:
+  - „Zur Station" mitten in der Reinigung: keine Änderung in 10 s. Der 980 nimmt `dock` beim Reinigen nicht an;
+    Home Assistants Roomba-Integration pausiert deshalb zuerst. Jetzt: Phase aus dem Stand nach dem Abonnieren,
+    bei `run` erst `pause` (bis `stop`), dann `dock`.
+  - Klick auf einen zweiten Knopf, während ein Befehl lief → Fehler (eine Verbindung je Roboter). Jetzt: Kachel sperrt
+    die Befehlsknöpfe bis zur Rückmeldung (Sicherheitsnetz 40 s); im Treiber eine Semaphore je Roboter (30 s), sodass
+    Abruf und Befehle (auch aus Skripten) nacheinander laufen.
+  - Abschnitt „Einstellung" mit „0 m² · 0 min" missverständlich → „Überblick", Eintrag „🧹 bisher … m² · … min".
+- Prüfstand: nachgestellter Roboter ignoriert `dock` beim Reinigen; Mutation „ohne vorheriges Anhalten" gefangen.
+
 ## 0.18.11 (24.10.2026)
 
 - Forum (Thilo, Kachel-Test, zwei 980): Kachel-Schrift dunkel auf dunklem Hintergrund — die Kachel folgte nur
@@ -261,8 +274,3 @@
 - Store-Review (SUITE.md Checkliste 15, Hinweis der EMS-Sitzung): Protokoll über `$this->LogMessage` statt
   `IPS_LogMessage` (Konto und Roboter je eine Stelle). Fehler als `KL_WARNING`, sonst `KL_MESSAGE`.
   Prüfstand: kein `IPS_LogMessage` in Modulquellen, Stufe bei Rücksetzen/Fehlschlag geprüft (Mutationen gefangen).
-
-## 0.12.4 (12.10.2026)
-
-- Forum-Thread steht: Panel „Rückmeldungen" verweist jetzt auf
-  [RoboHub im Symcon-Forum](https://community.symcon.de/t/beta-modul-robohub-dreame-saugroboter-und-mova-maehroboter-in-ip-symcon-mit-karte-live-weg-zeitplaenen-und-raumreinigung/144636), GitHub-Issues bleiben als zweiter Knopf.

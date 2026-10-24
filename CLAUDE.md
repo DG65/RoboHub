@@ -370,7 +370,9 @@
   Stand bzw. Port abgewiesen → 0.18.10: letzter Stand bis 15 min (`_abgerufen`), Wiederholung nach 3 s, gemerkter
   TLS-Weg (Temp-Datei `robohub-irobot-tls-*`). 0.18.10 laut Thilo „scheint zu funktionieren".
   Befehle aus der Kachel verpufften → 0.18.11: Sitzung bleibt nach dem Befehl offen, bis die erwartete Phase kommt
-  (`ERWARTET`, ≤ 10 s). Live offen.
+  (`ERWARTET`, ≤ 10 s). **0.18.11 live bestätigt (24.10.2026):** Start/Pause/Station/Orten aus Kachel und Skript,
+  Farbschema-Automatik greift. 0.18.12: `dock` beim Reinigen erst nach `pause` (980 ignoriert es sonst, wie HA),
+  Semaphore je Roboter, Kachel sperrt Knöpfe während eines Befehls.
 - Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 

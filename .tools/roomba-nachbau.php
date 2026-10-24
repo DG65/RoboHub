@@ -113,6 +113,13 @@ while (time() < $schluss) {
                 $log('befehl ' . $pub['topic'] . ' ' . $pub['payload']);
                 // Wie ein echter Roboter: neue Phase melden (außer der Prüfstand will Schweigen).
                 $neuePhase = ['start' => 'run', 'resume' => 'run', 'pause' => 'stop', 'stop' => 'stop', 'dock' => 'hmUsrDock'][json_decode($pub['payload'], true)['command'] ?? ''] ?? null;
+                // Wie der 980: „dock" mitten in der Reinigung wird ignoriert (erst anhalten).
+                if ($neuePhase === 'hmUsrDock' && ($aktuellePhase ?? 'run') === 'run') {
+                    $neuePhase = null;
+                }
+                if ($neuePhase !== null) {
+                    $aktuellePhase = $neuePhase;
+                }
                 if ($neuePhase !== null && !is_file($protokoll . '.taub')) {
                     fwrite($c, RoboHubMqtt::publish('$aws/things/3176C41234567890/shadow/update', json_encode(['state' => ['reported' => ['cleanMissionStatus' => ['phase' => $neuePhase]]]])));
                 }

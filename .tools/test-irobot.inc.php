@@ -207,7 +207,9 @@ $t = $ar->Aktualisieren();
 check('abgewiesen → nach 3 s ein zweiter Versuch, dann ehrliche Meldung', microtime(true) - $vor >= 3.0 && strpos($t, 'nicht erreichbar') !== false, $t);
 $n3[2] = $n3Port;
 $t = $ar->ZurStation();
-check('Befehl wartet auf die Rückmeldung des Roboters („Fährt zur Station")', strpos($t, 'Roboter meldet: Fährt zur Station') !== false, $t);
+check('Station mitten in der Reinigung: erst Pause, dann dock — und der Roboter fährt zur Station', strpos($t, 'Roboter meldet: Fährt zur Station') !== false
+    && ($lg = (string)file_get_contents($n3[5])) !== '' && strpos($lg, '"command":"pause"') !== false
+    && strpos($lg, '"command":"pause"') < strpos($lg, '"command":"dock"'), $t . ' | ' . ($lg ?? ''));
 touch($n3[5] . '.taub');
 $vor = microtime(true);
 $t = $ar->Anhalten();   // Stand meldet „run", Pause bleibt unbestätigt

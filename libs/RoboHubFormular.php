@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.12' => [
+            '• iRobot: „Zur Station" mitten in der Reinigung hält den Roboter jetzt erst an und schickt ihn dann zurück — vorher reagierte der 980 nicht.',
+            '• Kachel: Solange ein Befehl läuft, sind die Knöpfe gesperrt. Ein zweiter Klick führte vorher zu einem Fehler.',
+            '• Kachel: „Einstellung" heißt jetzt „Überblick"; die laufende Reinigung steht dort als „🧹 bisher … m² · … min".',
+        ],
         '0.18.11' => [
             '• Kachel: neue Einstellung „Farben der Kachel" (automatisch, hell, dunkel). Symcon teilt einer Kachel nicht mit, ob die Visualisierung dunkel ist — bei schlecht lesbarer Schrift fest einstellen.',
             '• Kachel: hervorgehoben ist jetzt der Knopf, der gerade naheliegt (Start, beim Reinigen Pause).',

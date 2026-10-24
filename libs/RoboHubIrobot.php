@@ -519,30 +519,65 @@ class RoboHubIrobot implements RoboHubTreiber
         $phase = null;
         $this->sitzung($r, function (RoboHubMqttSitzung $s, float $ende) use ($kommando, &$phase): void {
             $s->senden(RoboHubMqtt::subscribe(1, ['#'], 0));
+            if ($kommando === 'dock') {
+                // Mitten in der Reinigung nimmt der 980 „dock" nicht an — erst anhalten
+                // (wie Home Assistants Roomba-Integration). Aktuelle Phase aus dem Stand,
+                // den der Roboter nach dem Abonnieren schickt.
+                $jetzt = $this->phaseAbwarten($s, null, min($ende, microtime(true) + 3.0));
+                if ($jetzt === 'run') {
+                    $s->senden(RoboHubMqtt::publish('cmd', self::kommandoNachricht('pause', time())));
+                    $this->phaseAbwarten($s, self::ERWARTET['pause'], min($ende, microtime(true) + 8.0));
+                }
+            }
             $s->senden(RoboHubMqtt::publish('cmd', self::kommandoNachricht($kommando, time())));
             $erwartet = self::ERWARTET[$kommando] ?? [];
             if ($erwartet === []) {
                 usleep(1500000);   // Orten: kurz verbunden bleiben, eine Antwort gibt es nicht
                 return;
             }
-            $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use ($erwartet, &$phase): bool {
-                $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
-                $neu = json_decode($pub['payload'], true)['state']['reported']['cleanMissionStatus']['phase'] ?? null;
-                if (is_string($neu)) {
-                    $this->dbg('Befehl', 'Phase ' . $neu);
-                    if (in_array($neu, $erwartet, true)) {
-                        $phase = $neu;
-                        return true;
-                    }
+            $phase = $this->phaseAbwarten($s, $erwartet, min($ende, microtime(true) + 10.0));
+        }, 24.0);
+        return $phase;
+    }
+
+    /** Wartet auf eine gemeldete Phase (null = jede); Rückgabe Phase oder null bei Frist. */
+    private function phaseAbwarten(RoboHubMqttSitzung $s, ?array $erwartet, float $bis): ?string
+    {
+        $phase = null;
+        $s->warte(RoboHubMqtt::PUBLISH, function (array $paket) use ($erwartet, &$phase): bool {
+            $pub = RoboHubMqtt::publishLesen($paket['flags'], $paket['body']);
+            $neu = json_decode($pub['payload'], true)['state']['reported']['cleanMissionStatus']['phase'] ?? null;
+            if (is_string($neu)) {
+                $this->dbg('Befehl', 'Phase ' . $neu);
+                if ($erwartet === null || in_array($neu, $erwartet, true)) {
+                    $phase = $neu;
+                    return true;
                 }
-                return false;
-            }, min($ende, microtime(true) + 10.0));
-        }, 14.0);
+            }
+            return false;
+        }, $bis);
         return $phase;
     }
 
     /** MQTT-Sitzung zum Roboter mit gemerktem Zertifikat. */
     private function sitzung(array $r, callable $tun, float $dauer = 8.0): void
+    {
+        // Der Roboter erlaubt nur eine Verbindung: Abruf und Befehle (z. B. zwei schnelle
+        // Klicks in der Kachel) nacheinander statt gegeneinander (Forum Thilo 24.10.2026).
+        $sperre = 'RoboHub_iRobot_' . md5((string)$r['blid']);
+        if (function_exists('IPS_SemaphoreEnter') && !IPS_SemaphoreEnter($sperre, 30000)) {
+            throw new RoboHubFehler('Der Roboter ist gerade mit einem anderen Befehl beschäftigt — bitte gleich noch einmal.');
+        }
+        try {
+            $this->sitzungOhneSperre($r, $tun, $dauer);
+        } finally {
+            if (function_exists('IPS_SemaphoreLeave')) {
+                IPS_SemaphoreLeave($sperre);
+            }
+        }
+    }
+
+    private function sitzungOhneSperre(array $r, callable $tun, float $dauer): void
     {
         $ende = microtime(true) + $dauer;
         [$sock] = $this->geraetVerbinden((string)$r['ip'], (string)$r['fingerabdruck']);

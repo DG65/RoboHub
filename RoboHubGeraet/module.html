@@ -41,6 +41,7 @@ body.eigen{background:var(--seite);padding-top:14px}
 @media (max-width:559px){.knoepfe{grid-template-columns:repeat(4,minmax(0,1fr));max-width:none}}
 button{font:inherit;font-size:.92em;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:.8em;padding:.6em .3em;cursor:pointer;white-space:nowrap}
 button:active{transform:scale(.97)}
+button:disabled{opacity:.45;cursor:default}
 .start{background:var(--blaubg);border-color:transparent;color:var(--blau)}
 .abschnitt{font-size:.78em;color:var(--fg2);text-transform:uppercase;letter-spacing:.06em;margin:0 0 .5em}
 .block+.block{margin-top:1.1em}
@@ -90,6 +91,9 @@ var ZUSTAND = {
 var TEIL_ROT = 5, TEIL_GELB = 35;
 var BEFEHLE = [[1, '▶️ Start'], [2, '⏸️ Pause'], [4, '🏠 Station'], [5, '📍 Orten']];
 var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '';
+// Läuft ein Befehl, sind die Befehlsknöpfe gesperrt: der Roboter nimmt (z. B. iRobot) nur eine
+// Verbindung an, ein zweiter Klick lief sonst in einen Fehler (Forum Thilo 24.10.2026).
+var befehlLaeuft = false, befehlUhr = null;
 // Startwerte wie das „benutzerdefiniert"-Fenster der App, −1 = wie eingestellt.
 var startModus = -1, startSaug = -1, startDurch = -1;
 function auswahl(name, wert, optionen) {
@@ -104,12 +108,16 @@ function farbe(n) { return 'background:var(--' + n + 'bg);color:var(--' + n + ')
 // Kachel: requestAction() der Visualisierung (deren Anmeldung gilt).
 // Eigenständige Seite (IPSView/Browser): nur mit Schlüssel, per WebHook.
 function senden(ident, wert, text) {
+  if (befehlLaeuft) { return; }
+  befehlLaeuft = true;
+  clearTimeout(befehlUhr);
+  befehlUhr = setTimeout(function () { befehlLaeuft = false; zeichnen(); }, 40000);   // Sicherheitsnetz
   rueck = '📤 ' + text + ' gesendet …'; zeichnen();
   if (!daten.eigen && typeof requestAction === 'function') { requestAction(ident, wert); return; }
   fetch(daten.hook + '?cmd=' + encodeURIComponent(ident) + '&wert=' + encodeURIComponent(wert) + '&key=' + encodeURIComponent(daten.key || ''))
     .then(function (r) { return r.json(); })
-    .then(function (j) { rueck = j.text || (j.ok ? '📤 gesendet' : '⛔ abgelehnt'); zeichnen(); })
-    .catch(function () { rueck = '⛔ Keine Verbindung zu Symcon'; zeichnen(); });
+    .then(function (j) { befehlLaeuft = false; rueck = j.text || (j.ok ? '📤 gesendet' : '⛔ abgelehnt'); zeichnen(); })
+    .catch(function () { befehlLaeuft = false; rueck = '⛔ Keine Verbindung zu Symcon'; zeichnen(); });
 }
 
 function raumWaehlen(id) {
@@ -143,7 +151,7 @@ function zeichnen() {
   if (bedienbar) {
     l += '<div class="knoepfe">';
     BEFEHLE.forEach(function (b) {
-      l += '<button' + (b[0] === d.hauptknopf ? ' class="start"' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>';
+      l += '<button' + (b[0] === d.hauptknopf ? ' class="start"' : '') + (befehlLaeuft ? ' disabled' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>';
     });
     l += '</div>';
   } else if (d.eigen) {
@@ -213,7 +221,7 @@ function zeichnen() {
     r += '</div>';
   }
   if ((d.info || []).length) {
-    r += '<div class="block"><p class="abschnitt">Einstellung</p><div class="info">' + d.info.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div></div>';
+    r += '<div class="block"><p class="abschnitt">Überblick</p><div class="info">' + d.info.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div></div>';
   }
   var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
   if (teile.length) {
@@ -268,7 +276,7 @@ function hintergrundSchema() {
 
 function handleMessage(raw) {
   var neu = typeof raw === 'string' ? JSON.parse(raw) : raw;
-  if (neu.rueck) { rueck = neu.rueck; } else if (daten && neu.stand !== daten.stand) { rueck = ''; }
+  if (neu.rueck) { rueck = neu.rueck; befehlLaeuft = false; } else if (daten && neu.stand !== daten.stand) { rueck = ''; }
   daten = neu;
   if (daten.eigen) { document.body.className = 'eigen'; }
   farbschemaSetzen(daten.farbschema || 0);

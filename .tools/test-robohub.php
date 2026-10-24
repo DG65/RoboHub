@@ -740,6 +740,8 @@ check('Kachel: Farbschema (Standard automatisch) und Hauptknopf passend zum Zust
 $html = (string)file_get_contents(dirname(__DIR__) . '/RoboHubGeraet/module.html');
 check('Kachel-HTML: festes Hell/Dunkel per Klasse, Automatik schaltet nur ohne „hell" auf dunkel', strpos($html, ':root.dunkel{') !== false && strpos($html, ':root:not(.hell){') !== false
     && strpos($html, "b[0] === d.hauptknopf") !== false);
+check('Kachel-HTML: Befehlsknöpfe gesperrt, solange ein Befehl läuft (Rückmeldung oder 40 s geben sie frei)', strpos($html, "(befehlLaeuft ? ' disabled' : '')") !== false
+    && strpos($html, 'if (neu.rueck) { rueck = neu.rueck; befehlLaeuft = false; }') !== false && strpos($html, 'if (befehlLaeuft) { return; }') !== false);
 check('Kachel: Produktbild aus der Geräteliste', ($k['bild'] ?? '') === 'https://oss.iot.dreame.tech/pub/pic/000000/ali_dreame/dreame.vacuum.r95475/bild.png');
 check('Bild: nur https, kein Einschleusen von HTML', RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'http://x/a.png']]]) === ''
     && RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'https://x/a.png" onerror="alert(1)']]]) === ''
