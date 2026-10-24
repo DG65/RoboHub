@@ -470,6 +470,9 @@ class RoboHubIrobot implements RoboHubTreiber
         }
         if (isset($p['bbmssn']['nMssn']) && is_numeric($p['bbmssn']['nMssn'])) {
             $w['GesamtAnzahl'] = (int)$p['bbmssn']['nMssn'];
+        } elseif (isset($c['nMssn']) && is_numeric($c['nMssn'])) {
+            // Der 980 schickt bbmssn nur selten, cleanMissionStatus.nMssn aber immer (Rohdaten Thilo 24.10.2026).
+            $w['GesamtAnzahl'] = (int)$c['nMssn'];
         }
         return ['werte' => $w, 'optionen' => [], 'schreibbar' => []];
     }

@@ -2,6 +2,14 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.14 (24.10.2026)
+
+- Rohdaten Thilo (980 „Schlafzimmer", ohne App, nach einer Reinigung in der Station): `cleanMissionStatus` ist
+  danach vollständig zurückgesetzt (`mssnM`, `sqft`, `mssnStrtTm` = 0) — die Fläche kommt am Ende also nicht nach.
+  Dafür trägt `cleanMissionStatus.nMssn` (2619) immer die Zahl aller Reinigungen → „Reinigungen gesamt" jetzt daraus,
+  wenn `bbmssn` fehlt. Weitere gelieferte Felder für später: `pose` (x/y/theta), `vacHigh`/`carpetBoost` (Saugstufe),
+  `noAutoPasses`/`twoPass` (Durchgänge), `binPause`, `ecoCharge`, `openOnly`, `schedHold`.
+
 ## 0.18.13 (24.10.2026)
 
 - Forum (Thilo): **0.18.12 live bestätigt** — Knöpfe während eines Befehls gesperrt, „Station" beim Reinigen fährt
@@ -252,27 +260,3 @@
   Treiberwahl je Hersteller; 18 Mutationen gefangen. Echt geprüft: WebSocket-Handschlag mit
   iot.eu-west-1.worxlandroid.com (101 + Accept), falsche Wurzel abgelehnt — ohne Anmeldung.
   **Nicht an einem echten Mäher getestet.**
-
-## 0.13.0 (12.10.2026)
-
-- **Neuer Treiber Roborock** (`libs/RoboHubRoborock.php`, Hersteller „roborock" im Konto), nach
-  python-roborock (Apache-2.0):
-  - Anmeldung per E-Mail-Code (getUrlByEmail → v4 Code → key/sign + Vertragsversion → login/code),
-    kein Passwort; gespeichert wird nur das Nutzer-Bündel (rriot + token). Neuer Knopf
-    `ROBOHUB_CodeAnfordern`, das Passwortfeld nimmt bei Roborock den Code.
-  - Geräte und Raumnamen über die Web-API (Hawk-HMAC-SHA256), Gerätschlüssel bleiben im Konto
-    (`GeraeteListe` gibt sie nicht heraus).
-  - Zustand und Befehle über den Roborock-MQTT-Server: Rahmen „1.0" (AES-128-ECB mit
-    md5(Zeitstempel kodiert + Gerätschlüssel + Salz), CRC32), Nutzlast mit Sicherheitsdaten, je Abruf
-    eine kurze TLS-Sitzung, geprüft gegen DigiCert Global Root G2 (Name + Kette, nie abschaltbar).
-  - Werte: Zustand, Fehler, Akku, Fläche, Dauer, Saugstufe/Wassermenge (Auswahl), Verbrauchsteile
-    in % und Reststunden, Station (dss), Gesamtstatistik, Nicht stören, Lautstärke.
-  - Befehle: Start (setzt pausierte Raum-/Zonenreinigung fort), Pause, Stopp, Station, Orten, Räume
-    mit Saugstufe und Durchgängen (Rückfall auf einfache Segmentliste), Verbrauchsteile zurücksetzen.
-  - Noch nicht: Kartenbild, Echtzeit über das Konto, Zeitpläne, Protokolle A01/B01.
-- Kachel: Auswahl „Raum reinigen mit Wahl" aus den Treiber-Optionen statt fest verdrahteter
-  Dreame-Werte (für Dreame unverändert).
-- Prüfstand: Referenzwerte aus unabhängiger Nachbildung (Python-Standardbibliothek + openssl) und
-  python-roborock-Tests (Endpunkt, Nutzlast), Antwortbeispiele aus python-roborock; 15 Mutationen
-  gefangen. TLS-Aufbau aus PHP gegen mqtt-eu-3.roborock.com mit der eigenen Wurzel geprüft (falscher
-  Name abgelehnt). **Nicht an einem echten Roborock getestet** (Dietmar hat keinen).

@@ -47,6 +47,8 @@ check('Dauer aus dem Startzeitpunkt, wenn mssnM beim Reinigen 0 bleibt (980)', $
 $dz = $z(['cleanMissionStatus' => ['phase' => 'charge', 'cycle' => 'none', 'mssnM' => 0, 'mssnStrtTm' => 1700000000], '_abgerufen' => 1700009000]);
 check('… aber nicht ohne laufende Reinigung, und nie über einen unplausiblen Start', $dz['Dauer'] === 0
     && $z(['cleanMissionStatus' => ['phase' => 'run', 'cycle' => 'clean', 'mssnM' => 3, 'mssnStrtTm' => 1], '_abgerufen' => 1700000000])['Dauer'] === 3);
+check('Reinigungen gesamt auch aus cleanMissionStatus.nMssn (980 schickt bbmssn selten)', ($z(['cleanMissionStatus' => ['phase' => 'charge', 'cycle' => 'none', 'nMssn' => 2619]])['GesamtAnzahl'] ?? null) === 2619
+    && $z(['cleanMissionStatus' => ['nMssn' => 1], 'bbmssn' => ['nMssn' => 7]])['GesamtAnzahl'] === 7);
 check('stuck + Fehler 17 = Fehler „Weg versperrt", Behälter fehlt', $s['Zustand'] === RoboHubModell::ZUSTAND_FEHLER && $s['Fehler'] === 'Weg versperrt (17)' && $s['Staubbeutel'] === 'Fehlt');
 
 // ===========================================================================

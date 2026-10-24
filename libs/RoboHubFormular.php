@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.14' => [
+            '• iRobot: „Reinigungen gesamt" erscheint jetzt bei jedem Roomba sofort, nicht erst, wenn der Roboter seine Statistik schickt.',
+        ],
         '0.18.13' => [
             '• iRobot: Die Reinigungsdauer zählt jetzt auch beim Roomba 980 mit (aus dem Startzeitpunkt der Reinigung); die Fläche erscheint in der Kachel erst, wenn der Roboter eine meldet.',
         ],
