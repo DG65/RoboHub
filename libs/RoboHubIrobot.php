@@ -26,6 +26,9 @@ class RoboHubIrobot implements RoboHubTreiber
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
 
+    /** true, wenn der letzte stand() den Roboter erreichte, aber nur Nebenmeldungen bekam. */
+    private $nurStandFehlte = false;
+
     /** Ports des Roboters (im Prüfstand auf einen nachgestellten Roboter umlenkbar). */
     public $port = 8883;
     public $suchPort = 5678;
@@ -200,21 +203,47 @@ class RoboHubIrobot implements RoboHubTreiber
      */
     private function geraetVerbinden(string $ip, ?string $erwartet): array
     {
+        $beginn = microtime(true);
         try {
-            [$leitung, $fingerabdruck] = $this->opensslVerbinden($ip);
-        } catch (RoboHubFehler $e1) {
-            $this->dbg('TLS', 'OpenSSL: ' . $e1->getMessage() . ' — versuche eigenen TLS-1.2-Weg');
-            try {
-                [$leitung, $fingerabdruck] = $this->eigenVerbinden($ip);
-            } catch (RoboHubFehler $e2) {
-                throw new RoboHubFehler('Roboter unter ' . $ip . ' nicht erreichbar (' . $e1->getMessage() . ' / eigener TLS-Weg: ' . $e2->getMessage() . ').');
+            [$leitung, $fingerabdruck] = $this->tlsVerbinden($ip);
+        } catch (RoboHubFehler $e) {
+            // Schnell abgewiesen (Port belegt, der Roboter erlaubt nur eine Verbindung und gibt
+            // sie verzögert frei) → einmal kurz warten und neu versuchen. Zeitüberschreitungen nicht.
+            if (microtime(true) - $beginn > 3.0) {
+                throw $e;
             }
+            $this->dbg('TLS', 'Abgewiesen, neuer Versuch in 3 s: ' . $e->getMessage());
+            sleep(3);
+            [$leitung, $fingerabdruck] = $this->tlsVerbinden($ip);
         }
         if (!self::fingerabdruckPasst($erwartet, $fingerabdruck)) {
             self::leitungSchliessen($leitung);
             throw new RoboHubFehler('Das Zertifikat des Roboters unter ' . $ip . ' hat sich geändert — Verbindung abgelehnt. War es ein anderes Gerät, bitte neu koppeln.');
         }
         return [$leitung, $fingerabdruck];
+    }
+
+    /**
+     * Erst der Weg, der zuletzt bei dieser Adresse geklappt hat (gemerkt in einer Temp-Datei),
+     * dann der andere. So kostet ein 980 nicht bei jedem Abruf einen vergeblichen
+     * OpenSSL-Versuch — der belegt beim Roboter kurz die einzige Verbindung.
+     */
+    private function tlsVerbinden(string $ip): array
+    {
+        $merk = sys_get_temp_dir() . '/robohub-irobot-tls-' . md5($ip . ':' . $this->port) . '.txt';
+        $wege = @file_get_contents($merk) === 'eigen' ? ['eigen', 'openssl'] : ['openssl', 'eigen'];
+        $fehler = [];
+        foreach ($wege as $weg) {
+            try {
+                $ergebnis = $weg === 'eigen' ? $this->eigenVerbinden($ip) : $this->opensslVerbinden($ip);
+                @file_put_contents($merk, $weg);
+                return $ergebnis;
+            } catch (RoboHubFehler $e) {
+                $fehler[$weg] = $e->getMessage();
+                $this->dbg('TLS', ($weg === 'eigen' ? 'Eigener TLS-Weg' : 'OpenSSL') . ': ' . $e->getMessage());
+            }
+        }
+        throw new RoboHubFehler('Roboter unter ' . $ip . ' nicht erreichbar (' . ($fehler['openssl'] ?? '') . ' / eigener TLS-Weg: ' . ($fehler['eigen'] ?? '') . ').');
     }
 
     protected function opensslVerbinden(string $ip): array
@@ -320,7 +349,21 @@ class RoboHubIrobot implements RoboHubTreiber
     public function zustand(array $buendel, array $geraet): array
     {
         $r = $this->roboter($buendel, $geraet);
-        $p = $this->stand($r);
+        try {
+            $p = $this->stand($r);
+            $p['_abgerufen'] = time();
+        } catch (RoboHubFehler $e) {
+            // Erreichbar, aber diesmal nur Funkmeldungen (wifistat) statt des Stands — beim 980
+            // sporadisch (Forum Thilo 24.10.2026). Dann den letzten Stand weiterführen, solange
+            // er höchstens 15 Minuten alt ist.
+            $alt = (array)($geraet['stand'] ?? []);
+            $alter = time() - (int)($alt['_abgerufen'] ?? 0);
+            if (!$this->nurStandFehlte || !isset($alt['cleanMissionStatus']) || $alter > 900) {
+                throw $e;
+            }
+            $this->dbg('Zustand', 'Kein neuer Stand, letzter von vor ' . $alter . ' s bleibt');
+            $p = $alt;
+        }
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
         $daten['online'] = true;
         $daten['bloecke'] = ['ok' => [0], 'fehl' => []];
@@ -340,6 +383,7 @@ class RoboHubIrobot implements RoboHubTreiber
     /** Kurze Sitzung: Zustand sammeln, bis Phase und Akku gemeldet sind. */
     protected function stand(array $r): array
     {
+        $this->nurStandFehlte = false;
         $stand = [];
         $themen = [];
         $beginn = microtime(true);
@@ -358,6 +402,7 @@ class RoboHubIrobot implements RoboHubTreiber
         }, 15.0);
         $this->dbg('Zustand', count($themen) . ' Meldung(en) in ' . round(microtime(true) - $beginn, 1) . ' s: ' . implode(', ', array_slice($themen, 0, 20)));
         if (!isset($stand['cleanMissionStatus']) && !isset($stand['batPct'])) {
+            $this->nurStandFehlte = $themen !== [];
             throw new RoboHubFehler('Der Roboter hat keinen Zustand gemeldet (' . count($themen) . ' Meldung(en) in '
                 . round(microtime(true) - $beginn, 1) . ' s' . ($themen === [] ? '' : ': ' . implode(', ', array_slice($themen, 0, 5))) . ').');
         }

@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.18.10' => [
+            '• iRobot: Schickt der Roboter beim Abruf nur Funkmeldungen statt seines Stands (beim 980 ab und zu), bleibt der letzte Stand bis 15 Minuten stehen — keine Fehlermeldung mehr.',
+            '• iRobot: Ist die Verbindung kurz belegt („Zielcomputer verweigerte die Verbindung"), versucht RoboHub es nach 3 Sekunden noch einmal. Der funktionierende Verschlüsselungsweg wird gemerkt, das spart einen vergeblichen Verbindungsversuch je Abruf.',
+            '• iRobot: Der ungenutzte Client Socket heißt jetzt auch so, wenn er noch als „Echtzeit" angelegt wurde.',
+        ],
         '0.18.9' => [
             '• iRobot: Ältere Roomba (980) meldeten beim Abruf oft „Der Roboter hat keinen Zustand gemeldet". RoboHub bestätigt jetzt jede Meldung des Roboters, damit er die nächste schickt, und wartet länger auf den vollständigen Stand. Die Fehlermeldung nennt, was angekommen ist.',
         ],

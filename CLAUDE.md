@@ -363,7 +363,10 @@
   nie für Cloud-Verbindungen. Geprüft gegen echtes OpenSSL (`roomba-nachbau.php … alt`) und Störer
   (`tls-stoerer.php`). **An einem echten 980 noch nicht** — erster Tester: Thilo (Forum 144636/14).
 - **Erster echter Roomba (Thilo, 980 r980040, 21.10.2026):** eigener TLS-Weg + Koppeln + Befehl „Start" live ok.
-  Abruf scheiterte meist → 0.18.9: PUBACK für QoS 1/2 in `RoboHubMqttSitzung`, Stand-Fenster 15 s. Live offen.
+  Abruf scheiterte meist → 0.18.9: PUBACK für QoS 1/2 in `RoboHubMqttSitzung`, Stand-Fenster 15 s.
+  **0.18.9 live bestätigt (24.10.2026, zwei 980):** alle Lagen richtig, Akku = App. Sporadisch nur `wifistat` statt
+  Stand bzw. Port abgewiesen → 0.18.10: letzter Stand bis 15 min (`_abgerufen`), Wiederholung nach 3 s, gemerkter
+  TLS-Weg (Temp-Datei `robohub-irobot-tls-*`).
 - Koppeln zweistufig: UDP-Antwort 1 h gemerkt (`suchMerkDatei`), weil der 980 im Koppelfenster nicht auf UDP antwortet.
 - Offen: Cloud-Passwort für Modelle ohne lokale Ausgabe, Räume/Karten (Cloud), Verschleiß, Einstellungen (delta).
 

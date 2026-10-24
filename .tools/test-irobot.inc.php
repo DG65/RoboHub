@@ -81,6 +81,9 @@ $ik->VerbindungPruefen();
 $isock = (int)(IPS_GetInstance(7000)['ConnectionID'] ?? 0);
 check('Client Socket angelegt, als ungenutzt benannt, bleibt geschlossen', $isock > 0 && strpos(IPS_GetName($isock), 'ungenutzt') !== false
     && strpos(implode("\n", $GLOBALS['SKRIPTE']), '"Open":true') === false, IPS_GetName($isock) . ' ' . implode("\n", $GLOBALS['SKRIPTE']));
+IPS_SetName($isock, 'RoboHub Echtzeit (' . IPS_GetName(7000) . ')');   // angelegt, als noch Dreame voreingestellt war
+$ik->ApplyChanges();
+check('alter Socket-Name „Echtzeit" wird bei iRobot zu „ungenutzt"', strpos(IPS_GetName($isock), 'ungenutzt') !== false, IPS_GetName($isock));
 
 $irr = new RoboHubGeraet(7100);
 $irr->props = ['GeraetID' => '3176C41234567890', 'Modell' => 'irobot.vacuum.i755840', 'Klasse' => 'sauger', 'Intervall' => 120];
@@ -184,6 +187,25 @@ $ar->ApplyChanges();
 $t = $ar->Aktualisieren();
 check('MQTT über den eigenen Weg: Zustand und Akku', variable(7300, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT && variable(7300, 'Akku')['value'] === 87, $t);
 check('Stand mit QoS 1: jedes Stück bestätigt (PUBACK), sonst käme beim 980 nichts nach', substr_count((string)file_get_contents($n3[5]), 'puback') >= 2, (string)file_get_contents($n3[5]));
+AltRoomba::$wege = [];
+$ar->Aktualisieren();
+check('gemerkter TLS-Weg: beim nächsten Abruf gleich der eigene, kein vergeblicher OpenSSL-Versuch', AltRoomba::$wege === ['eigen'], json_encode(AltRoomba::$wege));
+touch($n3[5] . '.nurfunk');
+$t = $ar->Aktualisieren();
+check('nur Funkmeldungen (980 sporadisch): letzter Stand bleibt, kein Fehler', strpos($t, '✅') === 0 && variable(7300, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT
+    && variable(7300, 'Erreichbar')['value'] === true, $t);
+$snapA = json_decode($ak->ReadAttributeString('Schnappschuss'), true);
+$snapA['3176C41234567890']['p']['_abgerufen'] = time() - 1000;
+$ak->WriteAttributeString('Schnappschuss', json_encode($snapA));
+$t = $ar->Aktualisieren();
+check('… aber nicht mit einem Stand älter als 15 Minuten: dann ehrlicher Fehler mit den Meldungen', strpos($t, 'keinen Zustand gemeldet') !== false && strpos($t, 'wifistat') !== false, $t);
+unlink($n3[5] . '.nurfunk');
+$n3Port = $n3[2];
+$n3[2] = 1;   // Port zu → sofort abgewiesen
+$vor = microtime(true);
+$t = $ar->Aktualisieren();
+check('abgewiesen → nach 3 s ein zweiter Versuch, dann ehrliche Meldung', microtime(true) - $vor >= 3.0 && strpos($t, 'nicht erreichbar') !== false, $t);
+$n3[2] = $n3Port;
 $ar->ZurStation();
 usleep(300000);
 check('Befehl über den eigenen Weg angekommen', preg_match('/befehl cmd \{"command":"dock"/', (string)file_get_contents($n3[5])) === 1);

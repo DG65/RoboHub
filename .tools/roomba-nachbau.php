@@ -86,6 +86,10 @@ while (time() < $schluss) {
                     [$t, json_encode(['state' => ['reported' => ['batPct' => 87, 'cleanMissionStatus' => ['cycle' => 'clean', 'phase' => 'run', 'error' => 0, 'mssnM' => 12, 'sqft' => 215]]]])],
                     [$t, json_encode(['state' => ['reported' => ['bin' => ['present' => true, 'full' => false], 'bbrun' => ['hr' => 123, 'min' => 4], 'bbmssn' => ['nMssn' => 321]]]])],
                 ];
+                if (is_file($protokoll . '.nurfunk')) {
+                    // wie der 980 sporadisch: nur Funkmeldungen, kein Stand
+                    $stuecke = [$stuecke[0], $stuecke[0]];
+                }
                 if (($argv[2] ?? '') === 'alt') {
                     $naechste = 1;
                     $offen = $stuecke;

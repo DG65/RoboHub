@@ -120,7 +120,18 @@ class RoboHubKonto extends IPSModule
             $this->SetTimerInterval('Verbindung', 15000);
         }
         $this->elternBeobachten();
+        $this->socketBenennen();
         $this->echtzeitKonfigurieren(false);
+    }
+
+    /** Wurde der Socket noch als Dreame-Konto angelegt (Voreinstellung), den Namen nachziehen. */
+    private function socketBenennen(): void
+    {
+        $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        $name = IPS_GetName($this->InstanceID);
+        if ($eltern > 0 && !$this->brauchtSocket() && IPS_GetName($eltern) === 'RoboHub Echtzeit (' . $name . ')') {
+            IPS_SetName($eltern, 'RoboHub Verbindung (' . $name . ', ungenutzt)');
+        }
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)

@@ -2,6 +2,22 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.18.10 (24.10.2026)
+
+- Forum (Thilo, zwei Roomba 980, einer mit, einer ohne iRobot-Cloud, 0.18.9): Abruf in allen Lagen (Station, frei,
+  Reinigen, Pause, Heimfahrt, Laden) richtig, Akku = App. **0.18.9 live bestätigt.** Sporadisch zwei Fehler:
+  - „keinen Zustand gemeldet (11–12 Meldungen in 15 s: nur wifistat, QoS 0)" — Roboter erreichbar, schickt aber
+    keinen Stand. Jetzt: letzter vollständiger Stand (Schnappschuss, neues Feld `_abgerufen`) bleibt bis 15 min
+    stehen; danach ehrlicher Fehler.
+  - „Zielcomputer verweigerte die Verbindung" auf 8883 (beide Wege) — Roboter erlaubt eine Verbindung und gibt sie
+    verzögert frei. Jetzt: schnell abgewiesen (< 3 s) → nach 3 s ein zweiter Versuch.
+- Der zuletzt erfolgreiche TLS-Weg je Adresse wird gemerkt (Temp-Datei) und zuerst versucht — beim 980 entfällt der
+  vergebliche OpenSSL-Handschlag, der beim Roboter kurz die einzige Verbindung belegt (mögliche Ursache der Abweisung).
+- Konto: als „RoboHub Echtzeit (…)" angelegter, aber ungenutzter Socket wird umbenannt (bei Thilo angelegt, als noch
+  Dreame voreingestellt war).
+- Prüfstand: nachgestellter Roboter kann „nur Funk" (Flag-Datei); Rückfall, Altersgrenze, gemerkter Weg, Wiederholung
+  nach Abweisung — vier Mutationen gefangen.
+
 ## 0.18.9 (21.10.2026)
 
 - Forum (Thilo, Roomba 980, Symcon 9.0 Windows — nicht 9.1): Konfigurator-Kette mit 0.18.8 ohne Fehler, Roboter
@@ -246,9 +262,3 @@
   in den 7 Minuten leer.
 - Fix: `HasActiveParent()` meldete kurz nach Modul-Updates mehrfach „nein", obwohl das Konto Status 102 hatte
   (Befehl ging dann nicht raus). Jetzt zusätzlich Status der übergeordneten Instanz selbst prüfen.
-
-## 0.12.2 (12.10.2026)
-
-- Live-Befund (Barny, Küche 16:07–16:14): Start mit Wahl, Live-Karte während der Reinigung, Pause/Fortsetzen/Stopp/
-  Zur Station bestätigt. Nach der Rückkehr lieferte der letzte Rahmen keinen Weg mehr und überschrieb den fertigen
-  Weg → jetzt bleibt bei leerem Weg außerhalb der Arbeit der bisherige stehen; bei neuer Arbeit wird er ersetzt.
