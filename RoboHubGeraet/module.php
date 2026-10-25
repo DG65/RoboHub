@@ -51,6 +51,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterPropertyBoolean('KarteZeigen', true);
         $this->RegisterPropertyInteger('Farbschema', 0);   // 0 automatisch, 1 hell, 2 dunkel
         $this->RegisterPropertyBoolean('EinstellungenZeigen', true);
+        $this->RegisterPropertyBoolean('Deaktiviert', false);
         // Live-Karte: während der Arbeit aktuelle Karte mit Weg und Roboter holen.
         $this->RegisterPropertyBoolean('LiveKarte', true);
         $this->RegisterAttributeBoolean('LiveAktiv', false);
@@ -95,6 +96,15 @@ class RoboHubGeraet extends IPSModule
         }
         if ($this->ReadPropertyString('GeraetID') === '') {
             $this->SetTimerInterval('Abruf', 0);
+            $this->SetStatus(104);
+            return;
+        }
+        // Einzelnen Roboter abschalten, ohne das Konto (und damit alle anderen) mitzunehmen —
+        // Muster OCPPHub-Ladepunkt „Diesen Ladepunkt deaktivieren" (Forum Thilo 25.10.2026).
+        if ($this->ReadPropertyBoolean('Deaktiviert')) {
+            foreach (['Abruf', 'LiveKarte', 'Zuordnen'] as $takt) {
+                $this->SetTimerInterval($takt, 0);
+            }
             $this->SetStatus(104);
             return;
         }
@@ -177,7 +187,7 @@ class RoboHubGeraet extends IPSModule
     public function ReceiveData($JSONString)
     {
         $d = json_decode((string)$JSONString, true);
-        if (!is_array($d) || (string)($d['Geraet'] ?? '') !== $this->ReadPropertyString('GeraetID') || !is_array($d['Daten'] ?? null)) {
+        if ($this->ReadPropertyBoolean('Deaktiviert') || !is_array($d) || (string)($d['Geraet'] ?? '') !== $this->ReadPropertyString('GeraetID') || !is_array($d['Daten'] ?? null)) {
             return '';
         }
         $this->uebernimm($d['Daten']);
@@ -205,6 +215,9 @@ class RoboHubGeraet extends IPSModule
     /** ROBO_Aktualisieren($id): string — Zustand sofort abrufen. */
     public function Aktualisieren(): string
     {
+        if ($this->ReadPropertyBoolean('Deaktiviert')) {
+            return '🔌 Dieser Roboter ist deaktiviert.';
+        }
         if (!$this->kontoAktiv()) {
             $this->ordneKontoZu();
         }
@@ -491,6 +504,9 @@ class RoboHubGeraet extends IPSModule
     /** Sendet an die Konto-Instanz; liefert immer ['ok' => bool, ...]. */
     protected function frageKonto(array $anfrage): array
     {
+        if ($this->ReadPropertyBoolean('Deaktiviert')) {
+            return ['ok' => false, 'fehler' => 'Dieser Roboter ist deaktiviert (Formular: „Diesen Roboter deaktivieren").'];
+        }
         if (!$this->kontoAktiv()) {
             return ['ok' => false, 'fehler' => 'Keine aktive RoboHub-Konto-Instanz verbunden — bitte unter „Übergeordnete Instanz" ein angemeldetes Konto wählen.'];
         }
@@ -1397,6 +1413,7 @@ class RoboHubGeraet extends IPSModule
             'type' => 'ExpansionPanel', 'expanded' => true,
             'caption' => '🤖  Gerät',
             'items' => [
+                ['type' => 'CheckBox', 'name' => 'Deaktiviert', 'caption' => '🔌 Diesen Roboter deaktivieren (keine Abfragen, keine Befehle; Konto und andere Roboter laufen weiter)'],
                 ['type' => 'Label', 'caption' => '🔗 ' . $klasse . ($this->ReadPropertyString('Modell') !== '' ? ', Modell ' . $this->ReadPropertyString('Modell') : '') . ($this->ReadPropertyString('GeraetID') !== '' ? ', Geräte-ID ' . $this->ReadPropertyString('GeraetID') : '') . ' (vom Konfigurator übernommen)'],
                 $this->kontoZeile(),
                 ['type' => 'Label', 'name' => 'AbrufZeile', 'caption' => $zeile],
@@ -1502,7 +1519,7 @@ class RoboHubGeraet extends IPSModule
     {
         $status = [
             ['code' => 102, 'icon' => 'active', 'caption' => 'Verbunden'],
-            ['code' => 104, 'icon' => 'inactive', 'caption' => 'Noch keinem Gerät zugeordnet'],
+            ['code' => 104, 'icon' => 'inactive', 'caption' => 'Inaktiv — deaktiviert oder noch keinem Gerät zugeordnet'],
             ['code' => 201, 'icon' => 'error', 'caption' => 'Konto muss neu angemeldet werden'],
             ['code' => 202, 'icon' => 'inactive', 'caption' => 'Abruf fehlgeschlagen — wird automatisch erneut versucht'],
         ];

@@ -231,6 +231,18 @@ IPS_SetHidden($vid, false);
 $ar->props['EinstellungenZeigen'] = true;
 $ar->ApplyChanges();
 check('Kachel-Überblick: Saugstufe mit Namen („Hoch" allein sagt nichts)', in_array('Saugstufe: Hoch', kachelJson($ar->GetVisualizationTile())['info'] ?? [], true));
+// Einzelnen Roboter deaktivieren (Forum Thilo 25.10.2026)
+$vorLog = strlen((string)file_get_contents($n3[5]));
+$ar->props['Deaktiviert'] = true;
+$ar->ApplyChanges();
+$t1 = $ar->Aktualisieren();
+$t2 = $ar->Starten();
+check('deaktivierter Roboter: Status inaktiv, Takte aus, weder Abruf noch Befehl erreichen den Roboter', $ar->status === 104 && ($ar->timers['Abruf'] ?? 1) === 0
+    && strpos($t1, 'deaktiviert') !== false && strpos($t2, 'deaktiviert') !== false && strlen((string)file_get_contents($n3[5])) === $vorLog
+    && variable(7300, 'Erreichbar')['value'] === true, $t1 . ' | ' . $t2);
+$ar->props['Deaktiviert'] = false;
+$ar->ApplyChanges();
+check('… wieder aktiviert: Status aktiv, Abruf läuft', $ar->status === 102 && ($ar->timers['Abruf'] ?? 0) > 0);
 $t = $ar->LiveKarteLaden();
 $k = kachelJson($ar->GetVisualizationTile());
 check('Live-Karte aus den beim Abruf gesammelten Positionen: Weg, Roboter mit Blickrichtung, Station', count($k['karte']['weg'][0] ?? []) >= 3

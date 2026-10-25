@@ -2,6 +2,23 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.16.0 (13.10.2026)
+
+- **Neuer Treiber iRobot Roomba/Braava** (`libs/RoboHubIrobot.php`, nach roombapy, MIT), lokal ohne Cloud:
+  - Koppeln statt Anmelden: UDP „irobotmcs" an die IP (Port 5678) → BLID aus „Roomba-…", dann
+    Passwort-Magie über TLS 8883 nach HOME-Tastendruck. Mehrere Roboter je Konto (Bündel wird ergänzt).
+  - Zertifikat nach Dietmars Entscheidung „Trust on first use": SHA-256 beim Koppeln gemerkt, danach jede
+    abweichende Verbindung abgelehnt, bevor Anmeldedaten gesendet werden. Cloud-Sitzungen
+    (`RoboHubMqttSitzung::oeffnen`) bleiben unverändert streng; neu nur `ausStrom` für den bereits
+    geprüften Gerätestrom.
+  - Je Abruf kurze MQTT-Sitzung (Client-ID = Benutzer = BLID, Abo „#"), Zustand aus `state.reported`
+    zusammengeführt: Phase/Zyklus, Fehler, Akku, Fläche (sqft → m²), Dauer, Behälter, Gesamtstunden und
+    -reinigungen. Befehle auf „cmd": start/resume, pause, stop, dock, find.
+  - Konto: Hersteller „iRobot", IP-Feld, Anleitung HOME-Taste, kein Passwortfeld (`koppeln`).
+- Prüfstand: nachgestellter Roboter (`.tools/roomba-nachbau.php`) mit echtem UDP, TLS (selbst ausgestelltes
+  Zertifikat) und MQTT; Koppeln, Abruf, Befehle, zweites Gerät mit anderem Zertifikat (abgelehnt, keine
+  Anmeldedaten gesendet); 11 Mutationen gefangen. **Kein echter Roboter getestet.**
+
 ## 0.15.0 (13.10.2026)
 
 - **Neuer Treiber Ecovacs** (`libs/RoboHubEcovacs.php`), neu geschrieben nach der Protokollbeschreibung von
