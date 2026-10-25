@@ -82,7 +82,9 @@ class RoboHubGeraet extends IPSModule
 
         $klasse = $this->klasse();
         $this->MaintainVariable('Erreichbar', 'Erreichbar', VARIABLETYPE_BOOLEAN, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 1, true);
-        $this->MaintainVariable('Zustand', 'Zustand', VARIABLETYPE_INTEGER, $this->presEnum($this->zustandsOptionen($klasse)), 10, true);
+        // Nur Anzeige → Wertanzeige mit Optionen. Die Aufzählung verlangt eine Variablenaktion; ohne sie
+        // lässt sich die Variable in der Konsole nicht mehr bearbeiten, z. B. Archiv einschalten (Forum Thilo 25.10.2026).
+        $this->MaintainVariable('Zustand', 'Zustand', VARIABLETYPE_INTEGER, $this->presAnzeige($this->zustandsOptionen($klasse)), 10, true);
         $this->MaintainVariable('Befehl', 'Befehl', VARIABLETYPE_INTEGER, $this->presEnum($this->befehlsOptionen($klasse)), 5, true);
         $this->EnableAction('Befehl');
         $this->SetVisualizationType(1);
@@ -1033,6 +1035,16 @@ class RoboHubGeraet extends IPSModule
             throw new Exception('Unbekannter Befehl: ' . $wert);
         }
         return $namen[$wert];
+    }
+
+    /** Wertanzeige mit Beschriftung je Wert (Optionen-Schlüssel laut Symcon-Doku: ColorActive/ColorValue statt Color). */
+    private function presAnzeige(array $map): array
+    {
+        $options = [];
+        foreach ($map as $wert => $caption) {
+            $options[] = ['Value' => (int)$wert, 'Caption' => (string)$caption, 'IconActive' => false, 'IconValue' => '', 'ColorActive' => false, 'ColorValue' => -1];
+        }
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'OPTIONS' => json_encode($options)];
     }
 
     private function presEnum(array $map): array

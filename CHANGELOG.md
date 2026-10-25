@@ -2,6 +2,16 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.19.4 (25.10.2026)
+
+- Forum (Thilo): „Zustand" ließ sich zum Archivieren nicht speichern — Symcon: „Diese Darstellung ist nur für Variablen
+  mit einer Variablenaktion verfügbar". `Zustand` war eine Aufzählung (ENUMERATION) ohne Aktion. Jetzt Wertanzeige mit
+  Optionen (`presAnzeige()`: Value, Caption, IconActive, IconValue, ColorActive, ColorValue). Alle anderen Aufzählungen
+  (Befehl, Raum, Einstellungen) haben eine Aktion.
+- Prüfstand: Nachbildung zieht die Darstellung bei jedem `MaintainVariable` nach; neue Prüfung „Aufzählung nur mit
+  Aktion" über alle angelegten Variablen. Die alte Pauschalregel „nie ColorValue/ColorActive" (vor der Korrektur von
+  SUITE.md Stolperstein 9 am 18.10.2026) ersetzt durch „nur in der Wertanzeige".
+
 ## 0.19.3 (25.10.2026)
 
 - Forum (Thilo, Umzug in seine echte Installation ohne Probleme): kein Weg, einen einzelnen Roboter abzuschalten.
@@ -216,21 +226,3 @@
   - Abruf aller Mäher zwischengespeichert 15 Minuten.
 - RoboHubHusqvarna für Ableitung geöffnet (`apiBasis`, `apiName`, `marke`, `maeherHolen`).
 - Prüfstand 14 Mutationen; live: Endpunkt antwortet ohne Token mit 401. **Kein echter Mäher getestet.**
-
-## 0.17.0 (13.10.2026)
-
-- **Neuer Treiber Husqvarna Automower** (`libs/RoboHubHusqvarna.php`, nach aioautomower, MIT), offizielle
-  Automower Connect API:
-  - Anmeldung `client_credentials` mit Application Key/Secret (Husqvarna-Entwicklerportal); beides bleibt
-    nach Dietmars Entscheidung im Bündel, Token (24 h) wird damit erneuert. Köpfe Bearer,
-    `Authorization-Provider: husqvarna`, `X-Api-Key`.
-  - Ein gemeinsamer Abruf `/mowers` für alle Mäher eines Kontos, 5 Minuten zwischengespeichert
-    (Limit 10.000/Monat), nach Befehlen verworfen; HTTP 429 → Konto wartet 1 h.
-  - Zustand aus state/activity/restrictedReason (Wettersensor/Frost = Wetterpause), Fehlercodes deutsch,
-    Akku, Laden, Mähzeit gesamt; Arbeitsbereiche als Zonen. Befehle: Start (180 min) bzw.
-    ResumeSchedule nach Pause, Pause, ParkUntilNextSchedule (Zur Station), ParkUntilFurtherNotice
-    (Stopp), StartInWorkArea.
-- Konto: Felder „Application Key"/„Application Secret", Anleitung Entwicklerportal, ehrlicher Hinweis.
-- Prüfstand: Anmeldung, Köpfe, gemeinsamer Abruf, Zustände, Befehle, Erneuerung, Limit; 14 Mutationen
-  gefangen. Live (ohne Konto): Token-Endpunkt antwortet auf unbekannten Schlüssel mit `invalid_client`.
-  **Kein echter Mäher getestet.**

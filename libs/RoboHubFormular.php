@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.19.4' => [
+            '• Variable „Zustand": Sie ließ sich in der Konsole nicht bearbeiten (z. B. Archiv einschalten) — „Diese Darstellung ist nur für Variablen mit einer Variablenaktion verfügbar". Sie nutzt jetzt die Wertanzeige.',
+        ],
         '0.19.3' => [
             '• Roboter einzeln abschaltbar: „🔌 Diesen Roboter deaktivieren" oben im Formular. Keine Abfragen, keine Befehle, Status „Inaktiv" — Konto und die anderen Roboter laufen weiter.',
         ],

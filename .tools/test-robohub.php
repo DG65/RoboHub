@@ -152,6 +152,7 @@ class IPSModule
             $def = [false, 0, 0.0, ''][$type];
             $GLOBALS['OBJ'][$id] = ['ident' => $ident, 'parent' => $this->InstanceID, 'type' => $type, 'value' => $def, 'name' => $name, 'pres' => $pres, 'action' => false];
         }
+        $GLOBALS['OBJ'][$id]['pres'] = $pres;   // wie Symcon: Darstellung wird bei jedem Aufruf nachgezogen
         // Wie Symcon 9.1: Zahlen-Parameter der Wertanzeige nur bei Ganz-/Kommazahlen (Forum 14.10.2026).
         if (is_array($pres) && ($pres['PRESENTATION'] ?? '') === VARIABLE_PRESENTATION_VALUE_PRESENTATION && !in_array($type, [VARIABLETYPE_INTEGER, VARIABLETYPE_FLOAT], true)) {
             foreach (['DIGITS', 'USAGE_TYPE', 'PERCENTAGE', 'MIN', 'MAX', 'THOUSANDS_SEPARATOR', 'DECIMAL_SEPARATOR', 'INTERVALS', 'INTERVALS_ACTIVE'] as $k) {
@@ -1787,7 +1788,10 @@ $prefixe = array_map(function ($k) { return json_decode(file_get_contents(dirnam
 check('jeder Modultyp hat eigenen Präfix', count(array_unique($prefixe)) === 3);
 $quelltext = '';
 foreach (glob(dirname(__DIR__) . '/{libs,RoboHub*}/*.php', GLOB_BRACE) as $d) { $quelltext .= file_get_contents($d); }
-check('keine ColorValue/ColorActive-Schlüssel (Mobile-App-Absturz)', strpos($quelltext, 'ColorValue') === false && strpos($quelltext, 'ColorActive') === false);
+// Korrigierte Verbundregel (SUITE.md Stolperstein 9, 18.10.2026): ColorValue/ColorActive nur in Wertanzeige-OPTIONS,
+// in Aufzählungen ein Mobile-App-Absturz. Je Darstellung prüft die MaintainVariable-Nachbildung; hier: nur in presAnzeige().
+check('ColorValue/ColorActive nur in der Wertanzeige (presAnzeige), nie in Aufzählungen', substr_count($quelltext, "'ColorValue'") === 1 && substr_count($quelltext, "'ColorActive'") === 1
+    && preg_match("/function presAnzeige[^}]*'ColorActive' => false, 'ColorValue' => -1/s", $quelltext) === 1);
 check('kein Sys_GetURLContentEx (kann kein POST)', !preg_match('/Sys_GetURLContentEx\s*\(/', $quelltext));
 check('keine Mojibake-Umlaute', strpos($quelltext, 'Ã') === false);
 check('Kontakt-E-Mail nur im Lizenz-Panel (einmal)', substr_count($quelltext, 'dietmar@gureth.eu') === 1);
@@ -1797,6 +1801,13 @@ $quellen = '';
 foreach (array_merge(glob(__DIR__ . '/../*/module.php'), glob(__DIR__ . '/../libs/*.php')) as $datei) {
     $quellen .= file_get_contents($datei);
 }
+$ohneAktion = [];
+foreach ($GLOBALS['OBJ'] as $o) {
+    if (is_array($o['pres'] ?? null) && ($o['pres']['PRESENTATION'] ?? '') === VARIABLE_PRESENTATION_ENUMERATION && empty($o['action'])) {
+        $ohneAktion[] = $o['ident'];
+    }
+}
+check('Aufzählung nur bei Variablen mit Aktion (Symcon: „nur für Variablen mit einer Variablenaktion", Forum Thilo 25.10.2026) — sonst Wertanzeige mit Optionen', $ohneAktion === [], implode(', ', array_unique($ohneAktion)));
 check('Darstellungen nur mit Parametern der Symcon-Doku (OPTIONS je Darstellung: Aufzählung mit Color, Wertanzeige mit ColorActive/ColorValue; DIGITS nur bei Zahlen)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
 check('kein IPS_LogMessage in den Modulen', strpos($quellen, 'IPS_LogMessage') === false);
 check('Fehler als Warnung, Erfolge als Meldung protokolliert', in_array(KL_WARNING, $GLOBALS['LOGSTUFE'] ?? [], true) && in_array(KL_MESSAGE, $GLOBALS['LOGSTUFE'] ?? [], true));
