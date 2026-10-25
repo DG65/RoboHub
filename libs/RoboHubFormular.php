@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.20.0' => [
+            '• Husqvarna Automower und GARDENA: Echtzeit-Meldungen über WebSocket — Zustand, Akku und Einstellungen kommen sofort statt alle 5 bzw. 15 Minuten. Solange die Verbindung steht, fragt RoboHub nur noch stündlich vollständig ab (schont das Anfragelimit). Die Zertifikatsprüfung bleibt immer an.',
+            '• Husqvarna: Schnitthöhe (Stufe 1–9) und Scheinwerfer (immer an/aus, nur abends, abends und nachts) lesen und umstellen.',
+            '• Bestehende Husqvarna-/GARDENA-Konten tauschen ihre ungenutzte Verbindung von selbst gegen einen WebSocket Client.',
+        ],
         '0.19.4' => [
             '• Variable „Zustand": Sie ließ sich in der Konsole nicht bearbeiten (z. B. Archiv einschalten) — „Diese Darstellung ist nur für Variablen mit einer Variablenaktion verfügbar". Sie nutzt jetzt die Wertanzeige.',
         ],

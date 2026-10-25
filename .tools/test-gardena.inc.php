@@ -43,6 +43,11 @@ class FakeGardena extends RoboHubGardena
                     ['id' => 'V1:1', 'type' => 'VALVE', 'attributes' => $wert(['activity' => 'CLOSED'])],
                 ]])];
         }
+        if ($methode === 'POST' && $url === 'https://api.smart.gardena.dev/v2/websocket') {
+            $ort = json_decode((string)$body, true)['data']['attributes']['locationId'] ?? '';
+            return $ort === 'L1' ? [201, json_encode(['data' => ['type' => 'WEBSOCKET', 'id' => 'x', 'attributes' => ['url' => 'wss://ws.smart.gardena.dev/v1?auth=EINMAL' . count(self::$anfragen), 'validity' => 3600]]])]
+                : [400, '{}'];
+        }
         if ($methode === 'PUT' && preg_match('#^https://api\.smart\.gardena\.dev/v2/command/(.+)$#', $url, $m)) {
             return $m[1] === 'G1' ? [202, ''] : [404, '{"errors":[{"title":"not found"}]}'];
         }
@@ -131,5 +136,30 @@ $gm->Starten();
 check('pausiert → Start = START_DONT_OVERRIDE', ($befehleGa()[0][1] ?? null) === ['command' => 'START_DONT_OVERRIDE']);
 $t = $gm->Anhalten();
 check('Pause: ehrlicher Hinweis (gibt es bei GARDENA nicht)', strpos($t, 'kennt die GARDENA-Schnittstelle nicht') !== false, $t);
+
+// Echtzeit: Adresse je Verbindung über POST /v2/websocket, Meldungen = Dienst-Objekte.
+FakeGardena::$mower = ['activity' => 'OK_CUTTING', 'state' => 'OK', 'lastErrorCode' => 'NO_MESSAGE'];
+@unlink($gaDatei);
+$gm->Aktualisieren();
+$GLOBALS['SKRIPTE'] = [];
+$gk->VerbindungPruefen();
+$gws = $gk->parent;
+$gCfg = json_decode($gk->GetConfigurationForParent(), true);
+check('GARDENA: WebSocket Client mit frisch geholter Adresse für den Ort, ohne Zusatzkopf, Zertifikat geprüft',
+    $gws instanceof FakeSocket && $gws->modul === '{D68FD31F-0E90-7019-F16C-1949BD3079EF}' && strpos($gCfg['URL'], 'wss://ws.smart.gardena.dev/v1?auth=EINMAL') === 0
+    && $gCfg['Headers'] === '[]' && $gCfg['VerifyCertificate'] === true && FakeGardena::zaehle('POST https://api.smart.gardena.dev/v2/websocket') === 1, json_encode($gCfg));
+$gk->MessageSink(0, $gws->InstanceID, IM_CHANGESTATUS, [IS_ACTIVE]);
+check('GARDENA: kein eigenes Lebenszeichen (nur WebSocket-Ping)', ($gk->timers['MqttPing'] ?? 1) === 0 && (json_decode($gk->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden');
+$vor = FakeGardena::zaehle('GET https://api.smart.gardena.dev/v2/locations');
+$gk->ReceiveData(json_encode(['DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}', 'Buffer' => json_encode(['id' => 'G1', 'type' => 'MOWER', 'attributes' => ['activity' => ['value' => 'OK_SEARCHING'], 'state' => ['value' => 'OK']]])]));
+$gk->ReceiveData(json_encode(['DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}', 'Buffer' => json_encode(['id' => 'G1', 'type' => 'COMMON', 'attributes' => ['batteryLevel' => ['value' => 33]]])]));
+$gk->ReceiveData(json_encode(['DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}', 'Buffer' => json_encode(['id' => 'V1:1', 'type' => 'VALVE', 'attributes' => ['activity' => ['value' => 'MANUAL_WATERING']]])]));
+check('GARDENA-Meldungen sofort: sucht die Station, Akku 33 — ohne Abruf; Ventil-Meldung stört nicht', variable(9100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_ZURUECK
+    && variable(9100, 'Akku')['value'] === 33 && FakeGardena::zaehle('GET https://api.smart.gardena.dev/v2/locations') === $vor);
+$gk->MessageSink(0, $gws->InstanceID, IM_CHANGESTATUS, [200]);
+check('GARDENA getrennt → neuer Versuch mit neuer Adresse geplant', ($gk->timers['Verbindung'] ?? 0) === 30000);
+$gk->VerbindungPruefen();
+check('… dabei wird eine neue Adresse geholt (die alte gilt nur einmal)', FakeGardena::zaehle('POST https://api.smart.gardena.dev/v2/websocket') === 2
+    && strpos(implode("\n", $GLOBALS['SKRIPTE']), 'EINMAL') !== false);
 @unlink($gaDatei);
 $GLOBALS['robohubTreiberFabrik'] = $fabrikGa;

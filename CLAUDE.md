@@ -123,6 +123,14 @@
   (MOVA-Pfad enthält `/000002/ali_dreame/null/`). Kachel zeigt beide Bilder (Screenshot 22:05).
   Meine Zwischen-These „mainImage fehlt" war falsch — die Daten stammten von vor dem Update.
 
+## Echtzeit über WebSocket (0.20.0)
+
+- Zweite Echtzeit-Art neben MQTT für Husqvarna/GARDENA: Treiber-Methoden `echtzeitArt()`, `wsZiel($buendel)`
+  (['url','kopf']), `wsLebenszeichen()` (Text oder null), `pushLesenMit($text, $buendel)`. Konto nimmt Symcons WebSocket
+  Client `{D68FD31F-0E90-7019-F16C-1949BD3079EF}` (live gelesen: Active/URL/Headers als JSON-Text/VerifyCertificate/Type;
+  implementiert dieselbe Datenschnittstelle wie der Client Socket). `VerifyCertificate` nie aus (Fremdmodul demel42 schaltet
+  sie ab — bei uns nicht). Wiederverbinden mit wachsendem Abstand (`WsFehler`), Tausch eigener Altverbindungen.
+
 ## Echtzeit (MQTT, 0.4.0)
 
 - Konto hat `parentRequirements` Client Socket (`{3CFF0FD9-…}`, Daten `{79827379-…}`/`{018EF6B5-…}`),
@@ -394,16 +402,19 @@
   husqvarna` + `X-Api-Key`.
 - Dietmars Entscheidung 13.10.2026: Key + Secret im Bündel (Memory robohub-zugangsdaten-ausnahmen).
 - Zwischenspeicher `sys_get_temp_dir()/robohub-husqvarna-<md5(key)>.json`, 300 s, nach Befehl gelöscht.
-- Offen: WebSocket `wss://ws.openapi.husqvarna.dev/v1` (Echtzeit, spart Abfragen), Zeitpläne/Schnitthöhe/
-  Scheinwerfer (settings/calendar), resetCuttingBladeUsageTime, Gardena smart system (gleicher Token,
-  eigene API `api.smart.gardena.dev/v2`).
+- **Echtzeit seit 0.20.0:** WebSocket Client am Konto (`echtzeitArt()` = 'websocket'), Ereignisse `*-event-v2` werden in
+  den Zwischenspeicher eingearbeitet (`zwischenspeicherAendern`, Alter bleibt), mit Echtzeit gilt er 1 h. Schnitthöhe/
+  Scheinwerfer per POST `mowers/{id}/settings`. Live ungetestet (kein Gerät).
+- Offen: Zeitpläne (calendar; demel42 verwirft die Ereignisse ebenfalls), resetCuttingBladeUsageTime, Positionskarte.
 
 ## GARDENA-Treiber (0.18.0)
 
 - Quelle: py-smart-gardena (MIT, Scratchpad `ref/py-smart-gardena`). `RoboHubGardena extends RoboHubHusqvarna`.
 - API `https://api.smart.gardena.dev/v2/`, gleiche Köpfe wie Husqvarna; Befehle per PUT (202).
 - Abfragelimit unklar belegt (Quellen nennen 3.000/Monat bzw. 700/Woche) → 900 s Zwischenspeicher.
-- Offen: WebSocket (`POST /v2/websocket` liefert URL) für Echtzeit, Ventile/Sensoren/Steckdosen.
+- **Echtzeit seit 0.20.0:** `POST /v2/websocket` liefert je Verbindung eine Adresse (erster Ort), Meldungen MOWER/COMMON
+  in den Zwischenspeicher. Live ungetestet.
+- Offen: Ventile/Sensoren/Steckdosen, mehrere Orte gleichzeitig in Echtzeit.
 
 ## Prüfen
 

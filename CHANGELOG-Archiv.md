@@ -2,6 +2,21 @@
 
 Ältere Versionen von RoboHub (die neueren stehen in [CHANGELOG.md](CHANGELOG.md)).
 
+## 0.18.0 (13.10.2026)
+
+- **Neuer Treiber GARDENA smart system** (`libs/RoboHubGardena.php`, nach py-smart-gardena, MIT), abgeleitet
+  von RoboHubHusqvarna (gleiche Anmeldung, Zwischenspeicher je Marke):
+  - Orte `GET /v2/locations` → `GET /v2/locations/{id}`, Geräte aus „included" (Dienst-ID bis „:"),
+    Werte aus `{"value": …}`; nur Geräte mit MOWER-Dienst.
+  - Zustand aus activity/state (PARKED_AUTOTIMER/FROST = Wetterpause), lastErrorCode deutsch,
+    batteryLevel, operatingHours.
+  - Befehle `PUT /v2/command/{MOWER-Dienst}` MOWER_CONTROL: START_SECONDS_TO_OVERRIDE (3 h) bzw.
+    START_DONT_OVERRIDE nach Pause, PARK_UNTIL_NEXT_TASK, PARK_UNTIL_FURTHER_NOTICE; Pause/Orten ehrlich
+    „gibt es nicht".
+  - Abruf aller Mäher zwischengespeichert 15 Minuten.
+- RoboHubHusqvarna für Ableitung geöffnet (`apiBasis`, `apiName`, `marke`, `maeherHolen`).
+- Prüfstand 14 Mutationen; live: Endpunkt antwortet ohne Token mit 401. **Kein echter Mäher getestet.**
+
 ## 0.17.0 (13.10.2026)
 
 - **Neuer Treiber Husqvarna Automower** (`libs/RoboHubHusqvarna.php`, nach aioautomower, MIT), offizielle

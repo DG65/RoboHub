@@ -56,6 +56,9 @@ class RoboHubKonto extends IPSModule
 
     // Echtzeit (MQTT) über Symcons Client Socket (TLS).
     private const CLIENT_SOCKET  = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
+    // Echtzeit über WebSocket (Husqvarna, GARDENA): Symcons WebSocket Client, gleiche Datenschnittstellen.
+    private const WS_CLIENT      = '{D68FD31F-0E90-7019-F16C-1949BD3079EF}';
+    private const WS_LEBENSZEICHEN_S = 60;
     private const DATA_ZUM_IO    = '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}';
     private const MQTT_KEEPALIVE = 60;
 
@@ -92,6 +95,7 @@ class RoboHubKonto extends IPSModule
         // Scheitert der Socket, ohne je verbunden gewesen zu sein, wird er 24 h geschlossen.
         $this->RegisterAttributeBoolean('EchtzeitJeVerbunden', false);
         $this->RegisterAttributeInteger('EchtzeitGesperrtBis', 0);
+        $this->RegisterAttributeInteger('WsFehler', 0);
         $this->RegisterPropertyBoolean('Echtzeit', true);
         $this->RegisterTimer('MqttPing', 0, 'ROBOHUB_MqttPing($_IPS[\'TARGET\']);');
         $this->RequireParent(self::CLIENT_SOCKET);
@@ -116,7 +120,9 @@ class RoboHubKonto extends IPSModule
         if ((json_decode((string)$this->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden') {
             $this->WriteAttributeBoolean('EchtzeitJeVerbunden', true);
         }
-        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) === 0) {
+        $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        if ($eltern === 0 || IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] !== $this->elternModul()
+            || ($this->echtzeitArt() === 'websocket' && $this->GetBuffer('WsZiel') === '' && $this->ReadAttributeString('Buendel') !== '')) {
             $this->SetTimerInterval('Verbindung', 15000);
         }
         $this->elternBeobachten();
@@ -129,7 +135,7 @@ class RoboHubKonto extends IPSModule
     {
         $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
         $name = IPS_GetName($this->InstanceID);
-        if ($eltern > 0 && !$this->brauchtSocket() && IPS_GetName($eltern) === 'RoboHub Echtzeit (' . $name . ')') {
+        if ($eltern > 0 && $this->echtzeitArt() === '' && IPS_GetName($eltern) === 'RoboHub Echtzeit (' . $name . ')') {
             IPS_SetName($eltern, 'RoboHub Verbindung (' . $name . ', ungenutzt)');
         }
     }
@@ -141,6 +147,10 @@ class RoboHubKonto extends IPSModule
             return;
         }
         // Client Socket verbunden/getrennt (Muster Tibber Grid Reward).
+        if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern') && $this->echtzeitArt() === 'websocket') {
+            $this->wsStatus((int)($Data[0] ?? 0));
+            return;
+        }
         if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern')) {
             if (($Data[0] ?? 0) === IS_ACTIVE) {
                 $this->mqttAnmelden();
@@ -439,6 +449,17 @@ class RoboHubKonto extends IPSModule
     /** Einstellungen für den Client Socket (Symcon wendet sie beim Verbinden an). */
     public function GetConfigurationForParent()
     {
+        if ($this->echtzeitArt() === 'websocket') {
+            $ziel = json_decode((string)$this->GetBuffer('WsZiel'), true) ?: [];
+            $url = (string)($ziel['url'] ?? '');
+            return (string)json_encode([
+                'Active'            => $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== '' && $url !== '',
+                'URL'               => $url,
+                'Headers'           => (string)json_encode((array)($ziel['kopf'] ?? [])),
+                'VerifyCertificate' => true,   // nie abschalten (Verbund-Regel, anders als manche Fremdmodule)
+                'Type'              => 0,
+            ]);
+        }
         $an = $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== ''
             && $this->ReadAttributeInteger('EchtzeitGesperrtBis') <= time();
         [$host, $port] = $this->mqttZiel();
@@ -473,7 +494,12 @@ class RoboHubKonto extends IPSModule
             $this->mqttStand(['zustand' => 'fehlt']);
             return;
         }
+        $ws = $this->echtzeitArt() === 'websocket';
+        if (IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] !== $this->elternModul()) {
+            return;   // fremde/alte Verbindungsart — VerbindungPruefen tauscht eigene aus
+        }
         $soll = json_decode($this->GetConfigurationForParent(), true);
+        $offen = $ws ? 'Active' : 'Open';
         $ist = json_decode((string)IPS_GetConfiguration($eltern), true) ?: [];
         $anders = false;
         foreach ($soll as $k => $v) {
@@ -481,22 +507,22 @@ class RoboHubKonto extends IPSModule
                 $anders = true;
             }
         }
-        if (!$soll['Open']) {
+        if (!$soll[$offen]) {
             $this->SetTimerInterval('MqttPing', 0);
             $this->mqttStand(['zustand' => $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time() ? 'zertifikat' : 'aus']);
         }
-        if (!$anders && !($neuVerbinden && $soll['Open'])) {
+        if (!$anders && !($neuVerbinden && $soll[$offen])) {
             return;
         }
         // Wie Tibber Grid Reward: per Skript, damit das ApplyChanges des
         // Sockets nicht im eigenen Aufruf hängt; IM_CHANGESTATUS meldet das Ergebnis.
         $skript = '';
-        if ($neuVerbinden && $soll['Open'] && !$anders) {
-            $skript .= 'IPS_SetProperty(' . $eltern . ', "Open", false); IPS_ApplyChanges(' . $eltern . ');';
+        if ($neuVerbinden && $soll[$offen] && !$anders) {
+            $skript .= 'IPS_SetProperty(' . $eltern . ', "' . $offen . '", false); IPS_ApplyChanges(' . $eltern . ');';
         }
         $skript .= 'IPS_SetConfiguration(' . $eltern . ', ' . var_export((string)json_encode($soll), true) . '); IPS_ApplyChanges(' . $eltern . ');';
-        if ($soll['Open']) {
-            $this->mqttStand(['zustand' => 'verbinde', 'host' => $soll['Host'] . ':' . $soll['Port']]);
+        if ($soll[$offen]) {
+            $this->mqttStand(['zustand' => 'verbinde', 'host' => $ws ? (string)parse_url((string)$soll['URL'], PHP_URL_HOST) : $soll['Host'] . ':' . $soll['Port']]);
         }
         IPS_RunScriptText($skript);
     }
@@ -519,14 +545,76 @@ class RoboHubKonto extends IPSModule
         $this->SetTimerInterval('Verbindung', 0);
         $this->verbindungSicherstellen();
         $this->elternBeobachten();
+        if ($this->echtzeitArt() === 'websocket') {
+            // Ziel (Adresse + Anmeldekopf) frisch holen: GARDENA vergibt je Verbindung eine neue Adresse,
+            // Husqvarna braucht den aktuellen Zugangsschlüssel. Danach neu verbinden.
+            $this->echtzeitKonfigurieren($this->wsZielAktualisieren());
+            return;
+        }
         $this->echtzeitKonfigurieren(false);
     }
 
-    /** Nur Hersteller mit Echtzeit über die Konto-Verbindung öffnen den Client Socket. */
-    private function brauchtSocket(): bool
+    /** 'mqtt' (Dreame/MOVA über Client Socket), 'websocket' (WebSocket Client) oder '' (keine Konto-Echtzeit). */
+    private function echtzeitArt(): string
     {
-        $treiber = $this->treiber();
-        return !method_exists($treiber, 'echtzeitMoeglich') || $treiber->echtzeitMoeglich();
+        $t = $this->treiber();
+        if (method_exists($t, 'echtzeitArt')) {
+            return (string)$t->echtzeitArt();
+        }
+        return !method_exists($t, 'echtzeitMoeglich') || $t->echtzeitMoeglich() ? 'mqtt' : '';
+    }
+
+    private function elternModul(): string
+    {
+        return $this->echtzeitArt() === 'websocket' ? self::WS_CLIENT : self::CLIENT_SOCKET;
+    }
+
+    /** WebSocket-Ziel vom Treiber holen und im Puffer ablegen; true, wenn es sich geändert hat. */
+    private function wsZielAktualisieren(): bool
+    {
+        if (!$this->ReadPropertyBoolean('Echtzeit') || $this->ReadAttributeString('Buendel') === '') {
+            return false;
+        }
+        try {
+            $ziel = $this->treiber()->wsZiel($this->gueltigesBuendel());
+        } catch (Throwable $e) {
+            $this->mqttStand(['zustand' => 'fehler', 'text' => $e->getMessage()]);
+            $this->wsNeuPlanen();
+            return false;
+        }
+        $neu = (string)json_encode($ziel);
+        $alt = $this->GetBuffer('WsZiel');
+        $this->SetBuffer('WsZiel', $neu);
+        return $neu !== $alt;
+    }
+
+    /** Statuswechsel des WebSocket Clients. */
+    private function wsStatus(int $status): void
+    {
+        if ($status === IS_ACTIVE) {
+            $this->WriteAttributeInteger('WsFehler', 0);
+            $this->WriteAttributeBoolean('EchtzeitJeVerbunden', true);
+            $this->mqttStand(['zustand' => 'verbunden', 'seit' => time(), 'text' => '', 'lebenszeichen' => time(),
+                'topics' => count(json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [])]);
+            $t = $this->treiber();
+            $this->SetTimerInterval('MqttPing', method_exists($t, 'wsLebenszeichen') && $t->wsLebenszeichen() !== null ? self::WS_LEBENSZEICHEN_S * 1000 : 0);
+            return;
+        }
+        $this->SetTimerInterval('MqttPing', 0);
+        if ($status >= 200 && $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== '') {
+            $this->mqttStand(['zustand' => 'getrennt']);
+            $this->wsNeuPlanen();
+            return;
+        }
+        $this->mqttStand(['zustand' => $this->ReadPropertyBoolean('Echtzeit') ? 'getrennt' : 'aus']);
+    }
+
+    /** Neuer Verbindungsversuch mit wachsendem Abstand (30 s, 60 s … höchstens 1 h). */
+    private function wsNeuPlanen(): void
+    {
+        $n = $this->ReadAttributeInteger('WsFehler') + 1;
+        $this->WriteAttributeInteger('WsFehler', $n);
+        $this->SetTimerInterval('Verbindung', (int)min(3600, 15 * (2 ** min($n, 8))) * 1000);
     }
 
     private function verbindungSicherstellen(): void
@@ -535,10 +623,18 @@ class RoboHubKonto extends IPSModule
         // geschlossen): Das Modul verlangt ihn als übergeordnete Instanz, und Symcon 9.1
         // verwendet ein Konto ohne ihn in der Konfigurator-Kette nicht wieder, sondern
         // legt ein neues, unvollständiges an (Forum Thilo, 20.10.2026).
-        if ((int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0) !== 0) {
-            return;
+        $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        if ($eltern !== 0) {
+            // Falsche Verbindungsart (z. B. Husqvarna-Konto aus der Zeit vor der WebSocket-Echtzeit) —
+            // nur austauschen, wenn RoboHub sie selbst angelegt hat (Name „RoboHub …"), Fremdes nie anfassen.
+            if (IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] === $this->elternModul() || strpos(IPS_GetName($eltern), 'RoboHub ') !== 0) {
+                return;
+            }
+            IPS_DisconnectInstance($this->InstanceID);
+            @IPS_DeleteInstance($eltern);
+            $this->protokolliere('Verbindungsinstanz gegen ' . ($this->echtzeitArt() === 'websocket' ? 'einen WebSocket Client' : 'einen Client Socket') . ' getauscht (Echtzeit-Meldungen).');
         }
-        $id = @IPS_CreateInstance(self::CLIENT_SOCKET);
+        $id = @IPS_CreateInstance($this->elternModul());
         if (!$id) {
             $this->protokolliere('Client Socket für die Echtzeit-Meldungen ließ sich nicht anlegen.', KL_WARNING);
             return;
@@ -548,7 +644,7 @@ class RoboHubKonto extends IPSModule
             @IPS_DeleteInstance($id);
             return;
         }
-        IPS_SetName($id, $this->brauchtSocket()
+        IPS_SetName($id, $this->echtzeitArt() !== ''
             ? 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')'
             : 'RoboHub Verbindung (' . IPS_GetName($this->InstanceID) . ', ungenutzt)');
     }
@@ -596,6 +692,18 @@ class RoboHubKonto extends IPSModule
     /** Timer: Verbindung am Leben halten; ohne jede Antwort seit 3 Intervallen neu verbinden. */
     public function MqttPing(): void
     {
+        if ($this->echtzeitArt() === 'websocket') {
+            $t = $this->treiber();
+            $text = method_exists($t, 'wsLebenszeichen') ? $t->wsLebenszeichen() : null;
+            if ($text !== null) {
+                try {
+                    $this->SendDataToParent((string)json_encode(['DataID' => self::DATA_ZUM_IO, 'Buffer' => $text]));
+                } catch (Throwable $e) {
+                    $this->mqttStand(['zustand' => 'fehler', 'text' => 'Senden fehlgeschlagen: ' . $e->getMessage()]);
+                }
+            }
+            return;
+        }
         $stand = json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [];
         if (($stand['zustand'] ?? '') !== 'verbunden') {
             return;
@@ -613,6 +721,16 @@ class RoboHubKonto extends IPSModule
     {
         $paket = json_decode((string)$JSONString, true);
         if (!is_array($paket) || !isset($paket['Buffer'])) {
+            return '';
+        }
+        if ($this->echtzeitArt() === 'websocket') {
+            // WebSocket Client: Buffer ist der Text einer Nachricht.
+            $this->mqttStand(['lebenszeichen' => time()]);
+            $text = (string)$paket['Buffer'];
+            if (trim($text) !== '') {
+                $this->SendDebug('Echtzeit', substr($text, 0, 600), 0);
+                $this->pushVerarbeiten($text);
+            }
             return '';
         }
         $puffer = base64_decode($this->GetBuffer('MqttEingang')) . mb_convert_encoding((string)$paket['Buffer'], 'ISO-8859-1', 'UTF-8');
@@ -661,7 +779,10 @@ class RoboHubKonto extends IPSModule
     /** Änderungen in den letzten vollständigen Stand mischen, übersetzen, an den Roboter geben. */
     private function pushVerarbeiten(string $payload): void
     {
-        $aenderungen = $this->treiber()->pushLesen($payload);
+        $t = $this->treiber();
+        $aenderungen = method_exists($t, 'pushLesenMit')
+            ? $t->pushLesenMit($payload, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [])
+            : $t->pushLesen($payload);
         if (count($aenderungen) === 0) {
             return;
         }
@@ -754,6 +875,16 @@ class RoboHubKonto extends IPSModule
     /** Hersteller-Treiber; im Prüfstand über $GLOBALS austauschbar. */
     protected function treiber(): RoboHubTreiber
     {
+        $treiber = $this->treiberNeu();
+        if (property_exists($treiber, 'echtzeitVerbunden')) {
+            // Mit laufender Echtzeit reicht ein seltener Vollabruf (Anfragelimit der Hersteller).
+            $treiber->echtzeitVerbunden = (json_decode((string)$this->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden';
+        }
+        return $treiber;
+    }
+
+    private function treiberNeu(): RoboHubTreiber
+    {
         if (isset($GLOBALS['robohubTreiberFabrik']) && is_callable($GLOBALS['robohubTreiberFabrik'])) {
             return ($GLOBALS['robohubTreiberFabrik'])($this->ReadPropertyString('Hersteller'));
         }
@@ -805,6 +936,9 @@ class RoboHubKonto extends IPSModule
                 if (($neu['access_token'] ?? '') !== ($buendel['access_token'] ?? '')) {
                     // Echtzeit-Anmeldung nutzt den Zugangsschlüssel → neu verbinden.
                     $this->echtzeitKonfigurieren(true);
+                } elseif (($neu['token'] ?? '') !== ($buendel['token'] ?? '') && $this->echtzeitArt() === 'websocket') {
+                    // WebSocket-Anmeldekopf trägt den Zugangsschlüssel → kurz danach mit neuem Kopf verbinden.
+                    $this->SetTimerInterval('Verbindung', 2000);
                 }
             }
             if ($this->ReadAttributeString('LetzterFehler') !== '') {

@@ -70,7 +70,7 @@ function IPS_CreateInstance(string $guid): int
         $GLOBALS['ERZEUGT'][] = [$guid, $k->InstanceID];
         return $k->InstanceID;
     }
-    $s = new FakeSocket(70000 + count($GLOBALS['INST'])); $GLOBALS['ERZEUGT'][] = [$guid, $s->InstanceID]; return $s->InstanceID;
+    $s = new FakeSocket(70000 + count($GLOBALS['INST'])); $s->modul = $guid; $GLOBALS['ERZEUGT'][] = [$guid, $s->InstanceID]; return $s->InstanceID;
 }
 function IPS_SetName(int $id, string $n): bool { $GLOBALS['NAMEN'][$id] = $n; if (isset($GLOBALS['OBJ'][$id])) { $GLOBALS['OBJ'][$id]['name'] = $n; } return true; }
 function IPS_GetConfiguration(int $id): string { return json_encode($GLOBALS['INST'][$id]->config ?? []); }
@@ -79,6 +79,7 @@ class FakeSocket
 {
     public $InstanceID;
     public $config = ['Open' => false];
+    public $modul = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
     public $gesendet = [];
     public $parent = null;
     public function __construct(int $id) { $this->InstanceID = $id; $GLOBALS['INST'][$id] = $this; }
@@ -92,7 +93,8 @@ function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
 function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time()]; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return $GLOBALS['OBJ'][$id]['name'] ?? $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }
-function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0, 'InstanceStatus' => ($m && isset($m->status)) ? $m->status : 102]; }
+function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0, 'InstanceStatus' => ($m && isset($m->status)) ? $m->status : 102,
+    'ModuleInfo' => ['ModuleID' => $m instanceof FakeSocket ? $m->modul : ($m instanceof RoboHubKonto ? '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}' : '')]]; }
 
 class IPSModule
 {

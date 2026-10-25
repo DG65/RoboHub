@@ -114,6 +114,8 @@ final class RoboHubModell
         'Durchgaenge'        => ['Reinigungsdurchgänge', 3, '', 0, 33],
         'Kantenreinigung'    => ['Kanten-Reinigung', 3, '', 0, 34],
         'BehaelterVoll'      => ['Bei vollem Behälter', 3, '', 0, 35],
+        'Schnitthoehe'       => ['Schnitthöhe', 3, '', 0, 36],
+        'Scheinwerfer'       => ['Scheinwerfer', 3, '', 0, 37],
         'Flaeche'            => ['Gereinigte Fläche', 1, ' m²', 0, 40],
         'Dauer'              => ['Reinigungsdauer', 1, ' min', 0, 41],
         'Hauptbuerste'       => ['Hauptbürste', 1, ' %', 0, 50],

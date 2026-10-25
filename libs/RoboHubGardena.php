@@ -19,7 +19,10 @@ declare(strict_types=1);
 //
 // Abfragelimit: GARDENA erlaubt deutlich weniger REST-Abfragen als Husqvarna;
 // alle Mäher teilen sich deshalb einen Abruf höchstens alle 15 Minuten.
-// Noch nicht gebaut: Echtzeit (WebSocket), Ventile/Sensoren/Steckdosen.
+// Echtzeit (0.20.0): POST /v2/websocket {locationId} liefert eine Adresse (enthält die
+// Anmeldung), die Symcons WebSocket Client öffnet; Meldungen sind Dienst-Objekte wie in
+// „included" (py-smart-gardena smart_system.py start_ws/on_message). Nur der erste Ort.
+// Noch nicht gebaut: Ventile/Sensoren/Steckdosen.
 // ===========================================================================
 
 class RoboHubGardena extends RoboHubHusqvarna
@@ -57,6 +60,56 @@ class RoboHubGardena extends RoboHubHusqvarna
         'OFF_HATCH_OPEN' => 'Klappe offen', 'OFF_HATCH_CLOSED' => 'Ausgeschaltet (Klappe zu)', 'PARKED_DAILY_LIMIT_REACHED' => 'Tageslimit erreicht',
         'SLOPE_TOO_STEEP' => 'Zu steil', 'WHEEL_MOTOR_BLOCKED_LEFT' => 'Radmotor links blockiert', 'WHEEL_MOTOR_BLOCKED_RIGHT' => 'Radmotor rechts blockiert',
     ];
+
+    /** Neue Adresse je Verbindung (gilt nur kurz) — für den ersten Ort mit einem Mäher. */
+    public function wsZiel(array $buendel): array
+    {
+        $ort = '';
+        foreach ($this->maeher($buendel, false) as $g) {
+            $ort = (string)($g['ort'] ?? '');
+            if ($ort !== '') {
+                break;
+            }
+        }
+        if ($ort === '') {
+            throw new RoboHubFehler('Kein GARDENA-Ort mit Mähroboter gefunden.');
+        }
+        $j = $this->anfrage($buendel, 'POST', 'websocket', ['data' => ['type' => 'WEBSOCKET', 'attributes' => ['locationId' => $ort], 'id' => 'robohub']]);
+        $url = (string)($j['data']['attributes']['url'] ?? '');
+        if (strpos($url, 'wss://') !== 0) {
+            throw new RoboHubFehler('GARDENA hat keine Echtzeit-Adresse geliefert.');
+        }
+        return ['url' => $url, 'kopf' => []];
+    }
+
+    /** GARDENA: kein Lebenszeichen auf Anwendungsebene (py-smart-gardena nutzt nur WebSocket-Ping). */
+    public function wsLebenszeichen(): ?string
+    {
+        return null;
+    }
+
+    /** Dienst-Meldung (MOWER/COMMON) einarbeiten → [Geräte-ID => ['common' => …, 'mower' => …]]. */
+    public function pushLesenMit(string $payload, array $buendel): array
+    {
+        $d = json_decode($payload, true);
+        $typ = strtolower((string)($d['type'] ?? ''));
+        if (!in_array($typ, ['mower', 'common'], true)) {
+            return [];
+        }
+        $id = explode(':', (string)($d['id'] ?? ''))[0];
+        $werte = self::geraeteAus([$d])[0][$typ] ?? [];
+        $aus = [];
+        $this->zwischenspeicherAendern($buendel, function (array &$liste) use ($id, $typ, $werte, &$aus): void {
+            foreach ($liste as &$g) {
+                if ((string)($g['id'] ?? '') === $id) {
+                    $g[$typ] = array_replace((array)($g[$typ] ?? []), $werte);
+                    $aus = ['common' => $g['common'], 'mower' => $g['mower']];
+                    return;
+                }
+            }
+        });
+        return $aus === [] ? [] : [$id => $aus];
+    }
 
     protected function marke(): string
     {

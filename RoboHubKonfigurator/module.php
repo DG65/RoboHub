@@ -26,6 +26,13 @@ class RoboHubKonfigurator extends IPSModule
     private const GERAET_GUID = '{631DA85B-5985-4C25-B222-E47FDD49E302}';
     private const SOCKET_GUID = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
 
+    /** Modul der Verbindungsinstanz unter dem Konto (Client Socket bzw. WebSocket Client bei Husqvarna/GARDENA). */
+    private function verbindungsModul(int $kid): string
+    {
+        $eltern = (int)(IPS_GetInstance($kid)['ConnectionID'] ?? 0);
+        return $eltern > 0 ? (string)IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] : self::SOCKET_GUID;
+    }
+
     public function Create()
     {
         parent::Create();
@@ -138,7 +145,7 @@ class RoboHubKonfigurator extends IPSModule
                         // Vollständige physische Kette bis zum I/O (Doku Variante 2). Ohne
                         // Vorgaben: Jeder Client Socket des Kontos passt, das Konto stellt ihn
                         // selbst ein. Fehlt er, gilt die Kette unter 9.1 als unvollständig.
-                        ['moduleID' => self::SOCKET_GUID, 'configuration' => new stdClass()],
+                        ['moduleID' => $this->verbindungsModul($kid), 'configuration' => new stdClass()],
                     ],
                 ];
             }

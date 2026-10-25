@@ -19,7 +19,13 @@ declare(strict_types=1);
 // Limit 10.000 Anfragen/Monat je App: Alle Mäher eines Kontos teilen sich
 // einen Abruf von /mowers, der höchstens alle 5 Minuten neu geholt wird
 // (≈ 8.700/Monat); nach einem Befehl wird er verworfen.
-// Noch nicht gebaut: Echtzeit (WebSocket), Zeitpläne, Schnitthöhe, Gardena.
+//
+// Echtzeit (0.20.0): WebSocket wss://ws.openapi.husqvarna.dev/v1 mit Bearer-Kopf
+// über Symcons WebSocket Client am Konto (aioautomower auth.py/session.py:
+// Ereignisse *-event-v2, Lebenszeichen = leere Textnachricht). Ereignisse werden in
+// den Zwischenspeicher eingearbeitet; solange die Verbindung steht, reicht ein
+// Vollabruf je Stunde. Schnitthöhe und Scheinwerfer: POST mowers/{id}/settings.
+// Noch nicht gebaut: Zeitpläne (Kalender), Messerzeit zurücksetzen.
 // ===========================================================================
 
 class RoboHubHusqvarna implements RoboHubTreiber
@@ -29,6 +35,14 @@ class RoboHubHusqvarna implements RoboHubTreiber
 
     /** Sekunden, die ein Abruf von /mowers für alle Mäher gilt (Prüfstand: 0). */
     public $zwischenspeicherSekunden = 300;
+
+    /** Vom Konto gesetzt: Echtzeit-Verbindung steht → Vollabruf nur noch stündlich. */
+    public $echtzeitVerbunden = false;
+
+    private const WS = 'wss://ws.openapi.husqvarna.dev/v1';
+
+    // Scheinwerfer (model_settings.py HeadlightModes).
+    private const SCHEINWERFER = [0 => ['ALWAYS_ON', 'Immer an'], 1 => ['ALWAYS_OFF', 'Immer aus'], 2 => ['EVENING_ONLY', 'Nur abends'], 3 => ['EVENING_AND_NIGHT', 'Abends und nachts']];
 
     private const API = 'https://api.amc.husqvarna.dev/v1/';
     private const AUTH = 'https://api.authentication.husqvarnagroup.dev/v1/oauth2/token';
@@ -135,7 +149,8 @@ class RoboHubHusqvarna implements RoboHubTreiber
     protected function maeher(array $buendel, bool $frisch): array
     {
         $datei = $this->speicherDatei($buendel);
-        if (!$frisch && $this->zwischenspeicherSekunden > 0 && is_file($datei) && time() - (int)filemtime($datei) < $this->zwischenspeicherSekunden) {
+        $gueltig = $this->echtzeitVerbunden ? max($this->zwischenspeicherSekunden, 3600) : $this->zwischenspeicherSekunden;
+        if (!$frisch && $this->zwischenspeicherSekunden > 0 && is_file($datei) && time() - (int)filemtime($datei) < $gueltig) {
             $j = json_decode((string)file_get_contents($datei), true);
             if (is_array($j)) {
                 return $j;
@@ -197,12 +212,30 @@ class RoboHubHusqvarna implements RoboHubTreiber
         $w['Akku'] = $akku;
         $s = (array)($p['statistics'] ?? []);
         $w['GesamtDauer'] = isset($s['totalCuttingTime']) && is_numeric($s['totalCuttingTime']) ? (int)round((int)$s['totalCuttingTime'] / 3600) : null;
+        $optionen = [];
+        $st = (array)($p['settings'] ?? []);
+        if (isset($st['cuttingHeight']) && is_numeric($st['cuttingHeight'])) {
+            $w['Schnitthoehe'] = (int)$st['cuttingHeight'];
+            $optionen['Schnitthoehe'] = [];
+            foreach (range(1, 9) as $stufe) {
+                $optionen['Schnitthoehe'][$stufe] = 'Stufe ' . $stufe;
+            }
+        }
+        $modus = strtoupper((string)($st['headlight']['mode'] ?? ''));
+        if ($modus !== '' && !empty($p['capabilities']['headlights'])) {
+            foreach (self::SCHEINWERFER as $nr => [$code, $text]) {
+                if ($code === $modus) {
+                    $w['Scheinwerfer'] = $nr;
+                }
+                $optionen['Scheinwerfer'][$nr] = $text;
+            }
+        }
         $grundText = ['WEEK_SCHEDULE' => 'Zeitplan', 'PARK_OVERRIDE' => 'Geparkt', 'SENSOR' => 'Wettersensor', 'DAILY_LIMIT' => 'Tageslimit',
             'FOTA' => 'Firmware-Update', 'FROST' => 'Frost', 'ALL_WORK_AREAS_COMPLETED' => 'Alle Bereiche fertig', 'EXTERNAL' => 'Externe Pause'][$grund] ?? null;
         if ($grundText !== null && $zustand === 'RESTRICTED') {
             $w['Meldung'] = 'Eingeschränkt: ' . $grundText;
         }
-        return ['werte' => $w, 'optionen' => [], 'schreibbar' => []];
+        return ['werte' => $w, 'optionen' => $optionen, 'schreibbar' => []];
     }
 
     /** state/activity (model_mower.py) → RoboHub-Zustand. */
@@ -284,6 +317,8 @@ class RoboHubHusqvarna implements RoboHubTreiber
                 $daten = ['type' => 'ParkUntilNextSchedule'];
                 $text = 'Parken bis zum nächsten Zeitplan';
                 break;
+            case 'setze':
+                return $this->einstellungSetzen($buendel, (string)$geraet['id'], (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
             case 'raum':
                 $bereiche = array_values(array_unique(array_map('intval', (array)($parameter['raeume'] ?? []))));
                 if (count($bereiche) !== 1) {
@@ -300,18 +335,112 @@ class RoboHubHusqvarna implements RoboHubTreiber
         return 'Befehl „' . $text . '" gesendet.';
     }
 
+    /** Schnitthöhe/Scheinwerfer (aioautomower commands.py set_cutting_height/set_headlight_mode). */
+    private function einstellungSetzen(array $buendel, string $id, string $feld, int $wert): string
+    {
+        if ($feld === 'Schnitthoehe' && $wert >= 1 && $wert <= 9) {
+            $attribute = ['cuttingHeight' => $wert];
+            $text = 'Schnitthöhe Stufe ' . $wert;
+        } elseif ($feld === 'Scheinwerfer' && isset(self::SCHEINWERFER[$wert])) {
+            $attribute = ['headlight' => ['mode' => self::SCHEINWERFER[$wert][0]]];
+            $text = 'Scheinwerfer „' . self::SCHEINWERFER[$wert][1] . '"';
+        } else {
+            throw new RoboHubFehler('Diese Einstellung gibt es bei Husqvarna nicht: ' . $feld . ' = ' . $wert);
+        }
+        $this->anfrage($buendel, 'POST', 'mowers/' . rawurlencode($id) . '/settings', ['data' => ['type' => 'settings', 'attributes' => $attribute]]);
+        @unlink($this->speicherDatei($buendel));
+        return $text . ' gesendet.';
+    }
+
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
         throw new RoboHubFehler('Zurücksetzen der Messerzeit ist bei Husqvarna noch nicht eingebaut — bitte in der App.');
     }
 
     // =================================================================
-    // Echtzeit: noch nicht gebaut (WebSocket der API)
+    // Echtzeit über WebSocket (Konto: WebSocket Client)
     // =================================================================
 
     public function echtzeitMoeglich(): bool
     {
-        return false;
+        return true;
+    }
+
+    public function echtzeitArt(): string
+    {
+        return 'websocket';
+    }
+
+    /** Adresse und Anmeldekopf für den WebSocket Client. */
+    public function wsZiel(array $buendel): array
+    {
+        return ['url' => self::WS, 'kopf' => [['Name' => 'Authorization', 'Value' => 'Bearer ' . $buendel['token']]]];
+    }
+
+    /** Lebenszeichen alle 60 s: eine leere Textnachricht (aioautomower send_empty_message). */
+    public function wsLebenszeichen(): ?string
+    {
+        return '';
+    }
+
+    /**
+     * Ereignis einarbeiten: in den zwischengespeicherten Mäher und als vollständige
+     * Teilobjekte zurück [Mäher-ID => [Schlüssel => Wert]]. Ohne Zwischenspeicher
+     * nichts — Teilwerte allein würden den Stand verfälschen; der nächste Abruf holt alles.
+     */
+    public function pushLesenMit(string $payload, array $buendel): array
+    {
+        $e = json_decode($payload, true);
+        $typ = (string)($e['type'] ?? '');
+        $id = (string)($e['id'] ?? '');
+        if ($id === '' || substr($typ, -9) !== '-event-v2' || in_array($typ, ['message-event-v2', 'calendar-event-v2'], true)) {
+            return [];
+        }
+        $a = (array)($e['attributes'] ?? []);
+        $delta = [];
+        $this->zwischenspeicherAendern($buendel, function (array &$liste) use ($id, $a, &$delta): void {
+            foreach ($liste as &$m) {
+                if ((string)($m['id'] ?? '') !== $id) {
+                    continue;
+                }
+                $at = &$m['attributes'];
+                if (isset($a['cuttingHeight']['height'])) {
+                    $at['settings']['cuttingHeight'] = $a['cuttingHeight']['height'];
+                    $schluessel = ['settings'];
+                } elseif (isset($a['headlights']['mode'])) {
+                    $at['settings']['headlight']['mode'] = $a['headlights']['mode'];
+                    $schluessel = ['settings'];
+                } elseif (isset($a['position']) && is_array($a['position'])) {
+                    $at['positions'] = array_slice(array_merge([$a['position']], (array)($at['positions'] ?? [])), 0, 50);
+                    $schluessel = ['positions'];
+                } else {
+                    foreach ($a as $k => $v) {
+                        $at[$k] = is_array($v) && is_array($at[$k] ?? null) ? array_replace_recursive($at[$k], $v) : $v;
+                    }
+                    $schluessel = array_keys($a);
+                }
+                foreach ($schluessel as $k) {
+                    $delta[$k] = $at[$k];
+                }
+                return;
+            }
+        });
+        return $delta === [] ? [] : [$id => $delta];
+    }
+
+    /** Zwischenspeicher bearbeiten, ohne sein Alter zu ändern (der stündliche Vollabruf bleibt). */
+    protected function zwischenspeicherAendern(array $buendel, callable $aendern): void
+    {
+        $datei = $this->speicherDatei($buendel);
+        $liste = is_file($datei) ? json_decode((string)file_get_contents($datei), true) : null;
+        if (!is_array($liste)) {
+            return;
+        }
+        $alter = (int)filemtime($datei);
+        $aendern($liste);
+        @file_put_contents($datei, (string)json_encode($liste));
+        @touch($datei, $alter);
+        clearstatcache(true, $datei);
     }
 
     public function mqttZiel(array $geraete, array $buendel): array

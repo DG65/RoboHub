@@ -2,6 +2,31 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.20.0 (25.10.2026)
+
+- Anlass: Code-Vergleich mit den vorhandenen Symcon-Mähermodulen (demel42 Automower, Symcon GARDENA) — beide haben
+  Echtzeit über WebSocket, RoboHub fragte nur alle 5 bzw. 15 min ab. Dietmar: „Mache so wie Du denkst".
+- **Konto: zweite Echtzeit-Art „websocket"** neben MQTT. Treiber melden sie über `echtzeitArt()`; das Konto legt dann
+  Symcons WebSocket Client (`{D68FD31F-…}`, gleiche Datenschnittstellen wie der Client Socket, Eigenschaften live gelesen:
+  Active/URL/Headers/VerifyCertificate/Type) statt des Client Sockets an. Ziel (Adresse + Kopfzeilen) über `wsZiel()`,
+  im Puffer `WsZiel`, `VerifyCertificate` immer an. Text-Meldungen → `pushLesenMit($text, $buendel)` → Schnappschuss →
+  Kinder. Lebenszeichen über `wsLebenszeichen()` alle 60 s (null = keins). Getrennt → neuer Versuch nach 30 s,
+  verdoppelnd bis 1 h (`WsFehler`), dabei frisches Ziel. Token-Wechsel (Husqvarna `token`) → neu verbinden.
+  Bestandskonten: eigene Verbindung („RoboHub …") falscher Art wird gegen die richtige getauscht, Fremdes nie.
+  Konfigurator-Kette nimmt das tatsächliche Verbindungsmodul des Kontos.
+- **Husqvarna** (aioautomower auth.py/session.py/const.py, MIT): `wss://ws.openapi.husqvarna.dev/v1` mit
+  `Authorization: Bearer`, Ereignisse `*-event-v2` (mower/battery/planner allgemein zusammengeführt,
+  cuttingHeight → settings.cuttingHeight, headlights → settings.headlight.mode, position → positions; message/calendar
+  übergangen), Lebenszeichen = leere Textnachricht. Ereignisse werden in den Zwischenspeicher eingearbeitet (Alter bleibt,
+  sonst spränge der nächste Abruf auf den alten Stand zurück); mit Echtzeit gilt er 1 h. Neu: `Schnitthoehe` (1–9) und
+  `Scheinwerfer` (nur bei `capabilities.headlights`), schreiben per POST `mowers/{id}/settings`.
+- **GARDENA** (py-smart-gardena smart_system.py, MIT): Adresse je Verbindung per POST `/v2/websocket` {locationId}
+  (erster Ort mit Mäher), kein Kopf, kein Lebenszeichen; Meldungen MOWER/COMMON werden in den Zwischenspeicher gemischt.
+- Prüfstand: Echtzeit-Strecke beider Treiber, Tausch alter Verbindungen, Konfigurator-Kette; 6/6 Mutationen gefangen
+  (Zertifikat aus, Zwischenspeicher nicht nachgezogen, keine 1-h-Gültigkeit, Fremdes gelöscht, Ziel nicht frisch,
+  Dateialter nicht erhalten).
+- **Live offen** — Dietmar hat weder Husqvarna noch GARDENA.
+
 ## 0.19.4 (25.10.2026)
 
 - Forum (Thilo): „Zustand" ließ sich zum Archivieren nicht speichern — Symcon: „Diese Darstellung ist nur für Variablen
@@ -211,18 +236,3 @@
   IconValue, Color). Ältere Versionen ignorierten das, neuere brechen ab. Die Regel in SUITE.md (Punkt 9)
   nannte ebenfalls `Icon` — an die EMS-Sitzung gemeldet.
 - Prüfstand: MaintainVariable-Nachbildung meldet unbekannte OPTIONS-Schlüssel wie neuere Symcon-Versionen.
-
-## 0.18.0 (13.10.2026)
-
-- **Neuer Treiber GARDENA smart system** (`libs/RoboHubGardena.php`, nach py-smart-gardena, MIT), abgeleitet
-  von RoboHubHusqvarna (gleiche Anmeldung, Zwischenspeicher je Marke):
-  - Orte `GET /v2/locations` → `GET /v2/locations/{id}`, Geräte aus „included" (Dienst-ID bis „:"),
-    Werte aus `{"value": …}`; nur Geräte mit MOWER-Dienst.
-  - Zustand aus activity/state (PARKED_AUTOTIMER/FROST = Wetterpause), lastErrorCode deutsch,
-    batteryLevel, operatingHours.
-  - Befehle `PUT /v2/command/{MOWER-Dienst}` MOWER_CONTROL: START_SECONDS_TO_OVERRIDE (3 h) bzw.
-    START_DONT_OVERRIDE nach Pause, PARK_UNTIL_NEXT_TASK, PARK_UNTIL_FURTHER_NOTICE; Pause/Orten ehrlich
-    „gibt es nicht".
-  - Abruf aller Mäher zwischengespeichert 15 Minuten.
-- RoboHubHusqvarna für Ableitung geöffnet (`apiBasis`, `apiName`, `marke`, `maeherHolen`).
-- Prüfstand 14 Mutationen; live: Endpunkt antwortet ohne Token mit 401. **Kein echter Mäher getestet.**
