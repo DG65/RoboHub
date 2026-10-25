@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.21.0' => [
+            '• Worx, Kress, LandXcape, Ferrex: Regenverzögerung (0–12 h), Mähzeiten an/aus (Party-Modus) und Zeitzuschlag (−100 bis +100 %) lesen und umstellen.',
+            '• Worx & Co.: Der Wochenplan aus der App steht jetzt in der Variable „Zeitpläne" und in der Kachel, inklusive zweiter Mähzeit und Kantenschnitt.',
+        ],
         '0.20.0' => [
             '• Husqvarna Automower und GARDENA: Echtzeit-Meldungen über WebSocket — Zustand, Akku und Einstellungen kommen sofort statt alle 5 bzw. 15 Minuten. Solange die Verbindung steht, fragt RoboHub nur noch stündlich vollständig ab (schont das Anfragelimit). Die Zertifikatsprüfung bleibt immer an.',
             '• Husqvarna: Schnitthöhe (Stufe 1–9) und Scheinwerfer (immer an/aus, nur abends, abends und nachts) lesen und umstellen.',

@@ -99,7 +99,9 @@ $GLOBALS['robohubTreiberFabrik'] = function (string $marke) {
 $draht = ['serial_number' => '20213012345', 'name' => 'Rasenkönig', 'product_id' => 'WR165E', 'online' => true, 'user_id' => 99, 'uuid' => 'uu-1',
     'mqtt_endpoint' => 'iot.eu-west-1.worxlandroid.com', 'mqtt_topics' => ['command_in' => 'PRM100/aabbcc/commandIn', 'command_out' => 'PRM100/aabbcc/commandOut'],
     'capabilities' => ['multi_zone'], 'last_status' => ['timestamp' => '2026-10-12 12:00:00', 'payload' => [
-        'cfg' => ['lg' => 'de', 'rd' => 60],
+        'cfg' => ['lg' => 'de', 'rd' => 60, 'sc' => ['m' => 1, 'distm' => 0, 'p' => 20, 'ots' => ['bc' => 0, 'wtm' => 0],
+            'd' => [['00:00', 0, 0], ['10:00', 60, 1], ['00:00', 0, 0], ['14:30', 90, 0], ['00:00', 0, 0], ['10:00', 60, 0], ['00:00', 0, 0]],
+            'dd' => [['00:00', 0, 0], ['18:00', 30, 0], ['00:00', 0, 0], ['00:00', 0, 0], ['00:00', 0, 0], ['00:00', 0, 0], ['00:00', 0, 0]]]],
         'dat' => ['ls' => 1, 'le' => 0, 'bt' => ['p' => 88, 'c' => 1, 'v' => 19.8], 'st' => ['b' => 1200, 'd' => 400000, 'wt' => 5460], 'rain' => ['s' => 0, 'cnt' => 0]],
     ]]];
 FakeWorx::$maeher = ['20213012345' => $draht];
@@ -159,6 +161,28 @@ $t = $wm->Aktualisieren();
 check('zu Hause + lädt = Lädt', variable(5100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_LAEDT && variable(5100, 'ZustandRoh')['value'] === 'Zu Hause (1)', $t);
 check('Akku 88, lädt, kein Fehler, kein Regen', variable(5100, 'Akku')['value'] === 88 && variable(5100, 'Laedt')['value'] === true && variable(5100, 'Fehler')['value'] === 'kein Fehler' && variable(5100, 'Regensensor')['value'] === false);
 check('Mähzeit gesamt in Stunden', variable(5100, 'GesamtDauer')['value'] === 91);
+check('Regenverzögerung 60 min, Mähzeiten an, Zeitzuschlag +20 % — umstellbar', variable(5100, 'Regenverzoegerung')['value'] === 60 && variable(5100, 'Maehzeiten')['value'] === 1
+    && variable(5100, 'Zeitzuschlag')['value'] === 20 && variable(5100, 'Regenverzoegerung')['action'] === true && variable(5100, 'Zeitzuschlag')['action'] === true);
+$ro = array_column(json_decode((string)variable(5100, 'Regenverzoegerung')['pres']['OPTIONS'], true), 'Caption', 'Value');
+check('Regenverzögerung in 30-min-Schritten bis 12 h', ($ro[0] ?? '') === 'Aus' && ($ro[30] ?? '') === '30 min' && ($ro[90] ?? '') === '1,5 h' && ($ro[720] ?? '') === '12 h' && count($ro) === 25, json_encode($ro, JSON_UNESCAPED_UNICODE));
+check('Wochenplan (Sonntag zuerst wie ioBroker) als Anzeige, inkl. zweiter Mähzeit', variable(5100, 'Zeitplaene')['value']
+    === "✅ Mo 10:00 · 60 min · mit Kantenschnitt\n✅ Mo 18:00 · 30 min\n✅ Mi 14:30 · 90 min\n✅ Fr 10:00 · 60 min", variable(5100, 'Zeitplaene')['value']);
+FakeWorx::$gesendet = [];
+$wm->RequestAction('Regenverzoegerung', 120);
+$wm->RequestAction('Maehzeiten', 0);
+$wm->RequestAction('Zeitzuschlag', -30);
+$inh = array_map(function ($g) { $n = json_decode($g['nachricht'], true); unset($n['id'], $n['cmd'], $n['lg'], $n['sn'], $n['tm'], $n['dt']); return $n; }, FakeWorx::$gesendet);
+check('rd 120; Party-Modus sc.m 2; Zeitzuschlag: ganzes sc mit p −30 und ohne ots (wie ioBroker mowTimeEx)', ($inh[0] ?? null) === ['rd' => 120]
+    && ($inh[1] ?? null) === ['sc' => ['m' => 2, 'distm' => 0]] && ($inh[2]['sc']['p'] ?? null) === -30 && !isset($inh[2]['sc']['ots'])
+    && count($inh[2]['sc']['d'] ?? []) === 7 && ($inh[2]['sc']['m'] ?? null) === 1, json_encode($inh));
+FakeWorx::$gesendet = [];
+$t1 = json_decode($wk->ForwardData(json_encode(['Aktion' => 'befehl', 'Geraet' => '20213012345', 'Befehl' => 'setze', 'Parameter' => ['feld' => 'Regenverzoegerung', 'wert' => 45]])), true);
+$t2 = json_decode($wk->ForwardData(json_encode(['Aktion' => 'befehl', 'Geraet' => '20213012345', 'Befehl' => 'setze', 'Parameter' => ['feld' => 'Zeitzuschlag', 'wert' => 150]])), true);
+check('ungültige Werte abgelehnt, nichts gesendet', strpos($t1['fehler'] ?? '', '30-Minuten') !== false && strpos($t2['fehler'] ?? '', '10er') !== false && FakeWorx::$gesendet === []);
+$vis = RoboHubWorx::einstellungNachricht(['cfg' => ['sc' => ['enabled' => 1, 'slots' => []]]], 'Maehzeiten', 0);
+check('Vision-Mäher: Mähzeiten über sc.enabled', $vis[0] === ['sc' => ['enabled' => 0]]);
+$vp = RoboHubWorx::wochenplan(['enabled' => 1, 'slots' => [['d' => 2, 's' => 600, 't' => 45, 'cfg' => ['cut' => ['b' => 1]]], ['d' => 1, 's' => 870, 't' => 0]]]);
+check('Vision-Wochenplan aus slots (Minuten ab Mitternacht)', count($vp) === 1 && $vp[0]['text'] === 'Di 10:00 · 45 min · mit Kantenschnitt', json_encode($vp, JSON_UNESCAPED_UNICODE));
 FakeWorx::$maeher['20213012345']['last_status']['payload']['dat'] = ['ls' => 1, 'le' => 5, 'bt' => ['p' => 100, 'c' => 0], 'rain' => ['s' => 1]];
 $wm->Aktualisieren();
 check('Regenverzögerung = Wetterpause', variable(5100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_WETTERPAUSE && strpos(variable(5100, 'Fehler')['value'], 'Regenverzögerung') === 0 && variable(5100, 'Regensensor')['value'] === true);

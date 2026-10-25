@@ -21,7 +21,13 @@ declare(strict_types=1);
 //     (Anmeldung über den Zugangsschlüssel im Benutzernamen), Topic
 //     mqtt_topics.command_in, {"cmd": n}.
 //
-// Noch nicht gebaut: Zonen, Zeitpläne, Regenverzögerung, Echtzeit über die
+// Seit 0.21.0 (ioBroker.worx main.js onStateChange/mowTimeEx/sendPartyModus/
+// evaluateCalendar): Regenverzögerung „rd" (Minuten, 30er-Schritte, höchstens
+// 720), Mähzeiten an/aus („sc.m" 1 = Zeitplan, 2 = Party-Modus bei Draht-Mähern,
+// „sc.enabled" bei Vision), Zeitzuschlag „sc.p" (−100…100 %, ganzes „sc" ohne
+// „ots" zurückschicken) und der Wochenplan als Anzeige („sc.d"/„sc.dd" je Tag
+// [Start, Minuten, Kantenschnitt], Sonntag zuerst; Vision „sc.slots").
+// Noch nicht gebaut: Mähzonen (mz/mzv), Wochenplan ändern, Echtzeit über die
 // Konto-Verbindung, Messer-Rücksetzen.
 // ===========================================================================
 
@@ -121,6 +127,8 @@ PEM;
         115 => 'Station fehlt', 116 => 'Schnitthöhenverstellung blockiert', 117 => 'Schnitthöhe nicht unterstützt',
         118 => 'Manuelles Firmware-Update nötig', 119 => 'Flächengrenze überschritten', 120 => 'Abdockfehler an der Station',
     ];
+
+    private const TAGE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];   // ioBroker this.week: Sonntag = 0
 
     // Befehle (mqtt.py Command / ioBroker sendMessage): 1 Start, 2 Pause, 3 Nach Hause.
     private const BEFEHLE = ['start' => [1, 'Start'], 'pause' => [2, 'Pause'], 'stopp' => [2, 'Stopp'], 'station' => [3, 'Zur Station']];
@@ -260,7 +268,59 @@ PEM;
         }
         // Statistik: st.wt Mähzeit in Minuten (ioBroker: /60 → Stunden).
         $w['GesamtDauer'] = isset($dat['st']['wt']) && is_numeric($dat['st']['wt']) ? (int)round((float)$dat['st']['wt'] / 60) : null;
-        return ['werte' => $w, 'optionen' => [], 'schreibbar' => []];
+
+        $cfg = (array)($p['cfg'] ?? []);
+        $sc = (array)($cfg['sc'] ?? []);
+        $optionen = [];
+        if (isset($cfg['rd']) && is_numeric($cfg['rd'])) {
+            $w['Regenverzoegerung'] = (int)$cfg['rd'];
+            $optionen['Regenverzoegerung'] = [0 => 'Aus'];
+            for ($m = 30; $m <= 720; $m += 30) {
+                $optionen['Regenverzoegerung'][$m] = $m < 60 ? $m . ' min' : str_replace('.', ',', (string)($m / 60)) . ' h';
+            }
+            $optionen['Regenverzoegerung'] += [(int)$cfg['rd'] => (int)$cfg['rd'] . ' min'];
+        }
+        if (isset($sc['m']) || isset($sc['enabled'])) {
+            $w['Maehzeiten'] = isset($sc['m']) ? ((int)$sc['m'] === 1 ? 1 : 0) : ((int)$sc['enabled'] === 1 ? 1 : 0);
+            $optionen['Maehzeiten'] = [0 => isset($sc['m']) ? 'Aus (Party-Modus)' : 'Aus', 1 => 'An'];
+        }
+        if (isset($sc['p']) && is_numeric($sc['p'])) {
+            $w['Zeitzuschlag'] = (int)$sc['p'];
+            for ($z = -100; $z <= 100; $z += 10) {
+                $optionen['Zeitzuschlag'][$z] = ($z > 0 ? '+' : '') . $z . ' %';
+            }
+        }
+        $aus = ['werte' => $w, 'optionen' => $optionen, 'schreibbar' => []];
+        if ($sc !== []) {
+            $aus['zeitplaene'] = self::wochenplan($sc);
+        }
+        return $aus;
+    }
+
+    /** Wochenplan als Anzeige-Termine (art „text"); nur Tage mit Mähzeit. */
+    public static function wochenplan(array $sc): array
+    {
+        $an = isset($sc['m']) ? (int)$sc['m'] === 1 : (int)($sc['enabled'] ?? 1) === 1;
+        $termine = [];
+        foreach (['d' => 0, 'dd' => 10] as $feld => $versatz) {
+            foreach ((array)($sc[$feld] ?? []) as $tag => $e) {
+                if (is_array($e) && (int)($e[1] ?? 0) > 0) {
+                    $termine[] = ['id' => $versatz + (int)$tag, 'an' => $an, 'art' => 'text',
+                        'text' => (self::TAGE[(int)$tag] ?? '?') . ' ' . $e[0] . ' · ' . (int)$e[1] . ' min' . (!empty($e[2]) ? ' · mit Kantenschnitt' : '')];
+                }
+            }
+        }
+        foreach ((array)($sc['slots'] ?? []) as $i => $s) {
+            if (is_array($s) && (int)($s['t'] ?? 0) > 0) {
+                $termine[] = ['id' => 100 + (int)$i, 'an' => $an, 'art' => 'text',
+                    'text' => (self::TAGE[(int)($s['d'] ?? 0)] ?? '?') . ' ' . sprintf('%02d:%02d', intdiv((int)($s['s'] ?? 0), 60), (int)($s['s'] ?? 0) % 60)
+                        . ' · ' . (int)$s['t'] . ' min' . (!empty($s['cfg']['cut']['b']) ? ' · mit Kantenschnitt' : '')];
+            }
+        }
+        usort($termine, function (array $a, array $b): int {
+            return (($a['id'] % 10) <=> ($b['id'] % 10)) ?: ($a['id'] <=> $b['id']);
+        });
+        return $termine;
     }
 
     // =================================================================
@@ -279,6 +339,11 @@ PEM;
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {
+        if ($befehl === 'setze') {
+            [$inhalt, $text] = self::einstellungNachricht((array)($geraet['stand'] ?? []), (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? 0));
+            $this->senden($buendel, $geraet, $inhalt);
+            return $text . ' gesendet.';
+        }
         if (!isset(self::BEFEHLE[$befehl])) {
             throw new RoboHubFehler(($befehl === 'orten' ? '„Orten" gibt es' : 'Dieser Befehl wird') . ' bei ' . self::MARKEN[$this->marke]['name'] . '-Mährobotern (noch) nicht' . ($befehl === 'orten' ? '.' : ' unterstützt: ' . $befehl));
         }
@@ -290,6 +355,41 @@ PEM;
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
         throw new RoboHubFehler('Zurücksetzen wird bei ' . self::MARKEN[$this->marke]['name'] . ' noch nicht unterstützt.');
+    }
+
+    /**
+     * Einstellung → Nachricht (ioBroker.worx): rd, sc.m/sc.enabled, sc.p mit ganzem sc (ohne ots).
+     * $stand = letzter Rohstand (payload) für Read-Modify-Write.
+     */
+    public static function einstellungNachricht(array $stand, string $feld, int $wert): array
+    {
+        $sc = (array)($stand['cfg']['sc'] ?? []);
+        switch ($feld) {
+            case 'Regenverzoegerung':
+                if ($wert < 0 || $wert > 720 || $wert % 30 !== 0) {
+                    throw new RoboHubFehler('Regenverzögerung: 0 bis 720 Minuten in 30-Minuten-Schritten.');
+                }
+                return [['rd' => $wert], 'Regenverzögerung ' . ($wert === 0 ? 'aus' : $wert . ' min')];
+            case 'Maehzeiten':
+                if (isset($sc['m'])) {
+                    return [['sc' => ['m' => $wert ? 1 : 2, 'distm' => 0]], 'Mähzeiten ' . ($wert ? 'an' : 'aus (Party-Modus)')];
+                }
+                if (isset($sc['enabled'])) {
+                    return [['sc' => ['enabled' => $wert ? 1 : 0]], 'Mähzeiten ' . ($wert ? 'an' : 'aus')];
+                }
+                throw new RoboHubFehler('Der Mäher meldet keinen Zeitplan — bitte einmal aktualisieren.');
+            case 'Zeitzuschlag':
+                if (!isset($sc['p'])) {
+                    throw new RoboHubFehler('Der Mäher meldet keinen Zeitzuschlag — bitte einmal aktualisieren.');
+                }
+                if ($wert < -100 || $wert > 100 || $wert % 10 !== 0) {
+                    throw new RoboHubFehler('Zeitzuschlag: −100 bis +100 % in 10er-Schritten.');
+                }
+                unset($sc['ots']);
+                $sc['p'] = $wert;
+                return [['sc' => $sc], 'Zeitzuschlag ' . ($wert > 0 ? '+' : '') . $wert . ' %'];
+        }
+        throw new RoboHubFehler('Diese Einstellung gibt es bei Worx nicht: ' . $feld);
     }
 
     /** Nachricht wie ioBroker sendPing: id, cmd, Sprache, Seriennummer bzw. uuid und Uhrzeit. */

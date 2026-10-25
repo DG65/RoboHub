@@ -617,7 +617,7 @@ class RoboHubGeraet extends IPSModule
 
     private function zeitplanSchaltbar(array $t): bool
     {
-        if (!empty($t['ungueltig'])) {
+        if (!empty($t['ungueltig']) || ($t['art'] ?? '') === 'text') {
             return false;
         }
         if (($t['art'] ?? '') === 'maeher') {
@@ -662,6 +662,9 @@ class RoboHubGeraet extends IPSModule
     /** Ein Termin in Klartext, mit Raumnamen aus der Karte: „07:00 · Mo, Mi, Fr · Vorrat, Küche · Saugen". */
     private function zeitplanText(array $t): string
     {
+        if (($t['art'] ?? '') === 'text') {
+            return (string)($t['text'] ?? '');   // Treiber liefert den fertigen Text (Worx)
+        }
         if (($t['art'] ?? '') === 'maeher') {
             return $this->maehplanText($t);
         }
@@ -768,6 +771,7 @@ class RoboHubGeraet extends IPSModule
     /** Übernimmt einen normalisierten Treiber-Zustand in die Variablen. */
     /** Roboter-Einstellungen (Saugstufe, Durchgänge, Nicht stören …) — die Variablen, die man umstellen kann. */
     private const EINSTELLUNGEN = ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll',
+        'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag',
         'NichtStoeren', 'NichtStoerenVon', 'NichtStoerenBis', 'Lautstaerke'];
 
     /**
@@ -1209,7 +1213,7 @@ class RoboHubGeraet extends IPSModule
 
         $info = [];
         $einst = $this->ReadPropertyBoolean('EinstellungenZeigen');
-        foreach ($einst ? ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll'] : [] as $ident) {
+        foreach ($einst ? ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll', 'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag'] : [] as $ident) {
             $t = $this->auswahlText($ident);
             if ($t !== null) {
                 // Mit Namen davor — „Hoch" oder „An" allein sagt in der Kachel nichts (Forum Thilo 24.10.2026).

@@ -338,7 +338,9 @@
   `{Präfix}/USER/{user_id}/robohub/{zufall}` — ob „robohub" als Kategorie akzeptiert wird, ist offen
   (ioBroker nutzt „iobroker", pyworxcloud „homeassistant").
 - WebSocket-Handschlag live geprüft (13.10.2026, ohne Anmeldung). **Kein Gerät live getestet.**
-- Offen: Zonen (mz/mzv), Zeitpläne (sc), Regenverzögerung (rd), Echtzeit (command_out), Messer-
+- **0.21.0:** Regenverzögerung (rd), Mähzeiten an/aus (sc.m 1/2 bzw. sc.enabled), Zeitzuschlag (sc.p, ganzes sc ohne ots),
+  Wochenplan als Anzeige (sc.d/dd, Sonntag zuerst; Vision sc.slots). Ident `Maehzeiten` (nicht `Zeitplan` — belegt).
+- Offen: Zonen (mz/mzv), Wochenplan schreiben, Kantenschnitt (cmd 101 bzw. ots bc), Echtzeit (command_out), Messer-
   Rücksetzen (`counters/blade/reset`, braucht ein Lebensdauer-Modell), Vision-Besonderheiten.
 
 ## Ecovacs-Treiber (0.15.0)

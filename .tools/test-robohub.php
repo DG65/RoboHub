@@ -1810,6 +1810,8 @@ foreach ($GLOBALS['OBJ'] as $o) {
     }
 }
 check('Aufzählung nur bei Variablen mit Aktion (Symcon: „nur für Variablen mit einer Variablenaktion", Forum Thilo 25.10.2026) — sonst Wertanzeige mit Optionen', $ohneAktion === [], implode(', ', array_unique($ohneAktion)));
+$sonder = ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen', 'Zeitplan', 'Zuordnen'];
+check('kein Modell-Feld heißt wie eine Sonder-Aktion des Roboters (sonst schluckt RequestAction die Einstellung)', array_intersect(array_keys(RoboHubModell::FELDER), $sonder) === []);
 check('Darstellungen nur mit Parametern der Symcon-Doku (OPTIONS je Darstellung: Aufzählung mit Color, Wertanzeige mit ColorActive/ColorValue; DIGITS nur bei Zahlen)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
 check('kein IPS_LogMessage in den Modulen', strpos($quellen, 'IPS_LogMessage') === false);
 check('Fehler als Warnung, Erfolge als Meldung protokolliert', in_array(KL_WARNING, $GLOBALS['LOGSTUFE'] ?? [], true) && in_array(KL_MESSAGE, $GLOBALS['LOGSTUFE'] ?? [], true));

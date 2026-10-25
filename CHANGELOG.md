@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.21.0 (25.10.2026)
+
+- Worx/Kress/LandXcape/Ferrex (Vorlage ioBroker.worx, MIT; Funktionsumfang wie das eingestellte Symcon-Modul MQTTworx):
+  - `Regenverzoegerung` (cfg.rd, 0–720 min in 30er-Schritten) → `{"rd":n}`.
+  - `Maehzeiten` an/aus: Draht-Mäher sc.m 1 = Zeitplan, 2 = Party-Modus (`{"sc":{"m":1|2,"distm":0}}`, ioBroker
+    sendPartyModus); Vision sc.enabled 1/0.
+  - `Zeitzuschlag` (sc.p −100…100 in 10er-Schritten) → ganzes sc zurück, ohne `ots` (ioBroker mowTimeEx, „hotfix").
+  - Wochenplan als Anzeige (`zeitplaene`, neue Art „text"): sc.d/sc.dd je Tag [Start, Minuten, Kantenschnitt],
+    Sonntag zuerst (ioBroker this.week); Vision sc.slots {d, s (min ab Mitternacht), t, cfg.cut.b}. Nur Tage mit Mähzeit.
+  - Werte werden vor dem Senden geprüft; ungültige gehen nie an den Mäher.
+- Ident `Zeitplan` war im Roboter schon die Kachel-Aktion „Termin schalten" — neue Variable heißt deshalb `Maehzeiten`.
+  Prüfstand-Regel: kein Modell-Feld darf wie eine Sonder-Aktion heißen. 4/4 Mutationen gefangen (ots bleibt, Party-Modus
+  falsch, Wochentage verschoben, Wertprüfung weg).
+- Nicht gebaut: Mähzonen (mz/mzv), Wochenplan ändern, Kantenschnitt-Befehl, Echtzeit. **Live ungetestet** (kein Gerät).
+
 ## 0.20.0 (25.10.2026)
 
 - Anlass: Code-Vergleich mit den vorhandenen Symcon-Mähermodulen (demel42 Automower, Symcon GARDENA) — beide haben
@@ -227,12 +242,3 @@
   (Konto über Hersteller + Kontofeld), Symcon nutzt das vorhandene Konto. Die Selbstzuordnung der
   Roboter bleibt als Sicherheitsnetz.
 - Torstens L10 (`dreame.vacuum.r5023a`) liefert laut Rohdaten alle Blöcke — Anmeldung und Abruf laufen.
-
-## 0.18.1 (13.10.2026)
-
-- Fix (Forum, Torsten, Windows-Symcon): Anlegen eines Roboters brach ab mit „Warning: Entry in parameter
-  OPTIONS includes unknown sub-parameters" (module.php Zeile 80/81 = Zustand/Befehl). Ursache: Schlüssel
-  `Icon` in den Aufzählungs-Optionen; laut Symcon-Doku heißt er `IconValue` (Value, Caption, IconActive,
-  IconValue, Color). Ältere Versionen ignorierten das, neuere brechen ab. Die Regel in SUITE.md (Punkt 9)
-  nannte ebenfalls `Icon` — an die EMS-Sitzung gemeldet.
-- Prüfstand: MaintainVariable-Nachbildung meldet unbekannte OPTIONS-Schlüssel wie neuere Symcon-Versionen.
