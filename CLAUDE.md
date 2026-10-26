@@ -501,6 +501,13 @@
   vom Kontoschlüssel. Neuer Roboter im Konto → neu anmelden (geraete() schreibt das Bündel nicht).
 - Offen: VR7, Spot-Reinigung, Eco/Turbo/Navigation wählen, Zeitplan an/aus (enableSchedule), Karte, Echtzeit.
 
+## Miele-Scout-Treiber (0.30.0)
+
+- Quellen: ioBroker.mielecloudservice, astrandb/miele, pymiele (alle MIT). Alter Endpunkt `thirdparty/token` (Password-Grant + vg)
+  wie ioBroker; neuer Keycloak-Endpunkt existiert (pymiele *_NEW) — falls Miele den alten abschaltet, dorthin wechseln.
+- Client-ID/Secret im Bündel (Dietmars Entscheidung 27.10.2026). Offen: Echtzeit (SSE `v1/devices/all/events`), Räume
+  (`v1/devices/{{id}}/rooms`, Format unbelegt), Spot (programId 2).
+
 ## Prüfen
 
 ```

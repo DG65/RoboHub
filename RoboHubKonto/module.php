@@ -19,6 +19,7 @@ require_once __DIR__ . '/../libs/RoboHubNarwal.php';
 require_once __DIR__ . '/../libs/RoboHubStihl.php';
 require_once __DIR__ . '/../libs/RoboHubAlko.php';
 require_once __DIR__ . '/../libs/RoboHubVorwerk.php';
+require_once __DIR__ . '/../libs/RoboHubMiele.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -60,6 +61,7 @@ class RoboHubKonto extends IPSModule
         'stihl'     => ['STIHL iMOW (App „iMOW", alle Generationen)', 'STIHL', false, false],
         'alko'      => ['AL-KO Robolinho (App „inTOUCH", offizielle API)', 'AL-KO', false, false],
         'vorwerk'   => ['Vorwerk Kobold VR200/VR300 (App „MyKobold")', 'Vorwerk', true, false],
+        'miele'     => ['Miele Scout (offizielle Miele-API)', 'Miele', false, true],
         'narwal'    => ['Narwal Flow/Freo (lokal im Heimnetz, ohne Cloud)', 'Narwal', false, false],
     ];
 
@@ -972,6 +974,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubAlko();
         } elseif ($hersteller === 'vorwerk') {
             $treiber = new RoboHubVorwerk();
+        } elseif ($hersteller === 'miele') {
+            $treiber = new RoboHubMiele();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -1174,7 +1178,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -1201,6 +1205,8 @@ class RoboHubKonto extends IPSModule
         $husqvarna = in_array($this->ReadPropertyString('Hersteller'), ['husqvarna', 'gardena'], true);
         $navimow = $this->ReadPropertyString('Hersteller') === 'navimow';
         $alko = $this->ReadPropertyString('Hersteller') === 'alko';
+        $miele = $this->ReadPropertyString('Hersteller') === 'miele';
+        $mitClient = $alko || $miele;
         $indego = $this->ReadPropertyString('Hersteller') === 'indego';
         $perLink = $navimow || $indego;
         $api = $this->ReadPropertyString('Hersteller') === 'gardena' ? 'GARDENA smart system API' : 'Automower Connect API';
@@ -1228,7 +1234,9 @@ class RoboHubKonto extends IPSModule
             'caption' => '🔑  Konto',
             'items' => [
                 ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => $auswahl],
-                ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs ? 'Land des Kontos (wie in der App)' : 'Region des Kontos', 'options' => $ecovacs ? RoboHubEcovacs::regionen() : RoboHubDreame::regionen(), 'visible' => $mitRegion],
+                ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs || $miele ? 'Land des Kontos (wie in der App)' : 'Region des Kontos',
+                    'options' => $miele ? array_map(function ($wert, $text) { return ['caption' => $text, 'value' => $wert]; }, array_keys(RoboHubMiele::LAENDER), RoboHubMiele::LAENDER)
+                        : ($ecovacs ? RoboHubEcovacs::regionen() : RoboHubDreame::regionen()), 'visible' => $mitRegion],
                 ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? 'IP-Adresse des Roboters' : ($husqvarna ? 'Application Key' : 'E-Mail des Kontos')],
                 ['type' => 'Label', 'visible' => $husqvarna, 'caption' => 'Husqvarna nutzt die offizielle Schnittstelle: Auf developer.husqvarnagroup.cloud mit dem Husqvarna-Konto anmelden, „Create application" (Redirect-URL beliebig, z. B. http://localhost), die APIs „Authentication API" und „' . $api . '" verbinden, dann Application Key und Application Secret hier eintragen. Wegen des Abfragelimits fragt RoboHub ' . ($api === 'GARDENA smart system API' ? 'höchstens alle 15 Minuten' : 'höchstens alle 5 Minuten') . ' ab.'],
                 ['type' => 'Label', 'visible' => $narwal, 'caption' => 'Narwal läuft lokal, ohne Cloud und ohne Passwort: IP-Adresse des Roboters eintragen (am besten im Router fest vergeben), „Übernehmen", „🔑 Jetzt anmelden". Der Roboter muss eingeschaltet sein. Geht mit Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge und JX; Freo X Ultra, X Plus, J1/J4 und T10 haben keine lokale Schnittstelle. Für einen weiteren Narwal dasselbe mit dessen IP.'],
@@ -1238,8 +1246,9 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Navimow meldet sich ohne Passwort bei RoboHub an: „🔗 Anmeldeseite öffnen", dort mit dem Navimow-Konto anmelden. Danach landet der Browser auf einer Seite, die nicht lädt (http://localhost:1/callback?code=…) — das ist gewollt. Diese Adresse aus der Adresszeile kopieren, unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Offen gesagt: Segway vergibt für Smart-Home-Systeme keine eigenen Zugänge. RoboHub nutzt deshalb, wie ioBroker, die von Segway veröffentlichte Smart-Home-Kennung „homeassistant". Auf der Anmeldeseite steht darum „Home Assistant" — gemeint ist diese Schnittstelle, nicht dein Home Assistant.'],
                 ['type' => 'Label', 'visible' => $alko, 'caption' => 'AL-KO nutzt die offizielle Schnittstelle: Den Zugang (Client-ID und Client-Secret) beantragst du einmalig bei AL-KO unter alko-garden.de/iot-api-zugang-anfordern. Dann Client-ID und Secret sowie E-Mail und Passwort der inTOUCH-App eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen; Client-ID und Secret bleiben im Konto gespeichert, weil AL-KO den Zugang nur damit erneuert.'],
-                ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $alko, 'caption' => 'Client-ID (von AL-KO)'],
-                ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $alko, 'caption' => 'Client-Secret (von AL-KO, wird nach der Anmeldung ins Konto übernommen)'],
+                ['type' => 'Label', 'visible' => $miele, 'caption' => 'Miele nutzt die offizielle Schnittstelle: Auf developer.miele.com einmalig einen Zugang anlegen (Client-ID und Client-Secret). Dann Client-ID und Secret, E-Mail und Passwort der Miele-App sowie das Land des Kontos eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen; Client-ID und Secret bleiben im Konto gespeichert, weil Miele den Zugang nur damit erneuert. Am Roboter muss die Fernsteuerung erlaubt sein.'],
+                ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $mitClient, 'caption' => 'Client-ID (von ' . ($miele ? 'Miele' : 'AL-KO') . ')'],
+                ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $mitClient, 'caption' => 'Client-Secret (von ' . ($miele ? 'Miele' : 'AL-KO') . ', wird nach der Anmeldung ins Konto übernommen)'],
                 ['type' => 'Label', 'visible' => $indego, 'caption' => 'Indego meldet sich ohne Passwort bei RoboHub an. Am besten in Chrome, Edge oder Firefox: zuerst die Entwicklerkonsole öffnen (F12, am Mac Wahl + Befehl + I), dann „🔗 Anmeldeseite öffnen" und mit der Bosch SingleKey ID anmelden. Danach passiert scheinbar nichts — die Konsole zeigt aber eine fehlgeschlagene Weiterleitung auf „com.bosch.indegoconnect://login?…code=…". Diese Adresse (oder die ganze Konsolenzeile) unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten. So macht es auch ioBroker.'],
                 ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? 'Code bzw. Adresse nach der Anmeldung (wird danach verworfen)' : ($roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : ($husqvarna ? 'Application Secret (bleibt im Konto gespeichert)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'))],
                 ['type' => 'Label', 'name' => 'Ergebnis', 'caption' => $zeile],
@@ -1249,7 +1258,7 @@ class RoboHubKonto extends IPSModule
                     ['type' => 'Button', 'caption' => '🔑 Jetzt anmelden', 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
                     ['type' => 'Button', 'caption' => '⏏️ Abmelden', 'onClick' => 'echo ROBOHUB_Abmelden($id);'],
                 ]],
-                ['type' => 'PopupButton', 'caption' => 'Welche Region hat mein Konto?', 'width' => '460px', 'visible' => $mitRegion && !$ecovacs, 'popup' => [
+                ['type' => 'PopupButton', 'caption' => 'Welche Region hat mein Konto?', 'width' => '460px', 'visible' => $mitRegion && !$ecovacs && !$miele, 'popup' => [
                     'caption' => 'Welche Region hat mein Konto?',
                     'items' => [
                         ['type' => 'Label', 'caption' => 'Die Region richtet sich nach dem Land, das du bei der Registrierung in der App gewählt hast — für Deutschland, Österreich und die Schweiz ist das „Europa".'],

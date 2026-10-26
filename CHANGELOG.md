@@ -2,6 +2,20 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.30.0 (27.10.2026)
+
+- **Neuer Treiber Miele Scout** (`libs/RoboHubMiele.php`) über die offizielle Miele-3rd-Party-API, nach Grizzelbee/ioBroker.mielecloudservice
+  (MIT, Passwort-Anmeldung, Endpunkte, Aktionen), astrandb/miele (MIT, Phasen und Programme des Saugroboters) und nordicopen/pymiele (MIT).
+  - Zugang: Client-ID + Secret (developer.miele.com) + Password-Grant mit `vg` (Land, neue Länderauswahl im Konto-Feld „Region").
+    **Dietmars Entscheidung 27.10.2026 (wie AL-KO):** Client-ID + Secret im Bündel, Passwort verworfen.
+  - `v1/devices?language=de`, nur Typ 23. Zustand aus programPhase 5889–5910 (Mieles eigener Text bevorzugt, Tabelle als Rückfall),
+    status 255 = nicht verbunden, 8 = Störung. Programm (ProgramID) als Auswahl „Saugstufe" (Auto/Turbo/Leise, schreibbar).
+  - Befehle `PUT actions` processAction 1/3/2 (Start/Pause/Stopp), vorher `GET actions` — im falschen Zustand ehrliche Absage mit den
+    erlaubten Aktionen. „Zur Station"/„Orten" bietet Miele nicht.
+  - Live 27.10.2026: alter (thirdparty/token) und neuer (Keycloak) Anmeldeserver antworten mit `invalid_client` auf erfundene Daten.
+- Prüfstand: 11 Miele-Prüfungen, 10/10 Mutationen gefangen. Formular-Sucher in den Tests überspringt unsichtbare Elemente samt Inhalt.
+  **Live ungetestet.**
+
 ## 0.29.0 (27.10.2026)
 
 - **Neuer Treiber Vorwerk Kobold VR200/VR300** (`libs/RoboHubVorwerk.php`) nach stianaske/pybotvac (MIT), der Homey-App

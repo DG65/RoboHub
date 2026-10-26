@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.30.0' => [
+            '• Neu: Miele Scout über die offizielle Miele-Schnittstelle (Zugang bei Miele anlegen). Zustand mit Mieles eigenem Text, Fehler F1–F8, Akku, Programm (Auto/Turbo/Leise); Start, Pause, Stopp. „Zur Station" bietet Miele nicht.',
+        ],
         '0.29.0' => [
             '• Neu: Vorwerk Kobold VR200/VR300 — Anmeldung per E-Mail-Code, kein Passwort. Zustand, Fehler, Hinweise, Akku; Start/Fortsetzen, Pause, Stopp, Zur Station, Orten, beim VR300 gespeicherte Bereiche reinigen. Der VR7 nutzt eine andere Cloud und geht noch nicht.',
         ],

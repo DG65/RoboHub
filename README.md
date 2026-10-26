@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.29.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.30.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -9,7 +9,7 @@
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
-**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **Miele Scout** (offizielle API), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego**, **STIHL iMOW** und **AL-KO Robolinho** — jeweils über die
 Hersteller-Cloud.
 
@@ -61,6 +61,9 @@ Skripten oder Visualisierung etwas ändert.
    verbinden (eine Anwendung kann beide haben).
    **Vorwerk Kobold**: Hersteller „Vorwerk Kobold" wählen, E-Mail des MyKobold-Kontos eintragen, „Übernehmen", „📧 Code
    anfordern", den Code aus der E-Mail eintragen, anmelden. Kein Passwort.
+   **Miele Scout**: Zuerst auf [developer.miele.com](https://developer.miele.com) einen Zugang anlegen (Client-ID und
+   Client-Secret). Hersteller „Miele Scout" wählen, Land des Kontos, Client-ID, Secret sowie E-Mail und Passwort der Miele-App
+   eintragen, anmelden. Das Passwort wird verworfen; Client-ID und Secret bleiben im Konto. Am Roboter Fernsteuerung erlauben.
    **Segway Navimow**: Hersteller „Segway Navimow" wählen, „Übernehmen", „🔗 Anmeldeseite öffnen" und dort
    mit dem Navimow-Konto anmelden. Danach landet der Browser auf `http://localhost:1/callback?code=…` — die
    Seite lädt nicht, das ist gewollt. Diese Adresse aus der Adresszeile ins Feld „Code" kopieren, „Übernehmen",
@@ -216,6 +219,10 @@ nicht offiziell dokumentiert und kann sich ändern.
   Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
   speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
   Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
+- **Miele Scout** (seit 0.30.0): offizielle Miele-Schnittstelle nach ioBroker.mielecloudservice und astrandb/miele (MIT);
+  an keinem echten Roboter geprüft (Anmeldeserver live bestätigt). Zustand (mit Mieles eigenem deutschen Text), Fehler F1–F8,
+  Akku, Programm Auto/Turbo/Leise; Start, Pause, Stopp. „Zur Station" und „Orten" bietet die Miele-Schnittstelle nicht; Räume
+  und Echtzeit noch nicht. (Das Symcon-Modul „Miele@Home" von demel42 kennt laut README keine Saugroboter.)
 - **Vorwerk Kobold VR200/VR300** (seit 0.29.0): nach pybotvac und der Homey-App (beide MIT, dort an einem VR300 live
   geprüft); an keinem echten Gerät mit RoboHub geprüft (beide Vorwerk-Server live erreichbar). Anmeldung per E-Mail-Code;
   Zustand und Befehle laufen danach mit dem eigenen Schlüssel jedes Roboters weiter, auch wenn der Kontoschlüssel abläuft.
@@ -273,7 +280,9 @@ und [TA2k/ioBroker.imow](https://github.com/TA2k/ioBroker.imow) (alle MIT), der 
 [chave/homebridge-alko-mower](https://github.com/chave/homebridge-alko-mower) (alle MIT), der Vorwerk-Treiber
 [stianaske/pybotvac](https://github.com/stianaske/pybotvac) und [SornyKonst/Homey-App-Vorwerk-Kobold](https://github.com/SornyKonst/Homey-App-Vorwerk-Kobold)
 (beide MIT) sowie [bndtblds/homeassistant-vorwerk](https://github.com/bndtblds/homeassistant-vorwerk) (Apache-2.0, Bedeutung der
-Fehlercodes), der Indego-Treiber
+Fehlercodes), der Miele-Treiber [Grizzelbee/ioBroker.mielecloudservice](https://github.com/Grizzelbee/ioBroker.mielecloudservice),
+[astrandb/miele](https://github.com/astrandb/miele) und [nordicopen/pymiele](https://github.com/nordicopen/pymiele) (alle MIT),
+der Indego-Treiber
 [sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) und [sander1988/Indego](https://github.com/sander1988/Indego)
 (Apache-2.0), der Narwal-Treiber [sjmotew/NarwalIntegration](https://github.com/sjmotew/NarwalIntegration) (MIT);
 die Anleitung mit der Entwicklerkonsole stammt aus
