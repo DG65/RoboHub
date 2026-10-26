@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.28.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.29.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -9,7 +9,7 @@
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
-**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego**, **STIHL iMOW** und **AL-KO Robolinho** — jeweils über die
 Hersteller-Cloud.
 
@@ -59,6 +59,8 @@ Skripten oder Visualisierung etwas ändert.
    Application Secret ins Feld darunter, anmelden.
    **GARDENA**: genauso, nur „GARDENA smart system API" statt „Automower Connect API" mit der Anwendung
    verbinden (eine Anwendung kann beide haben).
+   **Vorwerk Kobold**: Hersteller „Vorwerk Kobold" wählen, E-Mail des MyKobold-Kontos eintragen, „Übernehmen", „📧 Code
+   anfordern", den Code aus der E-Mail eintragen, anmelden. Kein Passwort.
    **Segway Navimow**: Hersteller „Segway Navimow" wählen, „Übernehmen", „🔗 Anmeldeseite öffnen" und dort
    mit dem Navimow-Konto anmelden. Danach landet der Browser auf `http://localhost:1/callback?code=…` — die
    Seite lädt nicht, das ist gewollt. Diese Adresse aus der Adresszeile ins Feld „Code" kopieren, „Übernehmen",
@@ -214,6 +216,11 @@ nicht offiziell dokumentiert und kann sich ändern.
   Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
   speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
   Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
+- **Vorwerk Kobold VR200/VR300** (seit 0.29.0): nach pybotvac und der Homey-App (beide MIT, dort an einem VR300 live
+  geprüft); an keinem echten Gerät mit RoboHub geprüft (beide Vorwerk-Server live erreichbar). Anmeldung per E-Mail-Code;
+  Zustand und Befehle laufen danach mit dem eigenen Schlüssel jedes Roboters weiter, auch wenn der Kontoschlüssel abläuft.
+  Start/Fortsetzen, Pause, Stopp, Zur Station, Orten, VR300: gespeicherte Bereiche. **Der Kobold VR7 geht (noch) nicht** — er
+  nutzt eine andere Cloud, für die es keine belastbare offene Beschreibung gibt.
 - **AL-KO Robolinho** (seit 0.28.0): offizielle AL-KO-Schnittstelle, nach alko-cli (MIT, am Robolinho 700 W gemessen) und der
   HA-Integration jonkristian/alko; an keinem echten Mäher geprüft (Anmeldeserver live bestätigt). Zustand mit Grund der
   Heimfahrt, Regen-/Frostpause, PIN-Sperre, Fehler, Akku, WLAN, Mähzeit, Messerlaufzeit, Zyklen, Messer-Restlebensdauer,
@@ -263,7 +270,10 @@ Navimow-Treiber [niddu85/home-assistant-navimow](https://github.com/niddu85/home
 [simontims/ha-imow-v2](https://github.com/simontims/ha-imow-v2), [ChrisHaPunkt/stihl-imow-webapi](https://github.com/ChrisHaPunkt/stihl-imow-webapi)
 und [TA2k/ioBroker.imow](https://github.com/TA2k/ioBroker.imow) (alle MIT), der AL-KO-Treiber
 [trx222/alko-cli](https://github.com/trx222/alko-cli), [jonkristian/alko](https://github.com/jonkristian/alko) und
-[chave/homebridge-alko-mower](https://github.com/chave/homebridge-alko-mower) (alle MIT), der Indego-Treiber
+[chave/homebridge-alko-mower](https://github.com/chave/homebridge-alko-mower) (alle MIT), der Vorwerk-Treiber
+[stianaske/pybotvac](https://github.com/stianaske/pybotvac) und [SornyKonst/Homey-App-Vorwerk-Kobold](https://github.com/SornyKonst/Homey-App-Vorwerk-Kobold)
+(beide MIT) sowie [bndtblds/homeassistant-vorwerk](https://github.com/bndtblds/homeassistant-vorwerk) (Apache-2.0, Bedeutung der
+Fehlercodes), der Indego-Treiber
 [sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) und [sander1988/Indego](https://github.com/sander1988/Indego)
 (Apache-2.0), der Narwal-Treiber [sjmotew/NarwalIntegration](https://github.com/sjmotew/NarwalIntegration) (MIT);
 die Anleitung mit der Entwicklerkonsole stammt aus

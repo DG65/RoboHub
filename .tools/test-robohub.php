@@ -1786,6 +1786,7 @@ require __DIR__ . '/test-indego.inc.php';
 require __DIR__ . '/test-narwal.inc.php';
 require __DIR__ . '/test-stihl.inc.php';
 require __DIR__ . '/test-alko.inc.php';
+require __DIR__ . '/test-vorwerk.inc.php';
 
 abschnitt('Formulare (Konvention)');
 $libVersion = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version'];

@@ -2,6 +2,23 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.29.0 (27.10.2026)
+
+- **Neuer Treiber Vorwerk Kobold VR200/VR300** (`libs/RoboHubVorwerk.php`) nach stianaske/pybotvac (MIT), der Homey-App
+  SornyKonst/Homey-App-Vorwerk-Kobold (MIT, live an einem VR300) und bndtblds/homeassistant-vorwerk (Apache-2.0, Fehlercodes).
+  - Anmeldung per E-Mail-Code (Auth0 passwordless, mykobold.eu.auth0.com) über den vorhandenen Code-Weg des Kontos (wie Roborock).
+    ID-Token (nicht access_token) für beehive `users/me/robots` → je Roboter `secret_key` + `nucleo_url` (nur Vorwerks eigener
+    Server `nucleo.ksecosys.com` wird angenommen).
+  - Zustand/Befehle direkt an nucleo, je Nachricht HMAC-SHA256 („serial(klein)\nDatum\nKörper", Kopf `NEATOAPP`). Zustände
+    nach robot-state.js (Pause auch bei Aktion 6/15, `ui_alert_invalid` kein Fehler), deutsche Fehlertexte nach Gruppen,
+    Hinweise als „Letzte Meldung". startCleaning je houseCleaning-Dienst (VR200 basic-1 ohne Karte, VR300 gespeicherte Karte).
+    VR300-Bereiche über `getMapBoundaries` (nur Flächen, keine Sperrlinien), Nummer = Position.
+  - Kontoschlüssel nur für die Geräteliste: lehnt Vorwerk die Erneuerung ab, laufen die Roboter weiter (Hinweis statt Abmelden).
+  - Kobold VR7 bewusst nicht: andere Cloud („orbital"), einzige offene Quelle fragt keinen Zustand ab und setzt eine feste
+    Grundriss-ID.
+  - Live 27.10.2026 ohne Konto: beehive verlangt Schlüssel (401), nucleo kennt das Format („robot_serial not found", 404).
+- Prüfstand: 18 Vorwerk-Prüfungen (Nachbau prüft jede HMAC-Signatur), 12/12 Mutationen gefangen. **Live ungetestet.**
+
 ## 0.28.0 (27.10.2026)
 
 - **Neuer Treiber AL-KO Robolinho** (`libs/RoboHubAlko.php`) über die offizielle AL-KO Gardentech IoT API, nach trx222/alko-cli

@@ -493,6 +493,14 @@
 - Offen: Einstellungen schreiben (rainDelay/ecoMode/rainSensor — Wertebereiche unbelegt), Mähen mit Dauer/Startpunkt
   (`manualMowing`, entryPoint-Bitmaske unbestätigt), Randmähen (`manualMarginMowing`), Messer-Reset, Fehlercode-Texte.
 
+## Vorwerk-Kobold-Treiber (0.29.0)
+
+- Quellen: stianaske/pybotvac (MIT), SornyKonst/Homey-App-Vorwerk-Kobold (MIT, beste Quelle, live VR300), bndtblds/homeassistant-
+  vorwerk (Apache-2.0). FReichelt/ha-vorwerk-kobold ist AGPL — nicht verwenden. homebridge-vorwerk-vr7 (VR7) unbrauchbar.
+- Auth0-Client `KY4YbVAvtgB7lp8vIbWQ7zLk3hssZlhR`, E-Mail-Code; Geräteschlüssel (`secret_key`) im Bündel → Steuerung unabhängig
+  vom Kontoschlüssel. Neuer Roboter im Konto → neu anmelden (geraete() schreibt das Bündel nicht).
+- Offen: VR7, Spot-Reinigung, Eco/Turbo/Navigation wählen, Zeitplan an/aus (enableSchedule), Karte, Echtzeit.
+
 ## Prüfen
 
 ```
