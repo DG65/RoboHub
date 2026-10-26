@@ -20,7 +20,7 @@
 - Konto: optionaler Treiber-Haken `anmeldeText()` für die Erfolgsmeldung.
 - **Fehler behoben:** `ROBO_RaeumeReinigen("0")`, Kachel und Variable „Zone mähen" verwarfen die ID 0 (`array_filter`). Betraf
   den Husqvarna-Hauptbereich (workAreaId 0) seit 0.17.0 und die erste STIHL-Zone. Jetzt `raumIds()`.
-- Prüfstand: 22 STIHL-Prüfungen (Nachbau mit PKCE-Prüfung, Cookies, Weiterleitungen), 14/14 Mutationen gefangen.
+- Prüfstand: 21 STIHL-Prüfungen (Nachbau mit PKCE-Prüfung, Cookies, Weiterleitungen), 14/14 Mutationen gefangen.
   **Live ungetestet** (kein Gerät).
 
 ## 0.26.0 (26.10.2026)
