@@ -2,6 +2,27 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.27.0 (26.10.2026)
+
+- **Neuer Treiber STIHL iMOW** (`libs/RoboHubStihl.php`), beide Cloud-Generationen in einem Hersteller:
+  - Neue Generation (iMOW 5/6/7, EVO; myimow) nach simontims/ha-imow-v2 (MIT, 16.10.2026), Endpunkte durch ioBroker.imow
+    bestätigt: STIHL-ID (Azure B2C) mit eigenem PKCE-Paar, Cookies und CSRF selbst geführt (Schritte authorize → SelfAsserted →
+    confirmed → token), danach Erneuerungsschlüssel — Passwort verworfen. `mowertwin/api/v1/mowers`: overallState-Gruppen wie
+    die App (Regen → Wetterpause, „busy" nach isDocked), battery.level ×100, errorsActive mit STIHLs Text aus der öffentlichen
+    Datei `myimow.stihl.com/app-i18n-messages/de-DE.json` (einmal am Tag), Statistik, Zonen. Befehle start-mowing
+    (Vorgabedauer des Mähers, optional Zone), resume aus der Pause, pause, end-job-and-return-to-dock.
+  - Ältere RMI-Serie nach ChrisHaPunkt/stihl-imow-webapi (MIT, 15.07.2026): Formular-Anmeldung (csrf-token/requestId),
+    Weiterleitungen selbst verfolgt, Schlüssel aus dem Fragment, 30 Tage. **Dietmars Entscheidung 26.10.2026:** Passwort nicht
+    speichern, Hinweis drei Tage vorher („Letzte Meldung"), danach Anmeldung nötig. Zustands-/Fehlertabelle (15 + 147 Einträge,
+    deutsche Texte) aus messages.py. Befehle startMowing (2 h) und toDocking.
+  - Erkennung: erst neue Generation; lehnt STIHL ab oder ist kein Mäher im Konto → RMI mit denselben Daten.
+  - Live (ohne Konto): beide Anmeldungen laufen bis zur Passwortprüfung und erkennen „falsch" richtig.
+- Konto: optionaler Treiber-Haken `anmeldeText()` für die Erfolgsmeldung.
+- **Fehler behoben:** `ROBO_RaeumeReinigen("0")`, Kachel und Variable „Zone mähen" verwarfen die ID 0 (`array_filter`). Betraf
+  den Husqvarna-Hauptbereich (workAreaId 0) seit 0.17.0 und die erste STIHL-Zone. Jetzt `raumIds()`.
+- Prüfstand: 22 STIHL-Prüfungen (Nachbau mit PKCE-Prüfung, Cookies, Weiterleitungen), 14/14 Mutationen gefangen.
+  **Live ungetestet** (kein Gerät).
+
 ## 0.26.0 (26.10.2026)
 
 - Kachel mit **Symcon-Symbolen** statt Emojis (Forum Thilo, Beitrag 50: Emoji-Schrift auf dem Pi nachinstalliert, Symcon-Symbole

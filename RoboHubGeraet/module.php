@@ -282,7 +282,7 @@ class RoboHubGeraet extends IPSModule
      */
     public function RaeumeReinigen(string $raumIDs): string
     {
-        $ids = array_values(array_filter(array_map('intval', explode(',', $raumIDs))));
+        $ids = self::raumIds($raumIDs);
         if (count($ids) === 0) {
             return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
         }
@@ -296,7 +296,7 @@ class RoboHubGeraet extends IPSModule
      */
     public function RaeumeReinigenMit(string $raumIDs, int $modus, int $saugstufe, int $durchgaenge): string
     {
-        $ids = array_values(array_filter(array_map('intval', explode(',', $raumIDs))));
+        $ids = self::raumIds($raumIDs);
         if (count($ids) === 0) {
             return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
         }
@@ -304,10 +304,26 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** „3,5|0|1|2" → Befehlsparameter (Räume, Modus, Saugstufe, Durchgänge). */
+    /**
+     * „3,5" → [3, 5]. ID 0 ist gültig (Husqvarna-Hauptbereich, erste STIHL-Zone) — früher
+     * hat array_filter sie verworfen; Treiber, bei denen 0 keine Zone ist, prüfen selbst.
+     */
+    private static function raumIds(string $liste): array
+    {
+        $ids = [];
+        foreach (explode(',', $liste) as $teil) {
+            $teil = trim($teil);
+            if ($teil !== '' && ctype_digit($teil)) {
+                $ids[] = (int)$teil;
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
     private static function raumStart(string $wert): array
     {
         $teile = explode('|', $wert);
-        $p = ['raeume' => array_values(array_filter(array_map('intval', explode(',', $teile[0]))))];
+        $p = ['raeume' => self::raumIds($teile[0])];
         foreach (['modus' => 1, 'saugstufe' => 2, 'durchgaenge' => 3] as $schluessel => $i) {
             if (isset($teile[$i]) && is_numeric($teile[$i]) && (int)$teile[$i] >= 0) {
                 $p[$schluessel] = (int)$teile[$i];

@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.27.0' => [
+            '• Neu: STIHL iMOW — neue Generation (iMOW 5/6/7, auch EVO) und ältere RMI-Modelle in einem Konto, RoboHub erkennt die Generation selbst. Zustand, Fehler mit STIHLs Text, Akku, Statistik, Zonen; Mähen, Pause, Zur Station.',
+            '• Ältere iMOW: STIHL gibt den Zugang nur für 30 Tage — RoboHub speichert dein Passwort nicht, erinnert drei Tage vorher und bittet dann um eine neue Anmeldung.',
+            '• Behoben: Raum/Zone mit der Nummer 0 wurde verworfen (betraf auch den Hauptbereich bei Husqvarna).',
+        ],
         '0.26.0' => [
             '• Kachel mit Symcon-Symbolen statt Emojis — sehen auf jedem Gerät gleich aus, auch auf dem Raspberry Pi ohne Emoji-Schrift. Wer die bunten Emojis lieber mag: „Symbole in der Kachel" im Roboter-Formular.',
         ],

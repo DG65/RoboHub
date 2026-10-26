@@ -16,6 +16,7 @@ require_once __DIR__ . '/../libs/RoboHubGardena.php';
 require_once __DIR__ . '/../libs/RoboHubNavimow.php';
 require_once __DIR__ . '/../libs/RoboHubIndego.php';
 require_once __DIR__ . '/../libs/RoboHubNarwal.php';
+require_once __DIR__ . '/../libs/RoboHubStihl.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -54,6 +55,7 @@ class RoboHubKonto extends IPSModule
         'gardena'   => ['GARDENA smart system Mähroboter (offizielle API)', 'GARDENA', false, false],
         'navimow'   => ['Segway Navimow (App „Navimow")', 'Navimow', false, false],
         'indego'    => ['Bosch Indego (App „Bosch Smart Gardening")', 'Indego', false, false],
+        'stihl'     => ['STIHL iMOW (App „iMOW", alle Generationen)', 'STIHL', false, false],
         'narwal'    => ['Narwal Flow/Freo (lokal im Heimnetz, ohne Cloud)', 'Narwal', false, false],
     ];
 
@@ -232,6 +234,8 @@ class RoboHubKonto extends IPSModule
         $hersteller = $this->ReadPropertyString('Hersteller');
         if ($hersteller === 'ecovacs') {
             $text = '✅ Angemeldet. Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts (nicht das Passwort selbst), um sich alle 7 Tage selbst neu anzumelden. Abmelden löscht ihn.';
+        } elseif (method_exists($treiber, 'anmeldeText')) {
+            $text = $treiber->anmeldeText($buendel);
         } elseif ($hersteller === 'navimow' || $hersteller === 'indego') {
             $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, der Code wurde verworfen — RoboHub kennt dein ' . ($hersteller === 'indego' ? 'Bosch' : 'Segway') . '-Passwort nicht.';
         } elseif ($hersteller === 'husqvarna' || $hersteller === 'gardena') {
@@ -949,6 +953,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubIndego();
         } elseif ($hersteller === 'narwal') {
             $treiber = new RoboHubNarwal();
+        } elseif ($hersteller === 'stihl') {
+            $treiber = new RoboHubStihl();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -1151,7 +1157,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow und Bosch Indego). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego und STIHL iMOW). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }

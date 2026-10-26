@@ -473,6 +473,17 @@
 - Prüfstand: parallele Läufe teilen Temp-Dateien → nie zwei `test-robohub.php` gleichzeitig (auch nicht Mutationsproben
   neben einem Einzellauf).
 
+## STIHL-iMOW-Treiber (0.27.0)
+
+- Quellen: simontims/ha-imow-v2 (MIT, Gen 5+), ChrisHaPunkt/stihl-imow-webapi + ha-stihl-imow (MIT, RMI), TA2k/ioBroker.imow (MIT,
+  beide). tiehfood/ha-stihl-connected ist Bluetooth für Akkus — kein Mäher.
+- Gen 5+: B2C-Anmeldung selbst nachgebaut (Cookies manuell, Groß-/Kleinschreibung der Policy wie im Original), APIM-Key
+  `52659909…`, Erneuerungsschlüssel. Offen: Echtzeit über SignalR (`signalr/api/v1/negotiate`, Hub deviceevents), Position
+  (`mower-settings`), Schnitthöhe, Mähplan.
+- RMI: Zugang 30 Tage, kein Refresh. **Passwort NICHT speichern** (Dietmars Entscheidung 26.10.2026) — Warnung 3 Tage vorher,
+  dann Status 201. Aktionen brauchen die 16-stellige `externalId` (im Geräteeintrag als `extern`).
+- Live 26.10.2026 ohne Konto: beide Anmeldeseiten wie in den Quellen (SETTINGS mit transId/csrf; Formular csrf-token/requestId).
+
 ## Prüfen
 
 ```
