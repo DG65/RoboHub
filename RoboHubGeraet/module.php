@@ -247,31 +247,31 @@ class RoboHubGeraet extends IPSModule
     /** ROBO_Starten($id): string */
     public function Starten(): string
     {
-        return $this->befehlText('start', []);
+        return $this->befehlMitKachel('start', []);
     }
 
     /** ROBO_Anhalten($id): string */
     public function Anhalten(): string
     {
-        return $this->befehlText('pause', []);
+        return $this->befehlMitKachel('pause', []);
     }
 
     /** ROBO_Stoppen($id): string */
     public function Stoppen(): string
     {
-        return $this->befehlText('stopp', []);
+        return $this->befehlMitKachel('stopp', []);
     }
 
     /** ROBO_ZurStation($id): string */
     public function ZurStation(): string
     {
-        return $this->befehlText('station', []);
+        return $this->befehlMitKachel('station', []);
     }
 
     /** ROBO_Orten($id): string */
     public function Orten(): string
     {
-        return $this->befehlText('orten', []);
+        return $this->befehlMitKachel('orten', []);
     }
 
     /**
@@ -285,7 +285,7 @@ class RoboHubGeraet extends IPSModule
         if (count($ids) === 0) {
             return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
         }
-        return $this->befehlText('raum', ['raeume' => $ids]);
+        return $this->befehlMitKachel('raum', ['raeume' => $ids]);
     }
 
     /**
@@ -299,7 +299,7 @@ class RoboHubGeraet extends IPSModule
         if (count($ids) === 0) {
             return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
         }
-        return $this->befehlText('raum', ['raeume' => $ids, 'modus' => $modus, 'saugstufe' => $saugstufe, 'durchgaenge' => $durchgaenge]);
+        return $this->befehlMitKachel('raum', ['raeume' => $ids, 'modus' => $modus, 'saugstufe' => $saugstufe, 'durchgaenge' => $durchgaenge]);
     }
 
     /** „3,5|0|1|2" → Befehlsparameter (Räume, Modus, Saugstufe, Durchgänge). */
@@ -461,6 +461,17 @@ class RoboHubGeraet extends IPSModule
         }
         $text = '🔗 Mit Konto „' . IPS_GetName($ziel) . '" (#' . $ziel . ') verbunden — dort ist dieses Gerät registriert.';
         $this->protokolliere($text);
+        return $text;
+    }
+
+    /**
+     * Befehl aus einem Skript (ROBO_Starten & Co.): Rückmeldung auch in der Kachel zeigen,
+     * genau wie beim Weg über die Variable „Befehl" (Forum Thilo 26.10.2026).
+     */
+    private function befehlMitKachel(string $befehl, array $parameter): string
+    {
+        $text = $this->befehlText($befehl, $parameter);
+        $this->kachelAktualisieren($text);
         return $text;
     }
 

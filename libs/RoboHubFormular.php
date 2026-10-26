@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.21.1' => [
+            '• Befehle aus Skripten (ROBO_Starten, ROBO_ZurStation …) zeigen ihre Rückmeldung jetzt auch in der Kachel.',
+        ],
         '0.21.0' => [
             '• Worx, Kress, LandXcape, Ferrex: Regenverzögerung (0–12 h), Mähzeiten an/aus (Party-Modus) und Zeitzuschlag (−100 bis +100 %) lesen und umstellen.',
             '• Worx & Co.: Der Wochenplan aus der App steht jetzt in der Variable „Zeitpläne" und in der Kachel, inklusive zweiter Mähzeit und Kantenschnitt.',

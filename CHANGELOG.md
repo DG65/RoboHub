@@ -2,6 +2,14 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.21.1 (26.10.2026)
+
+- Forum (Thilo): beide Roomba reinigen zeitgesteuert fehlerfrei. `ROBO_Starten()` & Co. lieferten die Rückmeldung nur als
+  Rückgabewert, die Kachel blieb stumm (über `RequestAction` auf „Befehl" kam sie). Jetzt `befehlMitKachel()` für alle
+  öffentlichen Befehle (Start, Pause, Stopp, Station, Orten, Räume). Fachlich war der Weg schon gleich.
+- Kachel auf Raspberry Pi ohne Bildzeichen: dort fehlt die Emoji-Schrift (Pi OS) — Hinweis im Forum
+  (`fonts-noto-color-emoji`), kein Modulfehler.
+
 ## 0.21.0 (25.10.2026)
 
 - Worx/Kress/LandXcape/Ferrex (Vorlage ioBroker.worx, MIT; Funktionsumfang wie das eingestellte Symcon-Modul MQTTworx):
@@ -232,13 +240,3 @@
   presentation" (RoboHubGeraet Zeile 770). Die Wertanzeige kennt DIGITS laut Symcon-Doku nur bei Ganz- und
   Kommazahlen; RoboHub setzte es auch bei Text-Variablen. Jetzt nur noch bei Zahlen.
 - Prüfstand: MaintainVariable-Nachbildung meldet Zahlen-Parameter der Wertanzeige bei Text/Schalter.
-
-## 0.18.2 (13.10.2026)
-
-- Fix (Forum, Torsten, Symcon 9.1 „Rust"): Erstellen über den Konfigurator meldete „Die erstellte Instanz
-  wird nicht als Liste erstellt. Sie benötigt eine eigene Verbindung oder ist nicht mit der Verbindung des
-  Konfigurators kompatibel." Der Konfigurator hat seit 0.2.0 keine eigene übergeordnete Instanz; nach
-  Symcon-Doku (Konfigurator, `create` Variante 2) wird jetzt die Kette Roboter → Konto angegeben
-  (Konto über Hersteller + Kontofeld), Symcon nutzt das vorhandene Konto. Die Selbstzuordnung der
-  Roboter bleibt als Sicherheitsnetz.
-- Torstens L10 (`dreame.vacuum.r5023a`) liefert laut Rohdaten alle Blöcke — Anmeldung und Abruf laufen.
