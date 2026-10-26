@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.21.1-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.22.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -10,7 +10,7 @@
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
 **Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava (lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
-den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape** und **Ferrex** — jeweils über die
+den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex** und **Segway Navimow** — jeweils über die
 Hersteller-Cloud.
 
 ## Was tut dieses Modul?
@@ -59,6 +59,10 @@ Skripten oder Visualisierung etwas ändert.
    Application Secret ins Feld darunter, anmelden.
    **GARDENA**: genauso, nur „GARDENA smart system API" statt „Automower Connect API" mit der Anwendung
    verbinden (eine Anwendung kann beide haben).
+   **Segway Navimow**: Hersteller „Segway Navimow" wählen, „Übernehmen", „🔗 Anmeldeseite öffnen" und dort
+   mit dem Navimow-Konto anmelden. Danach landet der Browser auf `http://localhost:1/callback?code=…` — die
+   Seite lädt nicht, das ist gewollt. Diese Adresse aus der Adresszeile ins Feld „Code" kopieren, „Übernehmen",
+   „🔑 Jetzt anmelden" (der Code gilt nur wenige Minuten).
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -188,7 +192,12 @@ nicht offiziell dokumentiert und kann sich ändern.
 - **GARDENA smart system** (seit 0.18.0): Mähroboter über die offizielle Schnittstelle nach py-smart-gardena,
   an keinem echten Mäher geprüft. Daten höchstens 15 Minuten alt (enges Abfragelimit). „Pause" gibt es
   bei GARDENA nicht. Ventile, Sensoren und Steckdosen bindet RoboHub nicht ein.
-- **Segway Navimow**: zurückgestellt — der einzige Zugang ist das Partner-Login von Home Assistant.
+- **Segway Navimow** (seit 0.22.0): nach home-assistant-navimow und ioBroker.navimow gebaut, an keinem echten
+  Mäher geprüft. **Offen gesagt:** Segway vergibt für Smart-Home-Systeme keine eigenen Zugänge, sondern
+  veröffentlicht eine Smart-Home-Kennung mit dem Namen „homeassistant". RoboHub nutzt sie wie ioBroker; auf der
+  Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
+  speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
+  Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
   Start gibt es über „Raum reinigen mit Wahl".
@@ -212,7 +221,9 @@ Der Ecovacs-Treiber ist nach der Protokollbeschreibung von
 übernommen; die Liste der Geräteklassen ist daraus abgeleitet).
 Der iRobot-Treiber folgt [pschmitt/roombapy](https://github.com/pschmitt/roombapy) (MIT), der
 Husqvarna-Treiber [Thomas55555/aioautomower](https://github.com/Thomas55555/aioautomower) (MIT), der
-GARDENA-Treiber [py-smart-gardena](https://github.com/py-smart-gardena/py-smart-gardena) (MIT).
+GARDENA-Treiber [py-smart-gardena](https://github.com/py-smart-gardena/py-smart-gardena) (MIT), der
+Navimow-Treiber [niddu85/home-assistant-navimow](https://github.com/niddu85/home-assistant-navimow) und
+[ioBroker.navimow](https://github.com/TA2k/ioBroker.navimow) (beide MIT).
 
 ## Rückmeldungen
 

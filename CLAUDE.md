@@ -418,6 +418,24 @@
   in den Zwischenspeicher. Live ungetestet.
 - Offen: Ventile/Sensoren/Steckdosen, mehrere Orte gleichzeitig in Echtzeit.
 
+## Segway-Navimow-Treiber (0.22.0)
+
+- Quellen: niddu85/home-assistant-navimow (MIT) und TA2k/ioBroker.navimow (MIT), Scratchpad `ref/`. navimow-sdk ist
+  GPL — nur Wissen. NavimowHA ohne Lizenz — nicht verwenden.
+- **Dietmars Entscheidung 26.10.2026:** die von Segway veröffentlichte OAuth-Kennung `homeassistant` + Geheimnis nutzen
+  (wie ioBroker), offen in Formular und README benennen. Nicht verschleiern, keine eigene Kennung erfinden.
+- Anmeldung: Link-Knopf `ROBOHUB_Anmeldelink` → navimow-h5-fra.willand.com/smartHome/login, Weiterleitung
+  `http://localhost:1/callback` (ioBroker), Nutzer fügt Adresse oder Code ins Passwortfeld. Konto-Feld ausgeblendet.
+  Token: `navimow-fra.ninebot.com/openapi/oauth/getAccessToken` (Formular), Refresh rotiert, Laufzeit Standard 3600 s.
+- API `…/openapi/smarthome/`: Kopf Bearer + `requestId` (32 hex). Antwort `code` 1 = ok; 401/4005/TOKEN_EXPIRED/
+  CODE_OAUTH_INFO_ILLEGAL = Schlüssel abgelehnt → Merkdatei `robohub-navimow-erneuern-*`, nächster `erneuern()` holt neu
+  (nicht abmelden — sonst wäre der rotierende Erneuerungsschlüssel verloren).
+- Echtzeit gäbe es per MQTT über WebSocket (`mqtt/userInfo/get/v2`: mqttHost, mqttUrl, userName, pwdInfo; Kopf Bearer;
+  Topics `/downlink/vehicle/{id}/realtimeDate/{state|event|attributes|location}`; location type 1 = Pose in m, 2 = Fortschritt
+  0–10000 + Zone). Noch nicht gebaut. Denkbar: Konto spricht MQTT selbst über den WebSocket Client (binär, Pfad mqttUrl,
+  Bearer-Kopf, Unterprotokoll „mqtt" nötig?) — ungeprüft, ob Symcons WebSocket Client das hergibt.
+- Live ungetestet (kein Gerät).
+
 ## Prüfen
 
 ```

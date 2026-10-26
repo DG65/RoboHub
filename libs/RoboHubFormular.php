@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.22.0' => [
+            '• Neu: Segway Navimow Mähroboter. Anmeldung über die Segway-Anmeldeseite, RoboHub kennt dein Passwort nicht. Zustand, Akku, Start, Pause, Stopp und Zur Station.',
+        ],
         '0.21.1' => [
             '• Befehle aus Skripten (ROBO_Starten, ROBO_ZurStation …) zeigen ihre Rückmeldung jetzt auch in der Kachel.',
         ],

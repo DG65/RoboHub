@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.22.0 (26.10.2026)
+
+- **Neuer Treiber Segway Navimow** (`libs/RoboHubNavimow.php`, nach niddu85/home-assistant-navimow und
+  ioBroker.navimow, beide MIT). Dietmars Entscheidung: wie ioBroker die von Segway veröffentlichte
+  Smart-Home-Kennung `homeassistant` nutzen und das offen sagen (Formular + README).
+  - Anmeldung: „🔗 Anmeldeseite öffnen" (`ROBOHUB_Anmeldelink`, Link-Knopf), Weiterleitung
+    `http://localhost:1/callback`, eingefügte Adresse oder Code → `oauth/getAccessToken`. Kein Passwort bei RoboHub,
+    kein E-Mail-Feld. Erneuerungsschlüssel rotiert.
+  - `smarthome/authList`, `getVehicleStatus` (vehicleState, capacityRemaining bzw. battery), `sendCommands`
+    (StartStop/PauseUnpause/Dock; aus der Pause → PauseUnpause an). Ergebnis je Gerät geprüft, `alreadyInState` = ok.
+  - Vorzeitig abgelehnter Schlüssel (401/4005/TOKEN_EXPIRED) meldet nicht ab, sondern erneuert beim nächsten Abruf.
+- Prüfstand: 21 Navimow-Prüfungen, 10/10 Mutationen gefangen (Fortsetzen, alreadyInState, Abmelden bei 4005, Rotation,
+  Akku-Vorrang, Merkdatei, Code aus Adresse, Antwort-Echo, requestId, Dock ohne params). **Live ungetestet** (kein Gerät).
+- Nicht gebaut: Echtzeit (MQTT über WebSocket mit Bearer-Kopf), Position/Fortschritt/Zone, Orten, Einstellungen.
+
 ## 0.21.1 (26.10.2026)
 
 - Forum (Thilo): beide Roomba reinigen zeitgesteuert fehlerfrei. `ROBO_Starten()` & Co. lieferten die Rückmeldung nur als
