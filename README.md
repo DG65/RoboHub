@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.22.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.23.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -10,7 +10,7 @@
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
 **Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava (lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
-den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex** und **Segway Navimow** — jeweils über die
+den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow** und **Bosch Indego** — jeweils über die
 Hersteller-Cloud.
 
 ## Was tut dieses Modul?
@@ -63,6 +63,12 @@ Skripten oder Visualisierung etwas ändert.
    mit dem Navimow-Konto anmelden. Danach landet der Browser auf `http://localhost:1/callback?code=…` — die
    Seite lädt nicht, das ist gewollt. Diese Adresse aus der Adresszeile ins Feld „Code" kopieren, „Übernehmen",
    „🔑 Jetzt anmelden" (der Code gilt nur wenige Minuten).
+   **Bosch Indego**: Hersteller „Bosch Indego" wählen, „Übernehmen". Im Browser (Chrome, Edge oder Firefox) zuerst
+   die Entwicklerkonsole öffnen (F12, am Mac Wahl + Befehl + I), dann „🔗 Anmeldeseite öffnen" und mit der Bosch
+   SingleKey ID anmelden. Bosch leitet danach auf die App-Adresse `com.bosch.indegoconnect://login?…code=…` um,
+   die der Browser nicht öffnen kann — die Konsole zeigt sie als fehlgeschlagene Weiterleitung. Diese Adresse
+   (oder die ganze Konsolenzeile) ins Feld „Code" kopieren, „Übernehmen", „🔑 Jetzt anmelden". So macht es auch
+   ioBroker.
 4. **Einen** RoboHub Konfigurator anlegen — er zeigt die Roboter aller Konten. Roboter
    auswählen, „Erstellen". Achtung: Der Papierkorb hinter einer Zeile löscht die Instanz.
 
@@ -198,6 +204,10 @@ nicht offiziell dokumentiert und kann sich ändern.
   Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
   speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
   Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
+- **Bosch Indego** (seit 0.23.0): nach pyIndego und der Home-Assistant-Integration gebaut, an keinem echten Mäher
+  geprüft (die Bosch-Anmeldeseite nimmt die Rücksprungadresse an, live bestätigt). Zustand, Fehler, gemähter Anteil,
+  Mähstunden, Akku (beim Mähen und Laden frisch, in Ruhe der letzte Wert — die Abfrage würde den Mäher wecken), Mähen,
+  Pause, Zur Station. Ohne Kartenbild, Kalender, SmartMowing und Meldungsliste; „Stopp" und „Orten" gibt es nicht.
 - Zeitpläne lassen sich ein- und ausschalten, aber nicht neu anlegen oder in der Uhrzeit ändern.
 - Die im Roboter gespeicherten Raum-Einstellungen werden nur angezeigt; abweichende Werte je
   Start gibt es über „Raum reinigen mit Wahl".
@@ -223,7 +233,10 @@ Der iRobot-Treiber folgt [pschmitt/roombapy](https://github.com/pschmitt/roombap
 Husqvarna-Treiber [Thomas55555/aioautomower](https://github.com/Thomas55555/aioautomower) (MIT), der
 GARDENA-Treiber [py-smart-gardena](https://github.com/py-smart-gardena/py-smart-gardena) (MIT), der
 Navimow-Treiber [niddu85/home-assistant-navimow](https://github.com/niddu85/home-assistant-navimow) und
-[ioBroker.navimow](https://github.com/TA2k/ioBroker.navimow) (beide MIT).
+[ioBroker.navimow](https://github.com/TA2k/ioBroker.navimow) (beide MIT), der Indego-Treiber
+[sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) und [sander1988/Indego](https://github.com/sander1988/Indego)
+(Apache-2.0); die Anleitung mit der Entwicklerkonsole stammt aus
+[ioBroker.boschindego](https://github.com/iobroker-community-adapters/ioBroker.boschindego) (MIT).
 
 ## Rückmeldungen
 

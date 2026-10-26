@@ -14,6 +14,7 @@ require_once __DIR__ . '/../libs/RoboHubIrobot.php';
 require_once __DIR__ . '/../libs/RoboHubHusqvarna.php';
 require_once __DIR__ . '/../libs/RoboHubGardena.php';
 require_once __DIR__ . '/../libs/RoboHubNavimow.php';
+require_once __DIR__ . '/../libs/RoboHubIndego.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -51,6 +52,7 @@ class RoboHubKonto extends IPSModule
         'husqvarna' => ['Husqvarna Automower (offizielle Automower Connect API)', 'Husqvarna', false, false],
         'gardena'   => ['GARDENA smart system Mähroboter (offizielle API)', 'GARDENA', false, false],
         'navimow'   => ['Segway Navimow (App „Navimow")', 'Navimow', false, false],
+        'indego'    => ['Bosch Indego (App „Bosch Smart Gardening")', 'Indego', false, false],
     ];
 
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
@@ -217,8 +219,8 @@ class RoboHubKonto extends IPSModule
         $hersteller = $this->ReadPropertyString('Hersteller');
         if ($hersteller === 'ecovacs') {
             $text = '✅ Angemeldet. Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts (nicht das Passwort selbst), um sich alle 7 Tage selbst neu anzumelden. Abmelden löscht ihn.';
-        } elseif ($hersteller === 'navimow') {
-            $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, der Code wurde verworfen — RoboHub kennt dein Segway-Passwort nicht.';
+        } elseif ($hersteller === 'navimow' || $hersteller === 'indego') {
+            $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, der Code wurde verworfen — RoboHub kennt dein ' . ($hersteller === 'indego' ? 'Bosch' : 'Segway') . '-Passwort nicht.';
         } elseif ($hersteller === 'husqvarna' || $hersteller === 'gardena') {
             $text = '✅ Angemeldet. Application Key und Secret bleiben im Konto gespeichert, weil Husqvarna/GARDENA den Zugang nur damit erneuert (alle 24 h). Im Entwicklerportal kannst du sie jederzeit widerrufen; Abmelden löscht sie hier.';
         } else {
@@ -288,7 +290,7 @@ class RoboHubKonto extends IPSModule
     }
 
     /**
-     * ROBOHUB_Anmeldelink($id): string — nur Navimow: Adresse der Segway-Anmeldeseite
+     * ROBOHUB_Anmeldelink($id): string — Navimow/Indego: Adresse der Hersteller-Anmeldeseite
      * (der Formular-Knopf öffnet sie direkt).
      */
     public function Anmeldelink(): string
@@ -920,6 +922,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubGardena();
         } elseif ($hersteller === 'navimow') {
             $treiber = new RoboHubNavimow();
+        } elseif ($hersteller === 'indego') {
+            $treiber = new RoboHubIndego();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -1147,6 +1151,8 @@ class RoboHubKonto extends IPSModule
         $lokal = $this->ReadPropertyString('Hersteller') === 'irobot';
         $husqvarna = in_array($this->ReadPropertyString('Hersteller'), ['husqvarna', 'gardena'], true);
         $navimow = $this->ReadPropertyString('Hersteller') === 'navimow';
+        $indego = $this->ReadPropertyString('Hersteller') === 'indego';
+        $perLink = $navimow || $indego;
         $api = $this->ReadPropertyString('Hersteller') === 'gardena' ? 'GARDENA smart system API' : 'Automower Connect API';
         $mitRegion = (bool)(self::HERSTELLER[$this->ReadPropertyString('Hersteller')][3] ?? true);
         $auswahl = [];
@@ -1173,17 +1179,18 @@ class RoboHubKonto extends IPSModule
             'items' => [
                 ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => $auswahl],
                 ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs ? 'Land des Kontos (wie in der App)' : 'Region des Kontos', 'options' => $ecovacs ? RoboHubEcovacs::regionen() : RoboHubDreame::regionen(), 'visible' => $mitRegion],
-                ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$navimow, 'caption' => $lokal ? 'IP-Adresse des Roboters' : ($husqvarna ? 'Application Key' : 'E-Mail des Kontos')],
+                ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? 'IP-Adresse des Roboters' : ($husqvarna ? 'Application Key' : 'E-Mail des Kontos')],
                 ['type' => 'Label', 'visible' => $husqvarna, 'caption' => 'Husqvarna nutzt die offizielle Schnittstelle: Auf developer.husqvarnagroup.cloud mit dem Husqvarna-Konto anmelden, „Create application" (Redirect-URL beliebig, z. B. http://localhost), die APIs „Authentication API" und „' . $api . '" verbinden, dann Application Key und Application Secret hier eintragen. Wegen des Abfragelimits fragt RoboHub ' . ($api === 'GARDENA smart system API' ? 'höchstens alle 15 Minuten' : 'höchstens alle 5 Minuten') . ' ab.'],
                 ['type' => 'Label', 'visible' => $lokal, 'caption' => 'iRobot läuft lokal, ohne Cloud: Roboter auf die Station stellen, IP-Adresse eintragen, „Übernehmen". Einmal „🔑 Jetzt anmelden" drücken (RoboHub sucht den Roboter). Dann am Roboter die HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, und sofort noch einmal „🔑 Jetzt anmelden" drücken. Für einen weiteren Roboter dasselbe mit dessen IP.'],
                 ['type' => 'Label', 'visible' => $roborock, 'caption' => 'Roborock meldet sich ohne Passwort an: E-Mail eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Die Region findet Roborock selbst.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Navimow meldet sich ohne Passwort bei RoboHub an: „🔗 Anmeldeseite öffnen", dort mit dem Navimow-Konto anmelden. Danach landet der Browser auf einer Seite, die nicht lädt (http://localhost:1/callback?code=…) — das ist gewollt. Diese Adresse aus der Adresszeile kopieren, unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Offen gesagt: Segway vergibt für Smart-Home-Systeme keine eigenen Zugänge. RoboHub nutzt deshalb, wie ioBroker, die von Segway veröffentlichte Smart-Home-Kennung „homeassistant". Auf der Anmeldeseite steht darum „Home Assistant" — gemeint ist diese Schnittstelle, nicht dein Home Assistant.'],
-                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $navimow ? 'Code bzw. Adresse nach der Anmeldung (wird danach verworfen)' : ($roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : ($husqvarna ? 'Application Secret (bleibt im Konto gespeichert)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'))],
+                ['type' => 'Label', 'visible' => $indego, 'caption' => 'Indego meldet sich ohne Passwort bei RoboHub an. Am besten in Chrome, Edge oder Firefox: zuerst die Entwicklerkonsole öffnen (F12, am Mac Wahl + Befehl + I), dann „🔗 Anmeldeseite öffnen" und mit der Bosch SingleKey ID anmelden. Danach passiert scheinbar nichts — die Konsole zeigt aber eine fehlgeschlagene Weiterleitung auf „com.bosch.indegoconnect://login?…code=…". Diese Adresse (oder die ganze Konsolenzeile) unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten. So macht es auch ioBroker.'],
+                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? 'Code bzw. Adresse nach der Anmeldung (wird danach verworfen)' : ($roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : ($husqvarna ? 'Application Secret (bleibt im Konto gespeichert)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'))],
                 ['type' => 'Label', 'name' => 'Ergebnis', 'caption' => $zeile],
                 ['type' => 'RowLayout', 'items' => [
                     ['type' => 'Button', 'caption' => '📧 Code anfordern', 'visible' => $roborock, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],
-                    ['type' => 'Button', 'caption' => '🔗 Anmeldeseite öffnen', 'visible' => $navimow, 'onClick' => 'echo ROBOHUB_Anmeldelink($id);', 'link' => true],
+                    ['type' => 'Button', 'caption' => '🔗 Anmeldeseite öffnen', 'visible' => $perLink, 'onClick' => 'echo ROBOHUB_Anmeldelink($id);', 'link' => true],
                     ['type' => 'Button', 'caption' => '🔑 Jetzt anmelden', 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
                     ['type' => 'Button', 'caption' => '⏏️ Abmelden', 'onClick' => 'echo ROBOHUB_Abmelden($id);'],
                 ]],

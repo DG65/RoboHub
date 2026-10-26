@@ -1745,6 +1745,7 @@ require __DIR__ . '/test-irobot.inc.php';
 require __DIR__ . '/test-husqvarna.inc.php';
 require __DIR__ . '/test-gardena.inc.php';
 require __DIR__ . '/test-navimow.inc.php';
+require __DIR__ . '/test-indego.inc.php';
 
 abschnitt('Formulare (Konvention)');
 $libVersion = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version'];

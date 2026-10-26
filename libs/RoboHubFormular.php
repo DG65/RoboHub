@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.23.0' => [
+            '• Neu: Bosch Indego Mähroboter. Anmeldung über die Bosch-Anmeldeseite (SingleKey ID), RoboHub kennt dein Passwort nicht. Zustand, Akku, gemähter Anteil, Mähstunden, Mähen, Pause und Zur Station.',
+            '• Neue Variable „Fortschritt" (in %), zuerst bei Indego.',
+        ],
         '0.22.0' => [
             '• Neu: Segway Navimow Mähroboter. Anmeldung über die Segway-Anmeldeseite, RoboHub kennt dein Passwort nicht. Zustand, Akku, Start, Pause, Stopp und Zur Station.',
         ],

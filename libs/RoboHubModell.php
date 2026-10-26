@@ -121,6 +121,7 @@ final class RoboHubModell
         'Zeitzuschlag'       => ['Zeitzuschlag', 3, '', 0, 46],
         'Flaeche'            => ['Gereinigte Fläche', 1, ' m²', 0, 40],
         'Dauer'              => ['Reinigungsdauer', 1, ' min', 0, 41],
+        'Fortschritt'        => ['Fortschritt', 1, ' %', 0, 42],
         'Hauptbuerste'       => ['Hauptbürste', 1, ' %', 0, 50],
         'Seitenbuerste'      => ['Seitenbürste', 1, ' %', 0, 51],
         'Filter'             => ['Filter', 1, ' %', 0, 52],

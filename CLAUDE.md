@@ -436,6 +436,19 @@
   Bearer-Kopf, Unterprotokoll „mqtt" nötig?) — ungeprüft, ob Symcons WebSocket Client das hergibt.
 - Live ungetestet (kein Gerät).
 
+## Bosch-Indego-Treiber (0.23.0)
+
+- Quellen: sander1988/pyIndego (MIT), sander1988/Indego (Apache-2.0), ioBroker.boschindego (MIT), Scratchpad `ref/`.
+- Anmeldung: B2C `prodindego.b2clogin.com/…/b2c_1a_signup_signin/oauth2/v2.0/{authorize,token}`, Client-ID der App
+  `65bb8c9d-…`, Scope inkl. `offline_access` und `…/Indego.Mower.User`, Rücksprung `com.bosch.indegoconnect://login`
+  (HA; ioBroker nutzt `msauth.com.bosch.indegoconnect.cloud://auth/` mit festem PKCE-Paar). Live 26.10.2026 ohne Konto:
+  beide Rücksprünge → Anmeldeseite (200), fremde → AADB2C90006. Token-Tausch ohne PKCE nur durch HA belegt, nicht live.
+- API `api.indego-cloud.iot.bosch-si.com/api/v1/`, Bearer + eigener User-Agent `RoboHub/Indego`. Zustandscodes und
+  Modelle aus pyIndego const.py. Akku `_akku` wird im Rohstand mitgeführt (Schnappschuss), operatingData nur bei
+  500–799/257/260 (HA). runtime in Hundertstelstunden.
+- Offen: Kartenbild (`alms/{sn}/map`, SVG, Position svg_xPos/yPos), Kalender, SmartMowing (`predictive`), Meldungen
+  (`alerts`), Longpoll (`state?longpoll=true`).
+
 ## Prüfen
 
 ```

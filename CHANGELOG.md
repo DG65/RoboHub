@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.23.0 (26.10.2026)
+
+- **Neuer Treiber Bosch Indego** (`libs/RoboHubIndego.php`, nach pyIndego MIT + sander1988/Indego Apache-2.0,
+  Anmeldeanleitung nach ioBroker.boschindego MIT).
+  - Anmeldung Bosch SingleKey ID (Azure B2C, Client-ID der Bosch-App), Rücksprung `com.bosch.indegoconnect://login`
+    wie HA, ohne PKCE — live geprüft: Bosch nimmt die Adresse an, eine fremde lehnt es ab (AADB2C90006). Code aus der
+    Konsolenzeile, der Adresse oder pur. Link-Anmeldung im Konto jetzt für Navimow und Indego gemeinsam.
+  - `alms`, `alms/{sn}` (Modell aus bareToolnumber), `alms/{sn}/state` (Zustand nach pyIndego-Tabelle deutsch, Fehler,
+    mowed, runtime), `operatingData` nur beim Mähen/Laden oder ohne bekannten Akku (wie HA — weckt sonst den Mäher);
+    Indego 1000/1100/1200/10C/13C melden Volt → Prozent umgerechnet. Befehle PUT state mow/pause/returnToDock.
+  - Eigener User-Agent (Boschs Firewall weist manche ab, pyIndego-Issue 119). 401 → beim nächsten Abruf erneuern.
+- Modell: neues Feld `Fortschritt` (%, Position 42).
+- Prüfstand: 17 Indego-Prüfungen, 11/11 Mutationen gefangen (eine Lücke beim gemerkten Akku durch zweiten Ruheabruf
+  geschlossen). **Live ungetestet** (kein Gerät).
+
 ## 0.22.0 (26.10.2026)
 
 - **Neuer Treiber Segway Navimow** (`libs/RoboHubNavimow.php`, nach niddu85/home-assistant-navimow und
