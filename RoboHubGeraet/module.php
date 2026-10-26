@@ -1053,13 +1053,20 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Wertanzeige mit Beschriftung je Wert (Optionen-Schlüssel laut Symcon-Doku: ColorActive/ColorValue statt Color). */
+    /**
+     * Wertanzeige mit festem Text je Ganzzahl. Laut Symcon-Doku kennt die Wertanzeige OPTIONS nur bei
+     * Boolean/String; Ganz-/Kommazahlen bekommen Intervalle mit „Konstante" (live geprüft 26.10.2026:
+     * mit OPTIONS zeigte „Zustand" nur die Zahl, mit Intervallen den Text — Forum baraka).
+     */
     private function presAnzeige(array $map): array
     {
-        $options = [];
+        $intervalle = [];
         foreach ($map as $wert => $caption) {
-            $options[] = ['Value' => (int)$wert, 'Caption' => (string)$caption, 'IconActive' => false, 'IconValue' => '', 'ColorActive' => false, 'ColorValue' => -1];
+            $intervalle[] = ['IntervalMinValue' => (int)$wert, 'IntervalMaxValue' => (int)$wert, 'ConstantActive' => true, 'ConstantValue' => (string)$caption,
+                'ConversionFactor' => 1, 'PrefixActive' => false, 'SuffixActive' => false, 'DigitsActive' => false,
+                'IconActive' => false, 'IconValue' => '', 'ColorActive' => false, 'ColorValue' => -1];
         }
-        return ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'OPTIONS' => json_encode($options)];
+        return ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'INTERVALS_ACTIVE' => true, 'INTERVALS' => json_encode($intervalle)];
     }
 
     private function presEnum(array $map): array

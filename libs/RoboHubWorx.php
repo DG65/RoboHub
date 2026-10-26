@@ -268,6 +268,18 @@ PEM;
         }
         // Statistik: st.wt Mähzeit in Minuten (ioBroker: /60 → Stunden).
         $w['GesamtDauer'] = isset($dat['st']['wt']) && is_numeric($dat['st']['wt']) ? (int)round((float)$dat['st']['wt'] / 60) : null;
+        // Wie das frühere Symcon-Modul MQTTworx (Forum baraka 26.10.2026), Felder/Einheiten nach ioBroker.worx helper.js:
+        // st.d Meter → km, st.b Minuten → h, bt.t °C, bt.v V, bt.nr Ladezyklen, rsi dBm, fw Firmware.
+        $zahl = function ($v): ?float {
+            return is_numeric($v) ? (float)$v : null;
+        };
+        $w['GesamtStrecke'] = ($d = $zahl($dat['st']['d'] ?? null)) !== null ? round($d / 1000, 1) : null;
+        $w['Messerlaufzeit'] = ($b = $zahl($dat['st']['b'] ?? null)) !== null ? round($b / 60, 1) : null;
+        $w['AkkuTemperatur'] = $zahl($dat['bt']['t'] ?? null);
+        $w['AkkuSpannung'] = $zahl($dat['bt']['v'] ?? null);
+        $w['Ladezyklen'] = ($n = $zahl($dat['bt']['nr'] ?? null)) !== null ? (int)$n : null;
+        $w['WlanSignal'] = ($r = $zahl($dat['rsi'] ?? null)) !== null && $r < 0 ? (int)$r : null;
+        $w['Firmware'] = isset($dat['fw']) && (is_scalar($dat['fw'])) && (string)$dat['fw'] !== '' ? (string)$dat['fw'] : null;
 
         $cfg = (array)($p['cfg'] ?? []);
         $sc = (array)($cfg['sc'] ?? []);

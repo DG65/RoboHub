@@ -64,6 +64,9 @@ class RoboHubKonto extends IPSModule
     private const CLIENT_SOCKET  = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
     // Echtzeit über WebSocket (Husqvarna, GARDENA): Symcons WebSocket Client, gleiche Datenschnittstellen.
     private const WS_CLIENT      = '{D68FD31F-0E90-7019-F16C-1949BD3079EF}';
+    // Ohne Echtzeit: Symcons Virtual IO (gleiche Datenschnittstelle, live geprüft 26.10.2026), immer aktiv —
+    // ein geschlossener Client Socket ließ Konto und Roboter „übergeordnete Instanz inaktiv" melden (Forum baraka).
+    private const VIRTUAL_IO     = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
     private const WS_LEBENSZEICHEN_S = 60;
     private const DATA_ZUM_IO    = '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}';
     private const MQTT_KEEPALIVE = 60;
@@ -142,8 +145,13 @@ class RoboHubKonto extends IPSModule
         $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
         $name = IPS_GetName($this->InstanceID);
         if ($eltern > 0 && $this->echtzeitArt() === '' && IPS_GetName($eltern) === 'RoboHub Echtzeit (' . $name . ')') {
-            IPS_SetName($eltern, 'RoboHub Verbindung (' . $name . ', ungenutzt)');
+            IPS_SetName($eltern, self::ohneEchtzeitName($name));
         }
+    }
+
+    private static function ohneEchtzeitName(string $konto): string
+    {
+        return 'RoboHub Verbindung (' . $konto . ', ohne Echtzeit)';
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
@@ -156,6 +164,9 @@ class RoboHubKonto extends IPSModule
         if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern') && $this->echtzeitArt() === 'websocket') {
             $this->wsStatus((int)($Data[0] ?? 0));
             return;
+        }
+        if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern') && $this->echtzeitArt() === '') {
+            return;   // Virtual IO ohne Echtzeit: nichts zu tun
         }
         if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern')) {
             if (($Data[0] ?? 0) === IS_ACTIVE) {
@@ -471,6 +482,9 @@ class RoboHubKonto extends IPSModule
     /** Einstellungen für den Client Socket (Symcon wendet sie beim Verbinden an). */
     public function GetConfigurationForParent()
     {
+        if ($this->echtzeitArt() === '') {
+            return '{}';   // Virtual IO braucht keine Einstellungen
+        }
         if ($this->echtzeitArt() === 'websocket') {
             $ziel = json_decode((string)$this->GetBuffer('WsZiel'), true) ?: [];
             $url = (string)($ziel['url'] ?? '');
@@ -519,6 +533,11 @@ class RoboHubKonto extends IPSModule
         $ws = $this->echtzeitArt() === 'websocket';
         if (IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] !== $this->elternModul()) {
             return;   // fremde/alte Verbindungsart — VerbindungPruefen tauscht eigene aus
+        }
+        if ($this->echtzeitArt() === '') {
+            $this->SetTimerInterval('MqttPing', 0);
+            $this->mqttStand(['zustand' => 'aus']);
+            return;
         }
         $soll = json_decode($this->GetConfigurationForParent(), true);
         $offen = $ws ? 'Active' : 'Open';
@@ -588,7 +607,8 @@ class RoboHubKonto extends IPSModule
 
     private function elternModul(): string
     {
-        return $this->echtzeitArt() === 'websocket' ? self::WS_CLIENT : self::CLIENT_SOCKET;
+        $art = $this->echtzeitArt();
+        return $art === 'websocket' ? self::WS_CLIENT : ($art === 'mqtt' ? self::CLIENT_SOCKET : self::VIRTUAL_IO);
     }
 
     /** WebSocket-Ziel vom Treiber holen und im Puffer ablegen; true, wenn es sich geändert hat. */
@@ -641,8 +661,8 @@ class RoboHubKonto extends IPSModule
 
     private function verbindungSicherstellen(): void
     {
-        // Jedes Konto bekommt einen Client Socket, auch ohne Echtzeit (dann bleibt er
-        // geschlossen): Das Modul verlangt ihn als übergeordnete Instanz, und Symcon 9.1
+        // Jedes Konto bekommt eine Verbindungsinstanz, auch ohne Echtzeit (seit 0.25.0 dann ein
+        // Virtual IO statt eines geschlossenen Client Sockets): Das Modul verlangt sie, und Symcon 9.1
         // verwendet ein Konto ohne ihn in der Konfigurator-Kette nicht wieder, sondern
         // legt ein neues, unvollständiges an (Forum Thilo, 20.10.2026).
         $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
@@ -654,11 +674,11 @@ class RoboHubKonto extends IPSModule
             }
             IPS_DisconnectInstance($this->InstanceID);
             @IPS_DeleteInstance($eltern);
-            $this->protokolliere('Verbindungsinstanz gegen ' . ($this->echtzeitArt() === 'websocket' ? 'einen WebSocket Client' : 'einen Client Socket') . ' getauscht (Echtzeit-Meldungen).');
+            $this->protokolliere('Verbindungsinstanz gegen ' . ['websocket' => 'einen WebSocket Client', 'mqtt' => 'einen Client Socket', '' => 'einen Virtual IO'][$this->echtzeitArt()] . ' getauscht.');
         }
         $id = @IPS_CreateInstance($this->elternModul());
         if (!$id) {
-            $this->protokolliere('Client Socket für die Echtzeit-Meldungen ließ sich nicht anlegen.', KL_WARNING);
+            $this->protokolliere('Verbindungsinstanz unter dem Konto ließ sich nicht anlegen.', KL_WARNING);
             return;
         }
         // Inzwischen doch verbunden (z. B. von der Konsole)? Dann den eigenen wieder entfernen.
@@ -668,7 +688,7 @@ class RoboHubKonto extends IPSModule
         }
         IPS_SetName($id, $this->echtzeitArt() !== ''
             ? 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')'
-            : 'RoboHub Verbindung (' . IPS_GetName($this->InstanceID) . ', ungenutzt)');
+            : self::ohneEchtzeitName(IPS_GetName($this->InstanceID)));
     }
 
     private function elternBeobachten(): void
@@ -861,7 +881,7 @@ class RoboHubKonto extends IPSModule
         }
         $treiber = $this->treiber();
         if (method_exists($treiber, 'echtzeitMoeglich') && !$treiber->echtzeitMoeglich()) {
-            return 'ℹ️ Für ' . (self::HERSTELLER[$this->ReadPropertyString('Hersteller')][1] ?? 'diesen Hersteller') . ' gibt es noch keine Echtzeit-Meldungen — die Roboter werden per Abfrage aktualisiert. Der Client Socket unter dem Konto bleibt deshalb geschlossen; Symcon braucht ihn nur als Verbindungsglied.';
+            return 'ℹ️ Für ' . (self::HERSTELLER[$this->ReadPropertyString('Hersteller')][1] ?? 'diesen Hersteller') . ' gibt es noch keine Echtzeit-Meldungen — die Roboter werden per Abfrage aktualisiert. Unter dem Konto hängt deshalb nur ein „Virtual IO" als Verbindungsglied, das Symcon verlangt.';
         }
         switch ($s['zustand'] ?? '') {
             case 'verbunden':

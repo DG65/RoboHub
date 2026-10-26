@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.24.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.25.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -177,10 +177,12 @@ nicht offiziell dokumentiert und kann sich ändern.
   Testdaten geprüft, aber noch an keinem echten Gerät. Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als
   „noch nicht unterstützt". Noch ohne Kartenbild, Echtzeit-Meldungen und Zeitpläne.
-- **Worx, Kress, LandXcape, Ferrex** (seit 0.14.0): nach ioBroker.worx gebaut, an keinem echten
-  Gerät geprüft. Zustand kommt aus dem letzten Status, den der Mäher an die Cloud meldet; Befehle
-  gehen über MQTT (WebSocket). Noch ohne Zonen, Zeitpläne, Regenverzögerung, Echtzeit-Meldungen
-  und Messer-Rücksetzen; „Orten" gibt es bei diesen Mähern nicht.
+- **Worx, Kress, LandXcape, Ferrex** (seit 0.14.0): nach ioBroker.worx gebaut. Anmeldung, Zustand,
+  Einstellungen und Wochenplan im Forum an einem Worx m500 bestätigt (Oktober 2026), Befehle noch offen.
+  Zustand kommt aus dem letzten Status, den der Mäher an die Cloud meldet; Befehle gehen über MQTT
+  (WebSocket). Dazu Akkutemperatur, -spannung, Ladezyklen, WLAN-Signal, Strecke, Messerlaufzeit und
+  Firmware. Noch ohne Zonen, Wochenplan ändern, Echtzeit-Meldungen und Messer-Rücksetzen; „Orten" gibt
+  es bei diesen Mähern nicht.
 - **Ecovacs** (seit 0.15.0): Deebot-Sauger und GOAT-Mäher mit JSON-Protokoll, an keinem echten Gerät
   geprüft (die signierte Anfrage an die Ecovacs-Anmeldung ist live bestätigt). Ältere Modelle mit
   XML-Protokoll meldet RoboHub als „noch nicht unterstützt". Raumnamen nur bei Modellen mit

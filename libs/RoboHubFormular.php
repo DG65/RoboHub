@@ -34,6 +34,11 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.25.0' => [
+            '• Variable „Zustand" zeigt wieder Text statt Zahl (z. B. „Fehler" statt 7).',
+            '• Konten ohne Echtzeit (Worx, Roborock, Ecovacs, iRobot, Narwal, Navimow, Indego) melden nicht mehr „übergeordnete Instanz inaktiv" — unter dem Konto hängt jetzt ein immer aktiver Virtual IO statt eines geschlossenen Client Sockets. Wird automatisch umgestellt.',
+            '• Worx & Co.: Akkutemperatur, Akkuspannung, Ladezyklen, WLAN-Signal, Strecke gesamt, Messerlaufzeit und Firmware.',
+        ],
         '0.24.0' => [
             '• Neu: Narwal Saug-/Wischroboter (Flow, Flow 2, Freo Z10, Freo X10 Pro, Freo 20, JX) — lokal im Heimnetz, ohne Cloud und ohne Passwort. IP eintragen, koppeln. Zustand, Akku, Fehler, Räume; Start, Räume reinigen, Pause, Stopp, Zur Station, Orten.',
             '• Ein Narwal in der Station wird für die Abfrage nicht geweckt — nur für Befehle.',

@@ -88,15 +88,31 @@ $rob = $ib['roboter']['3176C41234567890'] ?? [];
 check('gekoppelt: BLID aus dem Hostnamen, Passwort geholt', strpos($t, '✅ Gekoppelt') === 0 && ($rob['passwort'] ?? '') === ':1:1700000000:GeheimesPasswort' && ($rob['name'] ?? '') === 'Krümel', $t);
 check('Fingerabdruck des Gerätezertifikats gemerkt', ($rob['fingerabdruck'] ?? '') === $n1[4]);
 check('Konto angemeldet, weiterer Roboter ergänzt (der erste bleibt)', $ik->status === 102 && count(json_decode($ik->ReadAttributeString('Geraete'), true)) === 2 && isset($ib['roboter']['ALT1']));
-check('auch lokal: Client Socket wird nachgeholt (Symcon 9.1 braucht ihn für die Konfigurator-Kette)', ($ik->timers['Verbindung'] ?? 0) === 15000);
+check('auch lokal: Verbindungsinstanz wird nachgeholt (Symcon 9.1 braucht sie für die Konfigurator-Kette)', ($ik->timers['Verbindung'] ?? 0) === 15000);
 $GLOBALS['SKRIPTE'] = [];
 $ik->VerbindungPruefen();
 $isock = (int)(IPS_GetInstance(7000)['ConnectionID'] ?? 0);
-check('Client Socket angelegt, als ungenutzt benannt, bleibt geschlossen', $isock > 0 && strpos(IPS_GetName($isock), 'ungenutzt') !== false
-    && strpos(implode("\n", $GLOBALS['SKRIPTE']), '"Open":true') === false, IPS_GetName($isock) . ' ' . implode("\n", $GLOBALS['SKRIPTE']));
+check('ohne Echtzeit: Virtual IO angelegt (immer aktiv, kein „übergeordnete Instanz inaktiv"), benannt, nichts eingestellt', $isock > 0
+    && $ik->parent->modul === '{6179ED6A-FC31-413C-BB8E-1204150CF376}' && strpos(IPS_GetName($isock), 'ohne Echtzeit') !== false
+    && $GLOBALS['SKRIPTE'] === [] && $ik->GetConfigurationForParent() === '{}', IPS_GetName($isock) . ' ' . implode("\n", $GLOBALS['SKRIPTE']));
 IPS_SetName($isock, 'RoboHub Echtzeit (' . IPS_GetName(7000) . ')');   // angelegt, als noch Dreame voreingestellt war
 $ik->ApplyChanges();
-check('alter Socket-Name „Echtzeit" wird bei iRobot zu „ungenutzt"', strpos(IPS_GetName($isock), 'ungenutzt') !== false, IPS_GetName($isock));
+check('alter Name „Echtzeit" wird bei iRobot zu „ohne Echtzeit"', strpos(IPS_GetName($isock), 'ohne Echtzeit') !== false, IPS_GetName($isock));
+// Bestandskonto (bis 0.24.0): geschlossener Client Socket von RoboHub → wird gegen Virtual IO getauscht.
+$ik->parent->modul = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
+IPS_SetName($isock, 'RoboHub Verbindung (' . IPS_GetName(7000) . ', ungenutzt)');
+$ik->ApplyChanges();
+$GLOBALS['GELOESCHT'] = [];
+$ik->VerbindungPruefen();
+check('Bestandskonto: alter RoboHub-Socket entfernt, Virtual IO verbunden', in_array($isock, $GLOBALS['GELOESCHT'], true)
+    && $ik->parent->modul === '{6179ED6A-FC31-413C-BB8E-1204150CF376}');
+$fremd = $ik->parent;
+$fremd->modul = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
+IPS_SetName($fremd->InstanceID, 'Mein eigener Socket');
+$GLOBALS['GELOESCHT'] = [];
+$ik->VerbindungPruefen();
+check('fremde Verbindungsinstanz bleibt unangetastet', $GLOBALS['GELOESCHT'] === [] && $ik->parent === $fremd);
+$fremd->modul = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
 
 $irr = new RoboHubGeraet(7100);
 $irr->props = ['GeraetID' => '3176C41234567890', 'Modell' => 'irobot.vacuum.i755840', 'Klasse' => 'sauger', 'Intervall' => 120];

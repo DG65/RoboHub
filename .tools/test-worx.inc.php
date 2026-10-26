@@ -115,7 +115,8 @@ $draht = ['serial_number' => '20213012345', 'name' => 'Rasenkönig', 'product_id
         'cfg' => ['lg' => 'de', 'rd' => 60, 'sc' => ['m' => 1, 'distm' => 0, 'p' => 20, 'ots' => ['bc' => 0, 'wtm' => 0],
             'd' => [['00:00', 0, 0], ['10:00', 60, 1], ['00:00', 0, 0], ['14:30', 90, 0], ['00:00', 0, 0], ['10:00', 60, 0], ['00:00', 0, 0]],
             'dd' => [['00:00', 0, 0], ['18:00', 30, 0], ['00:00', 0, 0], ['00:00', 0, 0], ['00:00', 0, 0], ['00:00', 0, 0], ['00:00', 0, 0]]]],
-        'dat' => ['ls' => 1, 'le' => 0, 'bt' => ['p' => 88, 'c' => 1, 'v' => 19.8], 'st' => ['b' => 1200, 'd' => 400000, 'wt' => 5460], 'rain' => ['s' => 0, 'cnt' => 0]],
+        'dat' => ['ls' => 1, 'le' => 0, 'bt' => ['p' => 88, 'c' => 1, 'v' => 18.8, 't' => 6.6, 'nr' => 937], 'st' => ['b' => 54576, 'd' => 901000, 'wt' => 5460],
+            'rain' => ['s' => 0, 'cnt' => 0], 'rsi' => -68, 'fw' => '3.36.0+1'],
     ]]];
 FakeWorx::$maeher = ['20213012345' => $draht];
 $wk = new RoboHubKonto(5000);
@@ -174,6 +175,10 @@ $t = $wm->Aktualisieren();
 check('zu Hause + lädt = Lädt', variable(5100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_LAEDT && variable(5100, 'ZustandRoh')['value'] === 'Zu Hause (1)', $t);
 check('Akku 88, lädt, kein Fehler, kein Regen', variable(5100, 'Akku')['value'] === 88 && variable(5100, 'Laedt')['value'] === true && variable(5100, 'Fehler')['value'] === 'kein Fehler' && variable(5100, 'Regensensor')['value'] === false);
 check('Mähzeit gesamt in Stunden', variable(5100, 'GesamtDauer')['value'] === 91);
+check('Werte wie das frühere MQTTworx (Adams m500): 901,0 km, Messer 909,6 h, 6,6 °C, 18,8 V, 937 Zyklen, −68 dBm, Firmware',
+    variable(5100, 'GesamtStrecke')['value'] === 901.0 && variable(5100, 'Messerlaufzeit')['value'] === 909.6 && variable(5100, 'AkkuTemperatur')['value'] === 6.6
+    && variable(5100, 'AkkuSpannung')['value'] === 18.8 && variable(5100, 'Ladezyklen')['value'] === 937 && variable(5100, 'WlanSignal')['value'] === -68
+    && variable(5100, 'Firmware')['value'] === '3.36.0+1' && variable(5100, 'GesamtStrecke')['type'] === VARIABLETYPE_FLOAT && variable(5100, 'WlanSignal')['pres']['SUFFIX'] === ' dBm');
 check('Regenverzögerung 60 min, Mähzeiten an, Zeitzuschlag +20 % — umstellbar', variable(5100, 'Regenverzoegerung')['value'] === 60 && variable(5100, 'Maehzeiten')['value'] === 1
     && variable(5100, 'Zeitzuschlag')['value'] === 20 && variable(5100, 'Regenverzoegerung')['action'] === true && variable(5100, 'Zeitzuschlag')['action'] === true);
 $ro = array_column(json_decode((string)variable(5100, 'Regenverzoegerung')['pres']['OPTIONS'], true), 'Caption', 'Value');

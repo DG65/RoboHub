@@ -170,6 +170,25 @@ class IPSModule
             VARIABLE_PRESENTATION_ENUMERATION        => ['Value', 'Caption', 'IconActive', 'IconValue', 'Color'],
             VARIABLE_PRESENTATION_VALUE_PRESENTATION => ['Value', 'Caption', 'IconActive', 'IconValue', 'ColorActive', 'ColorValue'],
         ];
+        // Symcon-Doku Wertanzeige: OPTIONS nur bei Boolean/String — bei Zahlen ignoriert Symcon sie still
+        // (live 26.10.2026: „Zustand" zeigte nur die Zahl). Zahlen mit Text → INTERVALS mit Konstante.
+        if (is_array($pres) && ($pres['PRESENTATION'] ?? '') === VARIABLE_PRESENTATION_VALUE_PRESENTATION && isset($pres['OPTIONS']) && in_array($type, [VARIABLETYPE_INTEGER, VARIABLETYPE_FLOAT], true)) {
+            $GLOBALS['OPTIONS_FEHLER'][] = $ident . ': OPTIONS bei Zahl (wirkt nicht, INTERVALS nehmen)';
+        }
+        if (is_array($pres) && isset($pres['INTERVALS'])) {
+            if (empty($pres['INTERVALS_ACTIVE'])) {
+                $GLOBALS['OPTIONS_FEHLER'][] = $ident . ': INTERVALS ohne INTERVALS_ACTIVE';
+            }
+            $iErlaubt = ['IntervalMinValue', 'IntervalMaxValue', 'ConstantActive', 'ConstantValue', 'ConversionFactor', 'PrefixActive', 'PrefixValue', 'SuffixActive', 'SuffixValue',
+                'DigitsActive', 'DigitsValue', 'IconActive', 'IconValue', 'ColorActive', 'ColorValue', 'ContentColorActive', 'ContentColorValue'];
+            foreach ((array)json_decode((string)$pres['INTERVALS'], true) as $iv) {
+                foreach (array_keys((array)$iv) as $k) {
+                    if (!in_array($k, $iErlaubt, true)) {
+                        $GLOBALS['OPTIONS_FEHLER'][] = $ident . ': Intervall-Schlüssel ' . $k;
+                    }
+                }
+            }
+        }
         if (is_array($pres) && isset($pres['OPTIONS'])) {
             $liste = $erlaubt[$pres['PRESENTATION'] ?? ''] ?? null;
             foreach ((array)json_decode((string)$pres['OPTIONS'], true) as $opt) {
@@ -967,9 +986,9 @@ check('Reinigungsbürste Reststunden 433,7 h (wie App)', variable(2100, 'Reinigu
 check('Wartung in 42,9 h (wie App)', variable(2100, 'WartungRest')['value'] === 42.9);
 check('Reststunden als Kommazahl mit Einheit h', variable(2100, 'MesserRest')['type'] === VARIABLETYPE_FLOAT && variable(2100, 'MesserRest')['pres']['SUFFIX'] === ' h');
 check('keine Sauger-Variablen beim Mäher', variable(2100, 'Staubbeutel') === null && variable(2100, 'Saugstufe') === null);
-$opts = json_decode(variable(2100, 'Zustand')['pres']['OPTIONS'], true);
+$opts = json_decode(variable(2100, 'Zustand')['pres']['INTERVALS'], true);
 $mahtCaption = '';
-foreach ($opts as $o) { if ($o['Value'] === RoboHubModell::ZUSTAND_REINIGT) { $mahtCaption = $o['Caption']; } }
+foreach ($opts as $o) { if ($o['IntervalMinValue'] === RoboHubModell::ZUSTAND_REINIGT && $o['IntervalMaxValue'] === RoboHubModell::ZUSTAND_REINIGT && $o['ConstantActive'] === true) { $mahtCaption = $o['ConstantValue']; } }
 check('Zustandsbeschriftung beim Mäher „Mäht"', $mahtCaption === 'Mäht');
 FakeCloud::$props['2.1'] = 3;
 FakeCloud::$props['2.2'] = 56;
@@ -1797,6 +1816,8 @@ foreach (glob(dirname(__DIR__) . '/{libs,RoboHub*}/*.php', GLOB_BRACE) as $d) { 
 // in Aufzählungen ein Mobile-App-Absturz. Je Darstellung prüft die MaintainVariable-Nachbildung; hier: nur in presAnzeige().
 check('ColorValue/ColorActive nur in der Wertanzeige (presAnzeige), nie in Aufzählungen', substr_count($quelltext, "'ColorValue'") === 1 && substr_count($quelltext, "'ColorActive'") === 1
     && preg_match("/function presAnzeige[^}]*'ColorActive' => false, 'ColorValue' => -1/s", $quelltext) === 1);
+check('Zustand: Wertanzeige mit Intervallen (Konstante je Wert), keine OPTIONS — Symcon-Doku: OPTIONS nur Boolean/String', isset(variable(2100, 'Zustand')['pres']['INTERVALS'])
+    && !isset(variable(2100, 'Zustand')['pres']['OPTIONS']) && variable(2100, 'Zustand')['pres']['INTERVALS_ACTIVE'] === true);
 check('kein Sys_GetURLContentEx (kann kein POST)', !preg_match('/Sys_GetURLContentEx\s*\(/', $quelltext));
 check('keine Mojibake-Umlaute', strpos($quelltext, 'Ã') === false);
 check('Kontakt-E-Mail nur im Lizenz-Panel (einmal)', substr_count($quelltext, 'dietmar@gureth.eu') === 1);

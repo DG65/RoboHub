@@ -123,6 +123,13 @@
   (MOVA-Pfad enthält `/000002/ali_dreame/null/`). Kachel zeigt beide Bilder (Screenshot 22:05).
   Meine Zwischen-These „mainImage fehlt" war falsch — die Daten stammten von vor dem Update.
 
+## Verbindungsinstanz und Zustandsanzeige (0.25.0)
+
+- Konto-Elternteil je `echtzeitArt()`: 'mqtt' → Client Socket, 'websocket' → WebSocket Client, '' → **Virtual IO**
+  `{6179ED6A-FC31-413C-BB8E-1204150CF376}` (immer aktiv; vorher geschlossener Socket → „übergeordnete Instanz inaktiv").
+- **Wertanzeige mit Text je Zahl = INTERVALS mit Konstante, NICHT OPTIONS** (Symcon-Doku: OPTIONS nur Boolean/String; live
+  26.10.2026 bestätigt). Gilt verbundweit — SUITE.md Stolperstein 9 ergänzt, EMS informiert.
+
 ## Echtzeit über WebSocket (0.20.0)
 
 - Zweite Echtzeit-Art neben MQTT für Husqvarna/GARDENA: Treiber-Methoden `echtzeitArt()`, `wsZiel($buendel)`
@@ -340,6 +347,8 @@
 - WebSocket-Handschlag live geprüft (13.10.2026, ohne Anmeldung). **Kein Gerät live getestet.**
 - **0.21.0:** Regenverzögerung (rd), Mähzeiten an/aus (sc.m 1/2 bzw. sc.enabled), Zeitzuschlag (sc.p, ganzes sc ohne ots),
   Wochenplan als Anzeige (sc.d/dd, Sonntag zuerst; Vision sc.slots). Ident `Maehzeiten` (nicht `Zeitplan` — belegt).
+- **Erster echter Worx (Forum baraka, m500, 26.10.2026):** Anmeldung/Zustand/Einstellungen/Wochenplan ok, Befehle offen.
+  0.25.0: Zusatzwerte wie MQTTworx (bt.t/v/nr, rsi, st.d/b, fw).
 - Offen: Zonen (mz/mzv), Wochenplan schreiben, Kantenschnitt (cmd 101 bzw. ots bc), Echtzeit (command_out), Messer-
   Rücksetzen (`counters/blade/reset`, braucht ein Lebensdauer-Modell), Vision-Besonderheiten.
 

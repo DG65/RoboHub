@@ -2,6 +2,25 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.25.0 (26.10.2026)
+
+Anlass: erster echter Worx im Forum (baraka/Adam, Worx m500, Beitrag 51): Anmeldung, Aktualisierung, Mähzeiten,
+Regenverzögerung, Zeitzuschlag und Wochenplan laufen. Drei Befunde:
+- **„Zustand" zeigte nur die Zahl** (bei Adam „7", live auch auf Dietmars 9.0: „5"). Symcon-Doku Wertanzeige: OPTIONS gibt es nur
+  für Boolean/String; Ganz-/Kommazahlen brauchen INTERVALS mit „Konstante". `presAnzeige()` baut jetzt Intervalle
+  (IntervalMin/MaxValue, ConstantActive/Value, …); live an einer Wegwerf-Variable geprüft: 7 → „Fehler". Seit 0.19.4 falsch.
+  Prüfstand: OPTIONS in einer Zahlen-Wertanzeige ist jetzt ein Fehler, Intervall-Schlüssel werden geprüft.
+- **Graues „!" und „übergeordnete Instanz ist inaktiv"** an Konto und Roboter, weil Konten ohne Echtzeit seit 0.18.8 einen
+  geschlossenen Client Socket als Elternteil haben. Jetzt Symcons Virtual IO (`{6179ED6A-…}`, implementiert dieselbe
+  Datenschnittstelle `{79827379-…}`, live gelesen) — immer aktiv. Eigene alte Sockets („RoboHub …") werden automatisch getauscht,
+  fremde Instanzen nie. Konfigurator-Kette nimmt das tatsächliche Elternmodul (unverändert).
+- **Mehr Werte wie das frühere MQTTworx:** Akkutemperatur (bt.t), Akkuspannung (bt.v), Ladezyklen (bt.nr), WLAN-Signal (rsi),
+  Strecke gesamt (st.d m → km), Messerlaufzeit (st.b min → h), Firmware (fw). Neue Modellfelder, generisch nutzbar.
+  „Gesperrt" nicht übernommen (in ioBroker.worx nicht belegt).
+- Prüfstand: 7/7 Mutationen gefangen (OPTIONS statt Intervalle, Intervalle inaktiv, Client Socket statt Virtual IO, fremde
+  Instanz getauscht, Strecke/Messerzeit ohne Umrechnung, WLAN fehlt). **Live ungetestet** — Virtual IO und Zustandsanzeige
+  nach dem Update an Dietmars Anlage prüfen.
+
 ## 0.24.0 (26.10.2026)
 
 - **Neuer Treiber Narwal** (`libs/RoboHubNarwal.php`, nach sjmotew/NarwalIntegration v1.0.11, MIT) — lokal,
