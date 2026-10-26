@@ -109,6 +109,8 @@
   und mit geratenem Schlüssel live abgelehnt („🔒 … nicht freigegeben"). Darstellung in Dietmars
   Kachel-Visualisierung und in IPSView noch nicht gesehen.
 
+- **Symbole (0.26.0):** Symcon-Icons per `/icons.js` (HTML-SDK-Doku), `fa-light fa-<name>`, Eigenschaft `Symbole` (1 = Emojis),
+  Rückfall Emoji ohne `window.FontAwesome`. Neue Icon-Namen erst in Symcons icons.js nachsehen (Prüfstand-Liste `$iconsGeprueft`).
 - **Farbschema (0.18.11):** Symcon gibt der Kachel kein Hell/Dunkel mit; `prefers-color-scheme` spiegelt nur das
   Gerät (Thilo: Gerät hell, Visu dunkel → dunkle Schrift auf dunkel). Property `Farbschema` + Rahmen-Hintergrund messen.
 - **Kachel-Layout (0.3.1):** Symcon-Titelzeile (Instanzname + ⤢) liegt als Ebene über den

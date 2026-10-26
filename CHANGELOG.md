@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.26.0 (26.10.2026)
+
+- Kachel mit **Symcon-Symbolen** statt Emojis (Forum Thilo, Beitrag 50: Emoji-Schrift auf dem Pi nachinstalliert, Symcon-Symbole
+  trotzdem lieber). Weg laut HTML-SDK-Doku „Icons": `<script src="/icons.js">`, Font Awesome mit Symcons Satz, Stil `fa-light`.
+  Live geprüft: Dietmars 9.0 liefert /icons.js ohne Anmeldung (1,2 MB gz), alle 41 benutzten Namen sind enthalten.
+- Neue Eigenschaft `Symbole` (0 Symcon-Symbole = Standard, 1 Emojis). Ohne icons.js (fremde Seite) fällt die Kachel von selbst
+  auf Emojis zurück (`window.FontAwesome` fehlt). Ein bekanntes Emoji am Anfang von Modul-Texten (Rückmeldung, Hinweise,
+  Überblick) wird zum Symbol — PHP-Texte bleiben unverändert.
+- Geprüft im Browser mit Symcons echter icons.js: Symbole in Zustand, Knöpfen, Hinweisen, Zeitplänen, Überblick, Verbrauchsteilen;
+  Emoji-Einstellung und Rückfall ohne icons.js. Prüfstand: Icon-Namen gegen die geprüfte Liste, Ersatz-Emoji Pflicht, 4/4 Proben.
+- **Offen:** Darstellung in der echten Kachel-Visualisierung und in IPSView (WebHook-Seite) noch nicht gesehen.
+
 ## 0.25.0 (26.10.2026)
 
 Anlass: erster echter Worx im Forum (baraka/Adam, Worx m500, Beitrag 51): Anmeldung, Aktualisierung, Mähzeiten,

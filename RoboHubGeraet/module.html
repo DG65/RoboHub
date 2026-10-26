@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Symcon-Symbole (HTML-SDK-Doku „Icons"): Font Awesome mit Symcons Satz, Stil fa-light. Fehlt die Datei
+     (fremde Seite), bleibt window.FontAwesome leer und die Kachel zeigt Emojis (Forum Thilo 26.10.2026). -->
+<script src="/icons.js"></script>
 <style>
 :root{--fg:#1d1d1f;--fg2:#6e6e73;--rand:rgba(0,0,0,.12);--fl:rgba(0,0,0,.05);--seite:#ffffff;
 --gruen:#1f7a3a;--gruenbg:#e3f4e8;--blau:#0b5cad;--blaubg:#e3effb;--gelb:#8a5a00;--gelbbg:#fbf0d9;--rot:#a82a2a;--rotbg:#fbe6e6;--grau:#6e6e73;--graubg:#efeff1;
@@ -26,6 +29,7 @@ body.eigen{background:var(--seite);padding-top:14px}
 .status{display:flex;align-items:center;gap:.9em}
 .sym{width:3.6em;height:3.6em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1em;flex:none}
 .sym span{font-size:2.1em;line-height:1}
+.svg-inline--fa{vertical-align:-.125em}
 .geraet{position:relative;width:5.4em;height:5.4em;flex:none;border-radius:1.1em;border:.18em solid;background:var(--fl);display:flex;align-items:center;justify-content:center}
 .geraet img{max-width:92%;max-height:92%;object-fit:contain}
 .geraet .marke{position:absolute;right:-.45em;bottom:-.45em;width:1.9em;height:1.9em;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85em;border:.15em solid var(--seite)}
@@ -80,16 +84,38 @@ button.ort{cursor:pointer}
 <body>
 <div id="app"></div>
 <script>
+// Zustand: [Emoji, Farbe, Symcon-Symbol]
 var ZUSTAND = {
-  '-1': ['❔', 'grau'], 0: ['🤖', 'gruen'], 1: ['🧹', 'blau'], 2: ['⏸️', 'gelb'], 3: ['↩️', 'blau'],
-  4: ['🔋', 'gruen'], 5: ['🏠', 'gruen'], 6: ['💧', 'gruen'], 7: ['⚠️', 'rot'], 8: ['💤', 'grau'],
-  9: ['🗺️', 'blau'], 10: ['🔄', 'grau'], 11: ['🌧️', 'gelb']
+  '-1': ['❔', 'grau', 'circle-question'], 0: ['🤖', 'gruen', 'vacuum-robot'], 1: ['🧹', 'blau', 'broom'], 2: ['⏸️', 'gelb', 'pause'],
+  3: ['↩️', 'blau', 'arrow-turn-left'], 4: ['🔋', 'gruen', 'battery-bolt'], 5: ['🏠', 'gruen', 'house'], 6: ['💧', 'gruen', 'droplet'],
+  7: ['⚠️', 'rot', 'triangle-exclamation'], 8: ['💤', 'grau', 'moon'], 9: ['🗺️', 'blau', 'map'], 10: ['🔄', 'grau', 'arrows-rotate'],
+  11: ['🌧️', 'gelb', 'cloud-rain']
 };
+// Führendes Emoji in Texten aus dem Modul (Rückmeldungen, Hinweise, Überblick) → Symcon-Symbol.
+var EMOJI_SYMBOL = {
+  '⛔': 'circle-xmark', '✅': 'circle-check', 'ℹ️': 'circle-info', 'ℹ': 'circle-info', '⚠️': 'triangle-exclamation', '⚠': 'triangle-exclamation',
+  '📤': 'paper-plane', '🔒': 'lock', '🚰': 'faucet', '🪣': 'bucket', '🗑️': 'trash-can', '🗑': 'trash-can', '🧴': 'bottle-droplet',
+  '🌙': 'moon', '🔔': 'bell', '🔇': 'volume-xmark', '🔊': 'volume-high', '🌧️': 'cloud-rain', '🌧': 'cloud-rain', '☀️': 'sun', '☀': 'sun',
+  '🧹': 'broom', '⏸️': 'circle-pause', '⏸': 'circle-pause', '🗓️': 'calendar-days', '🗓': 'calendar-days', '⏳': 'hourglass',
+  '📧': 'envelope', '🔄': 'arrows-rotate', '🔌': 'plug', '🔑': 'key', '🗺️': 'map', '🗺': 'map', '🏠': 'house', '📍': 'location-dot', '⚡': 'bolt'
+};
+function mitIcons() { return !!(daten && daten.symbole !== 1 && window.FontAwesome); }
+// Symbol: Symcon-Icon oder Emoji (Einstellung „Symbole in der Kachel", Rückfall Emoji ohne icons.js).
+function sym(icon, emoji) { return mitIcons() ? '<i class="fa-light fa-' + icon + '" aria-hidden="true"></i>' : emoji; }
+// Text (wird escaped); ein bekanntes Emoji am Anfang wird zum Symbol.
+function textSym(t) {
+  t = String(t == null ? '' : t);
+  for (var e in EMOJI_SYMBOL) {
+    if (t.indexOf(e) === 0) { return sym(EMOJI_SYMBOL[e], e) + ' ' + esc(t.slice(e.length).replace(/^\uFE0F?\s*/, '')); }
+  }
+  return esc(t);
+}
 // Farbstufen der Verbrauchsteile, angelehnt an die Hersteller-Apps
 // (Dietmars Screenshots 11.10.2026): Dreamehome färbt nur 0 % rot,
 // MOVAhome nennt 34 % „Bald ersetzen" und 72 % „In gutem Zustand".
 var TEIL_ROT = 5, TEIL_GELB = 35;
-var BEFEHLE = [[1, '▶️ Start'], [2, '⏸️ Pause'], [4, '🏠 Station'], [5, '📍 Orten']];
+// Befehle: [Wert, Symcon-Symbol, Emoji, Text]
+var BEFEHLE = [[1, 'play', '▶️', 'Start'], [2, 'pause', '⏸️', 'Pause'], [4, 'house', '🏠', 'Station'], [5, 'location-dot', '📍', 'Orten']];
 var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '';
 // Läuft ein Befehl, sind die Befehlsknöpfe gesperrt: der Roboter nimmt (z. B. iRobot) nur eine
 // Verbindung an, ein zweiter Klick lief sonst in einen Fehler (Forum Thilo 24.10.2026).
@@ -132,7 +158,7 @@ function zeichnen() {
   var bedienbar = !d.eigen || d.bedienung;
   var akkuFarbe = d.akku == null ? 'grau' : (d.akku <= 15 ? 'rot' : (d.akku <= 35 ? 'gelb' : 'gruen'));
 
-  var symbol = d.klasse === 'maeher' && d.zustand === 1 ? '🌱' : z[0];
+  var symbol = d.klasse === 'maeher' && d.zustand === 1 ? sym('seedling', '🌱') : sym(z[2], z[0]);
   // Produktbild des Herstellers mit Zustandsring + Zustandssymbol; ohne Bild
   // (oder wenn es nicht lädt) wie bisher nur das Symbol im Farbkreis.
   var l = '<div class="status">';
@@ -144,20 +170,20 @@ function zeichnen() {
   }
   l += '<div class="titel"><b>' + esc(d.zustandText) + '</b>' + (d.unterzeile ? '<span>' + esc(d.unterzeile) + '</span>' : '') + '</div></div>';
   l += '<div class="akku"><div class="balken"><i style="width:' + (d.akku || 0) + '%;background:var(--' + akkuFarbe + ')"></i></div>';
-  l += '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? '⚡ lädt' : '🔋') + '</span></div>';
-  if (!d.erreichbar) { l += '<div class="hinweis" style="' + farbe('grau') + '">📡 Gerade nicht erreichbar</div>'; }
-  if (d.fehler) { l += '<div class="hinweis" style="' + farbe('rot') + '">⚠️ ' + esc(d.fehler) + '</div>'; }
-  (d.hinweise || []).forEach(function (t) { l += '<div class="hinweis" style="' + farbe('gelb') + '">' + esc(t) + '</div>'; });
+  l += '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? sym('bolt', '⚡') + ' lädt' : sym('battery-full', '🔋')) + '</span></div>';
+  if (!d.erreichbar) { l += '<div class="hinweis" style="' + farbe('grau') + '">' + sym('wifi-slash', '📡') + ' Gerade nicht erreichbar</div>'; }
+  if (d.fehler) { l += '<div class="hinweis" style="' + farbe('rot') + '">' + sym('triangle-exclamation', '⚠️') + ' ' + esc(d.fehler) + '</div>'; }
+  (d.hinweise || []).forEach(function (t) { l += '<div class="hinweis" style="' + farbe('gelb') + '">' + textSym(t) + '</div>'; });
   if (bedienbar) {
     l += '<div class="knoepfe">';
     BEFEHLE.forEach(function (b) {
-      l += '<button' + (b[0] === d.hauptknopf ? ' class="start"' : '') + (befehlLaeuft ? ' disabled' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[1].replace(/^\S+\s/, '') + '\')">' + b[1] + '</button>';
+      l += '<button' + (b[0] === d.hauptknopf ? ' class="start"' : '') + (befehlLaeuft ? ' disabled' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[3] + '\')">' + sym(b[1], b[2]) + ' ' + b[3] + '</button>';
     });
     l += '</div>';
   } else if (d.eigen) {
-    l += '<div class="hinweis" style="' + farbe('grau') + '">🔒 Nur Anzeige — Bedienung für diese Seite nicht freigegeben</div>';
+    l += '<div class="hinweis" style="' + farbe('grau') + '">' + sym('lock', '🔒') + ' Nur Anzeige — Bedienung für diese Seite nicht freigegeben</div>';
   }
-  l += '<div class="meldung">' + esc(rueck) + '</div>';
+  l += '<div class="meldung">' + textSym(rueck) + '</div>';
 
   // Kartenbild: Räume/Zonen als Namen darüber, antippen = auswählen (wie die Knöpfe rechts).
   var k = d.karte, kt = '';
@@ -170,7 +196,7 @@ function zeichnen() {
         ? '<button class="ort' + an + '" style="left:' + m.x + '%;top:' + m.y + '%" onclick="raumWaehlen(' + Number(m.id) + ')">' + esc(m.name) + '</button>'
         : '<span class="ort" style="left:' + m.x + '%;top:' + m.y + '%">' + esc(m.name) + '</span>';
     });
-    if (k.station) { kt += '<span class="dock" style="left:' + k.station.x + '%;top:' + k.station.y + '%" title="Station">⚡</span>'; }
+    if (k.station) { kt += '<span class="dock" style="left:' + k.station.x + '%;top:' + k.station.y + '%" title="Station">' + sym('charging-station', '⚡') + '</span>'; }
     // Gefahrener Weg (Stücke in %) als Linie über dem Bild, Roboter als Punkt mit Blickrichtung.
     if ((k.weg || []).length) {
       kt += '<svg class="weg" viewBox="0 0 100 100" preserveAspectRatio="none">';
@@ -182,7 +208,7 @@ function zeichnen() {
       kt += '<span class="robo" style="left:' + Number(k.roboter.x) + '%;top:' + Number(k.roboter.y) + '%;transform:rotate(' + (90 - Number(k.roboter.winkel || 0)) + 'deg)"><i></i></span>';
     }
     kt += '</div>';
-    if (k.live) { kt += '<div class="livemarke">🛰️ Live · ' + new Date(k.live * 1000).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr</div>'; }
+    if (k.live) { kt += '<div class="livemarke">' + sym('satellite-dish', '🛰️') + ' Live · ' + new Date(k.live * 1000).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr</div>'; }
     kt += '</div>';
   }
 
@@ -206,7 +232,7 @@ function zeichnen() {
           + auswahl('startDurch', startDurch, [[-1, '1×'], [2, '2×'], [3, '3×']]) + '</div>';
         wert += '|' + startModus + '|' + startSaug + '|' + startDurch;
       }
-      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + (d.klasse === 'maeher' ? 'Mähen ' : 'Reinigung ') + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">▶️ ' + esc(namen) + (d.klasse === 'maeher' ? ' mähen' : ' reinigen') + '</button>';
+      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + (d.klasse === 'maeher' ? 'Mähen ' : 'Reinigung ') + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">' + sym('play', '▶️') + ' ' + esc(namen) + (d.klasse === 'maeher' ? ' mähen' : ' reinigen') + '</button>';
     }
     r += '</div>';
   }
@@ -216,12 +242,12 @@ function zeichnen() {
       var knopf = bedienbar && t.schaltbar
         ? ' <button class="mini' + (t.an ? '' : ' aus') + '" onclick="senden(\'Zeitplan\',\'' + Number(t.id) + ':' + (t.an ? 0 : 1) + '\',\'Zeitplan ' + (t.an ? 'aus' : 'ein') + '\')">' + (t.an ? 'an' : 'aus') + '</button>'
         : '';
-      r += '<div class="teil ' + (t.an ? 'ok' : 'aus') + '"><span>' + (t.an ? '🗓️ ' : '⏸️ ') + esc(t.text) + '</span><span>' + knopf + '</span></div>';
+      r += '<div class="teil ' + (t.an ? 'ok' : 'aus') + '"><span>' + (t.an ? sym('calendar-days', '🗓️') : sym('circle-pause', '⏸️')) + ' ' + textSym(t.text) + '</span><span>' + knopf + '</span></div>';
     });
     r += '</div>';
   }
   if ((d.info || []).length) {
-    r += '<div class="block"><p class="abschnitt">Überblick</p><div class="info">' + d.info.map(function (t) { return '<span>' + esc(t) + '</span>'; }).join('') + '</div></div>';
+    r += '<div class="block"><p class="abschnitt">Überblick</p><div class="info">' + d.info.map(function (t) { return '<span>' + textSym(t) + '</span>'; }).join('') + '</div></div>';
   }
   var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
   if (teile.length) {
@@ -237,9 +263,9 @@ function zeichnen() {
       if (bedienbar && t.id) {
         aktion = rueckfrage === t.id
           ? ' <button class="mini ja" onclick="rueckfrage=\'\';senden(\'Zuruecksetzen\',\'' + t.id + '\',\'Zurücksetzen ' + esc(t.name) + '\')">Ja, zurücksetzen</button><button class="mini" onclick="rueckfrage=\'\';zeichnen()">Nein</button>'
-          : ' <button class="mini" title="Nach Wechsel/Reinigung zurücksetzen" onclick="rueckfrage=\'' + t.id + '\';zeichnen()">↺</button>';
+          : ' <button class="mini" title="Nach Wechsel/Reinigung zurücksetzen" onclick="rueckfrage=\'' + t.id + '\';zeichnen()">' + sym('rotate-left', '↺') + '</button>';
       }
-      r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? '⚠️ ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + aktion + '</span></div>';
+      r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? sym('triangle-exclamation', '⚠️') + ' ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + aktion + '</span></div>';
     });
     var rest = teile.length - kritisch.length;
     if (!offen && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' in Ordnung') + ' ›</button>'; }

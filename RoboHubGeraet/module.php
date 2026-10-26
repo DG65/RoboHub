@@ -50,6 +50,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('Karte', '{}');
         $this->RegisterPropertyBoolean('KarteZeigen', true);
         $this->RegisterPropertyInteger('Farbschema', 0);   // 0 automatisch, 1 hell, 2 dunkel
+        $this->RegisterPropertyInteger('Symbole', 0);      // 0 Symcon-Symbole (icons.js), 1 Emojis (Forum Thilo 26.10.2026)
         $this->RegisterPropertyBoolean('EinstellungenZeigen', true);
         $this->RegisterPropertyBoolean('Deaktiviert', false);
         // Live-Karte: während der Arbeit aktuelle Karte mit Weg und Roboter holen.
@@ -1288,6 +1289,7 @@ class RoboHubGeraet extends IPSModule
             'rueck'       => $rueckmeldung,
             'eigen'       => $eigen,
             'farbschema'  => $this->ReadPropertyInteger('Farbschema'),
+            'symbole'     => $this->ReadPropertyInteger('Symbole'),
             // Hervorgehobener Knopf: der, der gerade naheliegt (bei Fehlern keiner).
             'hauptknopf'  => $zustand === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($zustand === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1),
             'bedienung'   => $eigen && $key !== '',
@@ -1381,6 +1383,11 @@ class RoboHubGeraet extends IPSModule
                     ['caption' => 'Dunkel', 'value' => 2],
                 ]],
                 ['type' => 'Label', 'caption' => 'Symcon verrät einer Kachel nicht, ob die Visualisierung hell oder dunkel eingestellt ist. Ist die Schrift schlecht lesbar, hier „Hell" oder „Dunkel" fest einstellen.'],
+                ['type' => 'Select', 'name' => 'Symbole', 'caption' => 'Symbole in der Kachel', 'options' => [
+                    ['caption' => 'Symcon-Symbole (wie die übrige Visualisierung)', 'value' => 0],
+                    ['caption' => 'Emojis (bunte Schriftzeichen des Geräts)', 'value' => 1],
+                ]],
+                ['type' => 'Label', 'caption' => 'Symcon-Symbole kommen vom Symcon-Server und sehen auf jedem Gerät gleich aus. Emojis braucht eine Emoji-Schrift auf dem anzeigenden Gerät (fehlt z. B. auf dem Raspberry Pi). Lassen sich die Symcon-Symbole nicht laden, zeigt die Kachel von selbst Emojis.'],
                 ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Einstellungen des Roboters (Saugstufe, Durchgänge, Nicht stören …) im Überblick der Kachel zeigen — die Variablen der Instanz bleiben immer'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Kartenbild zeigen (Räume bzw. Mähzonen zum Antippen)'],
                 ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live-Karte während der Arbeit (gefahrener Weg und Roboterposition; Sauger alle 30 s, Mäher alle 60 s)'],

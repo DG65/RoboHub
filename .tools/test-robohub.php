@@ -766,6 +766,24 @@ check('Kachel-HTML: festes Hell/Dunkel per Klasse, Automatik schaltet nur ohne �
     && strpos($html, "b[0] === d.hauptknopf") !== false);
 check('Kachel-HTML: Befehlsknöpfe gesperrt, solange ein Befehl läuft (Rückmeldung oder 40 s geben sie frei)', strpos($html, "(befehlLaeuft ? ' disabled' : '')") !== false
     && strpos($html, 'if (neu.rueck) { rueck = neu.rueck; befehlLaeuft = false; }') !== false && strpos($html, 'if (befehlLaeuft) { return; }') !== false);
+// Symcon-Symbole statt Emojis (Forum Thilo 26.10.2026): HTML-SDK-Doku „Icons" → /icons.js, Stil fa-light.
+// Liste gegen Symcons icons.js (Dietmars 9.0, 26.10.2026) abgeglichen — neue Namen dort erst nachsehen.
+$iconsGeprueft = ['arrow-turn-left', 'arrows-rotate', 'battery-bolt', 'battery-full', 'bell', 'bolt', 'bottle-droplet', 'broom', 'bucket', 'calendar-days',
+    'charging-station', 'circle-check', 'circle-info', 'circle-pause', 'circle-question', 'circle-xmark', 'cloud-rain', 'droplet', 'envelope', 'faucet',
+    'hourglass', 'house', 'key', 'location-dot', 'lock', 'map', 'moon', 'paper-plane', 'pause', 'play', 'plug', 'rotate-left', 'satellite-dish', 'seedling',
+    'sun', 'trash-can', 'triangle-exclamation', 'vacuum-robot', 'volume-high', 'volume-xmark', 'wifi-slash'];
+preg_match_all("/sym\\('([a-z0-9-]+)', '([^']*)'\\)/", $html, $symAufrufe, PREG_SET_ORDER);
+preg_match_all("/: \\['[^']+', '[a-z]+', '([a-z0-9-]+)'\\]/", $html, $zustandIcons);
+preg_match_all("/'[^'a-z ]+': '([a-z0-9-]+)'/u", $html, $emojiIcons);
+preg_match_all("/\\[\\d, '([a-z0-9-]+)', '[^']+', '[A-Za-zä]+'\\]/u", $html, $befehlIcons);
+$iconNamen = array_unique(array_merge(array_column($symAufrufe, 1), $zustandIcons[1], $emojiIcons[1], $befehlIcons[1]));
+check('Kachel-HTML: lädt Symcons icons.js, Symbole im Stil fa-light, Rückfall Emoji ohne icons.js oder auf Wunsch',
+    strpos($html, '<script src="/icons.js"></script>') !== false && strpos($html, "'<i class=\"fa-light fa-' + icon") !== false
+    && strpos($html, 'daten.symbole !== 1 && window.FontAwesome') !== false);
+check('Kachel-HTML: jedes benutzte Symbol gibt es in Symcons Satz, jedes hat ein Ersatz-Emoji', count($iconNamen) >= 35
+    && array_diff($iconNamen, $iconsGeprueft) === [] && count(array_filter(array_column($symAufrufe, 2), function ($e) { return $e === ''; })) === 0
+    && count($zustandIcons[1]) === 13 && count($befehlIcons[1]) === 4, implode(',', array_diff($iconNamen, $iconsGeprueft)) . ' / ' . count($iconNamen));
+check('Kachel: Einstellung „Symbole" kommt mit (Standard Symcon-Symbole)', ($k['symbole'] ?? null) === 0);
 check('Kachel: Produktbild aus der Geräteliste', ($k['bild'] ?? '') === 'https://oss.iot.dreame.tech/pub/pic/000000/ali_dreame/dreame.vacuum.r95475/bild.png');
 check('Bild: nur https, kein Einschleusen von HTML', RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'http://x/a.png']]]) === ''
     && RoboHubDreame::bildVon(['deviceInfo' => ['mainImage' => ['imageUrl' => 'https://x/a.png" onerror="alert(1)']]]) === ''

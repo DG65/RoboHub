@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.26.0' => [
+            '• Kachel mit Symcon-Symbolen statt Emojis — sehen auf jedem Gerät gleich aus, auch auf dem Raspberry Pi ohne Emoji-Schrift. Wer die bunten Emojis lieber mag: „Symbole in der Kachel" im Roboter-Formular.',
+        ],
         '0.25.0' => [
             '• Variable „Zustand" zeigt wieder Text statt Zahl (z. B. „Fehler" statt 7).',
             '• Konten ohne Echtzeit (Worx, Roborock, Ecovacs, iRobot, Narwal, Navimow, Indego) melden nicht mehr „übergeordnete Instanz inaktiv" — unter dem Konto hängt jetzt ein immer aktiver Virtual IO statt eines geschlossenen Client Sockets. Wird automatisch umgestellt.',
