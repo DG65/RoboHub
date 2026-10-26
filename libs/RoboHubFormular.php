@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.28.0' => [
+            '• Neu: AL-KO Robolinho über die offizielle AL-KO-Schnittstelle (Zugang bei AL-KO beantragen). Zustand mit Grund der Heimfahrt, Regen-/Frostpause, Fehler, Akku, WLAN, Laufzeiten, Messer, Wochenplan; Mähen, Anhalten, Zur Station.',
+        ],
         '0.27.0' => [
             '• Neu: STIHL iMOW — neue Generation (iMOW 5/6/7, auch EVO) und ältere RMI-Modelle in einem Konto, RoboHub erkennt die Generation selbst. Zustand, Fehler mit STIHLs Text, Akku, Statistik, Zonen; Mähen, Pause, Zur Station.',
             '• Ältere iMOW: STIHL gibt den Zugang nur für 30 Tage — RoboHub speichert dein Passwort nicht, erinnert drei Tage vorher und bittet dann um eine neue Anmeldung.',

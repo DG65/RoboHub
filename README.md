@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.27.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.28.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -10,7 +10,7 @@
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
 **Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
-den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego** und **STIHL iMOW** — jeweils über die
+den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego**, **STIHL iMOW** und **AL-KO Robolinho** — jeweils über die
 Hersteller-Cloud.
 
 ## Was tut dieses Modul?
@@ -67,6 +67,10 @@ Skripten oder Visualisierung etwas ändert.
    vergeben), „Übernehmen", „🔑 Jetzt anmelden". Kein Konto, kein Passwort. Für weitere Narwal dasselbe mit deren IP.
    **STIHL iMOW**: Hersteller „STIHL iMOW" wählen, E-Mail und Passwort wie in der iMOW-App, anmelden. RoboHub
    erkennt selbst, ob es ein neuer (iMOW 5/6/7) oder ein älterer Mäher (RMI-Serie) ist.
+   **AL-KO Robolinho**: Zuerst bei AL-KO den API-Zugang beantragen
+   ([alko-garden.de/iot-api-zugang-anfordern](https://alko-garden.de/iot-api-zugang-anfordern/)) — du bekommst Client-ID und
+   Client-Secret. Hersteller „AL-KO Robolinho" wählen, Client-ID, Secret sowie E-Mail und Passwort der inTOUCH-App eintragen,
+   anmelden. Das Passwort wird verworfen; Client-ID und Secret bleiben im Konto, weil AL-KO den Zugang nur damit erneuert.
    **Bosch Indego**: Hersteller „Bosch Indego" wählen, „Übernehmen". Im Browser (Chrome, Edge oder Firefox) zuerst
    die Entwicklerkonsole öffnen (F12, am Mac Wahl + Befehl + I), dann „🔗 Anmeldeseite öffnen" und mit der Bosch
    SingleKey ID anmelden. Bosch leitet danach auf die App-Adresse `com.bosch.indegoconnect://login?…code=…` um,
@@ -210,6 +214,10 @@ nicht offiziell dokumentiert und kann sich ändern.
   Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
   speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
   Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
+- **AL-KO Robolinho** (seit 0.28.0): offizielle AL-KO-Schnittstelle, nach alko-cli (MIT, am Robolinho 700 W gemessen) und der
+  HA-Integration jonkristian/alko; an keinem echten Mäher geprüft (Anmeldeserver live bestätigt). Zustand mit Grund der
+  Heimfahrt, Regen-/Frostpause, PIN-Sperre, Fehler, Akku, WLAN, Mähzeit, Messerlaufzeit, Zyklen, Messer-Restlebensdauer,
+  Regenverzögerung (Anzeige), Wochenplan; Mähen, Anhalten, Zur Station. Noch ohne Einstellungen ändern, Randmähen, Mähdauer.
 - **STIHL iMOW** (seit 0.27.0): neue Generation (iMOW 5/6/7, auch EVO) nach ha-imow-v2, ältere RMI-Serie nach
   stihl-imow-webapi; an keinem echten Mäher geprüft (beide STIHL-Anmeldungen live bis zur Passwortprüfung bestätigt).
   Neue Generation: Passwort nur zur Anmeldung, Zustand wie in der App, Fehler mit STIHLs Text, Akku, Statistik, Zonen,
@@ -253,7 +261,9 @@ GARDENA-Treiber [py-smart-gardena](https://github.com/py-smart-gardena/py-smart-
 Navimow-Treiber [niddu85/home-assistant-navimow](https://github.com/niddu85/home-assistant-navimow) und
 [ioBroker.navimow](https://github.com/TA2k/ioBroker.navimow) (beide MIT), der STIHL-Treiber
 [simontims/ha-imow-v2](https://github.com/simontims/ha-imow-v2), [ChrisHaPunkt/stihl-imow-webapi](https://github.com/ChrisHaPunkt/stihl-imow-webapi)
-und [TA2k/ioBroker.imow](https://github.com/TA2k/ioBroker.imow) (alle MIT), der Indego-Treiber
+und [TA2k/ioBroker.imow](https://github.com/TA2k/ioBroker.imow) (alle MIT), der AL-KO-Treiber
+[trx222/alko-cli](https://github.com/trx222/alko-cli), [jonkristian/alko](https://github.com/jonkristian/alko) und
+[chave/homebridge-alko-mower](https://github.com/chave/homebridge-alko-mower) (alle MIT), der Indego-Treiber
 [sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) und [sander1988/Indego](https://github.com/sander1988/Indego)
 (Apache-2.0), der Narwal-Treiber [sjmotew/NarwalIntegration](https://github.com/sjmotew/NarwalIntegration) (MIT);
 die Anleitung mit der Entwicklerkonsole stammt aus

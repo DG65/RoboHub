@@ -484,6 +484,15 @@
   dann Status 201. Aktionen brauchen die 16-stellige `externalId` (im Geräteeintrag als `extern`).
 - Live 26.10.2026 ohne Konto: beide Anmeldeseiten wie in den Quellen (SETTINGS mit transId/csrf; Formular csrf-token/requestId).
 
+## AL-KO-Robolinho-Treiber (0.28.0)
+
+- Quellen: trx222/alko-cli (MIT, beste Doku: docs/API.md, docs/FINDINGS.md), jonkristian/alko (MIT, HA), chave/homebridge-alko-mower
+  (MIT), AL-KOs Schema-HTML. pyalko hat keine Lizenzangabe → nicht verwenden; liest /things zudem falsch als Objekt.
+- Zugang: Client-ID/Secret (Nutzer beantragt bei AL-KO) + Password-Grant. **Client-ID/Secret im Bündel, Passwort verworfen**
+  (Dietmars Entscheidung 27.10.2026, wie Husqvarna). Refresh-Laufzeit unbekannt.
+- Offen: Einstellungen schreiben (rainDelay/ecoMode/rainSensor — Wertebereiche unbelegt), Mähen mit Dauer/Startpunkt
+  (`manualMowing`, entryPoint-Bitmaske unbestätigt), Randmähen (`manualMarginMowing`), Messer-Reset, Fehlercode-Texte.
+
 ## Prüfen
 
 ```

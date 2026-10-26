@@ -17,6 +17,7 @@ require_once __DIR__ . '/../libs/RoboHubNavimow.php';
 require_once __DIR__ . '/../libs/RoboHubIndego.php';
 require_once __DIR__ . '/../libs/RoboHubNarwal.php';
 require_once __DIR__ . '/../libs/RoboHubStihl.php';
+require_once __DIR__ . '/../libs/RoboHubAlko.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -56,6 +57,7 @@ class RoboHubKonto extends IPSModule
         'navimow'   => ['Segway Navimow (App „Navimow")', 'Navimow', false, false],
         'indego'    => ['Bosch Indego (App „Bosch Smart Gardening")', 'Indego', false, false],
         'stihl'     => ['STIHL iMOW (App „iMOW", alle Generationen)', 'STIHL', false, false],
+        'alko'      => ['AL-KO Robolinho (App „inTOUCH", offizielle API)', 'AL-KO', false, false],
         'narwal'    => ['Narwal Flow/Freo (lokal im Heimnetz, ohne Cloud)', 'Narwal', false, false],
     ];
 
@@ -88,6 +90,9 @@ class RoboHubKonto extends IPSModule
         $this->RegisterPropertyString('Konto', '');
         // Nur Eingabe für die Erstanmeldung, wird nach Erfolg sofort geleert.
         $this->RegisterPropertyString('Passwort', '');
+        // AL-KO: selbst beantragter API-Zugang. Das Secret wird nach der Anmeldung ins Bündel übernommen und hier geleert.
+        $this->RegisterPropertyString('ClientId', '');
+        $this->RegisterPropertyString('ClientSecret', '');
 
         $this->RegisterAttributeString('Buendel', '');
         // Zweistufige Anmeldung (Ecovacs-Gerätebestätigung): Zwischenstand bis zum Code.
@@ -206,6 +211,9 @@ class RoboHubKonto extends IPSModule
             return $this->melde('⛔ Bitte zuerst Konto (E-Mail) und Passwort (bei Roborock: den Code aus der E-Mail) eintragen, „Übernehmen" klicken und dann anmelden.');
         }
         $vorstufe = json_decode((string)$this->ReadAttributeString('AnmeldeVorstufe'), true) ?: [];
+        if (property_exists($treiber, 'zusatz')) {
+            $treiber->zusatz = ['clientId' => (string)$this->ReadPropertyString('ClientId'), 'clientSecret' => (string)$this->ReadPropertyString('ClientSecret')];
+        }
         try {
             if ($vorstufe !== [] && method_exists($treiber, 'anmeldenMitCode')) {
                 $buendel = $treiber->anmeldenMitCode($konto, $pass, $vorstufe);
@@ -256,6 +264,9 @@ class RoboHubKonto extends IPSModule
         $this->UpdateFormField('Ergebnis', 'caption', $text);
         $this->echtzeitKonfigurieren(true);
         IPS_SetProperty($this->InstanceID, 'Passwort', '');
+        if ($this->ReadPropertyString('ClientSecret') !== '') {
+            IPS_SetProperty($this->InstanceID, 'ClientSecret', '');   // steht jetzt im Bündel (Attribut)
+        }
         IPS_ApplyChanges($this->InstanceID);
         return $text;
     }
@@ -955,6 +966,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubNarwal();
         } elseif ($hersteller === 'stihl') {
             $treiber = new RoboHubStihl();
+        } elseif ($hersteller === 'alko') {
+            $treiber = new RoboHubAlko();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -1157,7 +1170,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego und STIHL iMOW). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -1183,6 +1196,7 @@ class RoboHubKonto extends IPSModule
         $narwal = $this->ReadPropertyString('Hersteller') === 'narwal';
         $husqvarna = in_array($this->ReadPropertyString('Hersteller'), ['husqvarna', 'gardena'], true);
         $navimow = $this->ReadPropertyString('Hersteller') === 'navimow';
+        $alko = $this->ReadPropertyString('Hersteller') === 'alko';
         $indego = $this->ReadPropertyString('Hersteller') === 'indego';
         $perLink = $navimow || $indego;
         $api = $this->ReadPropertyString('Hersteller') === 'gardena' ? 'GARDENA smart system API' : 'Automower Connect API';
@@ -1218,6 +1232,9 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'Label', 'visible' => $roborock, 'caption' => 'Roborock meldet sich ohne Passwort an: E-Mail eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Die Region findet Roborock selbst.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Navimow meldet sich ohne Passwort bei RoboHub an: „🔗 Anmeldeseite öffnen", dort mit dem Navimow-Konto anmelden. Danach landet der Browser auf einer Seite, die nicht lädt (http://localhost:1/callback?code=…) — das ist gewollt. Diese Adresse aus der Adresszeile kopieren, unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Offen gesagt: Segway vergibt für Smart-Home-Systeme keine eigenen Zugänge. RoboHub nutzt deshalb, wie ioBroker, die von Segway veröffentlichte Smart-Home-Kennung „homeassistant". Auf der Anmeldeseite steht darum „Home Assistant" — gemeint ist diese Schnittstelle, nicht dein Home Assistant.'],
+                ['type' => 'Label', 'visible' => $alko, 'caption' => 'AL-KO nutzt die offizielle Schnittstelle: Den Zugang (Client-ID und Client-Secret) beantragst du einmalig bei AL-KO unter alko-garden.de/iot-api-zugang-anfordern. Dann Client-ID und Secret sowie E-Mail und Passwort der inTOUCH-App eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen; Client-ID und Secret bleiben im Konto gespeichert, weil AL-KO den Zugang nur damit erneuert.'],
+                ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $alko, 'caption' => 'Client-ID (von AL-KO)'],
+                ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $alko, 'caption' => 'Client-Secret (von AL-KO, wird nach der Anmeldung ins Konto übernommen)'],
                 ['type' => 'Label', 'visible' => $indego, 'caption' => 'Indego meldet sich ohne Passwort bei RoboHub an. Am besten in Chrome, Edge oder Firefox: zuerst die Entwicklerkonsole öffnen (F12, am Mac Wahl + Befehl + I), dann „🔗 Anmeldeseite öffnen" und mit der Bosch SingleKey ID anmelden. Danach passiert scheinbar nichts — die Konsole zeigt aber eine fehlgeschlagene Weiterleitung auf „com.bosch.indegoconnect://login?…code=…". Diese Adresse (oder die ganze Konsolenzeile) unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten. So macht es auch ioBroker.'],
                 ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? 'Code bzw. Adresse nach der Anmeldung (wird danach verworfen)' : ($roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : ($husqvarna ? 'Application Secret (bleibt im Konto gespeichert)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'))],
                 ['type' => 'Label', 'name' => 'Ergebnis', 'caption' => $zeile],

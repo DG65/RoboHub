@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.28.0 (27.10.2026)
+
+- **Neuer Treiber AL-KO Robolinho** (`libs/RoboHubAlko.php`) über die offizielle AL-KO Gardentech IoT API, nach trx222/alko-cli
+  (MIT, docs/API.md + FINDINGS.md), jonkristian/alko und chave/homebridge-alko-mower (beide MIT).
+  - Zugang: Client-ID + Secret beantragt der Nutzer bei AL-KO; OAuth2-Password-Grant mit `offline_access` → Erneuerungsschlüssel.
+    **Dietmars Entscheidung 27.10.2026 (wie Husqvarna):** Client-ID + Secret im Bündel, Passwort verworfen. Neue Konto-Felder
+    `ClientId`/`ClientSecret` (nur bei AL-KO sichtbar); das Secret wird nach der Anmeldung ins Bündel übernommen und geleert.
+  - AWS-IoT-Shadow: `GET things/{id}/state` → reported. operationState WORKING/HOMING/CHARGING/IDLE_BASE_STATION/IDLE, Grund der
+    Heimfahrt aus `situationFlags.homingTrigger*`, Regen-/Frostpause, PIN-Sperre (LOCKED_PIN/…_LOCKED), Fehlercode 999 = kein
+    Fehler, Laufzeiten in Minuten, Wochenplan (aktive Fenster) als Anzeige. Befehle als PATCH `state/desired` mit `rtc`.
+  - Live 27.10.2026: Anmeldeserver lehnt erfundene Daten mit `400 {"error":"invalid_client"}` ab, API ohne Schlüssel 401.
+- Konto: Treiber können Zusatzfelder bekommen (`zusatz`).
+- Prüfstand: 18 AL-KO-Prüfungen, 13/13 Mutationen gefangen (eine Lücke beim ausgeschalteten Mähfenster geschlossen).
+  **Live ungetestet** (kein Gerät).
+
 ## 0.27.0 (26.10.2026)
 
 - **Neuer Treiber STIHL iMOW** (`libs/RoboHubStihl.php`), beide Cloud-Generationen in einem Hersteller:
