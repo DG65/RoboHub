@@ -15,6 +15,7 @@ require_once __DIR__ . '/../libs/RoboHubHusqvarna.php';
 require_once __DIR__ . '/../libs/RoboHubGardena.php';
 require_once __DIR__ . '/../libs/RoboHubNavimow.php';
 require_once __DIR__ . '/../libs/RoboHubIndego.php';
+require_once __DIR__ . '/../libs/RoboHubNarwal.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -53,6 +54,7 @@ class RoboHubKonto extends IPSModule
         'gardena'   => ['GARDENA smart system Mähroboter (offizielle API)', 'GARDENA', false, false],
         'navimow'   => ['Segway Navimow (App „Navimow")', 'Navimow', false, false],
         'indego'    => ['Bosch Indego (App „Bosch Smart Gardening")', 'Indego', false, false],
+        'narwal'    => ['Narwal Flow/Freo (lokal im Heimnetz, ohne Cloud)', 'Narwal', false, false],
     ];
 
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
@@ -255,7 +257,8 @@ class RoboHubKonto extends IPSModule
         }
         $this->WriteAttributeString('Buendel', (string)json_encode($buendel));
         $this->WriteAttributeString('LetzterFehler', '');
-        $text = '✅ Gekoppelt. Das Gerätepasswort und der Fingerabdruck des Roboter-Zertifikats sind gespeichert; ein Gerät mit anderem Zertifikat wird künftig abgelehnt.';
+        $text = method_exists($treiber, 'koppelText') ? $treiber->koppelText()
+            : '✅ Gekoppelt. Das Gerätepasswort und der Fingerabdruck des Roboter-Zertifikats sind gespeichert; ein Gerät mit anderem Zertifikat wird künftig abgelehnt.';
         try {
             $text .= "\n" . $this->geraeteZusammenfassung($this->ladeGeraete($buendel));
         } catch (Throwable $e) {
@@ -924,6 +927,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubNavimow();
         } elseif ($hersteller === 'indego') {
             $treiber = new RoboHubIndego();
+        } elseif ($hersteller === 'narwal') {
+            $treiber = new RoboHubNarwal();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -1126,7 +1131,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot sowie Husqvarna, GARDENA, Worx, Kress, LandXcape und Ferrex). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow und Bosch Indego). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -1148,7 +1153,8 @@ class RoboHubKonto extends IPSModule
     {
         $roborock = $this->perCode() || $this->ReadAttributeString('AnmeldeVorstufe') !== '';
         $ecovacs = $this->ReadPropertyString('Hersteller') === 'ecovacs';
-        $lokal = $this->ReadPropertyString('Hersteller') === 'irobot';
+        $lokal = in_array($this->ReadPropertyString('Hersteller'), ['irobot', 'narwal'], true);
+        $narwal = $this->ReadPropertyString('Hersteller') === 'narwal';
         $husqvarna = in_array($this->ReadPropertyString('Hersteller'), ['husqvarna', 'gardena'], true);
         $navimow = $this->ReadPropertyString('Hersteller') === 'navimow';
         $indego = $this->ReadPropertyString('Hersteller') === 'indego';
@@ -1181,7 +1187,8 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs ? 'Land des Kontos (wie in der App)' : 'Region des Kontos', 'options' => $ecovacs ? RoboHubEcovacs::regionen() : RoboHubDreame::regionen(), 'visible' => $mitRegion],
                 ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? 'IP-Adresse des Roboters' : ($husqvarna ? 'Application Key' : 'E-Mail des Kontos')],
                 ['type' => 'Label', 'visible' => $husqvarna, 'caption' => 'Husqvarna nutzt die offizielle Schnittstelle: Auf developer.husqvarnagroup.cloud mit dem Husqvarna-Konto anmelden, „Create application" (Redirect-URL beliebig, z. B. http://localhost), die APIs „Authentication API" und „' . $api . '" verbinden, dann Application Key und Application Secret hier eintragen. Wegen des Abfragelimits fragt RoboHub ' . ($api === 'GARDENA smart system API' ? 'höchstens alle 15 Minuten' : 'höchstens alle 5 Minuten') . ' ab.'],
-                ['type' => 'Label', 'visible' => $lokal, 'caption' => 'iRobot läuft lokal, ohne Cloud: Roboter auf die Station stellen, IP-Adresse eintragen, „Übernehmen". Einmal „🔑 Jetzt anmelden" drücken (RoboHub sucht den Roboter). Dann am Roboter die HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, und sofort noch einmal „🔑 Jetzt anmelden" drücken. Für einen weiteren Roboter dasselbe mit dessen IP.'],
+                ['type' => 'Label', 'visible' => $narwal, 'caption' => 'Narwal läuft lokal, ohne Cloud und ohne Passwort: IP-Adresse des Roboters eintragen (am besten im Router fest vergeben), „Übernehmen", „🔑 Jetzt anmelden". Der Roboter muss eingeschaltet sein. Geht mit Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge und JX; Freo X Ultra, X Plus, J1/J4 und T10 haben keine lokale Schnittstelle. Für einen weiteren Narwal dasselbe mit dessen IP.'],
+                ['type' => 'Label', 'visible' => $lokal && !$narwal, 'caption' => 'iRobot läuft lokal, ohne Cloud: Roboter auf die Station stellen, IP-Adresse eintragen, „Übernehmen". Einmal „🔑 Jetzt anmelden" drücken (RoboHub sucht den Roboter). Dann am Roboter die HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, und sofort noch einmal „🔑 Jetzt anmelden" drücken. Für einen weiteren Roboter dasselbe mit dessen IP.'],
                 ['type' => 'Label', 'visible' => $roborock, 'caption' => 'Roborock meldet sich ohne Passwort an: E-Mail eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Die Region findet Roborock selbst.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Navimow meldet sich ohne Passwort bei RoboHub an: „🔗 Anmeldeseite öffnen", dort mit dem Navimow-Konto anmelden. Danach landet der Browser auf einer Seite, die nicht lädt (http://localhost:1/callback?code=…) — das ist gewollt. Diese Adresse aus der Adresszeile kopieren, unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Offen gesagt: Segway vergibt für Smart-Home-Systeme keine eigenen Zugänge. RoboHub nutzt deshalb, wie ioBroker, die von Segway veröffentlichte Smart-Home-Kennung „homeassistant". Auf der Anmeldeseite steht darum „Home Assistant" — gemeint ist diese Schnittstelle, nicht dein Home Assistant.'],

@@ -449,6 +449,19 @@
 - Offen: Kartenbild (`alms/{sn}/map`, SVG, Position svg_xPos/yPos), Kalender, SmartMowing (`predictive`), Meldungen
   (`alerts`), Longpoll (`state?longpoll=true`).
 
+## Narwal-Treiber (0.24.0)
+
+- Quelle: sjmotew/NarwalIntegration (MIT, v1.0.11), Scratchpad `ref/NarwalIntegration` — docs/PROTOCOL.md ist die beste
+  Beschreibung. rudyll/narwal_r (MIT) als zweite Quelle geklont, nicht ausgewertet.
+- Lokal ws://IP:9002 ohne Anmeldung, nur EINE Sitzung je Aufruf (kurzlebig wie iRobot). Kopfbyte = len(Thema)+2 —
+  falsch = Roboter legt still auf. Antworten (0x2a) ohne Thema → Zuordnung nur über Reihenfolge.
+- **Nicht wecken beim Abfragen** (HA-Messung ~1.900 Weckvorgänge/Tag): get_device_base_status liefert bei schlafendem
+  Roboter einen veralteten Arbeitszustand → nur Akku/Fehler übernehmen, Zustand „Ruht" (Schlaf). Wecken nur für Befehle.
+- Feldnummern sind empirisch (models.py), je Firmware verschieden. Offen: Kartenbild (Feld 2.17 komprimiert), Live-Weg
+  (display_map), Saugstufe/Wasser während der Reinigung, Stationsaufgaben, Verbrauchsteile, Freo Z Ultra (Cloud-ID).
+- Prüfstand: parallele Läufe teilen Temp-Dateien → nie zwei `test-robohub.php` gleichzeitig (auch nicht Mutationsproben
+  neben einem Einzellauf).
+
 ## Prüfen
 
 ```

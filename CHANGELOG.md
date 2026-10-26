@@ -2,6 +2,25 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.24.0 (26.10.2026)
+
+- **Neuer Treiber Narwal** (`libs/RoboHubNarwal.php`, nach sjmotew/NarwalIntegration v1.0.11, MIT) — lokal,
+  WebSocket ws://IP:9002, keine Anmeldung. Koppeln per IP wie iRobot (`koppelText()` jetzt je Treiber).
+  - Rahmen `01 len+2 22|2a len Thema Protobuf`; Protobuf ohne Schema (eigener Leser/Schreiber); Antworten ohne Kennung
+    in Sendereihenfolge zugeordnet, Bestätigungen mit 5-s-Frist, Heartbeat schuldet keine Antwort.
+  - Erkennen: get_device_info mit allen bekannten Produktschlüsseln, nur die Antwort mit Geräte-ID zählt.
+  - Abfrage schonend (NarwalIntegration #82/#90): nur Abo + Grundstatus, kein Wecken; ohne Rundmeldung „Ruht" mit Akku
+    (Arbeitszustand der Antwort ist dann veraltet). Zustand nach models.py (2 mit 3.4 = 3, Rückfahrt 3.7 UND 3.10).
+  - Befehle mit Weckfolge; Start = alle Räume über clean/start_clean (App-Vorgabe Saugen+Wischen), Pause → task/resume.
+  - `RoboHubNarwalVerbindung`: WebSocket ohne TLS, zerteilte Nachrichten, Ping/Pong; `wsLesen` liefert jetzt `fin`.
+- **Fehler behoben (alle Hersteller mit MQTT/WebSocket-Sitzung):** Kamen die letzte Antwort und das Schließen der Gegenstelle im
+  selben Netzwerkpaket, ging die Antwort verloren (`RoboHubMqttSitzung::warte` gab sofort auf). Betrifft Worx-Befehle, Roborock,
+  iRobot. Gefunden über den echten WebSocket-Gegenspieler für Narwal (sporadisch rot); jetzt deterministisch geprüft.
+- Konto: „Wozu dieses Modul?" nennt jetzt auch Narwal, Navimow und Indego.
+- Prüfstand: 37 Narwal-Prüfungen inkl. echtem WebSocket-Gegenspieler (`.tools/narwal-nachbau.php`), 13/13 Mutationen
+  gefangen. iRobot-Teil räumt Merkdateien abgebrochener Läufe weg (Ursache des gelegentlich roten Koppel-Tests;
+  parallele Prüfstand-Läufe stören sich über Temp-Dateien — nie gleichzeitig laufen lassen). **Live ungetestet.**
+
 ## 0.23.0 (26.10.2026)
 
 - **Neuer Treiber Bosch Indego** (`libs/RoboHubIndego.php`, nach pyIndego MIT + sander1988/Indego Apache-2.0,

@@ -64,12 +64,25 @@ check('Sec-WebSocket-Accept wie RFC 6455 1.3', RoboHubMqttSitzung::wsAkzeptanz('
 check('maskierter Rahmen „Hello" wie RFC 6455 5.7', bin2hex(RoboHubMqttSitzung::wsRahmen('Hello', "\x37\xfa\x21\x3d", 0x1)) === '818537fa213d7f9f4d5158');
 $puffer = hex2bin('810548656c6c6f') . hex2bin('8a00') . "\x82";
 $r = RoboHubMqttSitzung::wsLesen($puffer);
-check('Server-Rahmen gelesen, angefangener bleibt im Puffer', count($r) === 2 && $r[0] === ['op' => 1, 'daten' => 'Hello'] && $r[1]['op'] === 0xA && $puffer === "\x82");
+check('Server-Rahmen gelesen, angefangener bleibt im Puffer', count($r) === 2 && $r[0] === ['op' => 1, 'daten' => 'Hello', 'fin' => true] && $r[1]['op'] === 0xA && $puffer === "\x82");
 $gross = str_repeat('x', 70000);
 $puffer = "\x82\x7f" . pack('J', 70000) . $gross;
 check('Rahmen mit 64-Bit-Länge', RoboHubMqttSitzung::wsLesen($puffer)[0]['daten'] === $gross);
 $puffer = RoboHubMqttSitzung::wsRahmen(str_repeat('a', 300), "\x01\x02\x03\x04");
 check('eigener 16-Bit-Rahmen lässt sich zurücklesen (maskiert)', RoboHubMqttSitzung::wsLesen($puffer)[0]['daten'] === str_repeat('a', 300));
+// Antwort und Schließen im selben Stück: das Paket darf nicht verloren gehen (Befund Narwal 26.10.2026).
+$paar = stream_socket_pair(STREAM_PF_UNIX, STREAM_SOCK_STREAM, STREAM_IPPROTO_IP);
+$ms = (new ReflectionClass('RoboHubMqttSitzung'))->newInstanceWithoutConstructor();
+foreach (['sock' => $paar[0], 'ws' => true] as $feld => $wert) {
+    $rf = new ReflectionProperty('RoboHubMqttSitzung', $feld);
+    $rf->setValue($ms, $wert);
+}
+$pub = RoboHubMqtt::publish('a/b', '{"x":1}', 0, 0);
+fwrite($paar[1], "\x82" . chr(strlen($pub)) . $pub . "\x88\x00");
+$gelesen = $ms->warte(RoboHubMqtt::PUBLISH, null, microtime(true) + 2);
+check('MQTT über WebSocket: PUBLISH + Schließen im selben Stück → PUBLISH kommt trotzdem an', $gelesen !== null && $gelesen['typ'] === RoboHubMqtt::PUBLISH);
+fclose($paar[0]);
+fclose($paar[1]);
 check('PUBLISH QoS 1 mit Paket-ID', bin2hex(RoboHubMqtt::publish('a/b', '{}', 1, 1)) === '320900036' . '12f6200017b7d');
 check('CONNECT ohne Passwort setzt kein Passwort-Flag', ord(RoboHubMqtt::connect('c', 'u', '', 30)[9]) === 0x82);
 

@@ -34,6 +34,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.24.0' => [
+            '• Neu: Narwal Saug-/Wischroboter (Flow, Flow 2, Freo Z10, Freo X10 Pro, Freo 20, JX) — lokal im Heimnetz, ohne Cloud und ohne Passwort. IP eintragen, koppeln. Zustand, Akku, Fehler, Räume; Start, Räume reinigen, Pause, Stopp, Zur Station, Orten.',
+            '• Ein Narwal in der Station wird für die Abfrage nicht geweckt — nur für Befehle.',
+        ],
         '0.23.0' => [
             '• Neu: Bosch Indego Mähroboter. Anmeldung über die Bosch-Anmeldeseite (SingleKey ID), RoboHub kennt dein Passwort nicht. Zustand, Akku, gemähter Anteil, Mähstunden, Mähen, Pause und Zur Station.',
             '• Neue Variable „Fortschritt" (in %), zuerst bei Indego.',

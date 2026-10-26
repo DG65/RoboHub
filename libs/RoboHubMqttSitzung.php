@@ -73,6 +73,7 @@ final class RoboHubMqttSitzung
     /** Liest, bis ein MQTT-Paket des Typs kommt (und $passt es annimmt) oder $ende erreicht ist. */
     public function warte(int $typ, ?callable $passt, float $ende): ?array
     {
+        $zu = false;
         while (true) {
             foreach (RoboHubMqtt::zerlegen($this->puffer) as $paket) {
                 $this->bestaetigen($paket);
@@ -80,9 +81,11 @@ final class RoboHubMqttSitzung
                     return $paket;
                 }
             }
-            if (!$this->lesen($ende)) {
+            if ($zu) {
                 return null;
             }
+            // Auch wenn lesen() Ende meldet: was im selben Stück noch kam (Antwort + Schließen), erst auswerten.
+            $zu = !$this->lesen($ende);
         }
     }
 
@@ -216,7 +219,7 @@ final class RoboHubMqttSitzung
         return $kopf . $maske . $maskiert;
     }
 
-    /** Vollständige Server-Rahmen aus dem Puffer: [['op' => int, 'daten' => string], …]. */
+    /** Vollständige Server-Rahmen aus dem Puffer: [['op' => int, 'daten' => string, 'fin' => bool], …]. */
     public static function wsLesen(string &$puffer): array
     {
         $aus = [];
@@ -252,7 +255,7 @@ final class RoboHubMqttSitzung
                     $daten[$i] = $daten[$i] ^ $maske[$i % 4];
                 }
             }
-            $aus[] = ['op' => $b0 & 0x0F, 'daten' => $daten];
+            $aus[] = ['op' => $b0 & 0x0F, 'daten' => $daten, 'fin' => ($b0 & 0x80) !== 0];
             $puffer = (string)substr($puffer, $pos + $laenge);
         }
         return $aus;

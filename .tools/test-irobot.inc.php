@@ -28,6 +28,10 @@ function roombaEnde(array $n): void
 
 // ===========================================================================
 abschnitt('iRobot: Bausteine');
+// Merkdateien eines abgebrochenen oder parallelen Laufs (TLS-Weg, Suche, Weg) verfälschen sonst das Koppeln.
+foreach (glob(sys_get_temp_dir() . '/robohub-irobot-*') ?: [] as $alt) {
+    @unlink($alt);
+}
 check('Passwort aus der Antwort (ab Byte 7, Nullen weg)', RoboHubIrobot::passwortAus("\xf0\x24\xef\xcc\x3b\x29\x00:1:16:Abc\0\0") === ':1:16:Abc' && RoboHubIrobot::passwortAus("\xf0\x05") === '');
 check('Fingerabdruck: beim Koppeln jeder, danach nur der gemerkte, leer nie', RoboHubIrobot::fingerabdruckPasst(null, 'ab12') && RoboHubIrobot::fingerabdruckPasst('AB12', 'ab12')
     && !RoboHubIrobot::fingerabdruckPasst('ab12', 'cd34') && !RoboHubIrobot::fingerabdruckPasst(null, ''));
