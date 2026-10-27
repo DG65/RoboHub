@@ -9,7 +9,7 @@
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
-**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **Miele Scout** (offizielle API), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **Miele Scout** (offizielle API), **Kärcher** RCV/RCF/RVC (App „Kärcher Home Robots"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego**, **STIHL iMOW** und **AL-KO Robolinho** — jeweils über die
 Hersteller-Cloud.
 
@@ -64,6 +64,8 @@ Skripten oder Visualisierung etwas ändert.
    **Miele Scout**: Zuerst auf [developer.miele.com](https://developer.miele.com) einen Zugang anlegen (Client-ID und
    Client-Secret). Hersteller „Miele Scout" wählen, Land des Kontos, Client-ID, Secret sowie E-Mail und Passwort der Miele-App
    eintragen, anmelden. Das Passwort wird verworfen; Client-ID und Secret bleiben im Konto. Am Roboter Fernsteuerung erlauben.
+   **Kärcher**: Hersteller „Kärcher" wählen, Region (Europa für DE/AT/CH), E-Mail und Passwort der App „Kärcher Home Robots"
+   eintragen, anmelden. Das Passwort wird verworfen.
    **Segway Navimow**: Hersteller „Segway Navimow" wählen, „Übernehmen", „🔗 Anmeldeseite öffnen" und dort
    mit dem Navimow-Konto anmelden. Danach landet der Browser auf `http://localhost:1/callback?code=…` — die
    Seite lädt nicht, das ist gewollt. Diese Adresse aus der Adresszeile ins Feld „Code" kopieren, „Übernehmen",
@@ -219,6 +221,11 @@ nicht offiziell dokumentiert und kann sich ändern.
   Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
   speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
   Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
+- **Kärcher** (seit 0.31.0): nach python-karcher und karcher-rcv5-ha (MIT); an keinem echten Roboter geprüft (Anmeldung,
+  Signatur und MQTT-Verbindung live bestätigt). Zustand, Akku, Fehler, Fläche, Dauer, Verschleiß, Saugstufe, Wassermenge,
+  Reinigungsmodus; Start, Pause, Stopp, Zur Station, Orten. Kärcher kennt keinen offiziellen Erneuerungsschlüssel: RoboHub
+  versucht die Erneuerung über den Weg der App; klappt das nicht, musst du dich neu anmelden (das Passwort speichert RoboHub
+  bewusst nicht). Räume, Karte und Echtzeit noch nicht.
 - **Miele Scout** (seit 0.30.0): offizielle Miele-Schnittstelle nach ioBroker.mielecloudservice und astrandb/miele (MIT);
   an keinem echten Roboter geprüft (Anmeldeserver live bestätigt). Zustand (mit Mieles eigenem deutschen Text), Fehler F1–F8,
   Akku, Programm Auto/Turbo/Leise; Start, Pause, Stopp. „Zur Station" und „Orten" bietet die Miele-Schnittstelle nicht; Räume
@@ -282,6 +289,8 @@ und [TA2k/ioBroker.imow](https://github.com/TA2k/ioBroker.imow) (alle MIT), der 
 (beide MIT) sowie [bndtblds/homeassistant-vorwerk](https://github.com/bndtblds/homeassistant-vorwerk) (Apache-2.0, Bedeutung der
 Fehlercodes), der Miele-Treiber [Grizzelbee/ioBroker.mielecloudservice](https://github.com/Grizzelbee/ioBroker.mielecloudservice),
 [astrandb/miele](https://github.com/astrandb/miele) und [nordicopen/pymiele](https://github.com/nordicopen/pymiele) (alle MIT),
+der Kärcher-Treiber [lafriks/python-karcher](https://github.com/lafriks/python-karcher) und
+[vosadci/karcher-rcv5-ha](https://github.com/vosadci/karcher-rcv5-ha) (beide MIT),
 der Indego-Treiber
 [sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) und [sander1988/Indego](https://github.com/sander1988/Indego)
 (Apache-2.0), der Narwal-Treiber [sjmotew/NarwalIntegration](https://github.com/sjmotew/NarwalIntegration) (MIT);

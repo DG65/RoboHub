@@ -508,6 +508,17 @@
 - Client-ID/Secret im Bündel (Dietmars Entscheidung 27.10.2026). Offen: Echtzeit (SSE `v1/devices/all/events`), Räume
   (`v1/devices/{id}/rooms`, Format unbelegt), Spot (programId 2).
 
+## Kärcher-Treiber (0.31.0)
+
+- Quellen: lafriks/python-karcher (MIT) und vosadci/karcher-rcv5-ha (MIT, doc/ sehr ausführlich: PROTOCOL.md, API_SWAGGER.yaml aus
+  der APK), Scratchpad `ref/ka-python`, `ref/ka-ha`. Produkt-ID `1599715149861306368` ist RCF 3 (python-karcher nennt sie falsch RCF5).
+- TLS: selbst signiertes 3iRobotix-Zertifikat als Wurzel gepinnt (`RoboHubKaercher::ZERTIFIKAT`, bis 29.11.2031) — läuft es ab oder
+  tauscht 3iRobotix es, scheitern REST und MQTT sichtbar. Nie auf Prüfung aus zurückfallen, ohne mit Dietmar zu sprechen.
+- Erneuern: `login/token` (TokenLoginReq) live nur mit erfundenem Schlüssel geprüft (→ 401). Antwortfelder bei Erfolg unbelegt
+  (angenommen wie Login: AUTH/EMQ_TOKEN/id). Passwort wird NICHT gespeichert (karcher-rcv5-ha speichert es — bei uns nicht).
+- Offen: Räume/Karte (`storage-management/storage/aws/getAccessUrl`, AES mit Schlüssel aus MAC/SN), Raumreinigung (`room_ids`),
+  Echtzeit (`thing/event/property/post`), Stationsaufgaben (`start_station_act`), Verschleiß zurücksetzen, Lautstärke schreiben.
+
 ## Prüfen
 
 ```

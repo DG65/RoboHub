@@ -2,6 +2,24 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.31.0 (27.10.2026)
+
+- **Neuer Treiber Kärcher Home Robots** (`libs/RoboHubKaercher.php`, RCV 2/3/5, RCF 3, RVC 3, RVM 4, RVF 7) über die Cloud von
+  3iRobotix, nach lafriks/python-karcher (MIT, Anmeldung, Signatur, Verschlüsselung, MQTT-Themen) und vosadci/karcher-rcv5-ha
+  (MIT, Zustandsregeln, work_mode-Gruppen, Fehlercodes, Befehle, Verschleiß, Produkt-IDs).
+  - Anmeldung mit E-Mail + Passwort (AES-128-ECB wie die App), Passwort danach verworfen. Erneuern ohne Passwort über
+    `user-center/auth/login/token` — von keiner Quelle genutzt, Format live ermittelt (Server nennt fehlende Felder,
+    `versionCode`/`phoneSys` als Text, erfundener Schlüssel → 401). Scheitert die Erneuerung, ist eine neue Anmeldung nötig.
+  - TLS gegen das selbst signierte 3iRobotix-Zertifikat (gepinnt als Wurzel, Namensprüfung an), REST per curl, MQTT als kurze
+    Sitzung je Abruf/Befehl. Nur Server unter `.3irobotix.net` aus der (verschlüsselten) Serverliste werden angenommen.
+  - Zustand aus `prop.get` (work_mode-Gruppen, Station über status 4/charge_state, Fehler nur außerhalb der Station, 21xx als
+    „Letzte Meldung"), Akku, Fläche, Dauer, Verschleiß (Haupt-/Seitenbürste, Filter, Mopp) mit Reststunden, Firmware.
+  - Befehle: Start/Pause/Stopp (`set_room_clean` 1/2/0, Bereichsreinigung über `set_zone_clean`), Stopp auf dem Heimweg =
+    `stop_recharge`, Zur Station, Orten; Saugstufe/Wassermenge/Reinigungsmodus per `prop.set` (RVF 7 zählt Saugstufen ab 1).
+  - Live 27.10.2026 ohne Konto: Serverliste, Signatur und Verschlüsselung angenommen (623 für unbekannte E-Mail), MQTT-TLS mit
+    gepinntem Zertifikat ok, falscher Zugang → CONNACK 5.
+- Prüfstand: 16 Kärcher-Prüfungen, 16/16 Mutationen gefangen. **Live ungetestet.**
+
 ## 0.30.0 (27.10.2026)
 
 - **Neuer Treiber Miele Scout** (`libs/RoboHubMiele.php`) über die offizielle Miele-3rd-Party-API, nach Grizzelbee/ioBroker.mielecloudservice

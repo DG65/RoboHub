@@ -20,6 +20,7 @@ require_once __DIR__ . '/../libs/RoboHubStihl.php';
 require_once __DIR__ . '/../libs/RoboHubAlko.php';
 require_once __DIR__ . '/../libs/RoboHubVorwerk.php';
 require_once __DIR__ . '/../libs/RoboHubMiele.php';
+require_once __DIR__ . '/../libs/RoboHubKaercher.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -62,6 +63,7 @@ class RoboHubKonto extends IPSModule
         'alko'      => ['AL-KO Robolinho (App „inTOUCH", offizielle API)', 'AL-KO', false, false],
         'vorwerk'   => ['Vorwerk Kobold VR200/VR300 (App „MyKobold")', 'Vorwerk', true, false],
         'miele'     => ['Miele Scout (offizielle Miele-API)', 'Miele', false, true],
+        'kaercher'  => ['Kärcher RCV/RCF/RVC (App „Kärcher Home Robots")', 'Kärcher', false, true],
         'narwal'    => ['Narwal Flow/Freo (lokal im Heimnetz, ohne Cloud)', 'Narwal', false, false],
     ];
 
@@ -976,6 +978,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubVorwerk();
         } elseif ($hersteller === 'miele') {
             $treiber = new RoboHubMiele();
+        } elseif ($hersteller === 'kaercher') {
+            $treiber = new RoboHubKaercher();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -1178,7 +1182,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -1236,7 +1240,7 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => $auswahl],
                 ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs || $miele ? 'Land des Kontos (wie in der App)' : 'Region des Kontos',
                     'options' => $miele ? array_map(function ($wert, $text) { return ['caption' => $text, 'value' => $wert]; }, array_keys(RoboHubMiele::LAENDER), RoboHubMiele::LAENDER)
-                        : ($ecovacs ? RoboHubEcovacs::regionen() : RoboHubDreame::regionen()), 'visible' => $mitRegion],
+                        : ($ecovacs ? RoboHubEcovacs::regionen() : ($this->ReadPropertyString('Hersteller') === 'kaercher' ? RoboHubKaercher::regionen() : RoboHubDreame::regionen())), 'visible' => $mitRegion],
                 ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? 'IP-Adresse des Roboters' : ($husqvarna ? 'Application Key' : 'E-Mail des Kontos')],
                 ['type' => 'Label', 'visible' => $husqvarna, 'caption' => 'Husqvarna nutzt die offizielle Schnittstelle: Auf developer.husqvarnagroup.cloud mit dem Husqvarna-Konto anmelden, „Create application" (Redirect-URL beliebig, z. B. http://localhost), die APIs „Authentication API" und „' . $api . '" verbinden, dann Application Key und Application Secret hier eintragen. Wegen des Abfragelimits fragt RoboHub ' . ($api === 'GARDENA smart system API' ? 'höchstens alle 15 Minuten' : 'höchstens alle 5 Minuten') . ' ab.'],
                 ['type' => 'Label', 'visible' => $narwal, 'caption' => 'Narwal läuft lokal, ohne Cloud und ohne Passwort: IP-Adresse des Roboters eintragen (am besten im Router fest vergeben), „Übernehmen", „🔑 Jetzt anmelden". Der Roboter muss eingeschaltet sein. Geht mit Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge und JX; Freo X Ultra, X Plus, J1/J4 und T10 haben keine lokale Schnittstelle. Für einen weiteren Narwal dasselbe mit dessen IP.'],

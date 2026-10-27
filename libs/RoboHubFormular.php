@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.31.0' => [
+            '• Neu: Kärcher Home Robots (RCV, RCF, RVC, RVM, RVF; App „Kärcher Home Robots"). Zustand, Akku, Fehler, Verschleiß, Saugstufe, Wassermenge, Reinigungsmodus; Start, Pause, Stopp, Zur Station, Orten. Das Passwort wird nach der Anmeldung verworfen.',
+        ],
         '0.30.0' => [
             '• Neu: Miele Scout über die offizielle Miele-Schnittstelle (Zugang bei Miele anlegen). Zustand mit Mieles eigenem Text, Fehler F1–F8, Akku, Programm (Auto/Turbo/Leise); Start, Pause, Stopp. „Zur Station" bietet Miele nicht.',
         ],
