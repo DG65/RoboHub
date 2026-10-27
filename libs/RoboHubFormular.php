@@ -34,6 +34,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.32.0' => [
+            '• Neu: Eufy RoboVac/Omni mit Eufys Cloud-Anbindung (z. B. X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro). Zustand, Akku, Fehler, Verschleiß, Saugstufe; Start, Pause, Stopp, Zur Station, Orten. Ältere reine Tuya-Modelle noch nicht.',
+        ],
         '0.31.0' => [
             '• Neu: Kärcher Home Robots (RCV, RCF, RVC, RVM, RVF; App „Kärcher Home Robots"). Zustand, Akku, Fehler, Verschleiß, Saugstufe, Wassermenge, Reinigungsmodus; Start, Pause, Stopp, Zur Station, Orten. Das Passwort wird nach der Anmeldung verworfen.',
         ],

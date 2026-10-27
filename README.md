@@ -9,7 +9,7 @@
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
 **Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
-**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **Miele Scout** (offizielle API), **Kärcher** RCV/RCF/RVC (App „Kärcher Home Robots"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
+**Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **Miele Scout** (offizielle API), **Kärcher** RCV/RCF/RVC (App „Kärcher Home Robots"), **Eufy** RoboVac/Omni (App „Eufy Clean"/„Eufy"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego**, **STIHL iMOW** und **AL-KO Robolinho** — jeweils über die
 Hersteller-Cloud.
 
@@ -66,6 +66,8 @@ Skripten oder Visualisierung etwas ändert.
    eintragen, anmelden. Das Passwort wird verworfen; Client-ID und Secret bleiben im Konto. Am Roboter Fernsteuerung erlauben.
    **Kärcher**: Hersteller „Kärcher" wählen, Region (Europa für DE/AT/CH), E-Mail und Passwort der App „Kärcher Home Robots"
    eintragen, anmelden. Das Passwort wird verworfen.
+   **Eufy**: Hersteller „Eufy" wählen, E-Mail und Passwort der App „Eufy Clean" bzw. „Eufy" eintragen, anmelden. Das Passwort
+   wird verworfen.
    **Segway Navimow**: Hersteller „Segway Navimow" wählen, „Übernehmen", „🔗 Anmeldeseite öffnen" und dort
    mit dem Navimow-Konto anmelden. Danach landet der Browser auf `http://localhost:1/callback?code=…` — die
    Seite lädt nicht, das ist gewollt. Diese Adresse aus der Adresszeile ins Feld „Code" kopieren, „Übernehmen",
@@ -221,6 +223,11 @@ nicht offiziell dokumentiert und kann sich ändern.
   Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
   speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
   Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
+- **Eufy** (seit 0.32.0): nach dem Protokollwissen aus eufy-clean; an keinem echten Roboter geprüft (Anmeldeserver live
+  bestätigt). Nur Roboter mit Eufys neuer Cloud-Anbindung (u. a. X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro); ältere Modelle mit
+  reinem Tuya-Protokoll (z. B. 11S, 30C, G30) noch nicht. Zustand inkl. Mopp waschen/trocknen und Staub absaugen, Akku, Fehler,
+  Statistik, Verschleiß, Saugstufe; Start/Fortsetzen, Pause, Stopp, Zur Station, Orten. Eufy kennt keinen belegten
+  Erneuerungsweg ohne Passwort — lehnt Eufy den Zugang ab, meldest du dich neu an. Räume, Karte und Station-Befehle noch nicht.
 - **Kärcher** (seit 0.31.0): nach python-karcher und karcher-rcv5-ha (MIT); an keinem echten Roboter geprüft (Anmeldung,
   Signatur und MQTT-Verbindung live bestätigt). Zustand, Akku, Fehler, Fläche, Dauer, Verschleiß, Saugstufe, Wassermenge,
   Reinigungsmodus; Start, Pause, Stopp, Zur Station, Orten. Kärcher kennt keinen offiziellen Erneuerungsschlüssel: RoboHub
@@ -290,7 +297,8 @@ und [TA2k/ioBroker.imow](https://github.com/TA2k/ioBroker.imow) (alle MIT), der 
 Fehlercodes), der Miele-Treiber [Grizzelbee/ioBroker.mielecloudservice](https://github.com/Grizzelbee/ioBroker.mielecloudservice),
 [astrandb/miele](https://github.com/astrandb/miele) und [nordicopen/pymiele](https://github.com/nordicopen/pymiele) (alle MIT),
 der Kärcher-Treiber [lafriks/python-karcher](https://github.com/lafriks/python-karcher) und
-[vosadci/karcher-rcv5-ha](https://github.com/vosadci/karcher-rcv5-ha) (beide MIT),
+[vosadci/karcher-rcv5-ha](https://github.com/vosadci/karcher-rcv5-ha) (beide MIT), das Protokollwissen des Eufy-Treibers
+[jeppesens/eufy-clean](https://github.com/jeppesens/eufy-clean) und [martijnpoppen/eufy-clean](https://github.com/martijnpoppen/eufy-clean),
 der Indego-Treiber
 [sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) und [sander1988/Indego](https://github.com/sander1988/Indego)
 (Apache-2.0), der Narwal-Treiber [sjmotew/NarwalIntegration](https://github.com/sjmotew/NarwalIntegration) (MIT);

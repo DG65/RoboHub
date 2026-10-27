@@ -519,6 +519,18 @@
 - Offen: Räume/Karte (`storage-management/storage/aws/getAccessUrl`, AES mit Schlüssel aus MAC/SN), Raumreinigung (`room_ids`),
   Echtzeit (`thing/event/property/post`), Stationsaufgaben (`start_station_act`), Verschleiß zurücksetzen, Lautstärke schreiben.
 
+## Eufy-Treiber (0.32.0)
+
+- Quelle: jeppesens/eufy-clean (aktiv, HA) bzw. martijnpoppen/eufy-clean — **eigene „Eufy-Clean License"** (Weitergabe mit
+  Namensnennung + Kennzeichnung von Änderungen). Daher NUR Protokollwissen, keinen Code übernehmen. Scratchpad `ref/eufy-*`.
+  CodeFoodPixels/robovac (Apache-2.0, nicht mehr gepflegt → damacus/robovac) ist der Tuya-Weg für Altgeräte.
+- Drei Welten: Protobuf-DPS („novel"), Zahlen-DPS („scalar", G50) — beide gebaut; reine Tuya-Geräte („legacy", localKey, Port
+  6668 bzw. Tuya-Cloud) nicht gebaut.
+- Zustand per HTTP aus der AIOT-Geräteliste (`dps`), Befehle per MQTT mit Client-Zertifikat (AWS IoT, Amazon Root CA 1 =
+  `RoboHubWorx::MQTT_WURZEL`). Zertifikat + Schlüssel im Bündel (gleichwertig zu einem Zugangsschlüssel), Passwort verworfen.
+- Lebensdauer von user_center_token und Zertifikat unbekannt — erster Tester zeigt es. Offen: Räume (165/170), Karte (166 Stream),
+  Station-Befehle (go_dry, collect_dust), Szenen (180), Echtzeit (Abo `cmd/eufy_home/{Modell}/{SN}/res`), Verschleiß zurücksetzen.
+
 ## Prüfen
 
 ```

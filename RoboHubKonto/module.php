@@ -21,6 +21,7 @@ require_once __DIR__ . '/../libs/RoboHubAlko.php';
 require_once __DIR__ . '/../libs/RoboHubVorwerk.php';
 require_once __DIR__ . '/../libs/RoboHubMiele.php';
 require_once __DIR__ . '/../libs/RoboHubKaercher.php';
+require_once __DIR__ . '/../libs/RoboHubEufy.php';
 require_once __DIR__ . '/../libs/RoboHubMqtt.php';
 
 // ===========================================================================
@@ -64,6 +65,7 @@ class RoboHubKonto extends IPSModule
         'vorwerk'   => ['Vorwerk Kobold VR200/VR300 (App „MyKobold")', 'Vorwerk', true, false],
         'miele'     => ['Miele Scout (offizielle Miele-API)', 'Miele', false, true],
         'kaercher'  => ['Kärcher RCV/RCF/RVC (App „Kärcher Home Robots")', 'Kärcher', false, true],
+        'eufy'      => ['Eufy RoboVac/Omni (App „Eufy Clean" bzw. „Eufy")', 'Eufy', false, false],
         'narwal'    => ['Narwal Flow/Freo (lokal im Heimnetz, ohne Cloud)', 'Narwal', false, false],
     ];
 
@@ -980,6 +982,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubMiele();
         } elseif ($hersteller === 'kaercher') {
             $treiber = new RoboHubKaercher();
+        } elseif ($hersteller === 'eufy') {
+            $treiber = new RoboHubEufy();
         } else {
             $treiber = new RoboHubDreame($hersteller);
         }
@@ -1182,7 +1186,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
+            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, Eufy, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
             'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
         ];
     }
@@ -1251,6 +1255,7 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Offen gesagt: Segway vergibt für Smart-Home-Systeme keine eigenen Zugänge. RoboHub nutzt deshalb, wie ioBroker, die von Segway veröffentlichte Smart-Home-Kennung „homeassistant". Auf der Anmeldeseite steht darum „Home Assistant" — gemeint ist diese Schnittstelle, nicht dein Home Assistant.'],
                 ['type' => 'Label', 'visible' => $alko, 'caption' => 'AL-KO nutzt die offizielle Schnittstelle: Den Zugang (Client-ID und Client-Secret) beantragst du einmalig bei AL-KO unter alko-garden.de/iot-api-zugang-anfordern. Dann Client-ID und Secret sowie E-Mail und Passwort der inTOUCH-App eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen; Client-ID und Secret bleiben im Konto gespeichert, weil AL-KO den Zugang nur damit erneuert.'],
                 ['type' => 'Label', 'visible' => $miele, 'caption' => 'Miele nutzt die offizielle Schnittstelle: Auf developer.miele.com einmalig einen Zugang anlegen (Client-ID und Client-Secret). Dann Client-ID und Secret, E-Mail und Passwort der Miele-App sowie das Land des Kontos eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen; Client-ID und Secret bleiben im Konto gespeichert, weil Miele den Zugang nur damit erneuert. Am Roboter muss die Fernsteuerung erlaubt sein.'],
+                ['type' => 'Label', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufy', 'caption' => 'Eufy: E-Mail und Passwort der App „Eufy Clean" bzw. „Eufy" eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen. Unterstützt sind Roboter mit Eufys neuer Cloud-Anbindung (u. a. X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro); ältere Modelle mit reinem Tuya-Protokoll (z. B. RoboVac 11S, 30C, G30) noch nicht.'],
                 ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $mitClient, 'caption' => 'Client-ID (von ' . ($miele ? 'Miele' : 'AL-KO') . ')'],
                 ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $mitClient, 'caption' => 'Client-Secret (von ' . ($miele ? 'Miele' : 'AL-KO') . ', wird nach der Anmeldung ins Konto übernommen)'],
                 ['type' => 'Label', 'visible' => $indego, 'caption' => 'Indego meldet sich ohne Passwort bei RoboHub an. Am besten in Chrome, Edge oder Firefox: zuerst die Entwicklerkonsole öffnen (F12, am Mac Wahl + Befehl + I), dann „🔗 Anmeldeseite öffnen" und mit der Bosch SingleKey ID anmelden. Danach passiert scheinbar nichts — die Konsole zeigt aber eine fehlgeschlagene Weiterleitung auf „com.bosch.indegoconnect://login?…code=…". Diese Adresse (oder die ganze Konsolenzeile) unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten. So macht es auch ioBroker.'],

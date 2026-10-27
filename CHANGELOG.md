@@ -2,6 +2,24 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.32.0 (27.10.2026)
+
+- **Neuer Treiber Eufy RoboVac/Omni** (`libs/RoboHubEufy.php`) für Geräte mit Eufys MQTT-Anbindung (u. a. X8/X9/X10, L60, C10/C20,
+  G50, Omni S1 Pro), nach jeppesens/eufy-clean (Fork von martijnpoppen/eufy-clean, „Eufy-Clean License") — **nur Protokollwissen**
+  (Endpunkte, DPS-Nummern, Protobuf-Feldnummern aus den .proto-Dateien der App), kein Code übernommen.
+  - Anmeldung home-api v2 (App „Eufy"), sonst v1 („Eufy Clean"); user_center_info → user_center_token, gtoken = md5(id);
+    get_user_mqtt_info → AWS-IoT-Endpunkt (nur `*.iot.*.amazonaws.com`), thing_name, Client-Zertifikat + Schlüssel. Passwort
+    verworfen; ein Erneuerungsweg ist nicht belegt → bei 401 neue Anmeldung.
+  - Zustand aus der AIOT-Geräteliste (letzte DPS-Werte): Protobuf-Geräte (153 WorkStatus mit Station/Waschen/Trocknen/Staub,
+    163 Akku, 158 Saugstufe, 177 Fehler, 167 Statistik, 168 Verschleiß in Stunden) und Zahlen-Geräte wie G50 (15, 104, 102,
+    106/177, 109 s, 110 m², 150 Verschleiß in Minuten). Reine Tuya-Altgeräte (11S, 30C, G30 …) bewusst nicht.
+  - Befehle per MQTT mit gegenseitigem TLS (Amazon Root CA 1): ModeCtrlRequest auf 152 (Start mit auto_clean, Fortsetzen,
+    Pause, Stopp, Heim), Orten 160, Saugstufe 158; G50 nach Mitschnitt (5=1/3, 122=1/2, 103, 102).
+- `RoboHubMqttSitzung::oeffnen()` kann ein Client-Zertifikat (Datei 0600, nur während des Handschlags auf Platte; geprüft gegen einen
+  lokalen TLS-Server mit Pflicht-Client-Zertifikat).
+- Live 27.10.2026 ohne Konto: beide Anmeldewege antworten (5002), user_center_info/MQTT-Info → 401.
+- Prüfstand: 19 Eufy-Prüfungen, 17/17 Mutationen gefangen. **Live ungetestet.**
+
 ## 0.31.0 (27.10.2026)
 
 - **Neuer Treiber Kärcher Home Robots** (`libs/RoboHubKaercher.php`, RCV 2/3/5, RCF 3, RVC 3, RVM 4, RVF 7) über die Cloud von

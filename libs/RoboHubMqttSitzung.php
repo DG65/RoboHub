@@ -32,15 +32,30 @@ final class RoboHubMqttSitzung
      * Öffnet die Verbindung. $wsPfad = null: MQTT direkt über TLS; sonst
      * WebSocket-Anfrage auf diesen Pfad.
      */
-    public static function oeffnen(string $host, int $port, string $wurzelPem, ?string $wsPfad, float $ende): self
+    public static function oeffnen(string $host, int $port, string $wurzelPem, ?string $wsPfad, float $ende, ?string $clientPem = null): self
     {
-        $kontext = stream_context_create(['ssl' => [
+        $ssl = [
             'verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $host,
             'cafile' => self::caDatei($wurzelPem), 'SNI_enabled' => true,
-        ]]);
+        ];
+        // Gegenseitiges TLS (Eufy/AWS IoT): Zertifikat + Schlüssel nur für die Dauer des Handschlags auf Platte.
+        $clientDatei = null;
+        if ($clientPem !== null) {
+            $clientDatei = tempnam(sys_get_temp_dir(), 'robohub-client-');
+            chmod($clientDatei, 0600);
+            file_put_contents($clientDatei, $clientPem);
+            $ssl['local_cert'] = $clientDatei;
+        }
+        $kontext = stream_context_create(['ssl' => $ssl]);
         $fehlerNr = 0;
         $fehlerText = '';
-        $sock = @stream_socket_client('tls://' . $host . ':' . $port, $fehlerNr, $fehlerText, 8, STREAM_CLIENT_CONNECT, $kontext);
+        try {
+            $sock = @stream_socket_client('tls://' . $host . ':' . $port, $fehlerNr, $fehlerText, 8, STREAM_CLIENT_CONNECT, $kontext);
+        } finally {
+            if ($clientDatei !== null) {
+                @unlink($clientDatei);
+            }
+        }
         if ($sock === false) {
             throw new RoboHubFehler('Server nicht erreichbar oder Zertifikat ungültig (' . $host . ': ' . $fehlerText . ').');
         }
