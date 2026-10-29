@@ -531,6 +531,13 @@
 - Lebensdauer von user_center_token und Zertifikat unbekannt — erster Tester zeigt es. Offen: Räume (165/170), Karte (166 Stream),
   Station-Befehle (go_dry, collect_dust), Szenen (180), Echtzeit (Abo `cmd/eufy_home/{Modell}/{SN}/res`), Verschleiß zurücksetzen.
 
+## Formular: Aufbau (0.33.0)
+
+- Verbund-Konvention SUITE.md 3a, zentral im Trait `RoboHubFormular`: Module liefern `robohubFachpanels()` (Schlüssel = stabiler
+  Name, Null = Panel gibt es gerade nicht); ab drei benannten Panels erscheint „🪟 Formular: Aufbau" (Property `FormLayout`).
+  Neues Fachpanel = neuer Schlüssel in `robohubFachpanels()`, Schlüssel nie umbenennen (sonst verliert der Nutzer seine Wahl).
+  Konfigurator hat ein Fachpanel → kein Panel. Prüfstand `.tools/test-formlayout.inc.php`.
+
 ## Prüfen
 
 ```

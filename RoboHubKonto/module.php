@@ -94,6 +94,7 @@ class RoboHubKonto extends IPSModule
         parent::Create();
 
         $this->RegisterPropertyString('Hersteller', 'dreame');
+        $this->RegisterPropertyString('FormLayout', '[]');   // „Formular: Aufbau" (SUITE.md 3a)
         $this->RegisterPropertyString('Region', 'eu');
         $this->RegisterPropertyString('Konto', '');
         // Nur Eingabe für die Erstanmeldung, wird nach Erfolg sofort geleert.
@@ -1291,15 +1292,9 @@ class RoboHubKonto extends IPSModule
         ];
     }
 
-    public function GetConfigurationForm()
+    private function echtzeitPanel(): array
     {
-        $status = [
-            ['code' => 102, 'icon' => 'active', 'caption' => 'Angemeldet'],
-            ['code' => 104, 'icon' => 'inactive', 'caption' => 'Noch nicht angemeldet'],
-            ['code' => 201, 'icon' => 'error', 'caption' => 'Anmeldung erforderlich (Zugangsschlüssel abgelaufen oder abgelehnt)'],
-            ['code' => 202, 'icon' => 'inactive', 'caption' => 'Cloud bremst — RoboHub wartet die Sperrfrist ab'],
-        ];
-        $echtzeit = [
+        return [
             'type' => 'ExpansionPanel', 'expanded' => false,
             'caption' => '⚡  Echtzeit-Meldungen',
             'items' => [
@@ -1310,6 +1305,21 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'Label', 'caption' => 'Die regelmäßige Abfrage läuft zusätzlich weiter (Sicherheitsnetz). Karten- und Positionsdaten werden nicht verarbeitet.'],
             ],
         ];
-        return $this->robohubBuildForm([$this->kontoPanel(), $this->geraetePanel(), $echtzeit], [], $status);
+    }
+
+    protected function robohubFachpanels(): array
+    {
+        return ['konto' => $this->kontoPanel(), 'geraete' => $this->geraetePanel(), 'echtzeit' => $this->echtzeitPanel()];
+    }
+
+    public function GetConfigurationForm()
+    {
+        $status = [
+            ['code' => 102, 'icon' => 'active', 'caption' => 'Angemeldet'],
+            ['code' => 104, 'icon' => 'inactive', 'caption' => 'Noch nicht angemeldet'],
+            ['code' => 201, 'icon' => 'error', 'caption' => 'Anmeldung erforderlich (Zugangsschlüssel abgelaufen oder abgelehnt)'],
+            ['code' => 202, 'icon' => 'inactive', 'caption' => 'Cloud bremst — RoboHub wartet die Sperrfrist ab'],
+        ];
+        return $this->robohubBuildForm($this->robohubFachpanels(), [], $status);
     }
 }

@@ -15,6 +15,10 @@ declare(strict_types=1);
 // Jedes Modul liefert über robohubModulePrefix() seinen eigenen Präfix, damit
 // die Ack-Knöpfe die richtige globale Funktion aufrufen (ROBOHUB_/ROBO_/
 // ROBOCFG_) — gleiche Methodennamen in verschiedenen Präfixen sind erlaubt.
+//
+// „🪟 Formular: Aufbau" (SUITE.md 3a) erscheint, wenn ein Modul mehr als zwei
+// benannte Fachpanels liefert (Konto, Roboter); dann braucht es die Property
+// `FormLayout` ('[]'). Der Konfigurator hat nur ein Fachpanel und kein Panel.
 // ===========================================================================
 
 trait RoboHubFormular
@@ -33,6 +37,9 @@ trait RoboHubFormular
         ],
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
+        ],
+        '0.33.0' => [
+            '• 🪟 Neu: Formular-Aufbau selbst wählen — im Konto und im Roboter legst du unter „🪟 Formular: Aufbau" fest, welche Bereiche beim Öffnen aufgeklappt, zugeklappt oder ausgeblendet sind und in welcher Reihenfolge sie stehen. Ausgeblendete Bereiche arbeiten weiter.',
         ],
         '0.32.0' => [
             '• Neu: Eufy RoboVac/Omni mit Eufys Cloud-Anbindung (z. B. X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro). Zustand, Akku, Fehler, Verschleiß, Saugstufe; Start, Pause, Stopp, Zur Station, Orten. Ältere reine Tuya-Modelle noch nicht.',
@@ -490,13 +497,134 @@ trait RoboHubFormular
     }
 
     /** Baut das komplette Formular aus Rahmen + Fachpanels. */
+    /**
+     * Fachpanels des Moduls, Schlüssel = stabiler Name (nicht die Caption). Module mit mehr als zwei
+     * Fachpanels liefern sie hier, damit „Formular: Aufbau" und der Zurücksetzen-Knopf sie kennen
+     * (SUITE.md 3a). Null-Einträge = Panel gibt es gerade nicht (z. B. keine Räume).
+     */
+    protected function robohubFachpanels(): array
+    {
+        return [];
+    }
+
     protected function robohubBuildForm(array $fachpanels, array $actions, array $status): string
     {
+        $fachpanels = array_filter($fachpanels);
+        $aufbau = [];
+        // Formular: Aufbau nur bei benannten Fachpanels und mehr als zwei davon (SUITE.md 3a).
+        if (count($fachpanels) > 2 && count(array_filter(array_keys($fachpanels), 'is_string')) === count($fachpanels)) {
+            $layout = $this->robohubFormLayout(array_keys($fachpanels));
+            $mitte  = [];
+            foreach ($layout as $key => $l) {
+                $panel = $fachpanels[$key];
+                if ($l['open'] === 'open') {
+                    $panel['expanded'] = true;
+                } elseif ($l['open'] === 'closed') {
+                    $panel['expanded'] = false;
+                } elseif ($l['open'] === 'hidden') {
+                    // Nicht weglassen: die Felder bleiben im Formular, gespeicherte Werte bleiben beim „Übernehmen" erhalten
+                    $panel['visible'] = false;
+                }
+                $mitte[] = $panel;
+            }
+            $fachpanels = $mitte;
+            $aufbau = [$this->robohubLayoutPanel($layout, array_combine(array_keys($layout), $mitte))];
+        }
         $elements = array_values(array_filter(array_merge(
             [$this->formPurposeIntro(), $this->formNewsBanner(), $this->formDocPanel()],
-            $fachpanels,
+            array_values($fachpanels),
+            $aufbau,
             [$this->formForumHint(), $this->formLicenseHint()]
         )));
         return (string)json_encode(['elements' => $elements, 'actions' => $actions, 'status' => $status]);
+    }
+
+    /**
+     * Reihenfolge und Aufklapp-Zustand der Fachpanels aus der Einstellung „FormLayout".
+     * Unbekannte oder fehlende Einträge fallen auf Standardreihenfolge und „Standard" zurück.
+     *
+     * @return array key => ['open' => 'std'|'open'|'closed'|'hidden', 'pos' => int, 'idx' => int], sortiert
+     */
+    protected function robohubFormLayout(array $keys): array
+    {
+        $saved = json_decode((string)$this->ReadPropertyString('FormLayout'), true);
+        $by = [];
+        foreach (is_array($saved) ? $saved : [] as $row) {
+            if (is_array($row) && isset($row['Key'])) {
+                $by[(string)$row['Key']] = $row;
+            }
+        }
+        $out = [];
+        foreach (array_values($keys) as $i => $k) {
+            $r = $by[$k] ?? [];
+            // Vorrang bei Widerspruch: ausgeblendet vor zugeklappt vor aufgeklappt, keines = Standard
+            $open = !empty($r['Hidden']) ? 'hidden' : (!empty($r['Closed']) ? 'closed' : (!empty($r['Opened']) ? 'open' : 'std'));
+            $out[$k] = [
+                'open' => $open,
+                'pos'  => isset($r['Pos']) ? max(1, min(99, (int)$r['Pos'])) : $i + 1,
+                'idx'  => $i,
+            ];
+        }
+        uasort($out, function ($a, $b) {
+            return [$a['pos'], $a['idx']] <=> [$b['pos'], $b['idx']];
+        });
+        return $out;
+    }
+
+    private static function robohubPanelName(array $panel, string $key): string
+    {
+        return trim((string)preg_replace('/\s*\(.*$/u', '', (string)($panel['caption'] ?? $key)));
+    }
+
+    /** Wählbarer Aufbau des Formulars: je Fachpanel Aufklapp-Zustand beim Öffnen und Position. */
+    protected function robohubLayoutPanel(array $layout, array $panels): array
+    {
+        $rows   = [];
+        $hidden = [];
+        foreach ($layout as $key => $l) {
+            $name = self::robohubPanelName($panels[$key] ?? [], (string)$key);
+            $rows[] = ['Key' => (string)$key, 'Panel' => $name, 'Opened' => $l['open'] === 'open', 'Closed' => $l['open'] === 'closed',
+                'Hidden' => $l['open'] === 'hidden', 'Pos' => $l['pos']];
+            if ($l['open'] === 'hidden') {
+                $hidden[] = trim((string)preg_replace('/^[^\p{L}\p{N}]+/u', '', $name));
+            }
+        }
+        $hiddenLine = $hidden
+            ? [['type' => 'Label', 'caption' => '🙈 Ausgeblendet: ' . implode(', ', $hidden) . ' — zum Wiederzeigen den Haken bei „Ausgeblendet" entfernen. Ausgeblendete Bereiche arbeiten weiter, nur die Anzeige fehlt.']]
+            : [];
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '🪟  Formular: Aufbau' . ($hidden ? ' (' . count($hidden) . ' ausgeblendet)' : ''),
+            'items' => array_merge($hiddenLine, [
+                ['type' => 'Label', 'caption' => 'Hier legst du fest, welche Bereiche beim Öffnen des Formulars aufgeklappt sind und in welcher Reihenfolge sie stehen. Symcon merkt sich das Auf- und Zuklappen nicht selbst, deshalb gilt die Einstellung hier jedes Mal beim Öffnen. Sie wirkt nach „Übernehmen" beim nächsten Öffnen des Formulars.'],
+                ['type' => 'Label', 'caption' => 'Kein Haken heißt „Standard": wie das Modul es vorsieht. Die Position ist eine Zahl; bei gleicher Zahl bleibt die Standardreihenfolge. „Ausgeblendet" nimmt einen Bereich aus der Anzeige, ohne dass er etwas verliert: seine Einstellungen bleiben erhalten und wirken weiter. Zum Wiederzeigen den Haken entfernen oder „Auf Standard zurücksetzen" klicken. Sind mehrere Haken gesetzt, gilt „Ausgeblendet" vor „Zugeklappt" vor „Aufgeklappt". Die Bereiche oben (Zweck, Neu, Dokumentation) und unten (Rückmeldungen, Über dieses Modul) bleiben, wo sie sind, und lassen sich nicht ausblenden. Bereiche, die gerade nichts zu zeigen haben (z. B. Räume ohne Karte), stehen erst in der Liste, wenn es sie gibt.'],
+                [
+                    'type' => 'List', 'name' => 'FormLayout', 'caption' => 'Bereiche', 'rowCount' => count($rows), 'add' => false, 'delete' => false,
+                    'loadValuesFromConfiguration' => false,
+                    'values' => $rows,
+                    'columns' => [
+                        ['caption' => 'Bereich', 'name' => 'Panel', 'width' => 'auto', 'add' => ''],
+                        ['caption' => 'Schlüssel', 'name' => 'Key', 'width' => '0px', 'visible' => false, 'add' => '', 'save' => true],
+                        ['caption' => 'Aufgeklappt', 'name' => 'Opened', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Zugeklappt', 'name' => 'Closed', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => '🙈 Ausgeblendet', 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Position', 'name' => 'Pos', 'width' => '100px', 'add' => 1, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 1, 'maximum' => 99]],
+                    ],
+                ],
+                ['type' => 'Button', 'caption' => '↩️ Auf Standard zurücksetzen', 'onClick' => 'echo ' . $this->robohubModulePrefix() . '_ResetFormLayout($id);'],
+            ]),
+        ];
+    }
+
+    /** Setzt Aufklapp-Zustand und Reihenfolge der Fachpanels im offenen Formular auf den Standard (gilt nach „Übernehmen"). */
+    public function ResetFormLayout(): string
+    {
+        $rows = [];
+        $i = 0;
+        foreach (array_filter($this->robohubFachpanels()) as $key => $panel) {
+            $rows[] = ['Key' => (string)$key, 'Panel' => self::robohubPanelName($panel, (string)$key), 'Opened' => false, 'Closed' => false, 'Hidden' => false, 'Pos' => ++$i];
+        }
+        $this->UpdateFormField('FormLayout', 'values', (string)json_encode($rows, JSON_UNESCAPED_UNICODE));
+        return 'ℹ️ Auf Standard gesetzt. Zum Speichern unten „Übernehmen" klicken.';
     }
 }

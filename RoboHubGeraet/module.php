@@ -37,6 +37,7 @@ class RoboHubGeraet extends IPSModule
         parent::Create();
 
         $this->RegisterPropertyString('GeraetID', '');
+        $this->RegisterPropertyString('FormLayout', '[]');   // „Formular: Aufbau" (SUITE.md 3a)
         $this->RegisterPropertyString('Modell', '');
         $this->RegisterPropertyString('Klasse', RoboHubModell::KLASSE_SAUGER);
         $this->RegisterPropertyInteger('Intervall', 120);
@@ -1572,6 +1573,14 @@ class RoboHubGeraet extends IPSModule
         ];
     }
 
+    protected function robohubFachpanels(): array
+    {
+        return [
+            'geraet' => $this->geraetPanel(), 'zeitplan' => $this->zeitplanPanel(), 'raum' => $this->raumPanel(),
+            'verbrauch' => $this->verbrauchPanel(), 'kachel' => $this->kachelPanel(), 'technik' => $this->technikPanel(),
+        ];
+    }
+
     public function GetConfigurationForm()
     {
         $status = [
@@ -1580,6 +1589,6 @@ class RoboHubGeraet extends IPSModule
             ['code' => 201, 'icon' => 'error', 'caption' => 'Konto muss neu angemeldet werden'],
             ['code' => 202, 'icon' => 'inactive', 'caption' => 'Abruf fehlgeschlagen — wird automatisch erneut versucht'],
         ];
-        return $this->robohubBuildForm([$this->geraetPanel(), $this->zeitplanPanel(), $this->raumPanel(), $this->verbrauchPanel(), $this->kachelPanel(), $this->technikPanel()], [], $status);
+        return $this->robohubBuildForm($this->robohubFachpanels(), [], $status);
     }
 }

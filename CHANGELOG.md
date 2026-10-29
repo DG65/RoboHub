@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.33.0 (29.10.2026)
+
+- **„🪟 Formular: Aufbau"** (verbindliche Verbund-Konvention SUITE.md 3a) im Konto (drei Fachpanels) und im Roboter (bis zu sechs):
+  je Bereich „Aufgeklappt", „Zugeklappt", „🙈 Ausgeblendet" (Vorrang in dieser umgekehrten Reihenfolge) und Position 1–99.
+  Property `FormLayout` (Liste `{Key, Panel, Opened, Closed, Hidden, Pos}`, Schlüssel stabil und unsichtbar), Ausgeblendet =
+  `visible:false` (Felder bleiben, Werte wirken weiter), unbekannte Schlüssel fallen auf Standard zurück, Knopf
+  „↩️ Auf Standard zurücksetzen" (`ROBOHUB_/ROBO_ResetFormLayout`, nur im offenen Formular). Zentral im Trait `RoboHubFormular`;
+  der Konfigurator (ein Fachpanel) bekommt kein Panel. Prüfstand: 17 Prüfungen, Gegenproben (Vorrang, Weglassen, Sortierung) gefangen.
+
 ## 0.32.0 (27.10.2026)
 
 - **Neuer Treiber Eufy RoboVac/Omni** (`libs/RoboHubEufy.php`) für Geräte mit Eufys MQTT-Anbindung (u. a. X8/X9/X10, L60, C10/C20,
