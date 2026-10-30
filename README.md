@@ -66,6 +66,7 @@ Skripten oder Visualisierung etwas ändert.
    eintragen, anmelden. Das Passwort wird verworfen; Client-ID und Secret bleiben im Konto. Am Roboter Fernsteuerung erlauben.
    **Kärcher**: Hersteller „Kärcher" wählen, Region (Europa für DE/AT/CH), E-Mail und Passwort der App „Kärcher Home Robots"
    eintragen, anmelden. Das Passwort wird verworfen.
+   **Eufy-Mäher E15**: Hersteller „Eufy Mähroboter E15" wählen, IP-Adresse des Mähers (im Router fest vergeben), E-Mail und Passwort des Eufy-Kontos eintragen, anmelden. Das Konto wird nur einmal für den Geräteschlüssel gebraucht, das Passwort wird verworfen.
    **Eufy**: Hersteller „Eufy" wählen, E-Mail und Passwort der App „Eufy Clean" bzw. „Eufy" eintragen, anmelden. Das Passwort
    wird verworfen.
    **Segway Navimow**: Hersteller „Segway Navimow" wählen, „Übernehmen", „🔗 Anmeldeseite öffnen" und dort
@@ -223,6 +224,7 @@ nicht offiziell dokumentiert und kann sich ändern.
   Segway-Anmeldeseite steht deshalb „Home Assistant". Dein Passwort gibst du nur bei Segway ein, RoboHub
   speichert nur den Zugangsschlüssel. Zustand, Akku, Start/Fortsetzen, Pause, Stopp, Zur Station; ohne Echtzeit,
   Position, Zonen, Orten und Einstellungen (bietet die Schnittstelle nicht bzw. nur per MQTT).
+- **Eufy-Mäher E15** (seit 0.34.0): lokal im Heimnetz über Tuya 3.5, an keinem echten Gerät geprüft. Zustand, Akku, Schnitthöhe, Lautstärke; Start/Fortsetzen, Pause, Zur Station. Karte, Zonen, Stopp an Ort und Stelle und Orten gehen lokal nicht. Nur eine lokale Verbindung gleichzeitig. E18/C15 nicht geprüft.
 - **Eufy** (seit 0.32.0): nach dem Protokollwissen aus eufy-clean; an keinem echten Roboter geprüft (Anmeldeserver live
   bestätigt). Nur Roboter mit Eufys neuer Cloud-Anbindung (u. a. X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro); ältere Modelle mit
   reinem Tuya-Protokoll (z. B. 11S, 30C, G30) noch nicht. Zustand inkl. Mopp waschen/trocknen und Staub absaugen, Akku, Fehler,
@@ -297,7 +299,7 @@ und [TA2k/ioBroker.imow](https://github.com/TA2k/ioBroker.imow) (alle MIT), der 
 Fehlercodes), der Miele-Treiber [Grizzelbee/ioBroker.mielecloudservice](https://github.com/Grizzelbee/ioBroker.mielecloudservice),
 [astrandb/miele](https://github.com/astrandb/miele) und [nordicopen/pymiele](https://github.com/nordicopen/pymiele) (alle MIT),
 der Kärcher-Treiber [lafriks/python-karcher](https://github.com/lafriks/python-karcher) und
-[vosadci/karcher-rcv5-ha](https://github.com/vosadci/karcher-rcv5-ha) (beide MIT), das Protokollwissen des Eufy-Treibers
+[vosadci/karcher-rcv5-ha](https://github.com/vosadci/karcher-rcv5-ha) (beide MIT), [Thomvanoorschot/ha-eufy-e15](https://github.com/Thomvanoorschot/ha-eufy-e15) und [jasonacox/tinytuya](https://github.com/jasonacox/tinytuya) (beide MIT) für den E15-Mäher, das Protokollwissen des Eufy-Treibers
 [jeppesens/eufy-clean](https://github.com/jeppesens/eufy-clean) und [martijnpoppen/eufy-clean](https://github.com/martijnpoppen/eufy-clean),
 der Indego-Treiber
 [sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) und [sander1988/Indego](https://github.com/sander1988/Indego)

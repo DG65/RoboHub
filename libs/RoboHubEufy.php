@@ -134,7 +134,7 @@ class RoboHubEufy implements RoboHubTreiber
             }
         }
         if (!preg_match('/^[a-z0-9-]+\.iot\.[a-z0-9-]+\.amazonaws\.com$/i', (string)$m['endpoint_addr'])) {
-            throw new RoboHubFehler('Eufy nennt einen unerwarteten MQTT-Server — RoboHub verbindet sich nur mit AWS IoT.');
+            throw new RoboHubFehler('Eufy nennt den MQTT-Server „' . (string)$m['endpoint_addr'] . '", RoboHub verbindet sich hier nur mit AWS IoT. Mähroboter wie der E15 laufen nicht über diesen Weg: Dafür im Konto den Hersteller „Eufy Mähroboter E15" wählen.');
         }
         return $b + ['mqtt' => (string)$m['endpoint_addr'], 'thing' => (string)$m['thing_name'], 'zert' => (string)$m['certificate_pem'],
             'schluessel' => (string)$m['private_key'], 'userId' => (string)$m['user_id'], 'app' => (string)($m['app_name'] ?? 'eufy_home')];

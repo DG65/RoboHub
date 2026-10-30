@@ -1790,6 +1790,7 @@ require __DIR__ . '/test-vorwerk.inc.php';
 require __DIR__ . '/test-miele.inc.php';
 require __DIR__ . '/test-kaercher.inc.php';
 require __DIR__ . '/test-eufy.inc.php';
+require __DIR__ . '/test-eufymaeher.inc.php';
 require __DIR__ . '/test-formlayout.inc.php';
 
 abschnitt('Formulare (Konvention)');

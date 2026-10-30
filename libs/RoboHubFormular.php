@@ -38,6 +38,10 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.34.0' => [
+            '• Neu: Eufy-Mähroboter E15 direkt im Heimnetz, ohne Cloud (Hersteller „Eufy Mähroboter E15"). Zustand, Akku, Schnitthöhe, Lautstärke; Start, Pause, Zur Station. Das Eufy-Konto wird nur einmal für den Geräteschlüssel gebraucht, das Passwort wird verworfen. E18 und C15 sind nicht geprüft.',
+            '• Der Hersteller „Eufy" heißt jetzt ausdrücklich „nur Saugroboter"; die Fehlermeldung beim Anmelden nennt den Server und den richtigen Weg für Mäher.',
+        ],
         '0.33.0' => [
             '• 🪟 Neu: Formular-Aufbau selbst wählen — im Konto und im Roboter legst du unter „🪟 Formular: Aufbau" fest, welche Bereiche beim Öffnen aufgeklappt, zugeklappt oder ausgeblendet sind und in welcher Reihenfolge sie stehen. Ausgeblendete Bereiche arbeiten weiter.',
         ],

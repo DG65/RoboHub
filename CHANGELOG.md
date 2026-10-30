@@ -2,6 +2,20 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.34.0 (30.10.2026)
+
+- **Neuer Treiber Eufy-Mähroboter E15 (T2880)** (`libs/RoboHubEufyMaeher.php`), lokal über Tuya 3.5 auf TCP 6668, nach
+  Thomvanoorschot/ha-eufy-e15 und jasonacox/tinytuya (beide MIT). Anlass: Forum sirkentucky, der E15 läuft nicht über Eufys Saugroboter-Cloud.
+  - Anmeldung einmalig: Eufy-Konto → Tuya-Sitzung der App → `localKey`. Der passende Schlüssel wird über die Aushandlung mit dem
+    Mäher unter der eingetragenen IP gefunden. Passwort, Eufy-Zugang und Tuya-Sitzung werden verworfen. Tuya-Server nur `*.tuya{eu,us,cn,in}.com`.
+  - Eine kurze Sitzung je Abruf (der Mäher erlaubt nur eine). DP 107/108 kommen nur als Meldung: RoboHub bittet darum und merkt sich den
+    letzten Stand. Start DP 1 = true, Fortsetzen DP 2 = false, Pause DP 2 = true (nur beim Mähen), Zur Station DP 1 = false, keine Befehle beim
+    Speichern der Karte. Schnitthöhe DP 110, Lautstärke DP 26. Stopp und Orten ehrlich abgelehnt, weil lokal nicht möglich.
+  - Keine Antwort auf die Aushandlung (falscher Schlüssel oder andere Sitzung offen) führt nicht zum Abmelden; ausgeschalteter Mäher gilt als nicht erreichbar.
+- Eufy-Treiber: Hersteller „nur Saugroboter", Fehlermeldung nennt den MQTT-Server und den Weg für Mäher.
+- Prüfstand: Prüfwerte für Signatur und Tuya-Passwort unabhängig mit dem openssl-Werkzeug, nachgebauter E15 im Speicher und über echtes TCP. **Nicht
+  gegen ein echtes Gerät und nicht gegen tinytuya geprüft.**
+
 ## 0.33.0 (29.10.2026)
 
 - **„🪟 Formular: Aufbau"** (verbindliche Verbund-Konvention SUITE.md 3a) im Konto (drei Fachpanels) und im Roboter (bis zu sechs):

@@ -123,7 +123,7 @@ check('falsches Passwort: Eufys Text, nicht angemeldet', strpos($t, 'Eufy lehnt 
 FakeEufy::$endpunkt = 'boese.example.com';
 $ek->props['Passwort'] = 'Robo!';
 $t = $ek->Anmelden();
-check('fremder MQTT-Endpunkt: abgelehnt', strpos($t, 'unerwarteten MQTT-Server') !== false && $ek->ReadAttributeString('Buendel') === '', $t);
+check('fremder MQTT-Endpunkt: abgelehnt', strpos($t, 'Eufy Mähroboter E15') !== false && strpos($t, 'boese.example.com') !== false && $ek->ReadAttributeString('Buendel') === '', $t);
 FakeEufy::$endpunkt = 'abc123-ats.iot.eu-central-1.amazonaws.com';
 FakeEufy::$v2 = false;
 FakeEufy::$anfragen = [];

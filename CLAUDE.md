@@ -531,6 +531,14 @@
 - Lebensdauer von user_center_token und Zertifikat unbekannt — erster Tester zeigt es. Offen: Räume (165/170), Karte (166 Stream),
   Station-Befehle (go_dry, collect_dust), Szenen (180), Echtzeit (Abo `cmd/eufy_home/{Modell}/{SN}/res`), Verschleiß zurücksetzen.
 
+## Eufy-Mäher-Treiber (0.34.0)
+
+- Quellen: Thomvanoorschot/ha-eufy-e15 (MIT, Datenpunkte, Schlüsselweg), jasonacox/tinytuya (MIT, Tuya 3.5), Scratchpad `ref/`. keesmod/eufy-robomow-ha ohne Lizenz → nicht
+  verwenden. mega-yfue/eufy-sdk PR 366 belegt, warum der Cloud-Weg beim E15 nicht geht (nicht in der AIOT-Liste, MQTT-Abo abgelehnt).
+- Rückgabecode: Geräterahmen tragen ihn vorn (tinytuya `no_retcode=False`); bei Meldungen ist das nur aus dem Code gefolgert, deshalb tolerant (`inhaltAus`).
+- **Noch nie an einem echten Gerät und nicht gegen tinytuya gelaufen** (fremden Code auszuführen war hier gesperrt). Erster Tester: sirkentucky (Forum 144636/58), Rohdaten zeigen `properties`/`stand`.
+- Offen: E18/C15 (Produkt-ID unbekannt, Protokoll vermutlich gleich), Echtzeit über Dauerverbindung (`Reports` kämen sofort, hier nur beim Abruf), Mähverlauf, Cloud-Einstellungen.
+
 ## Formular: Aufbau (0.33.0)
 
 - Verbund-Konvention SUITE.md 3a, zentral im Trait `RoboHubFormular`: Module liefern `robohubFachpanels()` (Schlüssel = stabiler
