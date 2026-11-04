@@ -133,6 +133,9 @@ class RoboHubGeraet extends IPSModule
         }
         $this->registriereHook();
         $this->einstellungenFreigeben();
+        // Text der Raum-Einstellungen in der aktuellen Sprache neu aufbauen (Update, Sprachwechsel) —
+        // sonst bliebe er bis zum nächsten Live-Rahmen des Roboters im alten Wortlaut stehen.
+        $this->raumEinstellungenVariable();
         $this->SetStatus(102);
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
     }
@@ -623,6 +626,26 @@ class RoboHubGeraet extends IPSModule
         $this->SetValue('RaumEinstellungen', $kopf . implode("\n", $zeilen));
     }
 
+    /**
+     * Gespeicherten Treiberwert (Raum-Einstellungen, Zeitpläne) in der aktuellen Sprache anzeigen. Bis 0.35.0 wurden diese
+     * Werte schon übersetzt gespeichert — alte deutsche Werte bleiben im Attribut, bis der Roboter neue meldet, deshalb hier
+     * zurück auf den englischen Schlüssel. „Moisture 16" usw. speichert der Treiber sprachneutral mit Zahl.
+     */
+    private static function gespeichert($wert): string
+    {
+        $wert = (string)$wert;
+        $wert = [
+            'Saugen' => 'Vacuum', 'Wischen' => 'Mop', 'Saugen und Wischen' => 'Vacuum and mop', 'Erst saugen, dann wischen' => 'Vacuum first, then mop',
+            'Leise' => 'Quiet', 'Stark' => 'Strong', 'Niedrig' => 'Low', 'Mittel' => 'Medium', 'Hoch' => 'High',
+        ][$wert] ?? $wert;
+        foreach (['Moisture %s' => 'Moisture|Feuchte', 'Level %s' => 'Level|Stufe', 'Mode %s' => 'Mode|Modus'] as $muster => $woerter) {
+            if (preg_match('/^(?:' . $woerter . ') (\d+)$/u', $wert, $m)) {
+                return RoboHubText::t($muster, $m[1]);
+            }
+        }
+        return (string)RoboHubText::wert($wert);
+    }
+
     /** „Küche: Standard · 1× · Saugen und Wischen · Wasser Mittel" je Raum. */
     private function raumEinstellungenZeilen(): array
     {
@@ -639,12 +662,12 @@ class RoboHubGeraet extends IPSModule
         foreach ($liste as $id => $e) {
             $teile = [];
             if (!empty($e['modus'])) {
-                $teile[] = RoboHubText::wert($e['modus']);
+                $teile[] = self::gespeichert($e['modus']);
             }
-            array_push($teile, (string)RoboHubText::wert((string)$e['saugstufe']), (int)$e['durchgaenge'] . '×');
+            array_push($teile, self::gespeichert($e['saugstufe']), (int)$e['durchgaenge'] . '×');
             // Wasser nur, wenn auch gewischt wird (die App blendet es sonst aus).
             if (empty($e['modus']) || preg_match('/wisch|mop/iu', (string)$e['modus'])) {
-                $teile[] = (preg_match('/^(Feuchte|Moisture)\b/u', (string)$e['wasser']) ? '' : RoboHubText::t('Water ')) . RoboHubText::wert((string)$e['wasser']);
+                $teile[] = (preg_match('/^(Feuchte|Moisture)\b/u', (string)$e['wasser']) ? '' : RoboHubText::t('Water ')) . self::gespeichert($e['wasser']);
             }
             $nr = (int)($e['reihenfolge'] ?? 0);
             $zeilen[(int)$id] = ($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? $namen[(int)$id] ?? RoboHubText::t('Room %s', $id)) . ': ' . implode(' · ', $teile);
@@ -723,13 +746,13 @@ class RoboHubGeraet extends IPSModule
                 }, (array)($t['raeume'] ?? [])));
                 $modi = array_values(array_unique(array_filter(array_column((array)($t['raeume'] ?? []), 'modus'))));
                 if (count($modi) === 1) {
-                    $teile[] = RoboHubText::wert($modi[0]);
+                    $teile[] = self::gespeichert($modi[0]);
                 }
                 break;
             case 'alle':
                 $teile[] = RoboHubText::t('all rooms');
                 if (!empty($t['modus'])) {
-                    $teile[] = RoboHubText::wert($t['modus']);
+                    $teile[] = self::gespeichert($t['modus']);
                 }
                 break;
             case 'kurzbefehl':

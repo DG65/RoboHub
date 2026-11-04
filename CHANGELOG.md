@@ -2,6 +2,13 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.35.2 (04.11.2026)
+
+- Raum-Einstellungen (Dreame): bis 0.35.0 gespeicherte deutsche Werte („Saugen · Standard") erschienen unter Englisch weiter deutsch
+  (Dietmars Live-Befund). `gespeichert()` im Roboter führt alte deutsche Werte auf den englischen Schlüssel zurück und übersetzt dann;
+  „Feuchte/Stufe/Modus n" speichert der Treiber jetzt sprachneutral als „Moisture/Level/Mode n". ApplyChanges baut die Variable neu auf,
+  damit der Text gleich nach dem Update in der aktuellen Sprache steht. Prüfstand: beide Richtungen, Gegenprobe gefangen.
+
 ## 0.35.1 (04.11.2026)
 
 - Englisch: restliche deutsche Texte übersetzt, gefunden über einen Abgleich mit allen Wörtern, die nur in den deutschen Übersetzungen

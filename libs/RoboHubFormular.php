@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.35.2' => [
+            '• Room settings: values stored before the switch (e.g. "Vacuum · Standard") now also appear in the current language, right after the update.',
+        ],
         '0.35.1' => [
             '• English: remaining German texts translated (device type, "Locate", sign-in line, sign out, error texts); mode and suction level of room settings now follow the language when shown.',
         ],

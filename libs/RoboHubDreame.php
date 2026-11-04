@@ -1997,15 +1997,15 @@ PEM;
             $wasser = (int)$w[1];
             $e = [
                 'saugstufeWert' => (int)$w[0],
-                'saugstufe'   => self::RAUM_SAUGSTUFE[(int)$w[0]] ?? RoboHubText::t('Level %s', (int)$w[0]),
-                'wasser'      => ($wasser >= 2 && $wasser <= 4) ? self::RAUM_WASSER[$wasser - 1] : RoboHubText::t('Moisture %s', $wasser),
+                'saugstufe'   => self::RAUM_SAUGSTUFE[(int)$w[0]] ?? 'Level ' . (int)$w[0],
+                'wasser'      => ($wasser >= 2 && $wasser <= 4) ? self::RAUM_WASSER[$wasser - 1] : 'Moisture ' . $wasser,
                 'durchgaenge' => (int)$w[2],
                 'reihenfolge' => isset($w[3]) ? (int)$w[3] : null,
             ];
             if (isset($w[4])) {
                 $m = self::tauscheModus((int)$w[4], $moppAnhebung);
                 $e['modusWert'] = $m;
-                $e['modus'] = self::RAUM_MODUS[$m] ?? RoboHubText::t('Mode %s', (int)$w[4]);
+                $e['modus'] = self::RAUM_MODUS[$m] ?? 'Mode ' . (int)$w[4];
             }
             $aus[(int)$id] = $e;
         }

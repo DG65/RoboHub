@@ -1622,7 +1622,7 @@ abschnitt('Einstellungen je Raum');
 $cs = ['3' => [1, 3, 2, 2, 2, 0], '5' => [2, 16, 1, 1, 0, 0], 'x' => [1], '7' => [0, 2]];
 $re = RoboHubDreame::raumEinstellungenAus(['cleanset' => json_encode($cs), 'customeClean' => 1]);
 check('cleanset (auch als Text): Raum 3 Standard, Wasser Mittel, 2×, Saugen und Wischen', ($re['raumEinstellungen'][3] ?? null) == ['saugstufeWert' => 1, 'saugstufe' => 'Standard', 'wasser' => 'Medium', 'durchgaenge' => 2, 'reihenfolge' => 2, 'modusWert' => 2, 'modus' => 'Vacuum and mop'], json_encode($re['raumEinstellungen'][3] ?? null, JSON_UNESCAPED_UNICODE));
-check('… Raum 5: Feuchte-Stufe 16 (Wert > 4), Stark, Saugen', ($re['raumEinstellungen'][5]['wasser'] ?? '') === 'Feuchte 16' && $re['raumEinstellungen'][5]['saugstufe'] === 'Strong' && $re['raumEinstellungen'][5]['modus'] === 'Vacuum');
+check('… Raum 5: Feuchte-Stufe 16 (Wert > 4), Stark, Saugen', ($re['raumEinstellungen'][5]['wasser'] ?? '') === 'Moisture 16' && $re['raumEinstellungen'][5]['saugstufe'] === 'Strong' && $re['raumEinstellungen'][5]['modus'] === 'Vacuum');
 check('… unvollständige Einträge übergangen, „customeClean" = an', count($re['raumEinstellungen']) === 2 && $re['raumEinstellungenAn'] === true);
 $getauscht = RoboHubDreame::raumEinstellungenAus(['cleanset' => $cs], true)['raumEinstellungen'];
 check('mit Mopp-Anhebung: Leitung 2 → Saugen, 0 → Saugen und Wischen, 1 bleibt Wischen', $getauscht[3]['modus'] === 'Vacuum' && $getauscht[5]['modus'] === 'Vacuum and mop' && RoboHubDreame::raumEinstellungenAus(['cleanset' => ['1' => [1, 3, 1, 1, 1]]], true)['raumEinstellungen'][1]['modus'] === 'Mop');

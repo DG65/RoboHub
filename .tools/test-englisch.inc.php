@@ -134,3 +134,17 @@ $enOhne = array_values(array_filter($enAlle, function ($s) use ($enKachel, $enDe
 check('Kachel: jeder T()-Text in KACHEL_TEXTE und locale.json', count($enAlle) >= 30 && $enOhne === [], implode(' | ', $enOhne) . ' / ' . count($enAlle));
 $enSkript = preg_replace(['~^\s*//.*$~m', '~/\*.*?\*/~s', '~ // .*$~m'], '', $enHtml);
 check('Kachel: keine deutschen Texte im Skript', !preg_match("/'[^']*([äöüÄÖÜß]|\\b(Uhr|gesendet|reinigen|mähen|weniger|Ordnung)\\b)[^']*'/u", $enSkript));
+
+// Gespeicherte Treiberwerte (Raum-Einstellungen, Zeitpläne): bis 0.35.0 deutsch gespeichert, seit 0.35.1 englischer Schlüssel bzw.
+// „Moisture 16" — beides muss in jeder Sprache richtig erscheinen (Dietmars Live-Befund 04.11.2026: „Saugen · Standard" auf Englisch).
+$enGesp = new ReflectionMethod('RoboHubGeraet', 'gespeichert');
+$enAlle = function () use ($enGesp): string {
+    return implode('|', array_map(function ($v) use ($enGesp) { return $enGesp->invoke(null, $v); },
+        ['Saugen', 'Vacuum and mop', 'Leise', 'Strong', 'Mittel', 'Feuchte 16', 'Moisture 16', 'Level 7', 'Mode 5', 'Standard']));
+};
+$GLOBALS['SPRACHE'] = 'en';
+$enAnzeigeEn = $enAlle();
+$GLOBALS['SPRACHE'] = 'de';
+$enAnzeigeDe = $enAlle();
+check('gespeicherte Werte auf Englisch (auch alte deutsche)', $enAnzeigeEn === 'Vacuum|Vacuum and mop|Quiet|Strong|Medium|Moisture 16|Moisture 16|Level 7|Mode 5|Standard', $enAnzeigeEn);
+check('gespeicherte Werte auf Deutsch (auch neue englische)', $enAnzeigeDe === 'Saugen|Saugen und Wischen|Leise|Stark|Mittel|Feuchte 16|Feuchte 16|Stufe 7|Modus 5|Standard', $enAnzeigeDe);
