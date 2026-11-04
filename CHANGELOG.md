@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.35.1 (04.11.2026)
+
+- Englisch: restliche deutsche Texte übersetzt, gefunden über einen Abgleich mit allen Wörtern, die nur in den deutschen Übersetzungen
+  vorkommen: Geräteart „Saug-/Wischroboter" (Roboter, Konto, Konfigurator), „, Modell", „📍 Orten", „keine" (Zeitpläne), „✅ Angemeldet als",
+  „⏏️ Abmelden", „Ausgeblendet" (Formular: Aufbau), „Instanz #" (Konfigurator), Fehlertexte bei Roborock/Ecovacs/STIHL, Worx „HBI error",
+  Husqvarna „GPS navigation problem".
+- Raum-Einstellungen und Dreame-Zeitpläne: der Treiber speichert Modus/Saugstufe/Wasser als englischen Schlüssel, übersetzt wird erst
+  bei der Anzeige (vorher blieb nach einem Sprachwechsel der alte Text stehen, bis der Roboter wieder einen Live-Rahmen schickte).
+- Befund Live (Locale `en`, Browser deutsch): Konsole und Visualisierung übersetzen Texte, die genau einem locale.json-Eintrag
+  entsprechen, selbst noch einmal in die Sprache des Browsers. Gemischte Anzeige gibt es deshalb nur, wenn Symcon und Browser
+  verschiedene Sprachen haben. Instanznamen bleiben deutsch (der Code vergleicht sie).
+
 ## 0.35.0 (04.11.2026)
 
 - **Englische Fassung.** Quelltexte im Code sind jetzt englisch (Symcon-Konvention), Deutsch kommt aus `locale.json`. Betrifft alle

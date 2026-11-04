@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.35.1' => [
+            '• English: remaining German texts translated (device type, "Locate", sign-in line, sign out, error texts); mode and suction level of room settings now follow the language when shown.',
+        ],
         '0.35.0' => [
             '• 🇬🇧 RoboHub now speaks English: forms, variables, states, messages and the tile follow the language of your Symcon. German stays as before.',
         ],
@@ -328,7 +331,7 @@ trait RoboHubFormular
             : [];
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => RoboHubText::t('🪟  Form: layout%s', ($hidden ? ' (' . count($hidden) . ' ausgeblendet)' : '')),
+            'caption' => RoboHubText::t('🪟  Form: layout%s', ($hidden ? RoboHubText::t(' (%s hidden)', count($hidden)) : '')),
             'items' => array_merge($hiddenLine, [
                 ['type' => 'Label', 'caption' => RoboHubText::t('Here you decide which sections are expanded when the form opens and in which order they appear. Symcon does not remember expanding and collapsing, so this setting applies every time the form opens. It takes effect after "Apply" the next time the form is opened.')],
                 ['type' => 'Label', 'caption' => RoboHubText::t('No checkbox means "default": as the module intends. The position is a number; with equal numbers the default order applies. "Hidden" removes a section from the display without it losing anything: its settings are kept and keep working. To show it again, clear the checkbox or click "Reset to default". If several checkboxes are set, "Hidden" wins over "Collapsed", which wins over "Expanded". The sections at the top (purpose, news, documentation) and at the bottom (feedback, about this module) stay where they are and cannot be hidden. Sections that currently have nothing to show (e.g. rooms without a map) only appear in the list once they exist.')],
@@ -341,7 +344,7 @@ trait RoboHubFormular
                         ['caption' => RoboHubText::t('Key'), 'name' => 'Key', 'width' => '0px', 'visible' => false, 'add' => '', 'save' => true],
                         ['caption' => RoboHubText::t('Expanded'), 'name' => 'Opened', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
                         ['caption' => RoboHubText::t('Collapsed'), 'name' => 'Closed', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
-                        ['caption' => '🙈 Ausgeblendet', 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => RoboHubText::t('🙈 Hidden'), 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
                         ['caption' => RoboHubText::t('Position'), 'name' => 'Pos', 'width' => '100px', 'add' => 1, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 1, 'maximum' => 99]],
                     ],
                 ],

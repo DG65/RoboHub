@@ -940,7 +940,7 @@ class RoboHubKonto extends IPSModule
             case 'verbinde':
                 return RoboHubText::t('⏳ Real-time connecting to %s …', ($s['host'] ?? '?'));
             case 'fehler':
-                return RoboHubText::t('⛔ Real-time: %s — polling continues.', ($s['text'] ?? 'Fehler'));
+                return RoboHubText::t('⛔ Real-time: %s — polling continues.', ($s['text'] ?? RoboHubText::t('error')));
             case 'getrennt':
                 return RoboHubText::t('⚠️ Real-time disconnected — Symcon reconnects automatically; polling continues.');
             case 'fehlt':
@@ -1158,7 +1158,7 @@ class RoboHubKonto extends IPSModule
         $zeilen = [RoboHubText::t('✅ %s device(s) in the account:', count($geraete))];
         foreach ($geraete as $g) {
             $zeilen[] = '• ' . ($g['name'] ?? '?') . ' (' . ($g['modell'] ?? '?') . ', '
-                . (($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robot mower') : 'Saug-/Wischroboter') . ', '
+                . (($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robot mower') : RoboHubText::t('robot vacuum/mop')) . ', '
                 . (!empty($g['online']) ? 'online' : 'offline') . ')';
         }
         $zeilen[] = RoboHubText::t('Create them with the RoboHub configurator.');
@@ -1254,7 +1254,7 @@ class RoboHubKonto extends IPSModule
         $angemeldet = $this->ReadAttributeString('Buendel') !== '';
         $fehler = $this->ReadAttributeString('LetzterFehler');
         if ($angemeldet) {
-            $zeile = '✅ Angemeldet' . ($this->ReadPropertyString('Konto') !== '' ? ' als ' . $this->ReadPropertyString('Konto') : '') . '.';
+            $zeile = $this->ReadPropertyString('Konto') !== '' ? RoboHubText::t('✅ Signed in as %s.', $this->ReadPropertyString('Konto')) : RoboHubText::t('✅ Signed in.');
         } elseif ($fehler !== '') {
             $zeile = RoboHubText::t('⛔ Not signed in — last error: %s', $fehler);
         } else {
@@ -1295,7 +1295,7 @@ class RoboHubKonto extends IPSModule
                     ['type' => 'Button', 'caption' => RoboHubText::t('📧 Request code'), 'visible' => $roborock, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],
                     ['type' => 'Button', 'caption' => RoboHubText::t('🔗 Open sign-in page'), 'visible' => $perLink, 'onClick' => 'echo ROBOHUB_Anmeldelink($id);', 'link' => true],
                     ['type' => 'Button', 'caption' => RoboHubText::t('🔑 Sign in now'), 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
-                    ['type' => 'Button', 'caption' => '⏏️ Abmelden', 'onClick' => 'echo ROBOHUB_Abmelden($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('⏏️ Sign out'), 'onClick' => 'echo ROBOHUB_Abmelden($id);'],
                 ]],
                 ['type' => 'PopupButton', 'caption' => RoboHubText::t('Which region is my account in?'), 'width' => '460px', 'visible' => $mitRegion && !$ecovacs && !$miele, 'popup' => [
                     'caption' => RoboHubText::t('Which region is my account in?'),

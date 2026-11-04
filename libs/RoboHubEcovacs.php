@@ -191,7 +191,7 @@ class RoboHubEcovacs implements RoboHubTreiber
                 break;
             }
             if (($r['error'] ?? '') !== 'set token error.') {
-                throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in failed: %s', (string)($r['error'] ?? 'unbekannt')));
+                throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in failed: %s', (string)($r['error'] ?? RoboHubText::t('unknown'))));
             }
         }
         if ($token === null) {
@@ -253,7 +253,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             $e->vorstufe = $vorstufe;
             throw $e;
         }
-        throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in: %s (code %s)', (string)($j['msg'] ?? 'Fehler'), $code));
+        throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in: %s (code %s)', (string)($j['msg'] ?? RoboHubText::t('error')), $code));
     }
 
     /** Konto per RSA (öffentlicher Schlüssel aus common/getConfig, PKCS#1 v1.5) verschlüsseln. */

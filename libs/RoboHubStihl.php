@@ -417,7 +417,7 @@ class RoboHubStihl implements RoboHubTreiber
         foreach ((array)($p['device']['errorsActive'] ?? []) as $f) {
             $code = (string)($f['code'] ?? '');
             if ($code !== '') {
-                $fehler[] = ($p['_fehlertexte'][$code] ?? 'Fehlercode') . ' (' . $code . ')';
+                $fehler[] = ($p['_fehlertexte'][$code] ?? RoboHubText::t('Error code')) . ' (' . $code . ')';
             }
         }
         $w['Fehler'] = $fehler === [] ? RoboHubText::t('no error') : implode('; ', $fehler);

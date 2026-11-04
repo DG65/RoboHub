@@ -131,7 +131,7 @@ class RoboHubKonfigurator extends IPSModule
                     'id'         => $id,
                     'name'       => (string)($g['name'] ?? $id),
                     'modell'     => (string)($g['modell'] ?? ''),
-                    'klasse'     => $klasse === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robotic lawn mower') : 'Saug-/Wischroboter',
+                    'klasse'     => $klasse === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robotic lawn mower') : RoboHubText::t('robot vacuum/mop'),
                     'konto'      => (string)($info['anzeige'] ?? ('#' . $kid)),
                     'online'     => !empty($g['online']) ? 'online' : 'offline',
                     'instanceID' => $vorhanden[$id] ?? 0,
@@ -187,7 +187,7 @@ class RoboHubKonfigurator extends IPSModule
         $zeilen = [];
         foreach ($konten as $kid => $info) {
             $n = count((array)($info['geraete'] ?? []));
-            $zeilen[] = (empty($info['angemeldet']) ? '⛔ ' : '🔗 ') . ($info['anzeige'] ?? '') . ' — Instanz #' . $kid . ': '
+            $zeilen[] = (empty($info['angemeldet']) ? '⛔ ' : '🔗 ') . ($info['anzeige'] ?? '') . RoboHubText::t(' — instance #%s: ', $kid)
                 . (empty($info['angemeldet']) ? RoboHubText::t('not signed in') : RoboHubText::t('%s device(s)', $n));
         }
         return implode("\n", $zeilen);

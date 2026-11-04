@@ -120,7 +120,7 @@ PEM;
         8 => 'Blade motor error', 9 => 'Wheel motor error', 10 => 'Stuck (timeout)', 11 => 'Upside down',
         12 => 'Battery low', 13 => 'Wire reversed', 14 => 'Charging error', 15 => 'Station not found (timeout)',
         16 => 'Wi-Fi locked', 17 => 'Battery too warm', 18 => 'Demo model', 19 => 'Battery door open (timeout)',
-        20 => 'Wire signal not synchronised', 100 => 'Docking error at the station', 101 => 'HBI-Fehler', 102 => 'Firmware update failed',
+        20 => 'Wire signal not synchronised', 100 => 'Docking error at the station', 101 => 'HBI error', 102 => 'Firmware update failed',
         103 => 'Map error', 104 => 'Too steep', 105 => 'Zone not reachable', 106 => 'Station not reachable',
         107 => 'Calibration needed', 108 => 'Not enough sensor data', 109 => 'Training not allowed', 110 => 'Camera error',
         111 => 'Lawn exploration needed', 112 => 'Map exploration failed', 113 => 'RFID-Lesefehler', 114 => 'Headlight error',

@@ -58,7 +58,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
         24 => 'Cutting system blocked', 25 => 'Cutting system blocked', 29 => 'Too steep', 30 => 'Problem with the charging system',
         31 => 'Problem with the STOP button', 33 => 'Mower tilted', 34 => 'Mowing stopped – too steep',
         39 => 'Problem with the cutting motor', 46 => 'Cutting height blocked', 50 => 'Guide wire 1 not found',
-        53 => 'GPS-Navigationsproblem', 54 => 'Weak GPS signal', 55 => 'Charging station hard to find',
+        53 => 'GPS navigation problem', 54 => 'Weak GPS signal', 55 => 'Charging station hard to find',
         58 => 'Temporary battery problem', 62 => 'Battery limited by ambient temperature',
     ];
 

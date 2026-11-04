@@ -639,12 +639,12 @@ class RoboHubGeraet extends IPSModule
         foreach ($liste as $id => $e) {
             $teile = [];
             if (!empty($e['modus'])) {
-                $teile[] = $e['modus'];
+                $teile[] = RoboHubText::wert($e['modus']);
             }
-            array_push($teile, (string)$e['saugstufe'], (int)$e['durchgaenge'] . '×');
+            array_push($teile, (string)RoboHubText::wert((string)$e['saugstufe']), (int)$e['durchgaenge'] . '×');
             // Wasser nur, wenn auch gewischt wird (die App blendet es sonst aus).
             if (empty($e['modus']) || preg_match('/wisch|mop/iu', (string)$e['modus'])) {
-                $teile[] = (preg_match('/^(Feuchte|Moisture)\b/u', (string)$e['wasser']) ? '' : RoboHubText::t('Water ')) . $e['wasser'];
+                $teile[] = (preg_match('/^(Feuchte|Moisture)\b/u', (string)$e['wasser']) ? '' : RoboHubText::t('Water ')) . RoboHubText::wert((string)$e['wasser']);
             }
             $nr = (int)($e['reihenfolge'] ?? 0);
             $zeilen[(int)$id] = ($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? $namen[(int)$id] ?? RoboHubText::t('Room %s', $id)) . ': ' . implode(' · ', $teile);
@@ -669,7 +669,7 @@ class RoboHubGeraet extends IPSModule
         $this->WriteAttributeString('Zeitplaene', (string)json_encode(array_values($termine)));
         $zeilen = array_map(function (array $t): string { return ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t); }, $termine);
         $this->MaintainVariable('Zeitplaene', RoboHubText::t('Schedules'), VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 95, true);
-        $this->SetValue('Zeitplaene', $zeilen === [] ? 'keine' : implode("\n", $zeilen));
+        $this->SetValue('Zeitplaene', $zeilen === [] ? RoboHubText::t('none') : implode("\n", $zeilen));
     }
 
     /** Mäh-Plan: „Plan Sommer · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · Rasen". */
@@ -723,13 +723,13 @@ class RoboHubGeraet extends IPSModule
                 }, (array)($t['raeume'] ?? [])));
                 $modi = array_values(array_unique(array_filter(array_column((array)($t['raeume'] ?? []), 'modus'))));
                 if (count($modi) === 1) {
-                    $teile[] = $modi[0];
+                    $teile[] = RoboHubText::wert($modi[0]);
                 }
                 break;
             case 'alle':
                 $teile[] = RoboHubText::t('all rooms');
                 if (!empty($t['modus'])) {
-                    $teile[] = $t['modus'];
+                    $teile[] = RoboHubText::wert($t['modus']);
                 }
                 break;
             case 'kurzbefehl':
@@ -1471,7 +1471,7 @@ class RoboHubGeraet extends IPSModule
         } else {
             $zeile = RoboHubText::t('ℹ️ Not updated yet.');
         }
-        $klasse = $this->klasse() === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robotic lawn mower') : 'Saug-/Wischroboter';
+        $klasse = $this->klasse() === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robotic lawn mower') : RoboHubText::t('robot vacuum/mop');
         $raeume = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
         $raumZeile = count($raeume) === 0
             ? RoboHubText::t('ℹ️ No rooms/zones known yet (they appear after the first update if the robot has a map).')
@@ -1484,7 +1484,7 @@ class RoboHubGeraet extends IPSModule
             'caption' => RoboHubText::t('🤖  Device'),
             'items' => [
                 ['type' => 'CheckBox', 'name' => 'Deaktiviert', 'caption' => RoboHubText::t('🔌 Deactivate this robot (no polling, no commands; account and other robots keep running)')],
-                ['type' => 'Label', 'caption' => RoboHubText::t('🔗 %s%s%s (taken over from the configurator)', $klasse, ($this->ReadPropertyString('Modell') !== '' ? ', Modell ' . $this->ReadPropertyString('Modell') : ''), ($this->ReadPropertyString('GeraetID') !== '' ? RoboHubText::t(', device ID %s', $this->ReadPropertyString('GeraetID')) : ''))],
+                ['type' => 'Label', 'caption' => RoboHubText::t('🔗 %s%s%s (taken over from the configurator)', $klasse, ($this->ReadPropertyString('Modell') !== '' ? RoboHubText::t(', model %s', $this->ReadPropertyString('Modell')) : ''), ($this->ReadPropertyString('GeraetID') !== '' ? RoboHubText::t(', device ID %s', $this->ReadPropertyString('GeraetID')) : ''))],
                 $this->kontoZeile(),
                 ['type' => 'Label', 'name' => 'AbrufZeile', 'caption' => $zeile],
                 ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => RoboHubText::t('Poll every'), 'suffix' => ' s', 'minimum' => 30, 'maximum' => 3600],
@@ -1493,7 +1493,7 @@ class RoboHubGeraet extends IPSModule
                 ['type' => 'Label', 'caption' => $raumZeile],
                 ['type' => 'RowLayout', 'items' => [
                     ['type' => 'Button', 'caption' => RoboHubText::t('🔄 Update now'), 'onClick' => 'echo ROBO_Aktualisieren($id);'],
-                    ['type' => 'Button', 'caption' => '📍 Orten', 'onClick' => 'echo ROBO_Orten($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('📍 Locate'), 'onClick' => 'echo ROBO_Orten($id);'],
                     ['type' => 'Button', 'caption' => RoboHubText::t('🗺️ Reload rooms'), 'onClick' => 'echo ROBO_RaeumeLaden($id);'],
                     ['type' => 'Button', 'caption' => RoboHubText::t('📋 Show raw data'), 'onClick' => 'echo ROBO_Rohdaten($id);'],
                 ]],
@@ -1579,7 +1579,7 @@ class RoboHubGeraet extends IPSModule
                 ['type' => 'ValidationTextBox', 'name' => 'GeraetID', 'caption' => RoboHubText::t('Device ID at the vendor')],
                 ['type' => 'ValidationTextBox', 'name' => 'Modell', 'caption' => RoboHubText::t('Model ID')],
                 ['type' => 'Select', 'name' => 'Klasse', 'caption' => RoboHubText::t('Device class'), 'options' => [
-                    ['caption' => 'Saug-/Wischroboter', 'value' => RoboHubModell::KLASSE_SAUGER],
+                    ['caption' => RoboHubText::t('robot vacuum/mop'), 'value' => RoboHubModell::KLASSE_SAUGER],
                     ['caption' => RoboHubText::t('robotic lawn mower'), 'value' => RoboHubModell::KLASSE_MAEHER],
                 ]],
             ],

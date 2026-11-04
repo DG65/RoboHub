@@ -906,7 +906,7 @@ PEM;
                 foreach (explode(',', $f[8]) as $wort) {
                     $w = (int)$wort;
                     $t['raeume'][] = ['id' => $w & 0xFF, 'durchgaenge' => ($w >> 8) & 0xF,
-                        'saugstufe' => RoboHubText::wert(self::TERMIN_SAUGSTUFE[($w >> 16) & 0xF] ?? null), 'modus' => RoboHubText::wert(self::TERMIN_MODUS_RAUM[($w >> 20) & 0xF] ?? null)];
+                        'saugstufe' => self::TERMIN_SAUGSTUFE[($w >> 16) & 0xF] ?? null, 'modus' => self::TERMIN_MODUS_RAUM[($w >> 20) & 0xF] ?? null];
                 }
             } elseif ($f[7] !== '0' && $f[8] === '0' && $f[6] === '0') {
                 $t['art'] = 'kurzbefehl';
@@ -914,8 +914,8 @@ PEM;
             } elseif ($f[7] !== '0' && $f[8] === '0') {
                 $w = (int)$f[7];
                 $t['art'] = 'alle';
-                $t['modus'] = RoboHubText::wert(self::TERMIN_MODUS_ALLE[($w >> 4) & 0xF] ?? null);
-                $t['saugstufe'] = RoboHubText::wert(self::TERMIN_SAUGSTUFE[($w >> 24) & 0xF] ?? null);
+                $t['modus'] = self::TERMIN_MODUS_ALLE[($w >> 4) & 0xF] ?? null;
+                $t['saugstufe'] = self::TERMIN_SAUGSTUFE[($w >> 24) & 0xF] ?? null;
                 $t['durchgaenge'] = ($w >> 28) & 0xF;
             }
             $termine[] = $t;
@@ -1007,7 +1007,7 @@ PEM;
     {
         $tabellen = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDI', 'd' => [2 * $platz, 2 * $platz + 1]]);
         if (!is_array($tabellen)) {
-            throw new RoboHubFehler('SCHDI ohne Liste.');
+            throw new RoboHubFehler(RoboHubText::t('Mowing plan table without list.'));
         }
         $roh[] = 'SCHDI ' . $platz . ': ' . json_encode($tabellen, JSON_UNESCAPED_UNICODE);
         $termine = [];
@@ -1997,15 +1997,15 @@ PEM;
             $wasser = (int)$w[1];
             $e = [
                 'saugstufeWert' => (int)$w[0],
-                'saugstufe'   => RoboHubText::wert(self::RAUM_SAUGSTUFE[(int)$w[0]] ?? null) ?? RoboHubText::t('Level %s', (int)$w[0]),
-                'wasser'      => ($wasser >= 2 && $wasser <= 4) ? RoboHubText::wert(self::RAUM_WASSER[$wasser - 1]) : RoboHubText::t('Moisture %s', $wasser),
+                'saugstufe'   => self::RAUM_SAUGSTUFE[(int)$w[0]] ?? RoboHubText::t('Level %s', (int)$w[0]),
+                'wasser'      => ($wasser >= 2 && $wasser <= 4) ? self::RAUM_WASSER[$wasser - 1] : RoboHubText::t('Moisture %s', $wasser),
                 'durchgaenge' => (int)$w[2],
                 'reihenfolge' => isset($w[3]) ? (int)$w[3] : null,
             ];
             if (isset($w[4])) {
                 $m = self::tauscheModus((int)$w[4], $moppAnhebung);
                 $e['modusWert'] = $m;
-                $e['modus'] = RoboHubText::wert(self::RAUM_MODUS[$m] ?? null) ?? RoboHubText::t('Mode %s', (int)$w[4]);
+                $e['modus'] = self::RAUM_MODUS[$m] ?? RoboHubText::t('Mode %s', (int)$w[4]);
             }
             $aus[(int)$id] = $e;
         }

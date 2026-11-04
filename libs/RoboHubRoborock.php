@@ -203,7 +203,7 @@ PEM;
             $antwort = $this->anfrage('POST', $info['basis'] . '/api/v1/loginWithCode', $this->grundKopf($konto),
                 ['username' => $konto, 'verifycode' => $code, 'verifycodetype' => 'AUTH_EMAIL_CODE'], null);
         }
-        $this->pruefeCode($antwort, 'Anmeldung');
+        $this->pruefeCode($antwort, RoboHubText::t('Sign-in'));
         $nutzer = $antwort['data'] ?? null;
         if (!is_array($nutzer) || !isset($nutzer['rriot']['u'], $nutzer['rriot']['s'], $nutzer['rriot']['h'], $nutzer['rriot']['k'], $nutzer['token'])) {
             throw new RoboHubFehler(RoboHubText::t('Roborock did not deliver complete credentials.'));
@@ -285,7 +285,7 @@ PEM;
             3006 => RoboHubText::t('Accept the terms of use again (Roborock app) — or it is a Mi Home account.'),
             3039 => RoboHubText::t('Account not found in this region.'),
         ];
-        throw new RoboHubFehler($schritt . ' fehlgeschlagen: ' . ($texte[$code] ?? ((string)($antwort['msg'] ?? 'unbekannt') . ' (Code ' . $code . ')')));
+        throw new RoboHubFehler(RoboHubText::t('%s failed: %s', $schritt, $texte[$code] ?? RoboHubText::t('%s (code %s)', (string)($antwort['msg'] ?? RoboHubText::t('unknown')), $code)));
     }
 
     /** Stabile Client-Kennung je Konto (python-roborock: md5(Konto + Geräte-ID), base64). */
