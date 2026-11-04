@@ -117,3 +117,20 @@ check('englisch: Zustandsnamen und Befehle', RoboHubModell::zustandsName(RoboHub
 $GLOBALS['SPRACHE'] = 'de';
 check('deutsch: dieselben Namen aus locale.json', RoboHubModell::zustandsName(RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::KLASSE_SAUGER) === 'Lädt'
     && RoboHubModell::zustandsName(RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::KLASSE_MAEHER) === 'Mäht');
+
+// Kachel: jeder T('…')-Text in module.html steht in KACHEL_TEXTE (sonst bliebe er englisch) und hat eine deutsche Fassung;
+// keine deutschen Texte mehr im Skript (Kommentare ausgenommen).
+$enHtml = (string)file_get_contents(__DIR__ . '/../RoboHubGeraet/module.html');
+$enKachel = (new ReflectionClassConstant('RoboHubGeraet', 'KACHEL_TEXTE'))->getValue();
+preg_match_all("/T\\('((?:[^'\\\\]|\\\\.)*)'/u", $enHtml, $enT);
+preg_match_all("/T\\(([^()]*\\?[^()]*)\\)/u", $enHtml, $enTernaer);
+foreach ($enTernaer[1] as $enAusdruck) {
+    preg_match_all("/'([^']*)'/", $enAusdruck, $enTeile);
+    $enT[1] = array_merge($enT[1], $enTeile[1]);
+}
+preg_match_all("/\\[\\d, '[a-z0-9-]+', '[^']+', '([A-Za-z]+)'\\]/u", $enHtml, $enBefehle);
+$enAlle = array_diff(array_unique(array_merge($enT[1], $enBefehle[1])), ['maeher']);   // Klassenvergleich im Ternär, kein Text
+$enOhne = array_values(array_filter($enAlle, function ($s) use ($enKachel, $enDe) { return !in_array($s, $enKachel, true) || !isset($enDe[$s]); }));
+check('Kachel: jeder T()-Text in KACHEL_TEXTE und locale.json', count($enAlle) >= 30 && $enOhne === [], implode(' | ', $enOhne) . ' / ' . count($enAlle));
+$enSkript = preg_replace(['~^\s*//.*$~m', '~/\*.*?\*/~s', '~ // .*$~m'], '', $enHtml);
+check('Kachel: keine deutschen Texte im Skript', !preg_match("/'[^']*([äöüÄÖÜß]|\\b(Uhr|gesendet|reinigen|mähen|weniger|Ordnung)\\b)[^']*'/u", $enSkript));

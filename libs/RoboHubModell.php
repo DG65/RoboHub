@@ -133,7 +133,7 @@ final class RoboHubModell
         'Filter'             => ['Filter', 1, ' %', 0, 52],
         'Mopp'               => ['Mop/roller', 1, ' %', 0, 53],
         'Sensoren'           => ['Sensors', 1, ' %', 0, 54],
-        'Abwasserfilter'     => ['Abwasserauslassfilter', 1, ' %', 0, 58],
+        'Abwasserfilter'     => ['Waste water outlet filter', 1, ' %', 0, 58],
         'Schmutzwasserbehaelter' => ['Dirty water tank (robot)', 1, ' %', 0, 59],
         'Station'            => ['Station', 3, '', 0, 60],
         'Frischwasser'       => ['Clean water', 3, '', 0, 61],

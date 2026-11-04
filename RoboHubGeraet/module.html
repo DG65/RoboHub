@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -115,7 +115,7 @@ function textSym(t) {
 // MOVAhome nennt 34 % „Bald ersetzen" und 72 % „In gutem Zustand".
 var TEIL_ROT = 5, TEIL_GELB = 35;
 // Befehle: [Wert, Symcon-Symbol, Emoji, Text]
-var BEFEHLE = [[1, 'play', '▶️', 'Start'], [2, 'pause', '⏸️', 'Pause'], [4, 'house', '🏠', 'Station'], [5, 'location-dot', '📍', 'Orten']];
+var BEFEHLE = [[1, 'play', '▶️', 'Start'], [2, 'pause', '⏸️', 'Pause'], [4, 'house', '🏠', 'Station'], [5, 'location-dot', '📍', 'Locate']];
 var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '';
 // Läuft ein Befehl, sind die Befehlsknöpfe gesperrt: der Roboter nimmt (z. B. iRobot) nur eine
 // Verbindung an, ein zweiter Klick lief sonst in einen Fehler (Forum Thilo 24.10.2026).
@@ -128,6 +128,10 @@ function auswahl(name, wert, optionen) {
   }).join('') + '</select>';
 }
 
+// Texte: englischer Schlüssel, Übersetzung liefert das Modul in daten.texte (locale.json); %s = Wert.
+function T(s, a) { var t = (daten && daten.texte && daten.texte[s]) || s; return a == null ? t : t.replace('%s', a); }
+function deutsch() { return T('language code: en') === 'de'; }
+
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
 function farbe(n) { return 'background:var(--' + n + 'bg);color:var(--' + n + ')'; }
 
@@ -138,12 +142,12 @@ function senden(ident, wert, text) {
   befehlLaeuft = true;
   clearTimeout(befehlUhr);
   befehlUhr = setTimeout(function () { befehlLaeuft = false; zeichnen(); }, 40000);   // Sicherheitsnetz
-  rueck = '📤 ' + text + ' gesendet …'; zeichnen();
+  rueck = '📤 ' + T('%s sent …', text); zeichnen();
   if (!daten.eigen && typeof requestAction === 'function') { requestAction(ident, wert); return; }
   fetch(daten.hook + '?cmd=' + encodeURIComponent(ident) + '&wert=' + encodeURIComponent(wert) + '&key=' + encodeURIComponent(daten.key || ''))
     .then(function (r) { return r.json(); })
-    .then(function (j) { befehlLaeuft = false; rueck = j.text || (j.ok ? '📤 gesendet' : '⛔ abgelehnt'); zeichnen(); })
-    .catch(function () { befehlLaeuft = false; rueck = '⛔ Keine Verbindung zu Symcon'; zeichnen(); });
+    .then(function (j) { befehlLaeuft = false; rueck = j.text || (j.ok ? '📤 ' + T('sent') : '⛔ ' + T('rejected')); zeichnen(); })
+    .catch(function () { befehlLaeuft = false; rueck = '⛔ ' + T('No connection to Symcon'); zeichnen(); });
 }
 
 function raumWaehlen(id) {
@@ -170,18 +174,18 @@ function zeichnen() {
   }
   l += '<div class="titel"><b>' + esc(d.zustandText) + '</b>' + (d.unterzeile ? '<span>' + esc(d.unterzeile) + '</span>' : '') + '</div></div>';
   l += '<div class="akku"><div class="balken"><i style="width:' + (d.akku || 0) + '%;background:var(--' + akkuFarbe + ')"></i></div>';
-  l += '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? sym('bolt', '⚡') + ' lädt' : sym('battery-full', '🔋')) + '</span></div>';
-  if (!d.erreichbar) { l += '<div class="hinweis" style="' + farbe('grau') + '">' + sym('wifi-slash', '📡') + ' Gerade nicht erreichbar</div>'; }
+  l += '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? sym('bolt', '⚡') + ' ' + T('charging') : sym('battery-full', '🔋')) + '</span></div>';
+  if (!d.erreichbar) { l += '<div class="hinweis" style="' + farbe('grau') + '">' + sym('wifi-slash', '📡') + ' ' + T('Currently not reachable') + '</div>'; }
   if (d.fehler) { l += '<div class="hinweis" style="' + farbe('rot') + '">' + sym('triangle-exclamation', '⚠️') + ' ' + esc(d.fehler) + '</div>'; }
   (d.hinweise || []).forEach(function (t) { l += '<div class="hinweis" style="' + farbe('gelb') + '">' + textSym(t) + '</div>'; });
   if (bedienbar) {
     l += '<div class="knoepfe">';
     BEFEHLE.forEach(function (b) {
-      l += '<button' + (b[0] === d.hauptknopf ? ' class="start"' : '') + (befehlLaeuft ? ' disabled' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + b[3] + '\')">' + sym(b[1], b[2]) + ' ' + b[3] + '</button>';
+      l += '<button' + (b[0] === d.hauptknopf ? ' class="start"' : '') + (befehlLaeuft ? ' disabled' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + T(b[3]) + '\')">' + sym(b[1], b[2]) + ' ' + T(b[3]) + '</button>';
     });
     l += '</div>';
   } else if (d.eigen) {
-    l += '<div class="hinweis" style="' + farbe('grau') + '">' + sym('lock', '🔒') + ' Nur Anzeige — Bedienung für diese Seite nicht freigegeben</div>';
+    l += '<div class="hinweis" style="' + farbe('grau') + '">' + sym('lock', '🔒') + ' ' + T('Display only — control not enabled for this page') + '</div>';
   }
   l += '<div class="meldung">' + textSym(rueck) + '</div>';
 
@@ -189,14 +193,14 @@ function zeichnen() {
   var k = d.karte, kt = '';
   if (k && k.bild) {
     var hoch = 14; // em — sehr hohe Karten nicht über die Kachel hinaus wachsen lassen
-    kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + (hoch * (k.format || 1)).toFixed(1) + 'em)"><img src="' + esc(k.bild) + '" alt="Karte">';
+    kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + (hoch * (k.format || 1)).toFixed(1) + 'em)"><img src="' + esc(k.bild) + '" alt="' + T('Map') + '">';
     (k.marken || []).forEach(function (m) {
       var an = gewaehlt.indexOf(m.id) >= 0 ? ' an' : '';
       kt += bedienbar
         ? '<button class="ort' + an + '" style="left:' + m.x + '%;top:' + m.y + '%" onclick="raumWaehlen(' + Number(m.id) + ')">' + esc(m.name) + '</button>'
         : '<span class="ort" style="left:' + m.x + '%;top:' + m.y + '%">' + esc(m.name) + '</span>';
     });
-    if (k.station) { kt += '<span class="dock" style="left:' + k.station.x + '%;top:' + k.station.y + '%" title="Station">' + sym('charging-station', '⚡') + '</span>'; }
+    if (k.station) { kt += '<span class="dock" style="left:' + k.station.x + '%;top:' + k.station.y + '%" title="' + T('Station') + '">' + sym('charging-station', '⚡') + '</span>'; }
     // Gefahrener Weg (Stücke in %) als Linie über dem Bild, Roboter als Punkt mit Blickrichtung.
     if ((k.weg || []).length) {
       kt += '<svg class="weg" viewBox="0 0 100 100" preserveAspectRatio="none">';
@@ -208,13 +212,13 @@ function zeichnen() {
       kt += '<span class="robo" style="left:' + Number(k.roboter.x) + '%;top:' + Number(k.roboter.y) + '%;transform:rotate(' + (90 - Number(k.roboter.winkel || 0)) + 'deg)"><i></i></span>';
     }
     kt += '</div>';
-    if (k.live) { kt += '<div class="livemarke">' + sym('satellite-dish', '🛰️') + ' Live · ' + new Date(k.live * 1000).toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'}) + ' Uhr</div>'; }
+    if (k.live) { kt += '<div class="livemarke">' + sym('satellite-dish', '🛰️') + ' ' + T('Live · %s', new Date(k.live * 1000).toLocaleTimeString(deutsch() ? 'de-DE' : 'en-GB', {hour: '2-digit', minute: '2-digit'})) + '</div>'; }
     kt += '</div>';
   }
 
   var r = '';
   if (bedienbar && (d.raeume || []).length) {
-    r += '<div class="block"><p class="abschnitt">' + (d.klasse === 'maeher' ? 'Zone mähen' : 'Raum reinigen') + '</p><div class="chips">';
+    r += '<div class="block"><p class="abschnitt">' + T(d.klasse === 'maeher' ? 'Mow zone' : 'Clean room') + '</p><div class="chips">';
     d.raeume.forEach(function (x) { r += '<button class="chip' + (gewaehlt.indexOf(x.id) >= 0 ? ' an' : '') + '"' + (x.info ? ' title="' + esc(x.info) + '"' : '') + ' onclick="raumWaehlen(' + x.id + ')">' + esc(x.name) + '</button>'; });
     // Einstellungen der gewählten Räume (aus der App) unter den Knöpfen — so sieht man vor dem Start, was passiert.
     d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0 && x.info; }).forEach(function (x) {
@@ -227,27 +231,27 @@ function zeichnen() {
       if (d.klasse !== 'maeher') {
         var wahl = d.startWahl || {};
         r += '<div class="startzeile">'
-          + ((wahl.modus || []).length ? auswahl('startModus', startModus, [[-1, 'Modus wie eingestellt']].concat(wahl.modus)) : '')
-          + ((wahl.saug || []).length ? auswahl('startSaug', startSaug, [[-1, 'Saugstufe wie eingestellt']].concat(wahl.saug)) : '')
+          + ((wahl.modus || []).length ? auswahl('startModus', startModus, [[-1, T('Mode as set')]].concat(wahl.modus)) : '')
+          + ((wahl.saug || []).length ? auswahl('startSaug', startSaug, [[-1, T('Suction level as set')]].concat(wahl.saug)) : '')
           + auswahl('startDurch', startDurch, [[-1, '1×'], [2, '2×'], [3, '3×']]) + '</div>';
         wert += '|' + startModus + '|' + startSaug + '|' + startDurch;
       }
-      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + (d.klasse === 'maeher' ? 'Mähen ' : 'Reinigung ') + esc(namen).replace(/'/g, '') + '\');gewaehlt=[];">' + sym('play', '▶️') + ' ' + esc(namen) + (d.klasse === 'maeher' ? ' mähen' : ' reinigen') + '</button>';
+      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + T(d.klasse === 'maeher' ? 'Mowing %s' : 'Cleaning %s', esc(namen).replace(/'/g, '')) + '\');gewaehlt=[];">' + sym('play', '▶️') + ' ' + T(d.klasse === 'maeher' ? 'Mow %s' : 'Clean %s', esc(namen)) + '</button>';
     }
     r += '</div>';
   }
   if ((d.zeitplaene || []).length) {
-    r += '<div class="block"><p class="abschnitt">Zeitpläne</p>';
+    r += '<div class="block"><p class="abschnitt">' + T('Schedules') + '</p>';
     d.zeitplaene.forEach(function (t) {
       var knopf = bedienbar && t.schaltbar
-        ? ' <button class="mini' + (t.an ? '' : ' aus') + '" onclick="senden(\'Zeitplan\',\'' + Number(t.id) + ':' + (t.an ? 0 : 1) + '\',\'Zeitplan ' + (t.an ? 'aus' : 'ein') + '\')">' + (t.an ? 'an' : 'aus') + '</button>'
+        ? ' <button class="mini' + (t.an ? '' : ' aus') + '" onclick="senden(\'Zeitplan\',\'' + Number(t.id) + ':' + (t.an ? 0 : 1) + '\',\'' + T(t.an ? 'Schedule off' : 'Schedule on') + '\')">' + T(t.an ? 'on' : 'off') + '</button>'
         : '';
       r += '<div class="teil ' + (t.an ? 'ok' : 'aus') + '"><span>' + (t.an ? sym('calendar-days', '🗓️') : sym('circle-pause', '⏸️')) + ' ' + textSym(t.text) + '</span><span>' + knopf + '</span></div>';
     });
     r += '</div>';
   }
   if ((d.info || []).length) {
-    r += '<div class="block"><p class="abschnitt">Überblick</p><div class="info">' + d.info.map(function (t) { return '<span>' + textSym(t) + '</span>'; }).join('') + '</div></div>';
+    r += '<div class="block"><p class="abschnitt">' + T('Overview') + '</p><div class="info">' + d.info.map(function (t) { return '<span>' + textSym(t) + '</span>'; }).join('') + '</div></div>';
   }
   var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
   if (teile.length) {
@@ -255,24 +259,24 @@ function zeichnen() {
     // Bis zu 4 Teile (z. B. Mäher) passen immer — dann nichts einklappen.
     var offen = alleTeile || teile.length <= 4;
     var zeigen = offen ? teile : kritisch;
-    r += '<div class="block"><p class="abschnitt">Verbrauchsteile</p>';
+    r += '<div class="block"><p class="abschnitt">' + T('Consumables') + '</p>';
     zeigen.forEach(function (t) {
       var k = t.prozent <= TEIL_ROT ? 'rot' : (t.prozent <= TEIL_GELB ? 'gelb' : 'ok');
       // Zurücksetzen nur in zwei Schritten (↺ → „Wirklich?" → Ja), nicht rückgängig zu machen.
       var aktion = '';
       if (bedienbar && t.id) {
         aktion = rueckfrage === t.id
-          ? ' <button class="mini ja" onclick="rueckfrage=\'\';senden(\'Zuruecksetzen\',\'' + t.id + '\',\'Zurücksetzen ' + esc(t.name) + '\')">Ja, zurücksetzen</button><button class="mini" onclick="rueckfrage=\'\';zeichnen()">Nein</button>'
-          : ' <button class="mini" title="Nach Wechsel/Reinigung zurücksetzen" onclick="rueckfrage=\'' + t.id + '\';zeichnen()">' + sym('rotate-left', '↺') + '</button>';
+          ? ' <button class="mini ja" onclick="rueckfrage=\'\';senden(\'Zuruecksetzen\',\'' + t.id + '\',\'' + T('Reset %s', esc(t.name).replace(/'/g, '')) + '\')">' + T('Yes, reset') + '</button><button class="mini" onclick="rueckfrage=\'\';zeichnen()">' + T('No') + '</button>'
+          : ' <button class="mini" title="' + T('Reset after replacing/cleaning') + '" onclick="rueckfrage=\'' + t.id + '\';zeichnen()">' + sym('rotate-left', '↺') + '</button>';
       }
-      r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? sym('triangle-exclamation', '⚠️') + ' ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + String(t.stunden).replace('.', ',') + ' h') + aktion + '</span></div>';
+      r += '<div class="teil ' + k + '"><span>' + (k === 'rot' ? sym('triangle-exclamation', '⚠️') + ' ' : '') + esc(t.name) + '</span><span>' + t.prozent + ' %' + (t.stunden == null ? '' : ' · ' + (deutsch() ? String(t.stunden).replace('.', ',') : String(t.stunden)) + ' h') + aktion + '</span></div>';
     });
     var rest = teile.length - kritisch.length;
-    if (!offen && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + (kritisch.length ? rest + ' weitere in Ordnung' : 'Alle ' + rest + ' in Ordnung') + ' ›</button>'; }
-    if (alleTeile && teile.length > 4) { r += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ weniger</button>'; }
+    if (!offen && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + T(kritisch.length ? '%s more OK' : 'All %s OK', rest) + ' ›</button>'; }
+    if (alleTeile && teile.length > 4) { r += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ ' + T('less') + '</button>'; }
     r += '</div>';
   }
-  var f = d.stand ? '<div class="fuss">Stand ' + esc(d.stand) + ' Uhr</div>' : '';
+  var f = d.stand ? '<div class="fuss">' + T('As of %s', esc(d.stand)) + '</div>' : '';
   document.getElementById('app').innerHTML = '<div class="layout' + (kt ? ' mitkarte' : '') + '"><div class="links">' + l + '</div>'
     + (kt ? '<div class="kartenfeld">' + kt + '</div>' : '') + '<div class="rechts">' + r + '</div></div>' + f;
 }
@@ -304,6 +308,7 @@ function handleMessage(raw) {
   var neu = typeof raw === 'string' ? JSON.parse(raw) : raw;
   if (neu.rueck) { rueck = neu.rueck; befehlLaeuft = false; } else if (daten && neu.stand !== daten.stand) { rueck = ''; }
   daten = neu;
+  document.documentElement.lang = deutsch() ? 'de' : 'en';
   if (daten.eigen) { document.body.className = 'eigen'; }
   farbschemaSetzen(daten.farbschema || 0);
   zeichnen();

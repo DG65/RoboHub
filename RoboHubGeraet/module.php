@@ -1215,6 +1215,9 @@ class RoboHubGeraet extends IPSModule
         }
     }
 
+    /** Texte der Kachel (module.html schlägt sie per T() nach; Deutsch aus locale.json). */
+    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate'];
+
     /** Daten für Kachel und eigenständige Seite (JSON). */
     private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = ''): string
     {
@@ -1320,6 +1323,7 @@ class RoboHubGeraet extends IPSModule
             'bedienung'   => $eigen && $key !== '',
             'key'         => $key,
             'hook'        => $this->hookPfad(),
+            'texte'       => array_combine(self::KACHEL_TEXTE, array_map([RoboHubText::class, 't'], self::KACHEL_TEXTE)),
         ], JSON_UNESCAPED_UNICODE);
     }
 
