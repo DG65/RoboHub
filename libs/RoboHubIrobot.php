@@ -45,16 +45,16 @@ class RoboHubIrobot implements RoboHubTreiber
 
     // cleanMissionStatus.phase → [Text, Zustand]; „charge" und „stop" hängen vom Zyklus ab.
     private const PHASEN = [
-        'run'           => ['Reinigt', RoboHubModell::ZUSTAND_REINIGT],
-        'stuck'         => ['Steckt fest', RoboHubModell::ZUSTAND_FEHLER],
-        'hmUsrDock'     => ['Fährt zur Station', RoboHubModell::ZUSTAND_ZURUECK],
-        'hmMidMsn'      => ['Fährt zum Laden', RoboHubModell::ZUSTAND_ZURUECK],
-        'hmPostMsn'     => ['Fährt nach der Reinigung zurück', RoboHubModell::ZUSTAND_ZURUECK],
-        'dock'          => ['Dockt an', RoboHubModell::ZUSTAND_ZURUECK],
-        'evac'          => ['Entleert den Behälter', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        'chargingerror' => ['Ladefehler', RoboHubModell::ZUSTAND_FEHLER],
-        'pause'         => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
-        'cancelled'     => ['Abgebrochen', RoboHubModell::ZUSTAND_BEREIT],
+        'run'           => ['Cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        'stuck'         => ['Stuck', RoboHubModell::ZUSTAND_FEHLER],
+        'hmUsrDock'     => ['Returning to base', RoboHubModell::ZUSTAND_ZURUECK],
+        'hmMidMsn'      => ['Going to charge', RoboHubModell::ZUSTAND_ZURUECK],
+        'hmPostMsn'     => ['Returning after cleaning', RoboHubModell::ZUSTAND_ZURUECK],
+        'dock'          => ['Docking', RoboHubModell::ZUSTAND_ZURUECK],
+        'evac'          => ['Emptying the bin', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        'chargingerror' => ['Charging error', RoboHubModell::ZUSTAND_FEHLER],
+        'pause'         => ['Paused', RoboHubModell::ZUSTAND_PAUSIERT],
+        'cancelled'     => ['Aborted', RoboHubModell::ZUSTAND_BEREIT],
     ];
 
     // Reinigungseinstellungen mit den Namen der iRobot-App (Bildschirmfotos Thilo 24.10.2026: Saugleistung
@@ -62,39 +62,39 @@ class RoboHubIrobot implements RoboHubTreiber
     // nimmt eine Gruppe nur vollständig an (roombapy set_preferences, am i3 gemessen).
     private const EINSTELLUNGEN = [
         'Saugstufe' => [
-            0 => ['Niedrig', ['carpetBoost' => false, 'vacHigh' => false]],
-            1 => ['Mittel', ['carpetBoost' => true, 'vacHigh' => false]],
-            2 => ['Hoch', ['carpetBoost' => false, 'vacHigh' => true]],
+            0 => ['Low', ['carpetBoost' => false, 'vacHigh' => false]],
+            1 => ['Medium', ['carpetBoost' => true, 'vacHigh' => false]],
+            2 => ['High', ['carpetBoost' => false, 'vacHigh' => true]],
         ],
         'Durchgaenge' => [
-            0 => ['Reinigung nach Raumgröße', ['noAutoPasses' => false, 'twoPass' => false]],
-            1 => ['Einfach-Reinigung', ['noAutoPasses' => true, 'twoPass' => false]],
-            2 => ['Zweifach-Reinigung', ['noAutoPasses' => true, 'twoPass' => true]],
+            0 => ['Clean based on room size', ['noAutoPasses' => false, 'twoPass' => false]],
+            1 => ['Single pass', ['noAutoPasses' => true, 'twoPass' => false]],
+            2 => ['Two passes', ['noAutoPasses' => true, 'twoPass' => true]],
         ],
         'Kantenreinigung' => [
-            0 => ['Aus', ['openOnly' => true]],
-            1 => ['An', ['openOnly' => false]],
+            0 => ['Off', ['openOnly' => true]],
+            1 => ['On', ['openOnly' => false]],
         ],
         'BehaelterVoll' => [
-            0 => ['Weiter reinigen, wenn voll', ['binPause' => false]],
-            1 => ['Nicht reinigen, wenn voll', ['binPause' => true]],
+            0 => ['Keep cleaning when full', ['binPause' => false]],
+            1 => ['Do not clean when full', ['binPause' => true]],
         ],
     ];
 
     // const.py ROOMBA_ERROR_MESSAGES (Auszug, deutsch).
     private const FEHLER = [
-        1 => 'Linkes Rad in der Luft', 2 => 'Hauptbürsten blockiert', 3 => 'Rechtes Rad in der Luft', 4 => 'Linkes Rad blockiert',
-        5 => 'Rechtes Rad blockiert', 6 => 'Steckt an einer Kante fest', 7 => 'Fehler linkes Rad', 8 => 'Behälterfehler',
-        9 => 'Stoßfänger klemmt', 10 => 'Fehler rechtes Rad', 11 => 'Behälterfehler', 12 => 'Absturzsensor', 13 => 'Beide Räder in der Luft',
-        14 => 'Behälter fehlt', 15 => 'Neu gestartet', 16 => 'Unerwarteter Stoß', 17 => 'Weg versperrt', 18 => 'Andockproblem',
-        19 => 'Abdockproblem', 20 => 'Andockproblem', 21 => 'Navigationsproblem', 22 => 'Navigationsproblem', 23 => 'Akkuproblem',
-        24 => 'Navigationsproblem', 25 => 'Neustart nötig', 26 => 'Saugproblem', 27 => 'Saugproblem', 29 => 'Software-Update nötig',
-        30 => 'Saugproblem', 31 => 'Neustart nötig', 32 => 'Kartenproblem', 33 => 'Weg versperrt', 34 => 'Neustart nötig',
-        35 => 'Wischen nicht möglich', 36 => 'Behälter voll', 37 => 'Tank nachfüllen', 39 => 'Neustart nötig', 40 => 'Navigationsproblem',
-        41 => 'Zeitüberschreitung', 42 => 'Ortungsproblem', 43 => 'Navigationsproblem', 44 => 'Pumpenproblem', 45 => 'Deckel offen',
-        46 => 'Akku schwach', 47 => 'Neustart nötig', 48 => 'Weg versperrt', 52 => 'Pad prüfen', 53 => 'Software-Update nötig',
-        101 => 'Akku nicht verbunden', 102 => 'Ladefehler', 103 => 'Ladefehler', 104 => 'Kein Ladestrom', 106 => 'Akku zu warm',
-        116 => 'Ladefehler der Station', 119 => 'Ladezeit überschritten', 121 => 'Ladekontakte reinigen',
+        1 => 'Left wheel in the air', 2 => 'Main brushes blocked', 3 => 'Right wheel in the air', 4 => 'Left wheel blocked',
+        5 => 'Right wheel blocked', 6 => 'Stuck at an edge', 7 => 'Left wheel error', 8 => 'Bin error',
+        9 => 'Bumper stuck', 10 => 'Right wheel error', 11 => 'Bin error', 12 => 'Cliff sensor', 13 => 'Both wheels in the air',
+        14 => 'Bin missing', 15 => 'Restarted', 16 => 'Unexpected bump', 17 => 'Path blocked', 18 => 'Docking problem',
+        19 => 'Undocking problem', 20 => 'Docking problem', 21 => 'Navigation problem', 22 => 'Navigation problem', 23 => 'Battery problem',
+        24 => 'Navigation problem', 25 => 'Restart needed', 26 => 'Suction problem', 27 => 'Suction problem', 29 => 'Software update needed',
+        30 => 'Suction problem', 31 => 'Restart needed', 32 => 'Map problem', 33 => 'Path blocked', 34 => 'Restart needed',
+        35 => 'Mopping not possible', 36 => 'Bin full', 37 => 'Refill the tank', 39 => 'Restart needed', 40 => 'Navigation problem',
+        41 => 'Timeout', 42 => 'Positioning problem', 43 => 'Navigation problem', 44 => 'Pump problem', 45 => 'Lid open',
+        46 => 'Battery low', 47 => 'Restart needed', 48 => 'Path blocked', 52 => 'Check the pad', 53 => 'Software update needed',
+        101 => 'Battery not connected', 102 => 'Charging error', 103 => 'Charging error', 104 => 'No charging current', 106 => 'Battery too warm',
+        116 => 'Charging error of the station', 119 => 'Charging time exceeded', 121 => 'Clean the charging contacts',
     ];
 
     // =================================================================
@@ -109,12 +109,12 @@ class RoboHubIrobot implements RoboHubTreiber
     {
         $ip = trim($ip);
         if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
-            throw new RoboHubFehler('Bitte die IP-Adresse des Roboters eintragen (z. B. 192.168.1.50).');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the robot\'s IP address (e.g. 192.168.1.50).'));
         }
         $info = $this->suchen($ip);
         $hostname = (string)($info['hostname'] ?? '');
         if (!preg_match('/^(roomba|irobot)-(.+)$/i', $hostname, $m)) {
-            throw new RoboHubFehler('Unter ' . $ip . ' antwortet kein iRobot-Roboter.');
+            throw new RoboHubFehler(RoboHubText::t('No iRobot robot responds at %s.', $ip));
         }
         $blid = $m[2];
         [$passwort, $fingerabdruck] = $this->passwortHolen($ip);
@@ -135,7 +135,7 @@ class RoboHubIrobot implements RoboHubTreiber
     public function erneuern(array $buendel): array
     {
         if (empty($buendel['roboter'])) {
-            $e = new RoboHubFehler('Noch kein Roboter gekoppelt.');
+            $e = new RoboHubFehler(RoboHubText::t('No robot paired yet.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -153,7 +153,7 @@ class RoboHubIrobot implements RoboHubTreiber
         $merk = $this->suchMerkDatei($ip);
         $sock = @stream_socket_client('udp://' . $ip . ':' . $this->suchPort, $nr, $text, 3);
         if ($sock === false) {
-            throw new RoboHubFehler('Roboter unter ' . $ip . ' nicht erreichbar: ' . $text);
+            throw new RoboHubFehler(RoboHubText::t('Robot at %s not reachable: %s', $ip, $text));
         }
         $antwort = null;
         try {
@@ -179,7 +179,7 @@ class RoboHubIrobot implements RoboHubTreiber
             $this->dbg('Koppeln', 'UDP still, Antwort vom letzten Versuch verwendet');
             return $gemerkt;
         }
-        throw new RoboHubFehler('Unter ' . $ip . ' meldet sich kein iRobot-Roboter (UDP 5678). Bitte zuerst OHNE HOME-Taste „Jetzt anmelden" klicken, damit RoboHub den Roboter findet; danach HOME halten und erneut klicken.');
+        throw new RoboHubFehler(RoboHubText::t('No iRobot robot reports at %s (UDP 5678). Please first click "Sign in now" WITHOUT the HOME button so RoboHub finds the robot; then hold HOME and click again.', $ip));
     }
 
     /** Merkdatei für die letzte UDP-Antwort unter dieser Adresse. */
@@ -203,7 +203,7 @@ class RoboHubIrobot implements RoboHubTreiber
                     break;
                 }
                 if ($stueck === self::NICHT_UNTERSTUETZT) {
-                    throw new RoboHubFehler('Dieses Modell gibt sein Passwort nur über die iRobot-Cloud heraus — lokal noch nicht unterstützt.');
+                    throw new RoboHubFehler(RoboHubText::t('This model only releases its password via the iRobot cloud — not supported locally yet.'));
                 }
                 $roh .= $stueck;
                 if (strlen($roh) >= 2) {
@@ -215,7 +215,7 @@ class RoboHubIrobot implements RoboHubTreiber
         }
         $passwort = self::passwortAus($roh);
         if ($passwort === '') {
-            throw new RoboHubFehler('Roboter gefunden, aber er hat kein Passwort geliefert. Er muss auf der Station stehen; HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, dann sofort erneut koppeln.');
+            throw new RoboHubFehler(RoboHubText::t('Robot found, but it did not deliver a password. It must stand on the base; hold the HOME button for about 2 seconds until it plays tones, then pair again immediately.'));
         }
         return [$passwort, $fingerabdruck];
     }
@@ -249,12 +249,12 @@ class RoboHubIrobot implements RoboHubTreiber
             try {
                 [$leitung, $fingerabdruck] = $this->tlsVerbinden($ip);
             } catch (RoboHubFehler $e2) {
-                throw new RoboHubFehler('Der Roboter nimmt gerade keine Verbindung an — er erlaubt nur eine gleichzeitig. Ist die iRobot-App geöffnet oder ein anderes System (z. B. Home Assistant) verbunden? (' . $e2->getMessage() . ')');
+                throw new RoboHubFehler(RoboHubText::t('The robot is not accepting a connection right now — it only allows one at a time. Is the iRobot app open or another system (e.g. Home Assistant) connected? (%s)', $e2->getMessage()));
             }
         }
         if (!self::fingerabdruckPasst($erwartet, $fingerabdruck)) {
             self::leitungSchliessen($leitung);
-            throw new RoboHubFehler('Das Zertifikat des Roboters unter ' . $ip . ' hat sich geändert — Verbindung abgelehnt. War es ein anderes Gerät, bitte neu koppeln.');
+            throw new RoboHubFehler(RoboHubText::t('The certificate of the robot at %s has changed — connection rejected. If it was a different device, please pair again.', $ip));
         }
         return [$leitung, $fingerabdruck];
     }
@@ -279,7 +279,7 @@ class RoboHubIrobot implements RoboHubTreiber
                 $this->dbg('TLS', ($weg === 'eigen' ? 'Eigener TLS-Weg' : 'OpenSSL') . ': ' . $e->getMessage());
             }
         }
-        throw new RoboHubFehler('Roboter unter ' . $ip . ' nicht erreichbar (' . ($fehler['openssl'] ?? '') . ' / eigener TLS-Weg: ' . ($fehler['eigen'] ?? '') . ').');
+        throw new RoboHubFehler(RoboHubText::t('Robot at %s not reachable (%s / own TLS path: %s).', $ip, ($fehler['openssl'] ?? ''), ($fehler['eigen'] ?? '')));
     }
 
     protected function opensslVerbinden(string $ip): array
@@ -305,7 +305,7 @@ class RoboHubIrobot implements RoboHubTreiber
             if (trim((string)$text) !== '') {
                 array_unshift($gruende, trim((string)$text));
             }
-            throw new RoboHubFehler($gruende === [] ? 'TLS-Verbindung fehlgeschlagen' : implode('; ', array_unique($gruende)));
+            throw new RoboHubFehler($gruende === [] ? RoboHubText::t('TLS connection failed') : implode('; ', array_unique($gruende)));
         }
         $zert = stream_context_get_params($sock)['options']['ssl']['peer_certificate'] ?? null;
         return [$sock, $zert ? (string)openssl_x509_fingerprint($zert, 'sha256') : ''];
@@ -412,7 +412,7 @@ class RoboHubIrobot implements RoboHubTreiber
     {
         $r = $buendel['roboter'][(string)$geraet['id']] ?? null;
         if (!is_array($r) || ($r['passwort'] ?? '') === '' || ($r['fingerabdruck'] ?? '') === '') {
-            throw new RoboHubFehler('Roboter ist nicht gekoppelt — bitte in der Konto-Instanz koppeln.');
+            throw new RoboHubFehler(RoboHubText::t('Robot is not paired — please pair in the account instance.'));
         }
         return $r;
     }
@@ -448,8 +448,7 @@ class RoboHubIrobot implements RoboHubTreiber
         $this->dbg('Zustand', count($themen) . ' Meldung(en) in ' . round(microtime(true) - $beginn, 1) . ' s: ' . implode(', ', array_slice($themen, 0, 20)));
         if (!isset($stand['cleanMissionStatus']) && !isset($stand['batPct'])) {
             $this->nurStandFehlte = $themen !== [];
-            throw new RoboHubFehler('Der Roboter hat keinen Zustand gemeldet (' . count($themen) . ' Meldung(en) in '
-                . round(microtime(true) - $beginn, 1) . ' s' . ($themen === [] ? '' : ': ' . implode(', ', array_slice($themen, 0, 5))) . ').');
+            throw new RoboHubFehler(RoboHubText::t('The robot did not report a state (%s message(s) in %s s%s).', count($themen), round(microtime(true) - $beginn, 1), ($themen === [] ? '' : ': ' . implode(', ', array_slice($themen, 0, 5)))));
         }
         return $stand;
     }
@@ -477,14 +476,15 @@ class RoboHubIrobot implements RoboHubTreiber
             $zyklus = (string)($c['cycle'] ?? 'none');
             if ($phase === 'charge') {
                 $voll = $akku !== null && $akku >= 100;
-                [$text, $zustand] = $zyklus !== 'none' ? ['Lädt (Reinigung unterbrochen)', RoboHubModell::ZUSTAND_LAEDT]
-                    : ($voll ? ['In der Station', RoboHubModell::ZUSTAND_GELADEN] : ['Lädt', RoboHubModell::ZUSTAND_LAEDT]);
+                [$text, $zustand] = $zyklus !== 'none' ? [RoboHubText::t('Charging (cleaning interrupted)'), RoboHubModell::ZUSTAND_LAEDT]
+                    : ($voll ? [RoboHubText::t('Docked'), RoboHubModell::ZUSTAND_GELADEN] : [RoboHubText::t('Charging'), RoboHubModell::ZUSTAND_LAEDT]);
                 $w['Laedt'] = !$voll || $zyklus !== 'none';
             } elseif ($phase === 'stop') {
                 [$text, $zustand] = $zyklus !== 'none' ? ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT] : ['Bereit', RoboHubModell::ZUSTAND_BEREIT];
                 $w['Laedt'] = false;
             } else {
-                [$text, $zustand] = self::PHASEN[$phase] ?? ['Phase „' . $phase . '"', RoboHubModell::ZUSTAND_UNBEKANNT];
+                [$text, $zustand] = self::PHASEN[$phase] ?? [RoboHubText::t('Phase "%s"', $phase), RoboHubModell::ZUSTAND_UNBEKANNT];
+                $text = RoboHubText::wert($text);
                 $w['Laedt'] = false;
             }
             if ($fehler !== null && $fehler !== 0 && $zustand !== RoboHubModell::ZUSTAND_REINIGT) {
@@ -494,7 +494,7 @@ class RoboHubIrobot implements RoboHubTreiber
             $w['ZustandRoh'] = $text . ' (' . $phase . ($zyklus !== 'none' ? ', ' . $zyklus : '') . ')';
         }
         if ($fehler !== null) {
-            $w['Fehler'] = $fehler === 0 ? 'kein Fehler' : (self::FEHLER[$fehler] ?? 'Fehlercode') . ' (' . $fehler . ')';
+            $w['Fehler'] = $fehler === 0 ? RoboHubText::t('no error') : RoboHubText::wert(self::FEHLER[$fehler] ?? 'Error code') . ' (' . $fehler . ')';
         }
         $w['Akku'] = $akku;
         $w['Dauer'] = isset($c['mssnM']) && is_numeric($c['mssnM']) ? (int)$c['mssnM'] : null;
@@ -508,7 +508,7 @@ class RoboHubIrobot implements RoboHubTreiber
         }
         $w['Flaeche'] = isset($c['sqft']) && is_numeric($c['sqft']) ? (int)round((float)$c['sqft'] * 0.09290304) : null;
         if (isset($p['bin']) && is_array($p['bin'])) {
-            $w['Staubbeutel'] = array_key_exists('present', $p['bin']) && !$p['bin']['present'] ? 'Fehlt' : (!empty($p['bin']['full']) ? 'Voll' : 'In Ordnung');
+            $w['Staubbeutel'] = array_key_exists('present', $p['bin']) && !$p['bin']['present'] ? 'Fehlt' : (!empty($p['bin']['full']) ? 'Voll' : RoboHubText::t('OK'));
         }
         if (isset($p['bbrun']['hr']) && is_numeric($p['bbrun']['hr'])) {
             $w['GesamtDauer'] = (int)$p['bbrun']['hr'];
@@ -565,24 +565,24 @@ class RoboHubIrobot implements RoboHubTreiber
             'start'   => [$mitten ? 'resume' : 'start', 'Start'],
             'pause'   => ['pause', 'Pause'],
             'stopp'   => ['stop', 'Stopp'],
-            'station' => ['dock', 'Zur Station'],
+            'station' => ['dock', RoboHubText::t('Return to base')],
             'orten'   => ['find', 'Orten'],
         ];
         if ($befehl === 'setze') {
             return $this->einstellungSetzen($r, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
         }
         if (!isset($befehle[$befehl])) {
-            throw new RoboHubFehler('Dieser Befehl wird für iRobot noch nicht unterstützt: ' . $befehl);
+            throw new RoboHubFehler(RoboHubText::t('This command is not supported for iRobot yet: %s', $befehl));
         }
         [$kommando, $name] = $befehle[$befehl];
         $phase = $this->kommando($r, $kommando);
         if ($kommando === 'find') {
-            return 'Befehl „' . $name . '" gesendet.';
+            return RoboHubText::t('Command "%s" sent.', $name);
         }
         if ($phase === null) {
-            return 'Befehl „' . $name . '" gesendet — der Roboter hat in 10 s keine Änderung gemeldet. Ist er bereit (z. B. Behälter eingesetzt, nicht angehoben)?';
+            return RoboHubText::t('Command "%s" sent — the robot reported no change within 10 s. Is it ready (e.g. bin inserted, not lifted)?', $name);
         }
-        return 'Befehl „' . $name . '" gesendet — Roboter meldet: ' . (self::PHASEN[$phase][0] ?? $phase) . '.';
+        return RoboHubText::t('Command "%s" sent — robot reports: %s.', $name, RoboHubText::wert(self::PHASEN[$phase][0] ?? $phase));
     }
 
     /** Befehl wie roombapy send_command: {"command", "time", "initiator": "localApp"} auf „cmd". */
@@ -599,7 +599,7 @@ class RoboHubIrobot implements RoboHubTreiber
     {
         $stufe = self::EINSTELLUNGEN[$feld][$wert] ?? null;
         if ($stufe === null) {
-            throw new RoboHubFehler('Diese Einstellung gibt es bei iRobot nicht: ' . $feld . ' = ' . $wert);
+            throw new RoboHubFehler(RoboHubText::t('This setting does not exist on iRobot: %s = %s', $feld, $wert));
         }
         [$name, $schalter] = $stufe;
         $bestaetigt = false;
@@ -619,9 +619,9 @@ class RoboHubIrobot implements RoboHubTreiber
             }, min($ende, microtime(true) + 8.0));
             $bestaetigt = count($gesehen) === count($schalter) && !in_array(false, $gesehen, true);
         }, 12.0);
-        $titel = RoboHubModell::FELDER[$feld][0] ?? $feld;
-        return $bestaetigt ? $titel . ': „' . $name . '" übernommen.'
-            : $titel . ': „' . $name . '" gesendet — der Roboter hat es (noch) nicht bestätigt.';
+        $titel = RoboHubText::wert(RoboHubModell::FELDER[$feld][0] ?? $feld);
+        return $bestaetigt ? RoboHubText::t('%s: "%s" applied.', $titel, $name)
+            : RoboHubText::t('%s: "%s" sent — the robot has not confirmed it (yet).', $titel, $name);
     }
 
     /** Phasen, an denen man sieht, dass der Roboter einen Befehl ausführt. */
@@ -688,7 +688,7 @@ class RoboHubIrobot implements RoboHubTreiber
         // Klicks in der Kachel) nacheinander statt gegeneinander (Forum Thilo 24.10.2026).
         $sperre = 'RoboHub_iRobot_' . md5((string)$r['blid']);
         if (function_exists('IPS_SemaphoreEnter') && !IPS_SemaphoreEnter($sperre, 30000)) {
-            throw new RoboHubFehler('Der Roboter ist gerade mit einem anderen Befehl beschäftigt — bitte gleich noch einmal.');
+            throw new RoboHubFehler(RoboHubText::t('The robot is busy with another command right now — please try again in a moment.'));
         }
         try {
             $this->sitzungOhneSperre($r, $tun, $dauer);
@@ -708,11 +708,11 @@ class RoboHubIrobot implements RoboHubTreiber
             $s->senden(RoboHubMqtt::connect((string)$r['blid'], (string)$r['blid'], (string)$r['passwort'], 30));
             $p = $s->warte(RoboHubMqtt::CONNACK, null, $ende);
             if ($p === null) {
-                throw new RoboHubFehler('Der Roboter hat die Anmeldung nicht beantwortet (ist gerade eine andere lokale Verbindung offen?).');
+                throw new RoboHubFehler(RoboHubText::t('The robot did not answer the sign-in (is another local connection open right now?).'));
             }
             $code = RoboHubMqtt::connackCode($p['body']);
             if ($code !== 0) {
-                $e = new RoboHubFehler('Der Roboter lehnt die Anmeldung ab: ' . RoboHubMqtt::connackText($code) . ' — bitte neu koppeln.');
+                $e = new RoboHubFehler(RoboHubText::t('The robot rejects the sign-in: %s — please pair again.', RoboHubMqtt::connackText($code)));
                 $e->anmeldungNoetig = in_array($code, [4, 5], true);
                 throw $e;
             }
@@ -724,7 +724,7 @@ class RoboHubIrobot implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile meldet ein Roomba lokal nicht — Zurücksetzen nur in der iRobot-App.');
+        throw new RoboHubFehler(RoboHubText::t('A Roomba does not report wear parts locally — resetting only in the iRobot app.'));
     }
 
     public function karte(array $buendel, array $geraet): array

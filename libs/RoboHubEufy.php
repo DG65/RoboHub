@@ -48,8 +48,8 @@ class RoboHubEufy implements RoboHubTreiber
     ];
 
     // WorkStatus.state (work_status.proto) → Zustand (parser.py _map_work_status, eigene Feinheiten unten).
-    private const SAUGSTUFEN_NEU = [0 => 'Leise', 1 => 'Standard', 2 => 'Turbo', 3 => 'Max', 4 => 'Boost IQ'];
-    private const SAUGSTUFEN_ALT = [0 => 'Leise', 1 => 'Standard', 2 => 'Turbo', 3 => 'Max'];
+    private const SAUGSTUFEN_NEU = [0 => 'Quiet', 1 => 'Standard', 2 => 'Turbo', 3 => 'Max', 4 => 'Boost IQ'];
+    private const SAUGSTUFEN_ALT = [0 => 'Quiet', 1 => 'Standard', 2 => 'Turbo', 3 => 'Max'];
 
     // Lebensdauer in Stunden (const.py ACCESSORY_MAX_LIFE; novel zählt Stunden, scalar Minuten).
     private const TEILE_NEU = ['Filter' => [3, 360], 'Hauptbuerste' => [2, 360], 'Seitenbuerste' => [1, 180], 'Sensoren' => [5, 60], 'Mopp' => [6, 180]];
@@ -57,25 +57,25 @@ class RoboHubEufy implements RoboHubTreiber
 
     // Fehlercodes (const.py EUFY_CLEAN_ERROR_CODES, Auswahl, eigene Übersetzung).
     private const FEHLER = [
-        1 => 'Stoßfänger klemmt', 2 => 'Rad blockiert', 3 => 'Seitenbürste blockiert', 4 => 'Hauptbürste blockiert', 5 => 'Roboter steckt fest — Hindernis entfernen',
-        6 => 'Roboter steckt fest — bitte versetzen', 7 => 'Rad hängt in der Luft', 8 => 'Akku leer, ausgeschaltet', 13 => 'Roboter steht schräg', 14 => 'Staubbehälter fehlt',
-        17 => 'Sperrbereich erkannt', 18 => 'Laserabdeckung klemmt', 19 => 'Lasersensor klemmt', 20 => 'Laser verdeckt', 21 => 'Andocken fehlgeschlagen',
-        26 => 'Geplanter Start fehlgeschlagen (Akku)', 31 => 'Saugöffnung verstopft', 32 => 'Mopphalter-Motor klemmt', 33 => 'Wischhalter-Motor klemmt',
-        39 => 'Position verloren, Reinigung beendet', 40 => 'Wischtuch abgefallen', 41 => 'Trockner-Heizung gestört', 50 => 'Roboter steht auf Teppich',
-        51 => 'Kamera verdeckt', 52 => 'Kann die Station nicht verlassen', 55 => 'Station nicht gefunden', 70 => 'Staubsammler reinigen', 71 => 'Wandsensor gestört',
-        72 => 'Wenig Wasser im Roboter', 73 => 'Schmutzwassertank voll', 74 => 'Frischwasser knapp', 75 => 'Wassertank fehlt', 76 => 'Kamera gestört',
-        77 => '3D-Sensor gestört', 78 => 'Ultraschallsensor gestört', 79 => 'Reinigungsschale fehlt', 80 => 'Verbindung zum Roboter gestört',
-        81 => 'Schmutzwassertank undicht', 82 => 'Reinigungsschale reinigen', 83 => 'Ladekontakte schlecht', 101 => 'Akku gestört', 102 => 'Radmodul gestört',
-        103 => 'Seitenbürste gestört', 104 => 'Gebläse gestört', 105 => 'Hauptbürstenmotor gestört', 106 => 'Pumpe gestört', 107 => 'Lasersensor gestört',
-        2310 => 'Staubbehälter oder Filter fehlt', 2311 => 'Staubbehälter leeren', 3013 => 'Wassertank leer', 3020 => 'Wassertank entnommen',
-        3110 => 'Linker Mopp fehlt', 3111 => 'Rechter Mopp fehlt', 4011 => 'Laser verdeckt', 4031 => 'Abstandssensor verdeckt', 4041 => 'Kamera verdeckt',
-        5014 => 'Station ohne Strom', 5015 => 'Akku zu schwach für geplante Reinigung', 6010 => 'Station: Frischwassertank fehlt',
-        6011 => 'Station: Frischwasser leer', 6020 => 'Station: Schmutzwassertank fehlt', 6021 => 'Station: Schmutzwassertank voll',
-        6025 => 'Station: Schmutzwassertank voll oder fehlt', 6030 => 'Station: Reinigungsschale fehlt', 6031 => 'Station: Reinigungsschale voll',
-        6113 => 'Station: kein Staubbeutel', 7000 => 'Zu enger Bereich', 7001 => 'Roboter hängt', 7002 => 'Roboter hochgehoben', 7004 => 'Roboter steckt fest',
-        7010 => 'Im Sperrbereich', 7020 => 'Position nicht gefunden', 7021 => 'Position nicht gefunden', 7031 => 'Rückkehr zur Station fehlgeschlagen',
-        7034 => 'Startpunkt nicht gefunden', 7035 => 'Andocken fehlgeschlagen (Station ohne Strom)', 7040 => 'Ausfahren aus der Station fehlgeschlagen',
-        7050 => 'Ziel nicht erreichbar', 7051 => 'Zeitplan fehlgeschlagen', 7053 => 'Roboter steht schräg', 7055 => 'Station nicht gefunden',
+        1 => 'Bumper stuck', 2 => 'Wheel blocked', 3 => 'Side brush blocked', 4 => 'Main brush blocked', 5 => 'Robot stuck — remove obstacle',
+        6 => 'Robot stuck — please move it', 7 => 'Wheel hanging in the air', 8 => 'Battery empty, switched off', 13 => 'Robot is tilted', 14 => 'Dust bin missing',
+        17 => 'No-go area detected', 18 => 'Laser cover stuck', 19 => 'Laser sensor stuck', 20 => 'Laser covered', 21 => 'Docking failed',
+        26 => 'Scheduled start failed (battery)', 31 => 'Suction inlet clogged', 32 => 'Mop holder motor stuck', 33 => 'Wiper holder motor stuck',
+        39 => 'Position lost, cleaning ended', 40 => 'Mop cloth fell off', 41 => 'Dryer heater fault', 50 => 'Robot is on a carpet',
+        51 => 'Camera covered', 52 => 'Cannot leave the station', 55 => 'Station not found', 70 => 'Clean the dust collector', 71 => 'Wall sensor fault',
+        72 => 'Low water in the robot', 73 => 'Dirty water tank full', 74 => 'Clean water low', 75 => 'Water tank missing', 76 => 'Camera fault',
+        77 => '3D sensor fault', 78 => 'Ultrasonic sensor fault', 79 => 'Cleaning tray missing', 80 => 'Connection to the robot disturbed',
+        81 => 'Dirty water tank leaking', 82 => 'Clean the cleaning tray', 83 => 'Poor charging contacts', 101 => 'Battery fault', 102 => 'Wheel module fault',
+        103 => 'Side brush fault', 104 => 'Fan fault', 105 => 'Main brush motor fault', 106 => 'Pump fault', 107 => 'Laser sensor fault',
+        2310 => 'Dust bin or filter missing', 2311 => 'Empty the dust bin', 3013 => 'Water tank empty', 3020 => 'Water tank removed',
+        3110 => 'Left mop missing', 3111 => 'Right mop missing', 4011 => 'Laser covered', 4031 => 'Distance sensor covered', 4041 => 'Camera covered',
+        5014 => 'Station without power', 5015 => 'Battery too low for scheduled cleaning', 6010 => 'Station: clean water tank missing',
+        6011 => 'Station: clean water empty', 6020 => 'Station: dirty water tank missing', 6021 => 'Station: dirty water tank full',
+        6025 => 'Station: dirty water tank full or missing', 6030 => 'Station: cleaning tray missing', 6031 => 'Station: cleaning tray full',
+        6113 => 'Station: no dust bag', 7000 => 'Area too narrow', 7001 => 'Robot hanging', 7002 => 'Robot lifted', 7004 => 'Robot stuck',
+        7010 => 'In no-go area', 7020 => 'Position not found', 7021 => 'Position not found', 7031 => 'Return to base failed',
+        7034 => 'Starting point not found', 7035 => 'Docking failed (station without power)', 7040 => 'Leaving the station failed',
+        7050 => 'Target not reachable', 7051 => 'Schedule failed', 7053 => 'Robot is tilted', 7055 => 'Station not found',
     ];
 
     // ModeCtrlRequest.Method (control.proto).
@@ -93,7 +93,7 @@ class RoboHubEufy implements RoboHubTreiber
     {
         $konto = trim($konto);
         if (!filter_var($konto, FILTER_VALIDATE_EMAIL) || $passwort === '') {
-            throw new RoboHubFehler('Bitte E-Mail und Passwort des Eufy-Kontos (App „Eufy Clean" bzw. „Eufy") eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter e-mail and password of the Eufy account (app "Eufy Clean" or "Eufy").'));
         }
         $udid = bin2hex(random_bytes(8));
         $sitzung = null;
@@ -103,10 +103,10 @@ class RoboHubEufy implements RoboHubTreiber
                 'clientType: 1', 'User-Agent: ' . self::AGENT], (string)json_encode(['email' => $konto, 'password' => $passwort, 'client_id' => $id, 'client_secret' => $geheim]));
             $this->dbg('HTTP', 'POST ' . parse_url($url, PHP_URL_PATH) . ' → ' . $status);
             if ($status === 0 || $status >= 500) {
-                throw new RoboHubFehler('Eufy-Anmeldung nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+                throw new RoboHubFehler(RoboHubText::t('Eufy sign-in not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
             }
             if ($status === 429) {
-                $e = new RoboHubFehler('Eufy bremst die Anmeldung gerade (zu viele Versuche) — bitte später noch einmal.');
+                $e = new RoboHubFehler(RoboHubText::t('Eufy is throttling the sign-in right now (too many attempts) — please try again later.'));
                 $e->warteSekunden = 900;
                 throw $e;
             }
@@ -117,24 +117,24 @@ class RoboHubEufy implements RoboHubTreiber
                     $sitzung = [(string)$j['access_token'], $nutzer];
                     break;
                 }
-                $grund = 'Konto ohne Zugang zur Roboter-Cloud';
+                $grund = RoboHubText::t('Account without access to the robot cloud');
                 continue;
             }
             $grund = $grund !== '' ? $grund : (is_array($j) && isset($j['message']) ? (string)$j['message'] : 'HTTP ' . $status);
         }
         if ($sitzung === null) {
-            throw new RoboHubFehler('Eufy lehnt die Anmeldung ab (' . $grund . ') — E-Mail und Passwort prüfen.');
+            throw new RoboHubFehler(RoboHubText::t('Eufy rejects the sign-in (%s) — check e-mail and password.', $grund));
         }
         [$token, $nutzer] = $sitzung;
         $b = ['token' => $token, 'udid' => $udid, 'ucToken' => (string)$nutzer['user_center_token'], 'gtoken' => md5((string)$nutzer['user_center_id'])];
         $m = $this->aiot($b, self::MQTT_INFO, null);
         foreach (['endpoint_addr', 'thing_name', 'certificate_pem', 'private_key', 'user_id'] as $feld) {
             if ((string)($m[$feld] ?? '') === '') {
-                throw new RoboHubFehler('Eufy lieferte keinen vollständigen MQTT-Zugang (' . $feld . ' fehlt).');
+                throw new RoboHubFehler(RoboHubText::t('Eufy did not deliver complete MQTT access (%s missing).', $feld));
             }
         }
         if (!preg_match('/^[a-z0-9-]+\.iot\.[a-z0-9-]+\.amazonaws\.com$/i', (string)$m['endpoint_addr'])) {
-            throw new RoboHubFehler('Eufy nennt den MQTT-Server „' . (string)$m['endpoint_addr'] . '", RoboHub verbindet sich hier nur mit AWS IoT. Mähroboter wie der E15 laufen nicht über diesen Weg: Dafür im Konto den Hersteller „Eufy Mähroboter E15" wählen.');
+            throw new RoboHubFehler(RoboHubText::t('Eufy names the MQTT server "%s", RoboHub only connects to AWS IoT here. Robot mowers like the E15 do not use this way: for them choose the vendor "Eufy robot mower E15" in the account.', (string)$m['endpoint_addr']));
         }
         return $b + ['mqtt' => (string)$m['endpoint_addr'], 'thing' => (string)$m['thing_name'], 'zert' => (string)$m['certificate_pem'],
             'schluessel' => (string)$m['private_key'], 'userId' => (string)$m['user_id'], 'app' => (string)($m['app_name'] ?? 'eufy_home')];
@@ -142,7 +142,7 @@ class RoboHubEufy implements RoboHubTreiber
 
     public function anmeldeText(array $buendel): string
     {
-        return '✅ Angemeldet. Das Passwort wurde verworfen; gespeichert sind Eufys Zugangsschlüssel und das MQTT-Zertifikat für die Befehle. Lehnt Eufy den Zugang irgendwann ab, meldest du dich hier neu an.';
+        return RoboHubText::t('✅ Signed in. The password was discarded; stored are Eufy\'s access token and the MQTT certificate for the commands. If Eufy rejects the access at some point, sign in here again.');
     }
 
     public function erneuern(array $buendel): array
@@ -167,16 +167,16 @@ class RoboHubEufy implements RoboHubTreiber
             $koerper === null ? null : (string)json_encode($koerper));
         $this->dbg('HTTP', 'POST ' . basename((string)parse_url($url, PHP_URL_PATH)) . ' → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('Eufy-Cloud nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Eufy cloud not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         $j = json_decode($text, true);
         if ($status === 401 || (is_array($j) && (int)($j['code'] ?? 0) === 401)) {
-            $e = new RoboHubFehler('Eufy hat den Zugang beendet und kennt keinen Erneuerungsweg ohne Passwort — bitte in der Konto-Instanz neu anmelden.');
+            $e = new RoboHubFehler(RoboHubText::t('Eufy ended the access and has no way to renew without a password — please sign in again in the account instance.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
         if ($status !== 200 || !is_array($j)) {
-            throw new RoboHubFehler('Unerwartete Antwort der Eufy-Cloud (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('Unexpected response from the Eufy cloud (HTTP %s).', $status));
         }
         return is_array($j['data'] ?? null) ? $j['data'] : [];
     }
@@ -233,7 +233,7 @@ class RoboHubEufy implements RoboHubTreiber
     {
         $g = $this->liste($buendel)[(string)$geraet['id']] ?? null;
         if (!is_array($g)) {
-            throw new RoboHubFehler('Dieser Eufy-Roboter ist im Konto nicht (mehr) vorhanden.');
+            throw new RoboHubFehler(RoboHubText::t('This Eufy robot is not (or no longer) in the account.'));
         }
         $dps = is_array($g['dps'] ?? null) ? $g['dps'] : [];
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $dps);
@@ -290,7 +290,7 @@ class RoboHubEufy implements RoboHubTreiber
             $trocknet = isset($station[3]) && (int)RoboHubNarwal::pbEins(RoboHubNarwal::pbLesen($station[3][0]), 1, 0) === 1;
             if (in_array($waschModus, [1, 2], true) || isset($station[3]) || isset($station[2])) {
                 $z = RoboHubModell::ZUSTAND_STATIONSARBEIT;
-                $text = isset($station[2]) && !isset($station[3]) ? 'Leert den Staubbehälter' : ($waschModus === 2 || $trocknet ? 'Trocknet Mopp' : 'Wäscht Mopp');
+                $text = isset($station[2]) && !isset($station[3]) ? RoboHubText::t('Emptying the dust bin') : ($waschModus === 2 || $trocknet ? RoboHubText::t('Drying mop') : RoboHubText::t('Washing mop'));
             } elseif ($reinigung !== null && (int)RoboHubNarwal::pbEins($reinigung, 1, 0) === 1 && $waschen === null) {
                 $z = RoboHubModell::ZUSTAND_PAUSIERT;
             } else {
@@ -306,13 +306,13 @@ class RoboHubEufy implements RoboHubTreiber
             $z = RoboHubModell::ZUSTAND_BEREIT;
         }
         $w['Zustand'] = $z;
-        $w['ZustandRoh'] = ($text !== '' ? $text : RoboHubModell::ZUSTAENDE[$z][0]) . ' (' . $zustand . ')';
+        $w['ZustandRoh'] = ($text !== '' ? $text : RoboHubText::wert(RoboHubModell::ZUSTAENDE[$z][0])) . ' (' . $zustand . ')';
         $fehler = 0;
         if (isset($p['177'])) {
             $f = self::pb((string)$p['177']);
             $fehler = (int)($f[2][0] ?? $f[3][0] ?? 0);   // error, sonst warn (parser.py liest warn)
         }
-        $w['Fehler'] = $fehler !== 0 ? (self::FEHLER[$fehler] ?? 'Fehler') . ' (' . $fehler . ')' : 'kein Fehler';
+        $w['Fehler'] = $fehler !== 0 ? RoboHubText::wert(self::FEHLER[$fehler] ?? 'Error') . ' (' . $fehler . ')' : RoboHubText::t('no error');
         $w['Akku'] = $akku;
         $w['Laedt'] = $z === RoboHubModell::ZUSTAND_LAEDT;
         if (isset($p['167'])) {
@@ -358,8 +358,8 @@ class RoboHubEufy implements RoboHubTreiber
             $z = RoboHubModell::ZUSTAND_FEHLER;
         }
         $w['Zustand'] = $z;
-        $w['ZustandRoh'] = RoboHubModell::ZUSTAENDE[$z][0] . ' (' . $s . ')';
-        $w['Fehler'] = $fehler !== 0 ? (self::FEHLER[$fehler] ?? 'Fehler') . ' (' . $fehler . ')' : 'kein Fehler';
+        $w['ZustandRoh'] = RoboHubText::wert(RoboHubModell::ZUSTAENDE[$z][0]) . ' (' . $s . ')';
+        $w['Fehler'] = $fehler !== 0 ? RoboHubText::wert(self::FEHLER[$fehler] ?? 'Error') . ' (' . $fehler . ')' : RoboHubText::t('no error');
         $w['Akku'] = is_numeric($p['104'] ?? null) ? (int)$p['104'] : null;
         $w['Laedt'] = $z === RoboHubModell::ZUSTAND_LAEDT;
         if (is_numeric($p['109'] ?? null)) {
@@ -390,37 +390,37 @@ class RoboHubEufy implements RoboHubTreiber
     {
         $g = $this->liste($buendel)[(string)$geraet['id']] ?? null;
         if (!is_array($g)) {
-            throw new RoboHubFehler('Dieser Eufy-Roboter ist im Konto nicht (mehr) vorhanden.');
+            throw new RoboHubFehler(RoboHubText::t('This Eufy robot is not (or no longer) in the account.'));
         }
         $dps = is_array($g['dps'] ?? null) ? $g['dps'] : [];
         $art = self::art($dps);
         if ($art === 'legacy') {
-            throw new RoboHubFehler('Dieser Eufy-Roboter spricht nur das alte Tuya-Protokoll — das steuert RoboHub (noch) nicht.');
+            throw new RoboHubFehler(RoboHubText::t('This Eufy robot only speaks the old Tuya protocol — RoboHub does not control that (yet).'));
         }
         $pausiert = $this->normalisiere('', $dps)['werte']['Zustand'] === RoboHubModell::ZUSTAND_PAUSIERT;
         if ($befehl === 'setze') {
             $wert = (int)($parameter['wert'] ?? -1);
             $stufen = $art === 'scalar' ? self::SAUGSTUFEN_ALT : self::SAUGSTUFEN_NEU;
             if (($parameter['feld'] ?? '') !== 'Saugstufe' || !isset($stufen[$wert])) {
-                throw new RoboHubFehler('Diese Einstellung gibt es bei Eufy nicht.');
+                throw new RoboHubFehler(RoboHubText::t('This setting does not exist on Eufy.'));
             }
             $this->senden($buendel, $geraet, [$art === 'scalar' ? '102' : '158' => $wert]);
-            return 'Saugstufe „' . $stufen[$wert] . '" gesendet.';
+            return RoboHubText::t('Suction level "%s" sent.', RoboHubText::wert($stufen[$wert]));
         }
         if ($art === 'scalar') {
             // G50-Mitschnitt (docs/g50_capture/FINDINGS.md): Start 5=1, Heim 5=3, Pause 122=1, Weiter 122=2 (nicht 0).
             $map = ['start' => [$pausiert ? ['122' => 2] : ['5' => 1], 'Start'], 'pause' => [['122' => 1], 'Pause'],
-                'stopp' => [['122' => 1], 'Stopp (bei diesem Modell wie Pause)'], 'station' => [['5' => 3], 'Zur Station'], 'orten' => [['103' => 1], 'Orten']];
+                'stopp' => [['122' => 1], RoboHubText::t('Stop (on this model like pause)')], 'station' => [['5' => 3], RoboHubText::t('Return to base')], 'orten' => [['103' => 1], 'Orten']];
         } else {
             $map = ['start' => [['152' => self::modusBefehl($pausiert ? self::WEITER : self::START)], 'Start'], 'pause' => [['152' => self::modusBefehl(self::PAUSE)], 'Pause'],
-                'stopp' => [['152' => self::modusBefehl(self::STOPP)], 'Stopp'], 'station' => [['152' => self::modusBefehl(self::HEIM)], 'Zur Station'],
+                'stopp' => [['152' => self::modusBefehl(self::STOPP)], 'Stopp'], 'station' => [['152' => self::modusBefehl(self::HEIM)], RoboHubText::t('Return to base')],
                 'orten' => [['160' => true], 'Orten']];
         }
         if (!isset($map[$befehl])) {
-            throw new RoboHubFehler($befehl === 'raum' ? 'Räume steuert RoboHub bei Eufy (noch) nicht.' : 'Dieser Befehl wird bei Eufy nicht unterstützt: ' . $befehl);
+            throw new RoboHubFehler($befehl === 'raum' ? RoboHubText::t('RoboHub does not control rooms on Eufy (yet).') : RoboHubText::t('This command is not supported by Eufy: %s', $befehl));
         }
         $this->senden($buendel, $geraet, $map[$befehl][0]);
-        return 'Befehl „' . $map[$befehl][1] . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $map[$befehl][1]);
     }
 
     /** ModeCtrlRequest (control.proto) als DPS-Wert; Start mit auto_clean{clean_times 1} wie commands.py. Nullwerte weggelassen (proto3). */
@@ -457,11 +457,11 @@ class RoboHubEufy implements RoboHubTreiber
             $sitzung->senden(RoboHubMqtt::connect($client, (string)$buendel['thing'], '', 60));
             $p = $sitzung->warte(RoboHubMqtt::CONNACK, null, $ende);
             if ($p === null) {
-                throw new RoboHubFehler('Eufy-MQTT hat die Verbindung nicht bestätigt (Zertifikat abgelaufen?) — ggf. neu anmelden.');
+                throw new RoboHubFehler(RoboHubText::t('Eufy MQTT did not confirm the connection (certificate expired?) — sign in again if needed.'));
             }
             $code = RoboHubMqtt::connackCode($p['body']);
             if ($code !== 0) {
-                $e = new RoboHubFehler('Eufy-MQTT lehnt den Zugang ab: ' . RoboHubMqtt::connackText($code) . ' — bitte neu anmelden.');
+                $e = new RoboHubFehler(RoboHubText::t('Eufy MQTT rejects the access: %s — please sign in again.', RoboHubMqtt::connackText($code)));
                 $e->anmeldungNoetig = in_array($code, [4, 5], true);
                 throw $e;
             }
@@ -484,7 +484,7 @@ class RoboHubEufy implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen geht bei Eufy (noch) nur in der App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts on Eufy is (still) only possible in the app.'));
     }
 
     public function echtzeitMoeglich(): bool

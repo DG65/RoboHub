@@ -57,7 +57,7 @@ final class RoboHubMqttSitzung
             }
         }
         if ($sock === false) {
-            throw new RoboHubFehler('Server nicht erreichbar oder Zertifikat ungültig (' . $host . ': ' . $fehlerText . ').');
+            throw new RoboHubFehler(RoboHubText::t('Server not reachable or certificate invalid (%s: %s).', $host, $fehlerText));
         }
         $sitzung = new self($sock, $wsPfad !== null);
         if ($wsPfad !== null) {
@@ -191,20 +191,20 @@ final class RoboHubMqttSitzung
             $schreiben = null;
             $ausnahme = null;
             if ($rest <= 0 || @stream_select($lesen, $schreiben, $ausnahme, (int)$rest, (int)(($rest - floor($rest)) * 1000000)) < 1) {
-                throw new RoboHubFehler('Server hat die WebSocket-Verbindung nicht angenommen (keine Antwort).');
+                throw new RoboHubFehler(RoboHubText::t('Server did not accept the WebSocket connection (no response).'));
             }
             $stueck = fread($this->sock, 4096);
             if ($stueck === false || $stueck === '') {
-                throw new RoboHubFehler('Server hat die WebSocket-Verbindung geschlossen.');
+                throw new RoboHubFehler(RoboHubText::t('Server closed the WebSocket connection.'));
             }
             $kopf .= $stueck;
         }
         [$antwort, $rest] = explode("\r\n\r\n", $kopf, 2);
         if (!preg_match('#^HTTP/1\.1 101#', $antwort)) {
-            throw new RoboHubFehler('Server lehnt die WebSocket-Verbindung ab: ' . strtok($antwort, "\r\n"));
+            throw new RoboHubFehler(RoboHubText::t('Server rejects the WebSocket connection: %s', strtok($antwort, "\r\n")));
         }
         if (!preg_match('/^Sec-WebSocket-Accept:\s*(\S+)/mi', $antwort, $m) || $m[1] !== self::wsAkzeptanz($schluessel)) {
-            throw new RoboHubFehler('WebSocket-Antwort des Servers ist ungültig.');
+            throw new RoboHubFehler(RoboHubText::t('Server\'s WebSocket response is invalid.'));
         }
         $this->roh = $rest;
     }

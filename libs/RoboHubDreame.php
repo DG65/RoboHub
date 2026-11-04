@@ -66,12 +66,12 @@ class RoboHubDreame implements RoboHubTreiber
     public static function regionen(): array
     {
         return [
-            ['caption' => 'Europa (auch DE/AT/CH)', 'value' => 'eu'],
-            ['caption' => 'Nordamerika (ungeprüft)', 'value' => 'us'],
-            ['caption' => 'Singapur/Asien (ungeprüft)', 'value' => 'sg'],
-            ['caption' => 'Russland (ungeprüft)', 'value' => 'ru'],
-            ['caption' => 'Südkorea (ungeprüft)', 'value' => 'kr'],
-            ['caption' => 'China (ungeprüft)', 'value' => 'cn'],
+            ['caption' => RoboHubText::t('Europe (also DE/AT/CH)'), 'value' => 'eu'],
+            ['caption' => RoboHubText::t('North America (untested)'), 'value' => 'us'],
+            ['caption' => RoboHubText::t('Singapore/Asia (untested)'), 'value' => 'sg'],
+            ['caption' => RoboHubText::t('Russia (untested)'), 'value' => 'ru'],
+            ['caption' => RoboHubText::t('South Korea (untested)'), 'value' => 'kr'],
+            ['caption' => RoboHubText::t('China (untested)'), 'value' => 'cn'],
         ];
     }
 
@@ -99,7 +99,7 @@ class RoboHubDreame implements RoboHubTreiber
     public function erneuern(array $buendel): array
     {
         if (empty($buendel['refresh_token'])) {
-            $f = new RoboHubFehler('Kein Erneuerungsschlüssel vorhanden — bitte neu anmelden.');
+            $f = new RoboHubFehler(RoboHubText::t('No refresh token available — please sign in again.'));
             $f->anmeldungNoetig = true;
             throw $f;
         }
@@ -129,20 +129,20 @@ class RoboHubDreame implements RoboHubTreiber
         if ($status >= 400 && $status < 500 && $status !== 429) {
             $grund = is_array($json) ? (string)($json['error_description'] ?? $json['msg'] ?? $json['error'] ?? '') : '';
             $f = new RoboHubFehler($erstanmeldung
-                ? 'Anmeldung abgelehnt (HTTP ' . $status . ($grund !== '' ? ': ' . $grund : '') . '). E-Mail, Passwort, Hersteller und Region prüfen.'
-                : 'Der Zugangsschlüssel wurde abgelehnt (HTTP ' . $status . ') — bitte in der Konto-Instanz neu anmelden.');
+                ? RoboHubText::t('Sign-in rejected (HTTP %s%s). Check e-mail, password, vendor and region.', $status, ($grund !== '' ? ': ' . $grund : ''))
+                : RoboHubText::t('The access token was rejected (HTTP %s) — please sign in again in the account instance.', $status));
             $f->anmeldungNoetig = !$erstanmeldung;
             throw $f;
         }
         if ($status === 429 || $status >= 500 || $status === 0) {
             $f = new RoboHubFehler($status === 0
-                ? 'Hersteller-Cloud nicht erreichbar (' . $text . ').'
-                : 'Hersteller-Cloud antwortet mit HTTP ' . $status . ' — später erneut versuchen.');
+                ? RoboHubText::t('Vendor cloud not reachable (%s).', $text)
+                : RoboHubText::t('Vendor cloud responds with HTTP %s — try again later.', $status));
             $f->warteSekunden = $status === 0 ? 120 : 300;
             throw $f;
         }
         if (!is_array($json) || empty($json['access_token'])) {
-            throw new RoboHubFehler('Unerwartete Antwort bei der Anmeldung (kein Zugangsschlüssel).');
+            throw new RoboHubFehler(RoboHubText::t('Unexpected response at sign-in (no access token).'));
         }
         return $json;
     }
@@ -244,7 +244,7 @@ class RoboHubDreame implements RoboHubTreiber
         ]);
         $records = $antwort['data']['page']['records'] ?? null;
         if (!is_array($records)) {
-            throw new RoboHubFehler('Unerwartete Antwort der Geräteliste.');
+            throw new RoboHubFehler(RoboHubText::t('Unexpected response of the device list.'));
         }
         return $records;
     }
@@ -299,7 +299,7 @@ class RoboHubDreame implements RoboHubTreiber
             }
         }
         if ($eintrag === null) {
-            throw new RoboHubFehler('Gerät ' . $did . ' ist nicht mehr im Konto.');
+            throw new RoboHubFehler(RoboHubText::t('Device %s is no longer in the account.', $did));
         }
         $online = !empty($eintrag['online']);
 
@@ -523,68 +523,68 @@ PEM;
 
     // Zustand 2.1, neue Belegung (Tasshack DreameVacuumState, Fähigkeit NEW_STATE).
     private const SAUGER_ZUSTAND = [
-        1 => ['Saugt', RoboHubModell::ZUSTAND_REINIGT],
-        2 => ['Leerlauf', RoboHubModell::ZUSTAND_BEREIT],
-        3 => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
-        4 => ['Fehler', RoboHubModell::ZUSTAND_FEHLER],
-        5 => ['Fährt zur Station', RoboHubModell::ZUSTAND_ZURUECK],
-        6 => ['Lädt', RoboHubModell::ZUSTAND_LAEDT],
-        7 => ['Wischt', RoboHubModell::ZUSTAND_REINIGT],
-        8 => ['Trocknet Mopp', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        9 => ['Wäscht Mopp', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        10 => ['Fährt zum Mopp-Waschen', RoboHubModell::ZUSTAND_ZURUECK],
-        11 => ['Kartiert', RoboHubModell::ZUSTAND_KARTIERUNG],
-        12 => ['Saugt und wischt', RoboHubModell::ZUSTAND_REINIGT],
-        13 => ['Geladen', RoboHubModell::ZUSTAND_GELADEN],
-        14 => ['Firmware-Update', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
-        15 => ['Rufreinigung', RoboHubModell::ZUSTAND_REINIGT],
-        16 => ['Selbstreparatur', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        17 => ['Fährt zum Mopp-Anbringen', RoboHubModell::ZUSTAND_ZURUECK],
-        18 => ['Fährt zum Mopp-Abnehmen', RoboHubModell::ZUSTAND_ZURUECK],
-        19 => ['Wassertest', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        20 => ['Füllt Wasser nach', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        21 => ['Waschen pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
-        22 => ['Saugt Staub ab', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        23 => ['Fernsteuerung', RoboHubModell::ZUSTAND_REINIGT],
-        24 => ['Intelligentes Laden', RoboHubModell::ZUSTAND_LAEDT],
-        25 => ['Zweite Reinigung', RoboHubModell::ZUSTAND_REINIGT],
-        27 => ['Punktreinigung', RoboHubModell::ZUSTAND_REINIGT],
-        28 => ['Fährt zum Absaugen', RoboHubModell::ZUSTAND_ZURUECK],
-        29 => ['Wartet auf Auftrag', RoboHubModell::ZUSTAND_BEREIT],
-        30 => ['Stationsreinigung', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        31 => ['Entleert', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        32 => ['Entleert', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        34 => ['Leert Tank', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        35 => ['Trocknet Staubbeutel', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        36 => ['Trocknet Staubbeutel', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        37 => ['Extrareinigung', RoboHubModell::ZUSTAND_REINIGT],
-        38 => ['Extrareinigung', RoboHubModell::ZUSTAND_REINIGT],
-        97 => ['Kurzbefehl läuft', RoboHubModell::ZUSTAND_REINIGT],
-        101 => ['Erst-Tiefenreinigung', RoboHubModell::ZUSTAND_REINIGT],
-        102 => ['Erst-Tiefenreinigung', RoboHubModell::ZUSTAND_REINIGT],
-        103 => ['Desinfektion', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        104 => ['Desinfektion', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        105 => ['Moppwechsel', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        106 => ['Moppwechsel', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        116 => ['Bringt Mopp an', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        117 => ['Nimmt Mopp ab', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        121 => ['Fährt in die Station', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        122 => ['Fährt aus der Station', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        1 => ['Vacuuming', RoboHubModell::ZUSTAND_REINIGT],
+        2 => ['Idle', RoboHubModell::ZUSTAND_BEREIT],
+        3 => ['Paused', RoboHubModell::ZUSTAND_PAUSIERT],
+        4 => ['Error', RoboHubModell::ZUSTAND_FEHLER],
+        5 => ['Returning to base', RoboHubModell::ZUSTAND_ZURUECK],
+        6 => ['Charging', RoboHubModell::ZUSTAND_LAEDT],
+        7 => ['Mopping', RoboHubModell::ZUSTAND_REINIGT],
+        8 => ['Drying mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        9 => ['Washing mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        10 => ['Going to wash mop', RoboHubModell::ZUSTAND_ZURUECK],
+        11 => ['Mapping', RoboHubModell::ZUSTAND_KARTIERUNG],
+        12 => ['Vacuuming and mopping', RoboHubModell::ZUSTAND_REINIGT],
+        13 => ['Charged', RoboHubModell::ZUSTAND_GELADEN],
+        14 => ['Firmware update', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
+        15 => ['Cleaning on call', RoboHubModell::ZUSTAND_REINIGT],
+        16 => ['Self-repair', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        17 => ['Going to attach mop', RoboHubModell::ZUSTAND_ZURUECK],
+        18 => ['Going to remove mop', RoboHubModell::ZUSTAND_ZURUECK],
+        19 => ['Water test', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        20 => ['Refilling water', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        21 => ['Washing paused', RoboHubModell::ZUSTAND_PAUSIERT],
+        22 => ['Emptying dust', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        23 => ['Remote control', RoboHubModell::ZUSTAND_REINIGT],
+        24 => ['Smart charging', RoboHubModell::ZUSTAND_LAEDT],
+        25 => ['Second cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        27 => ['Spot cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        28 => ['Going to empty', RoboHubModell::ZUSTAND_ZURUECK],
+        29 => ['Waiting for task', RoboHubModell::ZUSTAND_BEREIT],
+        30 => ['Station cleaning', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        31 => ['Emptying', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        32 => ['Emptying', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        34 => ['Emptying tank', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        35 => ['Drying dust bag', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        36 => ['Drying dust bag', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        37 => ['Extra cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        38 => ['Extra cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        97 => ['Shortcut running', RoboHubModell::ZUSTAND_REINIGT],
+        101 => ['Initial deep cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        102 => ['Initial deep cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        103 => ['Disinfection', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        104 => ['Disinfection', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        105 => ['Mop change', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        106 => ['Mop change', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        116 => ['Attaching mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        117 => ['Removing mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        121 => ['Entering the station', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        122 => ['Leaving the station', RoboHubModell::ZUSTAND_STATIONSARBEIT],
     ];
 
     // Fehler 2.2 (Auszug, Tasshack DreameVacuumErrorCode). Unbekannte Codes
     // erscheinen als „Fehlercode N" — nie still verschluckt.
     private const SAUGER_FEHLER = [
-        1 => 'Roboter umgekippt/angehoben', 2 => 'Absturzsensor ausgelöst', 3 => 'Stoßfänger klemmt',
-        4 => 'Rad blockiert', 5 => 'Rad angehoben', 6 => 'Rad blockiert', 7 => 'Laser-Abstandssensor blockiert',
-        8 => 'Staubbehälter fehlt', 9 => 'Filter fehlt', 10 => 'Filter verstopft', 11 => 'Staubbehälter voll',
-        12 => 'Hauptbürste blockiert', 13 => 'Seitenbürste blockiert', 14 => 'Lüfter-Fehler',
-        15 => 'Wassertank fehlt', 20 => 'Akku schwach', 21 => 'Ladefehler', 22 => 'Akku-Fehler',
-        24 => 'Wischmopp fehlt', 47 => 'Roboter festgefahren', 101 => 'Schmutzwassertank fehlt',
-        102 => 'Schmutzwassertank voll', 103 => 'Frischwasser leer', 104 => 'Frischwassertank fehlt',
-        105 => 'Wasserwanne fehlt', 106 => 'Staubbeutel voll', 107 => 'Wasserwanne verschmutzt',
-        117 => 'Staubbeutel fehlt', 210 => 'Wischwalze blockiert', 218 => 'Wischwalze prüfen',
-        222 => 'Auflockerungswalze blockiert', 225 => 'Wischwalze prüfen', 1000 => 'Rückkehr zur Station fehlgeschlagen',
+        1 => 'Robot tipped over/lifted', 2 => 'Cliff sensor triggered', 3 => 'Bumper stuck',
+        4 => 'Wheel blocked', 5 => 'Wheel lifted', 6 => 'Wheel blocked', 7 => 'Laser distance sensor blocked',
+        8 => 'Dust bin missing', 9 => 'Filter missing', 10 => 'Filter clogged', 11 => 'Dust bin full',
+        12 => 'Main brush blocked', 13 => 'Side brush blocked', 14 => 'Fan error',
+        15 => 'Water tank missing', 20 => 'Battery low', 21 => 'Charging error', 22 => 'Battery error',
+        24 => 'Mop pad missing', 47 => 'Robot stuck', 101 => 'Dirty water tank missing',
+        102 => 'Dirty water tank full', 103 => 'Clean water empty', 104 => 'Clean water tank missing',
+        105 => 'Water tray missing', 106 => 'Dust bag full', 107 => 'Water tray dirty',
+        117 => 'Dust bag missing', 210 => 'Mop roller blocked', 218 => 'Check mop roller',
+        222 => 'Agitator roller blocked', 225 => 'Check mop roller', 1000 => 'Return to base failed',
     ];
 
     private function normalisiereSauger(array $p): array
@@ -593,13 +593,14 @@ PEM;
         $optionen = [];
         if (isset($p['2.1'])) {
             $roh = (int)$p['2.1'];
-            [$text, $zustand] = self::SAUGER_ZUSTAND[$roh] ?? ['Zustand ' . $roh, RoboHubModell::ZUSTAND_UNBEKANNT];
+            [$text, $zustand] = self::SAUGER_ZUSTAND[$roh] ?? [RoboHubText::t('State %s', $roh), RoboHubModell::ZUSTAND_UNBEKANNT];
+            $text = RoboHubText::wert($text);
             $w['Zustand'] = $zustand;
             $w['ZustandRoh'] = $text . ' (' . $roh . ')';
         }
         if (isset($p['2.2'])) {
             $code = (int)$p['2.2'];
-            $w['Fehler'] = $code === 0 ? 'kein Fehler' : (self::SAUGER_FEHLER[$code] ?? 'Fehlercode ' . $code) . ' (' . $code . ')';
+            $w['Fehler'] = $code === 0 ? RoboHubText::t('no error') : (RoboHubText::wert(self::SAUGER_FEHLER[$code] ?? null) ?? RoboHubText::t('Error code %s', $code)) . ' (' . $code . ')';
             if ($code !== 0 && ($w['Zustand'] ?? null) === null) {
                 $w['Zustand'] = RoboHubModell::ZUSTAND_FEHLER;
             }
@@ -621,7 +622,7 @@ PEM;
         }
         if (isset($p['4.23'])) {
             $w['Reinigungsmodus'] = $this->reinigungsmodusLesen((int)$p['4.23'], $p);
-            $optionen['Reinigungsmodus'] = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen', 3 => 'Erst saugen, dann wischen'];
+            $optionen['Reinigungsmodus'] = [0 => 'Saugen', 1 => 'Wischen', 2 => RoboHubText::t('Vacuum and mop'), 3 => RoboHubText::t('Vacuum first, then mop')];
         }
 
         $w['Hauptbuerste']  = isset($p['9.2']) ? (int)$p['9.2'] : null;
@@ -642,19 +643,19 @@ PEM;
         $w['SchmutzwasserbehaelterRest'] = isset($p['26.2']) ? (float)$p['26.2'] : null;
 
         if (isset($p['4.25'])) {
-            $w['Station'] = [0 => 'Bereit', 1 => 'Wäscht', 2 => 'Trocknet', 3 => 'Roboter kehrt zurück', 4 => 'Pausiert', 5 => 'Füllt Wasser', 6 => 'Füllt Wasser', 7 => 'Kehrt zum Trocknen zurück'][(int)$p['4.25']] ?? 'Zustand ' . (int)$p['4.25'];
+            $w['Station'] = [0 => 'Bereit', 1 => RoboHubText::t('Washing'), 2 => 'Trocknet', 3 => RoboHubText::t('Robot returning'), 4 => 'Pausiert', 5 => RoboHubText::t('Filling water'), 6 => RoboHubText::t('Filling water'), 7 => RoboHubText::t('Returning to dry')][(int)$p['4.25']] ?? RoboHubText::t('State %s', (int)$p['4.25']);
         }
         if (isset($p['27.1'])) {
-            $w['Frischwasser'] = [0 => 'In Ordnung', 1 => 'Tank fehlt', 2 => 'Wenig Wasser', 3 => 'Prüfen'][(int)$p['27.1']] ?? 'Zustand ' . (int)$p['27.1'];
+            $w['Frischwasser'] = [0 => RoboHubText::t('OK'), 1 => RoboHubText::t('Tank missing'), 2 => RoboHubText::t('Low water'), 3 => RoboHubText::t('Check')][(int)$p['27.1']] ?? RoboHubText::t('State %s', (int)$p['27.1']);
         }
         if (isset($p['27.2'])) {
-            $w['Schmutzwasser'] = (int)$p['27.2'] === 0 ? 'In Ordnung' : 'Fehlt oder voll';
+            $w['Schmutzwasser'] = (int)$p['27.2'] === 0 ? RoboHubText::t('OK') : RoboHubText::t('Missing or full');
         }
         if (isset($p['27.3'])) {
-            $w['Staubbeutel'] = [0 => 'In Ordnung', 1 => 'Fehlt', 2 => 'Prüfen'][(int)$p['27.3']] ?? 'Zustand ' . (int)$p['27.3'];
+            $w['Staubbeutel'] = [0 => RoboHubText::t('OK'), 1 => 'Fehlt', 2 => RoboHubText::t('Check')][(int)$p['27.3']] ?? RoboHubText::t('State %s', (int)$p['27.3']);
         }
         if (isset($p['27.4'])) {
-            $w['Reinigungsmittel'] = [0 => 'In Ordnung', 1 => 'Abgeschaltet', 2 => 'Wenig'][(int)$p['27.4']] ?? 'Zustand ' . (int)$p['27.4'];
+            $w['Reinigungsmittel'] = [0 => RoboHubText::t('OK'), 1 => 'Abgeschaltet', 2 => 'Wenig'][(int)$p['27.4']] ?? RoboHubText::t('State %s', (int)$p['27.4']);
         }
         $w['GesamtDauer']  = isset($p['12.2']) ? (int)round((int)$p['12.2'] / 60) : null;
         $w['GesamtAnzahl'] = isset($p['12.3']) ? (int)$p['12.3'] : null;
@@ -710,27 +711,27 @@ PEM;
     // ioBrokers Code nennt dort 3 = Mähen, 4 = Pause, 15/16 = Ortung/Anfahrt.
     // Werte nur aus ioBroker (7–12) ohne Widerspruch übernommen.
     private const MAEHER_ZUSTAND = [
-        1 => ['Mäht', RoboHubModell::ZUSTAND_REINIGT],
-        2 => ['Bereit', RoboHubModell::ZUSTAND_BEREIT],
-        3 => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
-        4 => ['Pausiert wegen Fehler', RoboHubModell::ZUSTAND_FEHLER],
-        5 => ['Fährt zur Station', RoboHubModell::ZUSTAND_ZURUECK],
-        6 => ['Lädt', RoboHubModell::ZUSTAND_LAEDT],
-        7 => ['Fehler', RoboHubModell::ZUSTAND_FEHLER],
-        8 => ['Regenpause', RoboHubModell::ZUSTAND_WETTERPAUSE],
-        9 => ['Startet', RoboHubModell::ZUSTAND_BEREIT],
-        10 => ['Verlässt die Station', RoboHubModell::ZUSTAND_REINIGT],
-        11 => ['Kartiert', RoboHubModell::ZUSTAND_KARTIERUNG],
-        12 => ['Mäht Kanten', RoboHubModell::ZUSTAND_REINIGT],
-        13 => ['Geladen', RoboHubModell::ZUSTAND_GELADEN],
-        14 => ['Firmware-Update', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
-        15 => ['Laden pausiert — Akku zu heiß', RoboHubModell::ZUSTAND_LAEDT],
-        16 => ['Laden pausiert — Akku zu kalt', RoboHubModell::ZUSTAND_LAEDT],
+        1 => ['Mowing', RoboHubModell::ZUSTAND_REINIGT],
+        2 => ['Ready', RoboHubModell::ZUSTAND_BEREIT],
+        3 => ['Paused', RoboHubModell::ZUSTAND_PAUSIERT],
+        4 => ['Paused due to error', RoboHubModell::ZUSTAND_FEHLER],
+        5 => ['Returning to base', RoboHubModell::ZUSTAND_ZURUECK],
+        6 => ['Charging', RoboHubModell::ZUSTAND_LAEDT],
+        7 => ['Error', RoboHubModell::ZUSTAND_FEHLER],
+        8 => ['Rain pause', RoboHubModell::ZUSTAND_WETTERPAUSE],
+        9 => ['Starting', RoboHubModell::ZUSTAND_BEREIT],
+        10 => ['Leaving the station', RoboHubModell::ZUSTAND_REINIGT],
+        11 => ['Mapping', RoboHubModell::ZUSTAND_KARTIERUNG],
+        12 => ['Mowing edges', RoboHubModell::ZUSTAND_REINIGT],
+        13 => ['Charged', RoboHubModell::ZUSTAND_GELADEN],
+        14 => ['Firmware update', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
+        15 => ['Charging paused — battery too hot', RoboHubModell::ZUSTAND_LAEDT],
+        16 => ['Charging paused — battery too cold', RoboHubModell::ZUSTAND_LAEDT],
         // 19 kennt keine Referenz (ioBroker, EvotecIT, mova-lidax-ha, Homey-App).
         // Live beobachtet am MOVA LiDAX Ultra 1000 (g2529c, FW 4.3.6_0529) direkt
         // nach „Start", Akku sinkend, Besitzer bestätigt: mäht (11.10.2026).
-        19 => ['Mäht', RoboHubModell::ZUSTAND_REINIGT],
-        75 => ['Am Wartungspunkt pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
+        19 => ['Mowing', RoboHubModell::ZUSTAND_REINIGT],
+        75 => ['Paused at maintenance point', RoboHubModell::ZUSTAND_PAUSIERT],
     ];
 
     // Mäher-Gerätecode 2.2: gemeinsames Register aller Dreame/MOVA-Mäher
@@ -738,42 +739,42 @@ PEM;
     // gelesen 11.10.2026). 'f' = Fehler/Warnung/Wartung, 'i' = reine Info.
     private const MAEHER_CODES = [
         0 => ['i', ''],
-        1 => ['f', 'Roboter gekippt'], 2 => ['f', 'Roboter festgefahren'], 3 => ['f', 'Weg zur Station zu schmal'],
-        4 => ['f', 'Linkes Antriebsrad gestört'], 5 => ['f', 'Rechtes Antriebsrad gestört'], 6 => ['f', 'Schnitthöhen-Motor gestört'],
-        7 => ['f', 'Messerteller blockiert'], 8 => ['f', 'Messerteller-Seitenmotor gestört'], 9 => ['f', 'Stoßfänger gestört'],
-        10 => ['f', 'Ladefehler'], 11 => ['f', 'Akku zu heiß'], 12 => ['f', 'Lidar blockiert'],
-        13 => ['f', 'Lidar zu heiß (ohne Karte)'], 14 => ['f', 'Lidar zu heiß (mit Karte)'], 15 => ['f', 'Lidar zu heiß'],
-        16 => ['f', 'Lidar verschmutzt'], 17 => ['f', 'Lidar gestört'], 18 => ['f', 'Ortungssignal schwach'],
-        19 => ['f', 'Position verloren'], 20 => ['f', 'Sensor gestört'], 21 => ['f', 'Mäher in Sperrzone'],
-        22 => ['f', 'Mäher außerhalb der Karte'], 23 => ['f', 'Not-Aus gedrückt'], 24 => ['f', 'Akku kritisch schwach'],
-        25 => ['f', 'Kartendatei beschädigt'], 26 => ['f', 'Mäher zu weit von der Karte'], 27 => ['f', 'Person erkannt'],
-        37 => ['f', 'Weg blockiert'], 73 => ['f', 'Abdeckung offen'],
-        28 => ['f', 'Messer abgenutzt'], 29 => ['f', 'Stationsbürste abgenutzt'], 30 => ['f', 'Wartung fällig'],
-        31 => ['f', 'Rückkehr zur Station fehlgeschlagen'], 32 => ['f', 'Andocken fehlgeschlagen'],
-        33 => ['f', 'Ortung fehlgeschlagen (mit Karte)'], 34 => ['f', 'Ortung fehlgeschlagen (ohne Karte)'],
-        35 => ['f', 'Ortungsfehler'], 36 => ['f', 'Auftrag konnte nicht starten'], 38 => ['f', 'Lidar verschmutzt'],
-        39 => ['f', 'Kamera verschmutzt'], 40 => ['f', 'Kamera gestört'], 41 => ['f', 'Kamera verdeckt'],
-        42 => ['f', 'Laden pausiert — Akku zu heiß'], 43 => ['f', 'Laden pausiert — Akku zu kalt'],
-        44 => ['f', 'Automatische Randerkennung gestoppt'], 45 => ['f', 'Automatische Randerkennung (Seite) gestoppt'],
-        46 => ['i', 'Randerkennung abgeschlossen'], 47 => ['i', 'Neue Karte erstellt'], 48 => ['i', 'Mähauftrag abgeschlossen'],
-        49 => ['i', 'Einige Zonen nicht erreichbar'], 50 => ['i', 'Mähauftrag gestartet'], 51 => ['i', 'Patrouille gestartet'],
-        52 => ['i', 'Zielfahrt gestartet'], 53 => ['i', 'Geplantes Mähen gestartet'], 54 => ['i', 'Akku schwach — kehrt zurück'],
-        55 => ['i', 'Geplantes Mähen ausgesetzt — Akku schwach'], 56 => ['i', 'Schlechtwetter-Schutz aktiv'],
-        57 => ['i', 'Geplantes Mähen wegen Regen unterbrochen'], 58 => ['i', 'Geplantes Mähen wegen Regen ausgesetzt'],
-        59 => ['i', 'Frostschutz — kehrt zurück'], 60 => ['i', 'Geplantes Mähen wegen Frost ausgesetzt'],
-        61 => ['i', 'Ruhezeit — kehrt zurück'], 62 => ['i', 'Geplantes Mähen wegen Ruhezeit ausgesetzt'],
-        63 => ['i', 'Geplantes Mähen übersprungen — Mäher beschäftigt'], 64 => ['i', 'Geplantes Mähen wegen Fernsteuerung ausgesetzt'],
-        65 => ['i', 'Geplantes Mähen wegen Not-Aus ausgesetzt'], 66 => ['i', 'Geplantes Mähen ausgesetzt — Abdeckung offen'],
-        67 => ['i', 'Geplantes Mähen wegen Störung ausgesetzt'], 68 => ['i', 'Geplantes Mähen: Zeit abgelaufen'],
-        69 => ['i', 'Station nicht mit dem Mähbereich verbunden'], 70 => ['i', 'Setzt unterbrochenen Auftrag fort'],
-        71 => ['i', 'Leerlauf zu lang — kehrt zurück'], 72 => ['i', 'Pause zu lang — kehrt zurück'],
+        1 => ['f', 'Robot tilted'], 2 => ['f', 'Robot stuck'], 3 => ['f', 'Path to the station too narrow'],
+        4 => ['f', 'Left drive wheel fault'], 5 => ['f', 'Right drive wheel fault'], 6 => ['f', 'Cutting height motor fault'],
+        7 => ['f', 'Blade disc blocked'], 8 => ['f', 'Blade disc side motor fault'], 9 => ['f', 'Bumper fault'],
+        10 => ['f', 'Ladefehler'], 11 => ['f', 'Battery too hot'], 12 => ['f', 'Lidar blocked'],
+        13 => ['f', 'Lidar too hot (without map)'], 14 => ['f', 'Lidar too hot (with map)'], 15 => ['f', 'Lidar too hot'],
+        16 => ['f', 'Lidar dirty'], 17 => ['f', 'Lidar fault'], 18 => ['f', 'Positioning signal weak'],
+        19 => ['f', 'Position lost'], 20 => ['f', 'Sensor fault'], 21 => ['f', 'Mower in no-go zone'],
+        22 => ['f', 'Mower outside the map'], 23 => ['f', 'Emergency stop pressed'], 24 => ['f', 'Battery critically low'],
+        25 => ['f', 'Map file damaged'], 26 => ['f', 'Mower too far from the map'], 27 => ['f', 'Person detected'],
+        37 => ['f', 'Path blocked'], 73 => ['f', 'Cover open'],
+        28 => ['f', 'Blades worn'], 29 => ['f', 'Station brush worn'], 30 => ['f', 'Maintenance due'],
+        31 => ['f', 'Return to base failed'], 32 => ['f', 'Docking failed'],
+        33 => ['f', 'Positioning failed (with map)'], 34 => ['f', 'Positioning failed (without map)'],
+        35 => ['f', 'Ortungsfehler'], 36 => ['f', 'Task could not start'], 38 => ['f', 'Lidar dirty'],
+        39 => ['f', 'Camera dirty'], 40 => ['f', 'Camera fault'], 41 => ['f', 'Camera covered'],
+        42 => ['f', 'Charging paused — battery too hot'], 43 => ['f', 'Charging paused — battery too cold'],
+        44 => ['f', 'Automatic edge detection stopped'], 45 => ['f', 'Automatic edge detection (side) stopped'],
+        46 => ['i', 'Edge detection finished'], 47 => ['i', 'New map created'], 48 => ['i', 'Mowing task finished'],
+        49 => ['i', 'Some zones not reachable'], 50 => ['i', 'Mowing task started'], 51 => ['i', 'Patrol started'],
+        52 => ['i', 'Navigation to target started'], 53 => ['i', 'Scheduled mowing started'], 54 => ['i', 'Battery low — returning'],
+        55 => ['i', 'Scheduled mowing skipped — battery low'], 56 => ['i', 'Bad weather protection active'],
+        57 => ['i', 'Scheduled mowing interrupted due to rain'], 58 => ['i', 'Scheduled mowing skipped due to rain'],
+        59 => ['i', 'Frost protection — returning'], 60 => ['i', 'Scheduled mowing skipped due to frost'],
+        61 => ['i', 'Quiet time — returning'], 62 => ['i', 'Scheduled mowing skipped due to quiet time'],
+        63 => ['i', 'Scheduled mowing skipped — mower busy'], 64 => ['i', 'Scheduled mowing skipped due to remote control'],
+        65 => ['i', 'Scheduled mowing skipped due to emergency stop'], 66 => ['i', 'Scheduled mowing skipped — cover open'],
+        67 => ['i', 'Scheduled mowing skipped due to a fault'], 68 => ['i', 'Scheduled mowing: time expired'],
+        69 => ['i', 'Station not connected to the mowing area'], 70 => ['i', 'Resuming interrupted task'],
+        71 => ['i', 'Idle too long — returning'], 72 => ['i', 'Paused too long — returning'],
     ];
 
     // LiDAX Ultra 1000/2000 und 2000 AWD belegen 0 und 55 anders (dort mit
     // echten Geräten erfasst; ältere MOVA-Modelle bewusst NICHT einbezogen).
     private const MAEHER_CODES_LIDAX = [
-        0 => ['f', 'Roboter angehoben'],
-        55 => ['f', 'Start nicht möglich — Akku zu schwach'],
+        0 => ['f', 'Robot lifted'],
+        55 => ['f', 'Cannot start — battery too low'],
     ];
     private const LIDAX_MODELLE = ['mova.mower.g2529c', 'mova.mower.g2529f', 'mova.mower.g2584a'];
 
@@ -782,7 +783,8 @@ PEM;
         $w = [];
         if (isset($p['2.1'])) {
             $roh = (int)$p['2.1'];
-            [$text, $zustand] = self::MAEHER_ZUSTAND[$roh] ?? ['Zustand ' . $roh, RoboHubModell::ZUSTAND_UNBEKANNT];
+            [$text, $zustand] = self::MAEHER_ZUSTAND[$roh] ?? [RoboHubText::t('State %s', $roh), RoboHubModell::ZUSTAND_UNBEKANNT];
+            $text = RoboHubText::wert($text);
             $w['Zustand'] = $zustand;
             $w['ZustandRoh'] = $text . ' (' . $roh . ')';
             $w['Regensensor'] = $roh === 8;
@@ -795,11 +797,12 @@ PEM;
             if (in_array(strtolower($modell), self::LIDAX_MODELLE, true)) {
                 $codes = self::MAEHER_CODES_LIDAX + $codes;
             }
-            [$art, $text] = $codes[$code] ?? ['f', 'Gerätecode ' . $code];
+            [$art, $text] = $codes[$code] ?? ['f', RoboHubText::t('Device code %s', $code)];
+            $text = RoboHubText::wert($text);
             if ($art === 'f') {
                 $w['Fehler'] = $text . ' (' . $code . ')';
             } else {
-                $w['Fehler'] = 'kein Fehler';
+                $w['Fehler'] = RoboHubText::t('no error');
                 if ($text !== '') {
                     $w['Meldung'] = $text . ' (' . $code . ')';
                 }
@@ -861,9 +864,9 @@ PEM;
     // -----------------------------------------------------------------
 
     // Raum-Termine: Modus/Saugstufe je Raum (ioBroker decodeRoomsWord), „Alle Räume": eigene Modus-Reihenfolge.
-    private const TERMIN_MODUS_RAUM = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen'];
-    private const TERMIN_MODUS_ALLE = [1 => 'Saugen', 2 => 'Saugen und Wischen', 3 => 'Wischen', 4 => 'Erst saugen, dann wischen'];
-    private const TERMIN_SAUGSTUFE = [0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo'];
+    private const TERMIN_MODUS_RAUM = [0 => 'Vacuum', 1 => 'Mop', 2 => 'Vacuum and mop'];
+    private const TERMIN_MODUS_ALLE = [1 => 'Vacuum', 2 => 'Vacuum and mop', 3 => 'Mop', 4 => 'Vacuum first, then mop'];
+    private const TERMIN_SAUGSTUFE = [0 => 'Quiet', 1 => 'Standard', 2 => 'Strong', 3 => 'Turbo'];
 
     /**
      * 8.2 → Liste der Termine. Format je Termin (durch „;" getrennt, Felder durch „-"):
@@ -903,7 +906,7 @@ PEM;
                 foreach (explode(',', $f[8]) as $wort) {
                     $w = (int)$wort;
                     $t['raeume'][] = ['id' => $w & 0xFF, 'durchgaenge' => ($w >> 8) & 0xF,
-                        'saugstufe' => self::TERMIN_SAUGSTUFE[($w >> 16) & 0xF] ?? null, 'modus' => self::TERMIN_MODUS_RAUM[($w >> 20) & 0xF] ?? null];
+                        'saugstufe' => RoboHubText::wert(self::TERMIN_SAUGSTUFE[($w >> 16) & 0xF] ?? null), 'modus' => RoboHubText::wert(self::TERMIN_MODUS_RAUM[($w >> 20) & 0xF] ?? null)];
                 }
             } elseif ($f[7] !== '0' && $f[8] === '0' && $f[6] === '0') {
                 $t['art'] = 'kurzbefehl';
@@ -911,8 +914,8 @@ PEM;
             } elseif ($f[7] !== '0' && $f[8] === '0') {
                 $w = (int)$f[7];
                 $t['art'] = 'alle';
-                $t['modus'] = self::TERMIN_MODUS_ALLE[($w >> 4) & 0xF] ?? null;
-                $t['saugstufe'] = self::TERMIN_SAUGSTUFE[($w >> 24) & 0xF] ?? null;
+                $t['modus'] = RoboHubText::wert(self::TERMIN_MODUS_ALLE[($w >> 4) & 0xF] ?? null);
+                $t['saugstufe'] = RoboHubText::wert(self::TERMIN_SAUGSTUFE[($w >> 24) & 0xF] ?? null);
                 $t['durchgaenge'] = ($w >> 28) & 0xF;
             }
             $termine[] = $t;
@@ -927,7 +930,7 @@ PEM;
     // Kartenplatz (−1 = Standard, 0, 1) erst SCHDIV<n> {"i": Platz} → {"l": Länge, "v": Version}
     // (0xFFFF = leer), dann SCHDDV<n> {"s": Versatz, "l": ≤ 100, "v": Version} → {"d": Text}.
     // Dokumentgeneration 2, sonst 3. Text = {"d": [[Plan-ID, an, Name, Base64-Termine], …]}.
-    private const MAEHER_TAGE = [0 => 'So', 1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa'];
+    private const MAEHER_TAGE = [0 => 'Sun', 1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat'];
     private const MAEHER_PLANART = [0 => 'alle', 1 => 'zonen', 2 => 'kante', 3 => 'patrouille'];
 
     /** Rückgabe [Termine, Rohtext]; Fehler einzelner Plätze werden übergangen. */
@@ -1060,12 +1063,12 @@ PEM;
     private function maehPlanSchalten(array $buendel, string $did, string $modell, int $tabelle, bool $an): string
     {
         if ($tabelle < 0) {
-            throw new RoboHubFehler('Unbekannter Mäh-Plan.');
+            throw new RoboHubFehler(RoboHubText::t('Unknown mowing plan.'));
         }
         $p = $this->leseProperties($buendel, $did, [[2, 1]]);
         $zustand = $this->normalisiereMaeher($p, $modell)['werte']['Zustand'] ?? RoboHubModell::ZUSTAND_UNBEKANNT;
         if (!in_array($zustand, [RoboHubModell::ZUSTAND_BEREIT, RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::ZUSTAND_GELADEN], true)) {
-            throw new RoboHubFehler('Mäh-Pläne lassen sich nur schalten, wenn der Mäher ruht (in der Station oder bereit) — bitte die laufende Aufgabe erst beenden.');
+            throw new RoboHubFehler(RoboHubText::t('Mowing plans can only be switched while the mower is idle (in the station or ready) — please finish the running task first.'));
         }
         $platz = intdiv($tabelle, 2);
         $vorher = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDI', 'd' => [2 * $platz, 2 * $platz + 1]]);
@@ -1076,7 +1079,7 @@ PEM;
             }
         }
         if ($ziel === null) {
-            throw new RoboHubFehler('Diesen Mäh-Plan meldet der Mäher nicht (mehr).');
+            throw new RoboHubFehler(RoboHubText::t('The mower does not report this mowing plan (anymore).'));
         }
         if ($an) {
             $aktiv = false;
@@ -1088,17 +1091,17 @@ PEM;
                 }
             }
             if (!$aktiv) {
-                throw new RoboHubFehler('Ein Mäh-Plan ohne aktiven Termin lässt sich nicht einschalten.');
+                throw new RoboHubFehler(RoboHubText::t('A mowing plan without an active appointment cannot be switched on.'));
             }
         }
         $this->maeherKanal($buendel, $did, ['m' => 's', 't' => 'SCHDS', 'd' => [$tabelle, $an ? 1 : 0]]);
         $nachher = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDI', 'd' => [2 * $platz, 2 * $platz + 1]]);
         foreach ((array)$nachher as $t) {
             if (is_array($t) && (int)($t[0] ?? -1) === $tabelle && (int)($t[1] ?? -1) === ($an ? 1 : 0)) {
-                return 'Mäh-Plan ' . ($an ? 'eingeschaltet' : 'ausgeschaltet') . '.';
+                return RoboHubText::t('Mowing plan %s.', ($an ? 'eingeschaltet' : 'ausgeschaltet'));
             }
         }
-        throw new RoboHubFehler('Der Mäher hat das Schalten nicht bestätigt — bitte in der App prüfen.');
+        throw new RoboHubFehler(RoboHubText::t('The mower did not confirm the switch — please check in the app.'));
     }
 
     /** SCHDC-Antwort → Einträge je Wochentag (leer, wenn der Termin aus ist). */
@@ -1118,7 +1121,7 @@ PEM;
             if (!isset(self::MAEHER_TAGE[$tag])) {
                 continue;
             }
-            $aus[] = ['tagNr' => $tag, 'tag' => self::MAEHER_TAGE[$tag], 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
+            $aus[] = ['tagNr' => $tag, 'tag' => RoboHubText::wert(self::MAEHER_TAGE[$tag]), 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
                 'von' => sprintf('%02d:%02d', intdiv($start, 60), $start % 60), 'bis' => null,
                 'zonen' => $art === 1 ? array_map('intval', $v[5]) : []];
         }
@@ -1134,7 +1137,7 @@ PEM;
             $erstes = json_decode($erstes, true);
         }
         if (!is_array($erstes) || (isset($erstes['r']) && (int)$erstes['r'] !== 0)) {
-            throw new RoboHubFehler('Mäher lehnt ' . $anfrage['t'] . ' ab (' . substr((string)json_encode($out['out'] ?? $out), 0, 160) . ').');
+            throw new RoboHubFehler(RoboHubText::t('Mower rejects %s (%s).', $anfrage['t'], substr((string)json_encode($out['out'] ?? $out), 0, 160)));
         }
         return $erstes['d'] ?? null;
     }
@@ -1158,7 +1161,7 @@ PEM;
             foreach ([1, 2, 3, 4, 5, 6, 0] as $i) {
                 foreach ($eintraege as $e) {
                     if ($e['tagNr'] === $i) {
-                        $tage[] = self::MAEHER_TAGE[$i];
+                        $tage[] = RoboHubText::wert(self::MAEHER_TAGE[$i]);
                         break;
                     }
                 }
@@ -1195,7 +1198,7 @@ PEM;
                 $tag = $b[$i + 2] >> 4;
                 $art = ($b[$i + 2] & 0x0F) % 8;
                 $start = (($b[$i + 4] & 0x0F) << 8) | $b[$i + 3];
-                $aus[] = ['tagNr' => $tag, 'tag' => self::MAEHER_TAGE[$tag] ?? '?', 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
+                $aus[] = ['tagNr' => $tag, 'tag' => RoboHubText::wert(self::MAEHER_TAGE[$tag] ?? '?'), 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
                     'von' => $minuten($start), 'bis' => null, 'zonen' => $art === 1 ? array_slice($b, $i + 6, $laenge - 7) : []];
                 $i += $laenge;
             }
@@ -1210,7 +1213,7 @@ PEM;
             if ($i + 7 + $anzahl > $n || $start >= 1440 || $ende >= 1440 || !isset(self::MAEHER_TAGE[$tag])) {
                 break;
             }
-            $aus[] = ['tagNr' => $tag, 'tag' => self::MAEHER_TAGE[$tag], 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
+            $aus[] = ['tagNr' => $tag, 'tag' => RoboHubText::wert(self::MAEHER_TAGE[$tag]), 'art' => self::MAEHER_PLANART[$art] ?? 'unbekannt',
                 'von' => $minuten($start), 'bis' => $minuten($ende), 'zonen' => $art === 1 ? array_slice($b, $i + 7, $anzahl) : []];
             $i += 7 + $anzahl;
         }
@@ -1222,7 +1225,7 @@ PEM;
     {
         $p = $this->leseProperties($buendel, $did, [[8, 2]]);
         if (!isset($p['8.2']) || !is_string($p['8.2'])) {
-            throw new RoboHubFehler('Zeitpläne des Roboters nicht lesbar — nichts geändert.');
+            throw new RoboHubFehler(RoboHubText::t('The robot\'s schedules cannot be read — nothing changed.'));
         }
         $teile = explode(';', $p['8.2']);
         $gefunden = false;
@@ -1232,17 +1235,17 @@ PEM;
                 continue;
             }
             if ($f[1] === '3') {
-                throw new RoboHubFehler('Dieser Zeitplan ist ungültig (z. B. Karte geändert) — bitte in der Hersteller-App prüfen.');
+                throw new RoboHubFehler(RoboHubText::t('This schedule is invalid (e.g. map changed) — please check in the vendor app.'));
             }
             $f[1] = $an ? '1' : '0';
             $teile[$i] = implode('-', $f);
             $gefunden = true;
         }
         if (!$gefunden) {
-            throw new RoboHubFehler('Zeitplan ' . $id . ' gibt es am Roboter nicht (mehr).');
+            throw new RoboHubFehler(RoboHubText::t('Schedule %s does not exist (anymore) on the robot.', $id));
         }
         $this->setzeProperty($buendel, $did, 8, 2, implode(';', $teile));
-        return 'Zeitplan ' . ($an ? 'eingeschaltet' : 'ausgeschaltet') . '.';
+        return RoboHubText::t('Schedule %s.', ($an ? 'eingeschaltet' : 'ausgeschaltet'));
     }
 
     // -----------------------------------------------------------------
@@ -1345,7 +1348,7 @@ PEM;
     {
         if ($feld === 'Lautstaerke') {
             if (!is_numeric($wert) || (int)$wert < 0 || (int)$wert > 100) {
-                throw new RoboHubFehler('Lautstärke muss zwischen 0 und 100 % liegen.');
+                throw new RoboHubFehler(RoboHubText::t('Volume must be between 0 and 100 %.'));
             }
             return (int)$wert;
         }
@@ -1355,11 +1358,11 @@ PEM;
         if ($feld === 'NichtStoerenVon' || $feld === 'NichtStoerenBis') {
             $t = trim((string)$wert);
             if (!RoboHubModell::istUhrzeit($t)) {
-                throw new RoboHubFehler('Uhrzeit bitte als HH:MM angeben (z. B. 22:00), nicht „' . $t . '".');
+                throw new RoboHubFehler(RoboHubText::t('Please enter the time as HH:MM (e.g. 22:00), not "%s".', $t));
             }
             return $t;
         }
-        throw new RoboHubFehler('Einstellung „' . $feld . '" ist nicht schreibbar.');
+        throw new RoboHubFehler(RoboHubText::t('Setting "%s" is not writable.', $feld));
     }
 
     /** Setzt NichtStoeren/NichtStoerenVon/NichtStoerenBis/Lautstaerke. */
@@ -1372,14 +1375,14 @@ PEM;
             } else {
                 $this->setzeProperty($buendel, $did, 7, 1, $wert);
             }
-            return 'Lautstärke gesendet.';
+            return RoboHubText::t('Volume sent.');
         }
 
         // Nicht stören: aktuellen Stand lesen, nur das eine Feld ändern, alles zurückschreiben.
         if ($maeher) {
             $cfg = $this->maeherKonfiguration($buendel, $did);
             if (!is_array($cfg['DND'] ?? null) || count($cfg['DND']) < 3) {
-                throw new RoboHubFehler('Nicht-stören-Einstellung des Mähers nicht lesbar — nichts geändert.');
+                throw new RoboHubFehler(RoboHubText::t('The mower\'s do-not-disturb setting cannot be read — nothing changed.'));
             }
             $an = !empty($cfg['DND'][0]);
             $von = self::minutenZuUhrzeit($cfg['DND'][1]);
@@ -1388,7 +1391,7 @@ PEM;
             $p = $this->leseProperties($buendel, $did, [[5, 1], [5, 2], [5, 3], [5, 4]]);
             $stand = self::nichtStoerenLesen($p);
             if ($stand === null) {
-                throw new RoboHubFehler('Nicht-stören-Einstellung des Roboters nicht lesbar — nichts geändert.');
+                throw new RoboHubFehler(RoboHubText::t('The robot\'s do-not-disturb setting cannot be read — nothing changed.'));
             }
             [$an, $von, $bis] = $stand;
         }
@@ -1400,7 +1403,7 @@ PEM;
             $bis = $wert;
         }
         if ($von === $bis) {
-            throw new RoboHubFehler('Beginn und Ende von „Nicht stören" dürfen nicht gleich sein.');
+            throw new RoboHubFehler(RoboHubText::t('Start and end of "Do not disturb" must not be the same.'));
         }
 
         if ($maeher) {
@@ -1422,7 +1425,7 @@ PEM;
         } else {
             $this->setzeProperty($buendel, $did, 5, $feld === 'NichtStoerenVon' ? 2 : 3, $wert);
         }
-        return '„Nicht stören" gesendet.';
+        return RoboHubText::t('"Do not disturb" sent.');
     }
 
     // =================================================================
@@ -1450,7 +1453,7 @@ PEM;
                 try {
                     $this->aktion($buendel, $did, $siid, $aiid, []);
                     $this->dbg('Befehl', self::befehlName($befehl) . ' über ' . $siid . '.' . $aiid . ' angenommen.');
-                    return 'Befehl „' . self::befehlName($befehl) . '" gesendet.';
+                    return RoboHubText::t('Command "%s" sent.', self::befehlName($befehl));
                 } catch (RoboHubFehler $e) {
                     if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
                         throw $e;
@@ -1464,7 +1467,7 @@ PEM;
         if ($befehl === 'orten' && $maeher) {
             // Mäher „Finden" über den Konfigurationskanal (o 9).
             $this->aktion($buendel, $did, 2, 50, [['m' => 'a', 'p' => 0, 'o' => 9]]);
-            return 'Befehl „Orten" gesendet.';
+            return RoboHubText::t('Command "Locate" sent.');
         }
         if ($befehl === 'raum' && !$maeher) {
             return $this->raumReinigung($buendel, $did, array_map('intval', (array)($parameter['raeume'] ?? [])),
@@ -1475,10 +1478,10 @@ PEM;
             // (ioBroker main.js mowAction o 102, docs/mower-protocol.md „zoneMower").
             $zonen = array_values(array_unique(array_filter(array_map('intval', (array)($parameter['raeume'] ?? [])), function (int $z): bool { return $z > 0; })));
             if (count($zonen) === 0) {
-                throw new RoboHubFehler('Keine Zone angegeben.');
+                throw new RoboHubFehler(RoboHubText::t('No zone given.'));
             }
             $this->aktion($buendel, $did, 2, 50, [['m' => 'a', 'p' => 0, 'o' => 102, 'd' => ['region' => $zonen]]]);
-            return 'Mähen ' . (count($zonen) === 1 ? 'der Zone' : 'von ' . count($zonen) . ' Zonen') . ' gesendet.';
+            return RoboHubText::t('Mowing %s sent.', (count($zonen) === 1 ? RoboHubText::t('of the zone') : RoboHubText::t('of %s zones', count($zonen))));
         }
         if ($befehl === 'raumeinstellung' && !$maeher) {
             return $this->raumEinstellungSetzen($buendel, $geraet, (int)($parameter['raum'] ?? -1), (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
@@ -1495,7 +1498,7 @@ PEM;
         if ($befehl === 'setze' && !$maeher) {
             return $this->setze($buendel, $did, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? 0));
         }
-        throw new RoboHubFehler('Dieser Befehl wird für ' . ($maeher ? 'Mähroboter' : 'Saugroboter') . ' noch nicht unterstützt: ' . $befehl);
+        throw new RoboHubFehler(RoboHubText::t('This command is not supported for %s yet: %s', ($maeher ? RoboHubText::t('robot mower') : 'Saugroboter'), $befehl));
     }
 
     // Verbrauchsteile zurücksetzen. Sauger: eigene Aktion je Teil (Tasshack
@@ -1512,7 +1515,7 @@ PEM;
         $did = (string)$geraet['id'];
         if (self::klasseVon((string)($geraet['modell'] ?? '')) === RoboHubModell::KLASSE_MAEHER) {
             if (!isset(self::RUECKSETZEN_MAEHER[$teil])) {
-                throw new RoboHubFehler('Dieses Teil lässt sich beim Mäher nicht zurücksetzen: ' . $teil);
+                throw new RoboHubFehler(RoboHubText::t('This part cannot be reset on the mower: %s', $teil));
             }
             // Read-Modify-Write wie ioBroker: alle drei Zähler lesen, nur den
             // gewünschten auf 0 setzen, alle zurückschreiben — sonst gingen die
@@ -1524,24 +1527,24 @@ PEM;
             }
             $cms = $erstes['d']['value'] ?? null;
             if (!is_array($cms) || count($cms) < 3) {
-                throw new RoboHubFehler('Verschleißzähler des Mähers nicht lesbar — nichts zurückgesetzt.');
+                throw new RoboHubFehler(RoboHubText::t('The mower\'s wear counters cannot be read — nothing reset.'));
             }
             $cms = array_values($cms);
             $cms[self::RUECKSETZEN_MAEHER[$teil]] = 0;
             $this->aktion($buendel, $did, 2, 50, [['m' => 's', 't' => 'CMS', 'd' => ['value' => $cms]]]);
-            return 'Zurücksetzen gesendet.';
+            return RoboHubText::t('Reset sent.');
         }
         if (!isset(self::RUECKSETZEN_SAUGER[$teil])) {
-            throw new RoboHubFehler('Dieses Teil lässt sich nicht zurücksetzen: ' . $teil);
+            throw new RoboHubFehler(RoboHubText::t('This part cannot be reset: %s', $teil));
         }
         [$siid, $aiid] = self::RUECKSETZEN_SAUGER[$teil];
         $this->aktion($buendel, $did, $siid, $aiid, []);
-        return 'Zurücksetzen gesendet.';
+        return RoboHubText::t('Reset sent.');
     }
 
     private static function befehlName(string $befehl): string
     {
-        return ['start' => 'Start', 'pause' => 'Pause', 'stopp' => 'Stopp', 'station' => 'Zur Station', 'orten' => 'Orten'][$befehl] ?? $befehl;
+        return ['start' => 'Start', 'pause' => 'Pause', 'stopp' => 'Stopp', 'station' => RoboHubText::t('Return to base'), 'orten' => 'Orten'][$befehl] ?? $befehl;
     }
 
     /**
@@ -1553,10 +1556,10 @@ PEM;
     private function raumReinigung(array $buendel, string $did, array $raeume, int $modus = -1, int $saugstufe = -1, int $durchgaenge = -1): string
     {
         if (count($raeume) === 0) {
-            throw new RoboHubFehler('Kein Raum angegeben.');
+            throw new RoboHubFehler(RoboHubText::t('No room given.'));
         }
         if ($modus > 3 || $saugstufe > 3 || $durchgaenge > 3 || $durchgaenge === 0) {
-            throw new RoboHubFehler('Ungültige Startwerte (Modus 0–3, Saugstufe 0–3, Durchgänge 1–3).');
+            throw new RoboHubFehler(RoboHubText::t('Invalid start values (mode 0–3, suction level 0–3, passes 1–3).'));
         }
         if ($modus >= 0) {
             $this->setze($buendel, $did, 'Reinigungsmodus', $modus);
@@ -1572,31 +1575,31 @@ PEM;
             $selects[] = [$seg, $wiederholungen, $saug, $wasser, 1];
         }
         $this->aktion($buendel, $did, 4, 1, [['piid' => 1, 'value' => 18], ['piid' => 10, 'value' => json_encode(['selects' => $selects])]]);
-        return 'Raumreinigung für ' . count($raeume) . ' Raum/Räume gesendet.';
+        return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));
     }
 
     private function setze(array $buendel, string $did, string $feld, int $wert): string
     {
         if ($feld === 'Saugstufe') {
             $this->setzeProperty($buendel, $did, 4, 4, $wert);
-            return 'Saugstufe gesendet.';
+            return RoboHubText::t('Suction level sent.');
         }
         if ($feld === 'Wassermenge') {
             $this->setzeProperty($buendel, $did, 4, 5, $wert);
-            return 'Wassermenge gesendet.';
+            return RoboHubText::t('Water level sent.');
         }
         if ($feld === 'Reinigungsmodus') {
             // Read-Modify-Write: nur Bits 0–1 ändern, Feuchte/Selbstreinigungsfläche erhalten.
             $p = $this->leseProperties($buendel, $did, [[4, 23], [4, 25], [27, 3]]);
             if (!isset($p['4.23'])) {
-                throw new RoboHubFehler('Reinigungsmodus konnte nicht gelesen werden — nichts geändert.');
+                throw new RoboHubFehler(RoboHubText::t('Cleaning mode could not be read — nothing changed.'));
             }
             $roh = (int)$p['4.23'];
             $neu = ($roh & ~3) | (self::tauscheModus($wert & 3, $this->hatMoppAnhebung($p)) & 3);
             $this->setzeProperty($buendel, $did, 4, 23, $neu);
-            return 'Reinigungsmodus gesendet.';
+            return RoboHubText::t('Cleaning mode sent.');
         }
-        throw new RoboHubFehler('Einstellung „' . $feld . '" ist nicht schreibbar.');
+        throw new RoboHubFehler(RoboHubText::t('Setting "%s" is not writable.', $feld));
     }
 
     /** action siid.aiid; wirft, wenn das Gerät die Aktion ablehnt (result.code ≠ 0). */
@@ -1605,7 +1608,7 @@ PEM;
         $erg = $this->sendCommand($buendel, $did, 'action', ['did' => $did, 'siid' => $siid, 'aiid' => $aiid, 'in' => $in]);
         $code = is_array($erg) ? (int)($erg['code'] ?? 0) : 0;
         if ($code !== 0) {
-            throw new RoboHubFehler('Der Roboter hat den Befehl abgelehnt (Code ' . $code . ').');
+            throw new RoboHubFehler(RoboHubText::t('The robot rejected the command (code %s).', $code));
         }
         return is_array($erg) ? $erg : [];
     }
@@ -1615,7 +1618,7 @@ PEM;
         $erg = $this->sendCommand($buendel, $did, 'set_properties', [['did' => $did, 'siid' => $siid, 'piid' => $piid, 'value' => $wert]]);
         $code = (int)($erg[0]['code'] ?? 0);
         if ($code !== 0) {
-            throw new RoboHubFehler('Der Roboter hat die Einstellung abgelehnt (Code ' . $code . ').');
+            throw new RoboHubFehler(RoboHubText::t('The robot rejected the setting (code %s).', $code));
         }
     }
 
@@ -1625,9 +1628,9 @@ PEM;
 
     // Vordefinierte Raumtypen (ioBroker lib/cleanset.js).
     private const RAUMTYPEN = [
-        1 => 'Wohnzimmer', 2 => 'Schlafzimmer', 3 => 'Arbeitszimmer', 4 => 'Küche', 5 => 'Esszimmer',
-        6 => 'Bad', 7 => 'Balkon', 8 => 'Flur', 9 => 'Hauswirtschaftsraum', 10 => 'Abstellraum',
-        11 => 'Besprechungsraum', 12 => 'Büro', 13 => 'Fitnessraum', 14 => 'Freizeitraum', 15 => 'Zweites Schlafzimmer',
+        1 => 'Living room', 2 => 'Bedroom', 3 => 'Study', 4 => 'Kitchen', 5 => 'Dining room',
+        6 => 'Bathroom', 7 => 'Balcony', 8 => 'Hallway', 9 => 'Utility room', 10 => 'Storage room',
+        11 => 'Meeting room', 12 => 'Office', 13 => 'Gym', 14 => 'Recreation room', 15 => 'Second bedroom',
     ];
 
     /** Raum-ID => Name; leeres Array, wenn keine Karte vorhanden/lesbar. */
@@ -1838,9 +1841,9 @@ PEM;
     // Wasser: Tasshack liest 2–4 als Wassermenge (Wert − 1 = Niedrig/Mittel/Hoch), größere
     // Werte als Feuchte-Stufe (Geräte mit 28.1). Modus wie 4.23 — mit Mopp-Anhebung 0↔2
     // getauscht (Live-Befund Barny 12.10.2026: Leitung 2 = App „Saugen").
-    private const RAUM_SAUGSTUFE = [0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo'];
-    private const RAUM_WASSER = [1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch'];
-    private const RAUM_MODUS = [0 => 'Saugen', 1 => 'Wischen', 2 => 'Saugen und Wischen', 3 => 'Erst saugen, dann wischen'];
+    private const RAUM_SAUGSTUFE = [0 => 'Quiet', 1 => 'Standard', 2 => 'Strong', 3 => 'Turbo'];
+    private const RAUM_WASSER = [1 => 'Low', 2 => 'Medium', 3 => 'High'];
+    private const RAUM_MODUS = [0 => 'Vacuum', 1 => 'Mop', 2 => 'Vacuum and mop', 3 => 'Vacuum first, then mop'];
 
     /**
      * Kartenobjekt hinter 6.3 (object_name): Text in der Cloud, Base64 (URL-sicher) + zlib,
@@ -1936,17 +1939,17 @@ PEM;
     private function raumEinstellungSetzen(array $buendel, array $geraet, int $raum, string $feld, int $wert): string
     {
         if (!isset(self::RAUM_GRENZEN[$feld])) {
-            throw new RoboHubFehler('Diese Raum-Einstellung lässt sich nicht ändern: ' . $feld);
+            throw new RoboHubFehler(RoboHubText::t('This room setting cannot be changed: %s', $feld));
         }
         [$min, $max, $index] = self::RAUM_GRENZEN[$feld];
         if ($wert < $min || $wert > $max) {
-            throw new RoboHubFehler($feld . ' muss zwischen ' . $min . ' und ' . $max . ' liegen.');
+            throw new RoboHubFehler(RoboHubText::t('%s must be between %s and %s.', $feld, $min, $max));
         }
         $did = (string)$geraet['id'];
         $p = $this->leseProperties($buendel, $did, [[2, 1], [4, 25], [27, 3]]);
         $zustand = $this->normalisiereSauger($p)['werte']['Zustand'] ?? RoboHubModell::ZUSTAND_UNBEKANNT;
         if (!in_array($zustand, [RoboHubModell::ZUSTAND_BEREIT, RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::ZUSTAND_GELADEN, RoboHubModell::ZUSTAND_STATIONSARBEIT, RoboHubModell::ZUSTAND_SCHLAF], true)) {
-            throw new RoboHubFehler('Raum-Einstellungen lassen sich nur ändern, wenn der Roboter nicht reinigt.');
+            throw new RoboHubFehler(RoboHubText::t('Room settings can only be changed while the robot is not cleaning.'));
         }
         $roh = $this->liveRahmen($buendel, $geraet);
         $cs = $roh['json']['cleanset'] ?? null;
@@ -1954,7 +1957,7 @@ PEM;
             $cs = json_decode($cs, true);
         }
         if (!is_array($cs) || !isset($cs[(string)$raum]) || !is_array($cs[(string)$raum]) || count($cs[(string)$raum]) <= $index) {
-            throw new RoboHubFehler('Raum-Einstellungen für diesen Raum nicht lesbar — nichts geändert.');
+            throw new RoboHubFehler(RoboHubText::t('Room settings for this room cannot be read — nothing changed.'));
         }
         if ($feld === 'Modus') {
             // App-Wert → Leitungswert (bei Mopp-Anhebung 0↔2 getauscht, Live-Befund Barny).
@@ -1970,7 +1973,7 @@ PEM;
             $liste[] = array_merge([(int)$id, (int)$w[0], (int)$w[1], (int)$w[2]], array_map('intval', array_slice($w, 4)));
         }
         $this->aktion($buendel, $did, 6, 2, [['piid' => 4, 'value' => (string)json_encode(['customeClean' => $liste], JSON_UNESCAPED_SLASHES)]]);
-        return 'Raum-Einstellung gesendet.';
+        return RoboHubText::t('Room setting sent.');
     }
 
     /**
@@ -1994,15 +1997,15 @@ PEM;
             $wasser = (int)$w[1];
             $e = [
                 'saugstufeWert' => (int)$w[0],
-                'saugstufe'   => self::RAUM_SAUGSTUFE[(int)$w[0]] ?? 'Stufe ' . (int)$w[0],
-                'wasser'      => ($wasser >= 2 && $wasser <= 4) ? self::RAUM_WASSER[$wasser - 1] : 'Feuchte ' . $wasser,
+                'saugstufe'   => RoboHubText::wert(self::RAUM_SAUGSTUFE[(int)$w[0]] ?? null) ?? RoboHubText::t('Level %s', (int)$w[0]),
+                'wasser'      => ($wasser >= 2 && $wasser <= 4) ? RoboHubText::wert(self::RAUM_WASSER[$wasser - 1]) : RoboHubText::t('Moisture %s', $wasser),
                 'durchgaenge' => (int)$w[2],
                 'reihenfolge' => isset($w[3]) ? (int)$w[3] : null,
             ];
             if (isset($w[4])) {
                 $m = self::tauscheModus((int)$w[4], $moppAnhebung);
                 $e['modusWert'] = $m;
-                $e['modus'] = self::RAUM_MODUS[$m] ?? 'Modus ' . (int)$w[4];
+                $e['modus'] = RoboHubText::wert(self::RAUM_MODUS[$m] ?? null) ?? RoboHubText::t('Mode %s', (int)$w[4]);
             }
             $aus[(int)$id] = $e;
         }
@@ -2023,9 +2026,9 @@ PEM;
             if ($typ === 0 && !empty($seg['name'])) {
                 $name = (string)base64_decode((string)$seg['name'], true);
             } elseif (isset(self::RAUMTYPEN[$typ])) {
-                $name = self::RAUMTYPEN[$typ] . ((int)($seg['index'] ?? 0) > 0 ? ' ' . ((int)$seg['index'] + 1) : '');
+                $name = RoboHubText::wert(self::RAUMTYPEN[$typ]) . ((int)($seg['index'] ?? 0) > 0 ? ' ' . ((int)$seg['index'] + 1) : '');
             }
-            $raeume[(int)$id] = $name !== '' ? $name : 'Raum ' . $id;
+            $raeume[(int)$id] = $name !== '' ? $name : RoboHubText::t('Room %s', $id);
         }
         ksort($raeume);
         return $raeume;
@@ -2114,7 +2117,7 @@ PEM;
         $roh = self::dekodiereKarteRoh($text, $modell);
         if ($roh === null) {
             $this->dbg('Live-Karte', 'Kein aktueller Kartenrahmen (Antwort: ' . json_encode($erg['out'] ?? []) . ').');
-            throw new RoboHubFehler('Der Roboter hat keine aktuelle Karte geliefert.');
+            throw new RoboHubFehler(RoboHubText::t('The robot did not deliver a current map.'));
         }
         return $roh;
     }
@@ -2173,7 +2176,7 @@ PEM;
             }
             $id = (int)$eintrag[0];
             $name = trim((string)($eintrag[1]['name'] ?? ''));
-            $zonen[$id] = $name !== '' ? $name : 'Zone ' . $id;
+            $zonen[$id] = $name !== '' ? $name : RoboHubText::t('Zone %s', $id);
         }
         ksort($zonen);
         $weg = [];
@@ -2212,24 +2215,24 @@ PEM;
         [$status, $text] = $this->http('POST', $this->basisUrl($region) . $pfad, $headers, (string)json_encode($daten));
 
         if ($status === 401) {
-            $f = new RoboHubFehler('Zugangsschlüssel abgelaufen oder ungültig — bitte neu anmelden.');
+            $f = new RoboHubFehler(RoboHubText::t('Access token expired or invalid — please sign in again.'));
             $f->anmeldungNoetig = true;
             throw $f;
         }
         if ($status === 429 || $status >= 500 || $status === 0) {
-            $f = new RoboHubFehler($status === 0 ? 'Hersteller-Cloud nicht erreichbar (' . $text . ').' : 'Hersteller-Cloud antwortet mit HTTP ' . $status . '.');
+            $f = new RoboHubFehler($status === 0 ? RoboHubText::t('Vendor cloud not reachable (%s).', $text) : RoboHubText::t('Vendor cloud responds with HTTP %s.', $status));
             $f->warteSekunden = $status === 429 ? 600 : 120;
             throw $f;
         }
         $json = json_decode($text, true);
         if (!is_array($json)) {
-            throw new RoboHubFehler('Unverständliche Antwort der Hersteller-Cloud (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('Incomprehensible response from the vendor cloud (HTTP %s).', $status));
         }
         if ((int)($json['code'] ?? -1) !== 0) {
             $code = (int)($json['code'] ?? -1);
             throw new RoboHubFehler(in_array($code, [-8, 80001], true)
-                ? 'Roboter antwortet nicht (offline oder im Ruhezustand).'
-                : 'Hersteller-Cloud meldet Fehler ' . $code . ((string)($json['msg'] ?? '') !== '' ? ': ' . $json['msg'] : '') . '.');
+                ? RoboHubText::t('Robot does not respond (offline or sleeping).')
+                : RoboHubText::t('Vendor cloud reports error %s%s.', $code, ((string)($json['msg'] ?? '') !== '' ? ': ' . $json['msg'] : '')));
         }
         return $json;
     }

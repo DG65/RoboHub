@@ -50,57 +50,57 @@ class RoboHubIndego implements RoboHubTreiber
 
     // pyIndego MOWER_STATE_DESCRIPTION_DETAIL → [RoboHub-Zustand, Klartext].
     private const ZUSTAENDE = [
-        0 => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Liest Status'],
+        0 => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Reading status'],
         101 => [RoboHubModell::ZUSTAND_FEHLER, 'Angehoben'],
-        257 => [RoboHubModell::ZUSTAND_LAEDT, 'Lädt'],
-        258 => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'],
-        259 => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'In der Station – Software-Update'],
-        260 => [RoboHubModell::ZUSTAND_LAEDT, 'Lädt'],
-        261 => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'],
-        262 => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station – lädt Karte'],
-        263 => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station – speichert Karte'],
-        266 => [RoboHubModell::ZUSTAND_REINIGT, 'Verlässt die Station'],
-        512 => [RoboHubModell::ZUSTAND_REINIGT, 'Verlässt die Station'],
-        513 => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht'],
-        514 => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht – orientiert sich'],
-        515 => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht – lädt Karte'],
-        516 => [RoboHubModell::ZUSTAND_KARTIERUNG, 'Lernt den Rasen'],
+        257 => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
+        258 => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
+        259 => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'In the station – software update'],
+        260 => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
+        261 => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
+        262 => [RoboHubModell::ZUSTAND_GELADEN, 'In the station – loading map'],
+        263 => [RoboHubModell::ZUSTAND_GELADEN, 'In the station – saving map'],
+        266 => [RoboHubModell::ZUSTAND_REINIGT, 'Leaving the station'],
+        512 => [RoboHubModell::ZUSTAND_REINIGT, 'Leaving the station'],
+        513 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'],
+        514 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – orienting'],
+        515 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – loading map'],
+        516 => [RoboHubModell::ZUSTAND_KARTIERUNG, 'Learning the lawn'],
         517 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
         518 => [RoboHubModell::ZUSTAND_REINIGT, 'Kantenschnitt'],
-        519 => [RoboHubModell::ZUSTAND_BEREIT, 'Steht im Rasen'],
-        520 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Rasen lernen pausiert'],
+        519 => [RoboHubModell::ZUSTAND_BEREIT, 'Standing on the lawn'],
+        520 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Lawn learning paused'],
         521 => [RoboHubModell::ZUSTAND_REINIGT, 'Kantenschnitt'],
-        523 => [RoboHubModell::ZUSTAND_REINIGT, 'Punktmähen'],
-        524 => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht – zufällig'],
-        525 => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht – zufällig, fertig'],
-        768 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'],
-        769 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'],
-        770 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'],
-        771 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station – Akku schwach'],
-        772 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station – Zeitfenster vorbei'],
-        773 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station – Akkutemperatur'],
-        774 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station – auf Wunsch'],
-        775 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station – Rasen fertig'],
-        776 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station – orientiert sich'],
-        1005 => [RoboHubModell::ZUSTAND_FEHLER, 'Station nicht erreicht'],
+        523 => [RoboHubModell::ZUSTAND_REINIGT, 'Spot mowing'],
+        524 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – random'],
+        525 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – random, finished'],
+        768 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
+        769 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
+        770 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
+        771 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – battery low'],
+        772 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – time window over'],
+        773 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – battery temperature'],
+        774 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – on request'],
+        775 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – lawn finished'],
+        776 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – orienting'],
+        1005 => [RoboHubModell::ZUSTAND_FEHLER, 'Station not reached'],
         1025 => [RoboHubModell::ZUSTAND_FEHLER, 'Diagnosemodus'],
         1026 => [RoboHubModell::ZUSTAND_FEHLER, 'Lebensende'],
-        1027 => [RoboHubModell::ZUSTAND_FEHLER, 'Service fragt Status ab'],
-        1038 => [RoboHubModell::ZUSTAND_FEHLER, 'Mäher gesperrt'],
+        1027 => [RoboHubModell::ZUSTAND_FEHLER, 'Service is querying status'],
+        1038 => [RoboHubModell::ZUSTAND_FEHLER, 'Mower locked'],
         1281 => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Software-Update'],
-        1537 => [RoboHubModell::ZUSTAND_FEHLER, 'Steckt fest, Hilfe nötig'],
-        64513 => [RoboHubModell::ZUSTAND_SCHLAF, 'Schläft'],
+        1537 => [RoboHubModell::ZUSTAND_FEHLER, 'Stuck, help needed'],
+        64513 => [RoboHubModell::ZUSTAND_SCHLAF, 'Sleeping'],
         99999 => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'],
     ];
 
     // pyIndego ALERT_ERROR_CODE (Auszug, deutsch).
     private const FEHLER = [
-        104 => 'STOP-Taste gedrückt', 101 => 'Angehoben', 115 => 'Steckt fest', 1008 => 'Steckt fest',
-        149 => 'Außerhalb des Begrenzungsdrahts', 151 => 'Kein Drahtsignal', 1005 => 'Station nicht erreicht',
-        1108 => 'Zu starke Neigung', 1138 => 'Mäher braucht Hilfe',
+        104 => 'STOP button pressed', 101 => 'Lifted', 115 => 'Stuck', 1008 => 'Stuck',
+        149 => 'Outside the boundary wire', 151 => 'No wire signal', 1005 => 'Station not reached',
+        1108 => 'Slope too steep', 1138 => 'Mower needs help',
     ];
 
-    private const BEFEHLE = ['start' => ['mow', 'Mähen'], 'pause' => ['pause', 'Pause'], 'station' => ['returnToDock', 'Zur Station']];
+    private const BEFEHLE = ['start' => ['mow', 'Mow'], 'pause' => ['pause', 'Pause'], 'station' => ['returnToDock', 'Return to base']];
 
     // =================================================================
     // Anmeldung
@@ -123,7 +123,7 @@ class RoboHubIndego implements RoboHubTreiber
     {
         $code = self::codeAus($passwort);
         if ($code === '') {
-            throw new RoboHubFehler('Bitte die Adresse „com.bosch.indegoconnect://login?…" aus der Entwicklerkonsole des Browsers (oder nur den Code daraus) ins Feld „Code" eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the address "com.bosch.indegoconnect://login?…" from the browser\'s developer console (or just the code from it) into the "Code" field.'));
         }
         return $this->tokenHolen(['grant_type' => 'authorization_code', 'code' => $code, 'redirect_uri' => self::WEITERLEITUNG], []);
     }
@@ -162,7 +162,7 @@ class RoboHubIndego implements RoboHubTreiber
         [$status, $text] = $this->http('POST', self::B2C . 'token', ['Content-Type: application/x-www-form-urlencoded', 'Accept: application/json'], http_build_query($felder));
         $this->dbg('HTTP', 'POST oauth2/v2.0/token (' . $felder['grant_type'] . ') → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('Bosch-Anmeldung nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Bosch sign-in not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         $j = json_decode($text, true);
         if ($status !== 200 || !is_array($j) || (string)($j['access_token'] ?? '') === '') {
@@ -172,8 +172,8 @@ class RoboHubIndego implements RoboHubTreiber
                 $grund .= ($grund !== '' ? ', ' : '') . $m[0];
             }
             $e = new RoboHubFehler($felder['grant_type'] === 'authorization_code'
-                ? 'Bosch lehnt den Code ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — er gilt nur wenige Minuten und nur einmal. Bitte die Anmeldeseite neu öffnen.'
-                : 'Bosch lehnt die Erneuerung ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — bitte neu anmelden.');
+                ? RoboHubText::t('Bosch rejects the code%s — it is only valid for a few minutes and only once. Please open the sign-in page again.', ($grund !== '' ? ' (' . $grund . ')' : ''))
+                : RoboHubText::t('Bosch rejects the renewal%s — please sign in again.', ($grund !== '' ? ' (' . $grund . ')' : '')));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -216,7 +216,7 @@ class RoboHubIndego implements RoboHubTreiber
         $sn = rawurlencode((string)$geraet['id']);
         $p = (array)$this->anfrage($buendel, 'GET', 'alms/' . $sn . '/state');
         if (!isset($p['state'])) {
-            throw new RoboHubFehler('Bosch liefert für ' . $geraet['id'] . ' keinen Zustand — ist der Mäher noch im Konto?');
+            throw new RoboHubFehler(RoboHubText::t('Bosch delivers no state for %s — is the mower still in the account?', $geraet['id']));
         }
         $s = (int)$p['state'];
         // Akku nur beim Mähen/Laden frisch (HA __init__: 500–799, 257, 260) oder ohne bekannten Wert.
@@ -252,14 +252,15 @@ class RoboHubIndego implements RoboHubTreiber
         $w = [];
         if (isset($p['state'])) {
             $s = (int)$p['state'];
-            [$z, $text] = self::ZUSTAENDE[$s] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unbekannt'];
+            [$z, $text] = self::ZUSTAENDE[$s] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unknown'];
+            $text = RoboHubText::wert($text);
             $w['Zustand'] = $z;
             $w['ZustandRoh'] = $text . ' (' . $s . ')';
             $code = (int)($p['error'] ?? 0);
             if ($code !== 0) {
-                $w['Fehler'] = (self::FEHLER[$code] ?? 'Fehlercode') . ' (' . $code . ')';
+                $w['Fehler'] = RoboHubText::wert(self::FEHLER[$code] ?? 'Error code') . ' (' . $code . ')';
             } else {
-                $w['Fehler'] = $z === RoboHubModell::ZUSTAND_FEHLER ? $text : 'kein Fehler';
+                $w['Fehler'] = $z === RoboHubModell::ZUSTAND_FEHLER ? $text : RoboHubText::t('no error');
             }
         }
         if (isset($p['mowed']) && is_numeric($p['mowed'])) {
@@ -283,12 +284,13 @@ class RoboHubIndego implements RoboHubTreiber
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {
         if (!isset(self::BEFEHLE[$befehl])) {
-            throw new RoboHubFehler(($befehl === 'stopp' ? '„Stopp" gibt es bei Indego nicht — „Pause" oder „Zur Station" nehmen.'
-                : ($befehl === 'orten' ? '„Orten"' : ($befehl === 'raum' ? 'Zonen mähen' : 'Dieser Befehl (' . $befehl . ')')) . ' bietet die Bosch-Cloud nicht.'));
+            throw new RoboHubFehler(($befehl === 'stopp' ? RoboHubText::t('Indego has no "Stop" — use "Pause" or "Return to base".')
+                : ($befehl === 'orten' ? RoboHubText::t('The Bosch cloud does not offer "Locate".') : ($befehl === 'raum' ? RoboHubText::t('The Bosch cloud does not offer mowing zones.') : RoboHubText::t('This command (%s) is not offered by the Bosch cloud.', $befehl)))));
         }
         [$kommando, $text] = self::BEFEHLE[$befehl];
+        $text = RoboHubText::wert($text);
         $this->anfrage($buendel, 'PUT', 'alms/' . rawurlencode((string)$geraet['id']) . '/state', ['state' => $kommando]);
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     public function karte(array $buendel, array $geraet): array
@@ -303,7 +305,7 @@ class RoboHubIndego implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen geht bei Indego nur in der App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts on Indego is only possible in the app.'));
     }
 
     /** Keine Echtzeit — der Client Socket am Konto bleibt geschlossen. */
@@ -343,23 +345,23 @@ class RoboHubIndego implements RoboHubTreiber
         [$status, $text] = $this->http($methode, self::API . $pfad, $kopf, $body !== null ? (string)json_encode($body) : null);
         $this->dbg('HTTP', $methode . ' ' . $pfad . ' → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('Bosch-Cloud nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Bosch cloud not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         if ($status === 401) {
             // Nicht abmelden: der Erneuerungsschlüssel gilt meist noch — beim nächsten Abruf neu holen.
             @touch($this->erneuernDatei($buendel));
-            throw new RoboHubFehler('Bosch hat den Zugangsschlüssel abgelehnt — RoboHub erneuert ihn beim nächsten Abruf.');
+            throw new RoboHubFehler(RoboHubText::t('Bosch rejected the access token — RoboHub renews it at the next update.'));
         }
         if ($status === 403) {
-            throw new RoboHubFehler('Die Bosch-Cloud blockiert die Anfrage (HTTP 403, Firewall) — später erneut versuchen.');
+            throw new RoboHubFehler(RoboHubText::t('The Bosch cloud is blocking the request (HTTP 403, firewall) — try again later.'));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('Bosch bremst die Anfragen — RoboHub wartet.');
+            $e = new RoboHubFehler(RoboHubText::t('Bosch is throttling the requests — RoboHub is waiting.'));
             $e->warteSekunden = 600;
             throw $e;
         }
         if ($status >= 300) {
-            throw new RoboHubFehler('Bosch antwortet mit HTTP ' . $status . ' auf ' . $pfad . '.');
+            throw new RoboHubFehler(RoboHubText::t('Bosch responds with HTTP %s to %s.', $status, $pfad));
         }
         $j = json_decode($text, true);
         return is_array($j) ? $j : [];

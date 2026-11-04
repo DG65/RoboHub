@@ -32,36 +32,36 @@ class RoboHubVorwerk implements RoboHubTreiber
     private const SCOPE = 'openid email profile read:current_user offline_access';
 
     // state.action (Neato-Protokoll; robot-state.js ACTIVE_CLEANING_ACTIONS/SUSPENDED_ACTIONS).
-    private const REINIGEN = [1 => 'Reinigt', 2 => 'Spot-Reinigung', 3 => 'Manuelle Reinigung', 11 => 'Reinigt nach Karte', 12 => 'Erkundet die Wohnung'];
+    private const REINIGEN = [1 => 'Cleaning', 2 => 'Spot cleaning', 3 => 'Manual cleaning', 11 => 'Cleaning by map', 12 => 'Exploring the home'];
     private const PAUSE_AKTIONEN = [6, 15];
 
     // ui_error-Codes zu Gruppen (Bedeutung nach homeassistant-vorwerk const.py, eigene Texte).
     private const FEHLER_GRUPPEN = [
-        'ui_error_battery_'        => 'Akku-Fehler — Akku prüfen bzw. tauschen',
-        'ui_error_brush_stuck'     => 'Bürste blockiert',
-        'ui_error_brush_overloaded' => 'Bürste überlastet',
-        'ui_error_bumper_stuck'    => 'Stoßfänger klemmt',
-        'ui_error_dust_bin_missing' => 'Staubbehälter fehlt',
-        'ui_error_dust_bin_full'   => 'Staubbehälter voll',
-        'ui_error_picked_up'       => 'Angehoben',
-        'ui_error_stuck'           => 'Steckt fest',
-        'ui_error_unable_to_return_to_base' => 'Findet nicht zur Station',
-        'ui_error_navigation_pathproblems' => 'Findet nicht zur Station',
-        'ui_error_navigation_'     => 'Weg versperrt — bitte freiräumen',
-        'ui_error_lwheel_stuck'    => 'Rad links blockiert',
-        'ui_error_rwheel_stuck'    => 'Rad rechts blockiert',
-        'ui_error_ldrop_stuck'     => 'Weg versperrt — bitte freiräumen',
-        'ui_error_rdrop_stuck'     => 'Weg versperrt — bitte freiräumen',
-        'ui_error_lds_jammed'      => 'Laserturm blockiert',
-        'ui_error_deck_debris'     => 'Schmutz im Bürstenschacht',
-        'ui_error_disconnect_chrg_cable' => 'Ladekabel getrennt',
-        'ui_error_hardware_failure' => 'Hardwarefehler',
+        'ui_error_battery_'        => 'Battery error — check or replace the battery',
+        'ui_error_brush_stuck'     => 'Brush blocked',
+        'ui_error_brush_overloaded' => 'Brush overloaded',
+        'ui_error_bumper_stuck'    => 'Bumper stuck',
+        'ui_error_dust_bin_missing' => 'Dust bin missing',
+        'ui_error_dust_bin_full'   => 'Dust bin full',
+        'ui_error_picked_up'       => 'Lifted',
+        'ui_error_stuck'           => 'Stuck',
+        'ui_error_unable_to_return_to_base' => 'Cannot find the base',
+        'ui_error_navigation_pathproblems' => 'Cannot find the base',
+        'ui_error_navigation_'     => 'Path blocked — please clear it',
+        'ui_error_lwheel_stuck'    => 'Left wheel blocked',
+        'ui_error_rwheel_stuck'    => 'Right wheel blocked',
+        'ui_error_ldrop_stuck'     => 'Path blocked — please clear it',
+        'ui_error_rdrop_stuck'     => 'Path blocked — please clear it',
+        'ui_error_lds_jammed'      => 'Laser tower blocked',
+        'ui_error_deck_debris'     => 'Dirt in the brush channel',
+        'ui_error_disconnect_chrg_cable' => 'Charging cable disconnected',
+        'ui_error_hardware_failure' => 'Hardware error',
     ];
     private const HINWEISE = [
-        'ui_alert_dust_bin_full' => 'Staubbehälter voll', 'ui_alert_return_to_base' => 'Fährt zur Station zurück',
-        'ui_alert_return_to_charge' => 'Fährt zum Laden zurück', 'ui_alert_busy_charging' => 'Lädt gerade',
-        'ui_alert_recovering_location' => 'Sucht seine Position', 'ui_alert_brush_change' => 'Bürste bald wechseln',
-        'ui_alert_filter_change' => 'Filter bald wechseln', 'ui_alert_timed_cleaning' => 'Zeitgesteuerte Reinigung',
+        'ui_alert_dust_bin_full' => 'Dust bin full', 'ui_alert_return_to_base' => 'Returning to base',
+        'ui_alert_return_to_charge' => 'Returning to charge', 'ui_alert_busy_charging' => 'Charging',
+        'ui_alert_recovering_location' => 'Searching for its position', 'ui_alert_brush_change' => 'Replace the brush soon',
+        'ui_alert_filter_change' => 'Replace the filter soon', 'ui_alert_timed_cleaning' => 'Scheduled cleaning',
     ];
 
     // =================================================================
@@ -72,15 +72,15 @@ class RoboHubVorwerk implements RoboHubTreiber
     {
         $mail = strtolower(trim($konto));
         if (!filter_var($mail, FILTER_VALIDATE_EMAIL)) {
-            throw new RoboHubFehler('Bitte die E-Mail-Adresse des MyKobold-Kontos eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the e-mail address of the MyKobold account.'));
         }
         [$status] = $this->http('POST', self::AUTH . 'passwordless/start', ['Content-Type: application/json'],
             (string)json_encode(['client_id' => self::CLIENT, 'connection' => 'email', 'email' => $mail, 'send' => 'code']));
         $this->dbg('HTTP', 'POST passwordless/start → ' . $status);
         if ($status !== 200) {
-            throw new RoboHubFehler('Vorwerk konnte keinen Code senden (HTTP ' . $status . ') — E-Mail prüfen und erneut versuchen.');
+            throw new RoboHubFehler(RoboHubText::t('Vorwerk could not send a code (HTTP %s) — check the e-mail and try again.', $status));
         }
-        return 'Vorwerk hat einen Anmeldecode an ' . $mail . ' geschickt.';
+        return RoboHubText::t('Vorwerk sent a sign-in code to %s.', $mail);
     }
 
     public function anmelden(string $konto, string $passwort, string $region): array
@@ -88,7 +88,7 @@ class RoboHubVorwerk implements RoboHubTreiber
         $mail = strtolower(trim($konto));
         $code = preg_replace('/\s+/', '', $passwort);
         if (!filter_var($mail, FILTER_VALIDATE_EMAIL) || !preg_match('/^\d{4,8}$/', (string)$code)) {
-            throw new RoboHubFehler('Bitte E-Mail eintragen, „📧 Code anfordern" und den Code aus der E-Mail ins Feld „Code" übernehmen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the e-mail, click "📧 Request code" and enter the code from the e-mail into the "Code" field.'));
         }
         [$status, $text] = $this->http('POST', self::AUTH . 'oauth/token', ['Content-Type: application/json'], (string)json_encode([
             'prompt' => 'login', 'grant_type' => 'http://auth0.com/oauth/grant-type/passwordless/otp', 'scope' => self::SCOPE, 'locale' => 'en',
@@ -98,21 +98,21 @@ class RoboHubVorwerk implements RoboHubTreiber
         $this->dbg('HTTP', 'POST oauth/token (otp) → ' . $status);
         $j = json_decode($text, true);
         if ($status !== 200 || !is_array($j) || (string)($j['id_token'] ?? '') === '') {
-            $e = new RoboHubFehler('Vorwerk lehnt den Code ab' . (is_array($j) && isset($j['error']) ? ' (' . $j['error'] . ')' : '') . ' — er gilt nur kurz. Bitte einen neuen anfordern.');
+            $e = new RoboHubFehler(RoboHubText::t('Vorwerk rejects the code%s — it is only valid for a short time. Please request a new one.', (is_array($j) && isset($j['error']) ? ' (' . $j['error'] . ')' : '')));
             $e->anmeldungNoetig = true;
             throw $e;
         }
         $b = self::kontoBuendel($j, []);
         $b['roboter'] = $this->roboterHolen($b);
         if ($b['roboter'] === []) {
-            throw new RoboHubFehler('Im MyKobold-Konto ist kein Kobold VR200/VR300 eingetragen.');
+            throw new RoboHubFehler(RoboHubText::t('No Kobold VR200/VR300 is registered in the MyKobold account.'));
         }
         return $b;
     }
 
     public function anmeldeText(array $buendel): string
     {
-        return '✅ Angemeldet. RoboHub kennt kein Vorwerk-Passwort; gespeichert sind der Kontoschlüssel und je Roboter dessen eigener Schlüssel. Der Code wurde verworfen.';
+        return RoboHubText::t('✅ Signed in. RoboHub does not know a Vorwerk password; stored are the account key and each robot\'s own key. The code was discarded.');
     }
 
     private static function kontoBuendel(array $j, array $alt): array
@@ -132,7 +132,7 @@ class RoboHubVorwerk implements RoboHubTreiber
     public function erneuern(array $buendel): array
     {
         if (empty($buendel['roboter'])) {
-            $e = new RoboHubFehler('Noch kein Kobold im Konto — bitte anmelden.');
+            $e = new RoboHubFehler(RoboHubText::t('No Kobold in the account yet — please sign in.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -158,11 +158,11 @@ class RoboHubVorwerk implements RoboHubTreiber
         [$status, $text] = $this->http('GET', self::BEEHIVE . 'users/me/robots', ['Accept: application/vnd.neato.beehive.v1+json', 'Authorization: Auth0Bearer ' . $b['id_token']], null);
         $this->dbg('HTTP', 'GET users/me/robots → ' . $status);
         if (in_array($status, [401, 403], true)) {
-            throw new RoboHubFehler('Der MyKobold-Kontoschlüssel ist abgelaufen — für eine neue Geräteliste bitte neu anmelden (die bekannten Roboter laufen weiter).');
+            throw new RoboHubFehler(RoboHubText::t('The MyKobold account key has expired — please sign in again for a new device list (the known robots keep running).'));
         }
         $liste = json_decode($text, true);
         if ($status !== 200 || !is_array($liste)) {
-            throw new RoboHubFehler('Vorwerk-Cloud liefert keine Roboterliste (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('Vorwerk cloud delivers no robot list (HTTP %s).', $status));
         }
         $aus = [];
         foreach ($liste as $r) {
@@ -198,7 +198,7 @@ class RoboHubVorwerk implements RoboHubTreiber
     {
         $r = $buendel['roboter'][(string)$geraet['id']] ?? null;
         if (!is_array($r)) {
-            throw new RoboHubFehler('Dieser Kobold ist im Konto nicht (mehr) bekannt — bitte im Konto „Geräte jetzt suchen".');
+            throw new RoboHubFehler(RoboHubText::t('This Kobold is not (or no longer) known in the account — please click "Search devices now" in the account.'));
         }
         return $r;
     }
@@ -211,7 +211,7 @@ class RoboHubVorwerk implements RoboHubTreiber
         $daten['bloecke'] = ['ok' => [0], 'fehl' => []];
         $daten['roh'] = ['modell' => $geraet['modell'] ?? null, 'properties' => $p];
         if (!empty($buendel['konto_abgelaufen'])) {
-            $daten['werte']['Meldung'] = 'MyKobold-Kontoschlüssel abgelaufen — Steuerung läuft weiter, für neue Roboter bitte neu anmelden.';
+            $daten['werte']['Meldung'] = RoboHubText::t('MyKobold account key expired — control keeps working, please sign in again for new robots.');
         }
         return $daten;
     }
@@ -230,32 +230,32 @@ class RoboHubVorwerk implements RoboHubTreiber
         } elseif ($s === 3 || ($s === 2 && in_array($a, self::PAUSE_AKTIONEN, true))) {
             [$z, $t] = [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
         } elseif ($s === 1 && !empty($d['isCharging'])) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_LAEDT, 'Lädt'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_LAEDT, RoboHubText::t('Charging')];
         } elseif ($s === 1 && !empty($d['isDocked'])) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_GELADEN, RoboHubText::t('Docked')];
         } elseif ($s === 1) {
             [$z, $t] = [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'];
         } elseif ($s === 2 && $a === 12) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_KARTIERUNG, self::REINIGEN[12]];
+            [$z, $t] = [RoboHubModell::ZUSTAND_KARTIERUNG, RoboHubText::wert(self::REINIGEN[12])];
         } elseif ($s === 2 && isset(self::REINIGEN[$a])) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_REINIGT, self::REINIGEN[$a]];
+            [$z, $t] = [RoboHubModell::ZUSTAND_REINIGT, RoboHubText::wert(self::REINIGEN[$a])];
         } elseif ($s === 2 && $a === 4) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Returning to base')];
         } elseif ($s === 2 && $a === 7) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Aktualisiert Firmware'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_AKTUALISIERUNG, RoboHubText::t('Updating firmware')];
         } else {
-            [$z, $t] = [RoboHubModell::ZUSTAND_UNBEKANNT, 'Beschäftigt'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_UNBEKANNT, RoboHubText::t('Busy')];
         }
         $w['Zustand'] = $z;
         $w['ZustandRoh'] = $t . ' (' . $s . '/' . $a . ')';
-        $w['Fehler'] = $fehler === '' ? 'kein Fehler' : self::fehlerText($fehler) . ' (' . $fehler . ')';
+        $w['Fehler'] = $fehler === '' ? RoboHubText::t('no error') : self::fehlerText($fehler) . ' (' . $fehler . ')';
         if (isset($d['charge']) && is_numeric($d['charge'])) {
             $w['Akku'] = (int)$d['charge'];
         }
         $w['Laedt'] = !empty($d['isCharging']);
         $hinweis = trim((string)($p['alert'] ?? ''));
         if ($hinweis !== '' && $hinweis !== 'ui_alert_invalid') {
-            $w['Meldung'] = self::HINWEISE[$hinweis] ?? $hinweis;
+            $w['Meldung'] = RoboHubText::wert(self::HINWEISE[$hinweis] ?? $hinweis);
         }
         $w['Firmware'] = isset($p['meta']['firmware']) && (string)$p['meta']['firmware'] !== '' ? (string)$p['meta']['firmware'] : null;
         return ['werte' => $w, 'optionen' => [], 'schreibbar' => []];
@@ -264,6 +264,7 @@ class RoboHubVorwerk implements RoboHubTreiber
     public static function fehlerText(string $code): string
     {
         foreach (self::FEHLER_GRUPPEN as $anfang => $text) {
+            $text = RoboHubText::wert($text);
             if (strpos($code, $anfang) === 0) {
                 return $text;
             }
@@ -325,7 +326,7 @@ class RoboHubVorwerk implements RoboHubTreiber
                 [$cmd, $params, $text] = ['stopCleaning', null, 'Stopp'];
                 break;
             case 'station':
-                [$cmd, $params, $text] = ['sendToBase', null, 'Zur Station'];
+                [$cmd, $params, $text] = ['sendToBase', null, RoboHubText::t('Return to base')];
                 break;
             case 'orten':
                 [$cmd, $params, $text] = ['findMe', null, 'Orten'];
@@ -333,23 +334,23 @@ class RoboHubVorwerk implements RoboHubTreiber
             case 'raum':
                 $nr = array_values(array_unique(array_map('intval', (array)($parameter['raeume'] ?? []))));
                 if (count($nr) !== 1) {
-                    throw new RoboHubFehler('Der Kobold reinigt immer genau einen gespeicherten Bereich — bitte einen wählen.');
+                    throw new RoboHubFehler(RoboHubText::t('The Kobold always cleans exactly one saved zone — please choose one.'));
                 }
                 if ($dienst === 'basic-1') {
-                    throw new RoboHubFehler('Der VR200 kennt keine gespeicherten Bereiche.');
+                    throw new RoboHubFehler(RoboHubText::t('The VR200 does not know saved zones.'));
                 }
                 [$karte, $bereiche] = $this->bereiche($r);
                 $b = $bereiche[$nr[0] - 1] ?? null;
                 if ($b === null || $karte === '') {
-                    throw new RoboHubFehler('Unbekannter Bereich ' . $nr[0] . ' — „Räume laden" im Roboter-Formular zeigt die gültigen.');
+                    throw new RoboHubFehler(RoboHubText::t('Unknown zone %s — "Reload rooms" in the robot form shows the valid ones.', $nr[0]));
                 }
-                [$cmd, $params, $text] = ['startCleaning', self::startParameter($dienst, ['mapId' => $karte, 'boundaryId' => $b['id']]), 'Bereich „' . $b['name'] . '" reinigen'];
+                [$cmd, $params, $text] = ['startCleaning', self::startParameter($dienst, ['mapId' => $karte, 'boundaryId' => $b['id']]), RoboHubText::t('Clean zone "%s"', $b['name'])];
                 break;
             default:
-                throw new RoboHubFehler('Dieser Befehl wird beim Kobold nicht unterstützt: ' . $befehl);
+                throw new RoboHubFehler(RoboHubText::t('This command is not supported on the Kobold: %s', $befehl));
         }
         $this->nachricht($r, $cmd, $params);
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     /**
@@ -369,7 +370,7 @@ class RoboHubVorwerk implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen geht beim Kobold nur in der MyKobold-App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts on the Kobold is only possible in the MyKobold app.'));
     }
 
     public function echtzeitMoeglich(): bool
@@ -419,30 +420,30 @@ class RoboHubVorwerk implements RoboHubTreiber
         ], $text);
         $this->dbg('HTTP', 'POST ' . $cmd . ' → ' . $status);
         if ($status === 0) {
-            throw new RoboHubFehler('Vorwerk-Roboterserver nicht erreichbar: ' . $antwort);
+            throw new RoboHubFehler(RoboHubText::t('Vorwerk robot server not reachable: %s', $antwort));
         }
         if (in_array($status, [401, 403], true)) {
-            $e = new RoboHubFehler('Der Roboter-Schlüssel wurde abgelehnt — bitte im Konto neu anmelden.');
+            $e = new RoboHubFehler(RoboHubText::t('The robot key was rejected — please sign in again in the account.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
         if ($status === 404) {
-            throw new RoboHubFehler('Der Kobold ist gerade nicht mit der Cloud verbunden (offline?).');
+            throw new RoboHubFehler(RoboHubText::t('The Kobold is not connected to the cloud right now (offline?).'));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('Vorwerk bremst die Anfragen — RoboHub wartet.');
+            $e = new RoboHubFehler(RoboHubText::t('Vorwerk is throttling the requests — RoboHub is waiting.'));
             $e->warteSekunden = 600;
             throw $e;
         }
         $j = json_decode($antwort, true);
         if ($status >= 300 || !is_array($j)) {
-            throw new RoboHubFehler('Vorwerk-Roboterserver antwortet mit HTTP ' . $status . '.');
+            throw new RoboHubFehler(RoboHubText::t('Vorwerk robot server responds with HTTP %s.', $status));
         }
         if (($j['result'] ?? 'ok') !== 'ok') {
-            throw new RoboHubFehler('Der Kobold lehnt „' . $cmd . '" ab (' . $j['result'] . ').');
+            throw new RoboHubFehler(RoboHubText::t('The Kobold rejects "%s" (%s).', $cmd, $j['result']));
         }
         if (!$nurDaten && $cmd === 'getRobotState' && !isset($j['state'])) {
-            throw new RoboHubFehler('Der Kobold hat keinen gültigen Zustand geliefert.');
+            throw new RoboHubFehler(RoboHubText::t('The Kobold did not deliver a valid state.'));
         }
         return $j;
     }

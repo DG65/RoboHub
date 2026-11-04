@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/RoboHubText.php';
+
 // ===========================================================================
 // Herstellerneutrales Datenmodell von RoboHub.
 //
@@ -40,28 +42,28 @@ final class RoboHubModell
     public const ZUSTAND_WETTERPAUSE    = 11; // Mäher: Regen/Frost-Pause
 
     public const ZUSTAENDE = [
-        self::ZUSTAND_UNBEKANNT      => ['Unbekannt', 'question'],
-        self::ZUSTAND_BEREIT         => ['Bereit', 'robot'],
-        self::ZUSTAND_REINIGT        => ['Reinigt', 'broom'],
-        self::ZUSTAND_PAUSIERT       => ['Pausiert', 'pause'],
-        self::ZUSTAND_ZURUECK        => ['Fährt zur Station', 'house'],
-        self::ZUSTAND_LAEDT          => ['Lädt', 'battery-bolt'],
-        self::ZUSTAND_GELADEN        => ['In der Station', 'battery-full'],
-        self::ZUSTAND_STATIONSARBEIT => ['Station arbeitet', 'droplet'],
-        self::ZUSTAND_FEHLER         => ['Fehler', 'triangle-exclamation'],
-        self::ZUSTAND_SCHLAF         => ['Ruht', 'moon'],
-        self::ZUSTAND_KARTIERUNG     => ['Kartiert', 'map'],
-        self::ZUSTAND_AKTUALISIERUNG => ['Aktualisiert Firmware', 'download'],
-        self::ZUSTAND_WETTERPAUSE    => ['Wetterpause', 'cloud-rain'],
+        self::ZUSTAND_UNBEKANNT      => ['Unknown', 'question'],
+        self::ZUSTAND_BEREIT         => ['Ready', 'robot'],
+        self::ZUSTAND_REINIGT        => ['Cleaning', 'broom'],
+        self::ZUSTAND_PAUSIERT       => ['Paused', 'pause'],
+        self::ZUSTAND_ZURUECK        => ['Returning to base', 'house'],
+        self::ZUSTAND_LAEDT          => ['Charging', 'battery-bolt'],
+        self::ZUSTAND_GELADEN        => ['Docked', 'battery-full'],
+        self::ZUSTAND_STATIONSARBEIT => ['Station busy', 'droplet'],
+        self::ZUSTAND_FEHLER         => ['Error', 'triangle-exclamation'],
+        self::ZUSTAND_SCHLAF         => ['Sleeping', 'moon'],
+        self::ZUSTAND_KARTIERUNG     => ['Mapping', 'map'],
+        self::ZUSTAND_AKTUALISIERUNG => ['Updating firmware', 'download'],
+        self::ZUSTAND_WETTERPAUSE    => ['Weather pause', 'cloud-rain'],
     ];
 
     /** Beschriftung eines Zustands passend zur Geräteklasse. */
     public static function zustandsName(int $zustand, string $klasse): string
     {
         if ($klasse === self::KLASSE_MAEHER && $zustand === self::ZUSTAND_REINIGT) {
-            return 'Mäht';
+            return RoboHubText::t('Mowing');
         }
-        return self::ZUSTAENDE[$zustand][0] ?? self::ZUSTAENDE[self::ZUSTAND_UNBEKANNT][0];
+        return RoboHubText::wert(self::ZUSTAENDE[$zustand][0] ?? self::ZUSTAENDE[self::ZUSTAND_UNBEKANNT][0]);
     }
 
     // Befehle (Variable „Befehl", Aktionsvariable).
@@ -72,11 +74,11 @@ final class RoboHubModell
     public const BEFEHL_ORTEN   = 5;
 
     public const BEFEHLE = [
-        self::BEFEHL_START   => ['Start / Fortsetzen', 'play'],
+        self::BEFEHL_START   => ['Start / resume', 'play'],
         self::BEFEHL_PAUSE   => ['Pause', 'pause'],
-        self::BEFEHL_STOPP   => ['Stopp', 'stop'],
-        self::BEFEHL_STATION => ['Zur Station', 'house'],
-        self::BEFEHL_ORTEN   => ['Orten', 'location-dot'],
+        self::BEFEHL_STOPP   => ['Stop', 'stop'],
+        self::BEFEHL_STATION => ['Return to base', 'house'],
+        self::BEFEHL_ORTEN   => ['Locate', 'location-dot'],
     ];
 
     /**
@@ -86,69 +88,69 @@ final class RoboHubModell
      * ident => [Name, Variablentyp, Einheit/Suffix, Nachkommastellen, Position]
      */
     public const FELDER = [
-        'Messer'             => ['Messer', 1, ' %', 0, 55],
-        'Reinigungsbuerste'  => ['Reinigungsbürste', 1, ' %', 0, 56],
-        'Wartung'            => ['Wartung des Roboters', 1, ' %', 0, 57],
+        'Messer'             => ['Blades', 1, ' %', 0, 55],
+        'Reinigungsbuerste'  => ['Cleaning brush', 1, ' %', 0, 56],
+        'Wartung'            => ['Robot maintenance', 1, ' %', 0, 57],
         // Reststunden wie in den Hersteller-Apps. Sauger: vom Gerät geliefert
         // (ganze Stunden), Mäher: aus den Minutenzählern gerechnet (0,1 h).
-        'HauptbuersteRest'      => ['Hauptbürste Reststunden', 2, ' h', 0, 80],
-        'SeitenbuersteRest'     => ['Seitenbürste Reststunden', 2, ' h', 0, 81],
-        'FilterRest'            => ['Filter Reststunden', 2, ' h', 0, 82],
-        'MoppRest'              => ['Mopp/Walze Reststunden', 2, ' h', 0, 83],
-        'SensorenRest'          => ['Sensoren Reststunden', 2, ' h', 0, 84],
-        'AbwasserfilterRest'    => ['Abwasserauslassfilter Reststunden', 2, ' h', 0, 88],
-        'SchmutzwasserbehaelterRest' => ['Schmutzwasserbehälter Reststunden', 2, ' h', 0, 89],
-        'MesserRest'            => ['Messer Reststunden', 2, ' h', 1, 85],
-        'ReinigungsbuersteRest' => ['Reinigungsbürste Reststunden', 2, ' h', 1, 86],
-        'WartungRest'           => ['Wartung des Roboters in', 2, ' h', 1, 87],
-        'Regensensor'        => ['Regen erkannt', 0, '', 0, 65],
-        'Zustand'            => ['Zustand', 1, '', 0, 10],
-        'ZustandRoh'         => ['Zustand (Hersteller)', 3, '', 0, 11],
-        'Fehler'             => ['Fehler', 3, '', 0, 12],
-        'Meldung'            => ['Letzte Meldung', 3, '', 0, 13],
-        'Akku'               => ['Akku', 1, ' %', 0, 20],
-        'Laedt'              => ['Lädt', 0, '', 0, 21],
-        'AkkuTemperatur'     => ['Akkutemperatur', 2, ' °C', 1, 22],
-        'AkkuSpannung'       => ['Akkuspannung', 2, ' V', 2, 23],
-        'Ladezyklen'         => ['Ladezyklen', 1, '', 0, 24],
+        'HauptbuersteRest'      => ['Main brush hours left', 2, ' h', 0, 80],
+        'SeitenbuersteRest'     => ['Side brush hours left', 2, ' h', 0, 81],
+        'FilterRest'            => ['Filter hours left', 2, ' h', 0, 82],
+        'MoppRest'              => ['Mop/roller hours left', 2, ' h', 0, 83],
+        'SensorenRest'          => ['Sensors hours left', 2, ' h', 0, 84],
+        'AbwasserfilterRest'    => ['Waste water outlet filter hours left', 2, ' h', 0, 88],
+        'SchmutzwasserbehaelterRest' => ['Dirty water tank hours left', 2, ' h', 0, 89],
+        'MesserRest'            => ['Blades hours left', 2, ' h', 1, 85],
+        'ReinigungsbuersteRest' => ['Cleaning brush hours left', 2, ' h', 1, 86],
+        'WartungRest'           => ['Robot maintenance in', 2, ' h', 1, 87],
+        'Regensensor'        => ['Rain detected', 0, '', 0, 65],
+        'Zustand'            => ['State', 1, '', 0, 10],
+        'ZustandRoh'         => ['State (vendor)', 3, '', 0, 11],
+        'Fehler'             => ['Error', 3, '', 0, 12],
+        'Meldung'            => ['Last message', 3, '', 0, 13],
+        'Akku'               => ['Battery', 1, ' %', 0, 20],
+        'Laedt'              => ['Charging', 0, '', 0, 21],
+        'AkkuTemperatur'     => ['Battery temperature', 2, ' °C', 1, 22],
+        'AkkuSpannung'       => ['Battery voltage', 2, ' V', 2, 23],
+        'Ladezyklen'         => ['Charge cycles', 1, '', 0, 24],
         'WlanSignal'         => ['WLAN-Signal', 1, ' dBm', 0, 25],
-        'Reinigungsmodus'    => ['Reinigungsmodus', 3, '', 0, 30],
-        'Saugstufe'          => ['Saugstufe', 3, '', 0, 31],
-        'Wassermenge'        => ['Wassermenge', 3, '', 0, 32],
-        'Durchgaenge'        => ['Reinigungsdurchgänge', 3, '', 0, 33],
-        'Kantenreinigung'    => ['Kanten-Reinigung', 3, '', 0, 34],
-        'BehaelterVoll'      => ['Bei vollem Behälter', 3, '', 0, 35],
-        'Schnitthoehe'       => ['Schnitthöhe', 3, '', 0, 36],
-        'Scheinwerfer'       => ['Scheinwerfer', 3, '', 0, 37],
-        'Maehzeiten'         => ['Mähzeiten (Zeitplan)', 3, '', 0, 38],
-        'Regenverzoegerung'  => ['Regenverzögerung', 3, '', 0, 39],
+        'Reinigungsmodus'    => ['Cleaning mode', 3, '', 0, 30],
+        'Saugstufe'          => ['Suction level', 3, '', 0, 31],
+        'Wassermenge'        => ['Water level', 3, '', 0, 32],
+        'Durchgaenge'        => ['Cleaning passes', 3, '', 0, 33],
+        'Kantenreinigung'    => ['Edge cleaning', 3, '', 0, 34],
+        'BehaelterVoll'      => ['When the bin is full', 3, '', 0, 35],
+        'Schnitthoehe'       => ['Cutting height', 3, '', 0, 36],
+        'Scheinwerfer'       => ['Headlights', 3, '', 0, 37],
+        'Maehzeiten'         => ['Mowing times (schedule)', 3, '', 0, 38],
+        'Regenverzoegerung'  => ['Rain delay', 3, '', 0, 39],
         'Zeitzuschlag'       => ['Zeitzuschlag', 3, '', 0, 46],
-        'Flaeche'            => ['Gereinigte Fläche', 1, ' m²', 0, 40],
-        'Dauer'              => ['Reinigungsdauer', 1, ' min', 0, 41],
-        'Fortschritt'        => ['Fortschritt', 1, ' %', 0, 42],
-        'Hauptbuerste'       => ['Hauptbürste', 1, ' %', 0, 50],
-        'Seitenbuerste'      => ['Seitenbürste', 1, ' %', 0, 51],
+        'Flaeche'            => ['Cleaned area', 1, ' m²', 0, 40],
+        'Dauer'              => ['Cleaning time', 1, ' min', 0, 41],
+        'Fortschritt'        => ['Progress', 1, ' %', 0, 42],
+        'Hauptbuerste'       => ['Main brush', 1, ' %', 0, 50],
+        'Seitenbuerste'      => ['Side brush', 1, ' %', 0, 51],
         'Filter'             => ['Filter', 1, ' %', 0, 52],
         'Mopp'               => ['Mopp/Walze', 1, ' %', 0, 53],
-        'Sensoren'           => ['Sensoren', 1, ' %', 0, 54],
+        'Sensoren'           => ['Sensors', 1, ' %', 0, 54],
         'Abwasserfilter'     => ['Abwasserauslassfilter', 1, ' %', 0, 58],
-        'Schmutzwasserbehaelter' => ['Schmutzwasserbehälter (Roboter)', 1, ' %', 0, 59],
+        'Schmutzwasserbehaelter' => ['Dirty water tank (robot)', 1, ' %', 0, 59],
         'Station'            => ['Station', 3, '', 0, 60],
-        'Frischwasser'       => ['Frischwasser', 3, '', 0, 61],
-        'Schmutzwasser'      => ['Schmutzwasser', 3, '', 0, 62],
-        'Staubbeutel'        => ['Staubbeutel', 3, '', 0, 63],
-        'Reinigungsmittel'   => ['Reinigungsmittel', 3, '', 0, 64],
-        'GesamtFlaeche'      => ['Gereinigte Fläche gesamt', 1, ' m²', 0, 70],
-        'GesamtDauer'        => ['Reinigungsdauer gesamt', 1, ' h', 0, 71],
-        'GesamtAnzahl'       => ['Reinigungen gesamt', 1, '', 0, 72],
-        'GesamtStrecke'      => ['Strecke gesamt', 2, ' km', 1, 73],
-        'Messerlaufzeit'     => ['Messerlaufzeit gesamt', 2, ' h', 1, 74],
+        'Frischwasser'       => ['Clean water', 3, '', 0, 61],
+        'Schmutzwasser'      => ['Dirty water', 3, '', 0, 62],
+        'Staubbeutel'        => ['Dust bag', 3, '', 0, 63],
+        'Reinigungsmittel'   => ['Detergent', 3, '', 0, 64],
+        'GesamtFlaeche'      => ['Cleaned area total', 1, ' m²', 0, 70],
+        'GesamtDauer'        => ['Cleaning time total', 1, ' h', 0, 71],
+        'GesamtAnzahl'       => ['Cleanings total', 1, '', 0, 72],
+        'GesamtStrecke'      => ['Distance total', 2, ' km', 1, 73],
+        'Messerlaufzeit'     => ['Blade run time total', 2, ' h', 1, 74],
         'Firmware'           => ['Firmware', 3, '', 0, 79],
         // Einstellungen, die der Treiber unter 'schreibbar' als änderbar meldet.
-        'NichtStoeren'       => ['Nicht stören', 0, '', 0, 90],
-        'NichtStoerenVon'    => ['Nicht stören ab', 3, '', 0, 91],
-        'NichtStoerenBis'    => ['Nicht stören bis', 3, '', 0, 92],
-        'Lautstaerke'        => ['Lautstärke', 1, ' %', 0, 93],
+        'NichtStoeren'       => ['Do not disturb', 0, '', 0, 90],
+        'NichtStoerenVon'    => ['Do not disturb from', 3, '', 0, 91],
+        'NichtStoerenBis'    => ['Do not disturb until', 3, '', 0, 92],
+        'Lautstaerke'        => ['Volume', 1, ' %', 0, 93],
     ];
 
     /** Zeitangabe „HH:MM" (00:00–23:59) für Nicht-stören-Zeiten. */

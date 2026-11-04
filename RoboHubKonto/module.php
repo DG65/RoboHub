@@ -46,29 +46,38 @@ class RoboHubKonto extends IPSModule
 {
     use RoboHubFormular;
 
+    public function __construct($InstanceID)
+    {
+        parent::__construct($InstanceID);
+        // Treiber, Modell und Kachel übersetzen über RoboHubText (englische Quelltexte, Deutsch in locale.json).
+        RoboHubText::setzen(function (string $text): string {
+            return $this->Translate($text);
+        });
+    }
+
     // Hersteller: Wert im Select => [Anzeige im Select, Kurzname, Anmeldung per Code, Regionswahl].
     private const HERSTELLER = [
-        'dreame'    => ['Dreame (App „Dreamehome")', 'Dreame', false, true],
-        'mova'      => ['MOVA (App „MOVAhome")', 'MOVA', false, true],
-        'roborock'  => ['Roborock (App „Roborock")', 'Roborock', true, false],
-        'worx'      => ['Worx Landroid (App „Landroid")', 'Worx', false, false],
-        'kress'     => ['Kress (App „Kress Mission")', 'Kress', false, false],
-        'landxcape' => ['LandXcape (App „LandXcape")', 'LandXcape', false, false],
-        'ferrex'    => ['Ferrex (App „Smart Mower")', 'Ferrex', false, false],
-        'ecovacs'   => ['Ecovacs Deebot/GOAT (App „Ecovacs Home")', 'Ecovacs', false, true],
-        'irobot'    => ['iRobot Roomba/Braava (lokal im Heimnetz, ohne Cloud)', 'iRobot', false, false],
-        'husqvarna' => ['Husqvarna Automower (offizielle Automower Connect API)', 'Husqvarna', false, false],
-        'gardena'   => ['GARDENA smart system Mähroboter (offizielle API)', 'GARDENA', false, false],
-        'navimow'   => ['Segway Navimow (App „Navimow")', 'Navimow', false, false],
-        'indego'    => ['Bosch Indego (App „Bosch Smart Gardening")', 'Indego', false, false],
-        'stihl'     => ['STIHL iMOW (App „iMOW", alle Generationen)', 'STIHL', false, false],
-        'alko'      => ['AL-KO Robolinho (App „inTOUCH", offizielle API)', 'AL-KO', false, false],
-        'vorwerk'   => ['Vorwerk Kobold VR200/VR300 (App „MyKobold")', 'Vorwerk', true, false],
-        'miele'     => ['Miele Scout (offizielle Miele-API)', 'Miele', false, true],
-        'kaercher'  => ['Kärcher RCV/RCF/RVC (App „Kärcher Home Robots")', 'Kärcher', false, true],
-        'eufy'      => ['Eufy RoboVac/Omni, nur Saugroboter (App „Eufy Clean" bzw. „Eufy")', 'Eufy', false, false],
-        'eufymaeher' => ['Eufy Mähroboter E15 (lokal im Heimnetz, Geräteschlüssel einmalig über das Eufy-Konto)', 'Eufy-Mäher', false, false],
-        'narwal'    => ['Narwal Flow/Freo (lokal im Heimnetz, ohne Cloud)', 'Narwal', false, false],
+        'dreame'    => ['Dreame (app "Dreamehome")', 'Dreame', false, true],
+        'mova'      => ['MOVA (app "MOVAhome")', 'MOVA', false, true],
+        'roborock'  => ['Roborock (app "Roborock")', 'Roborock', true, false],
+        'worx'      => ['Worx Landroid (app "Landroid")', 'Worx', false, false],
+        'kress'     => ['Kress (app "Kress Mission")', 'Kress', false, false],
+        'landxcape' => ['LandXcape (app "LandXcape")', 'LandXcape', false, false],
+        'ferrex'    => ['Ferrex (app "Smart Mower")', 'Ferrex', false, false],
+        'ecovacs'   => ['Ecovacs Deebot/GOAT (app "Ecovacs Home")', 'Ecovacs', false, true],
+        'irobot'    => ['iRobot Roomba/Braava (locally in your home network, no cloud)', 'iRobot', false, false],
+        'husqvarna' => ['Husqvarna Automower (official Automower Connect API)', 'Husqvarna', false, false],
+        'gardena'   => ['GARDENA smart system robot mower (official API)', 'GARDENA', false, false],
+        'navimow'   => ['Segway Navimow (app "Navimow")', 'Navimow', false, false],
+        'indego'    => ['Bosch Indego (app "Bosch Smart Gardening")', 'Indego', false, false],
+        'stihl'     => ['STIHL iMOW (app "iMOW", all generations)', 'STIHL', false, false],
+        'alko'      => ['AL-KO Robolinho (app "inTOUCH", official API)', 'AL-KO', false, false],
+        'vorwerk'   => ['Vorwerk Kobold VR200/VR300 (app "MyKobold")', 'Vorwerk', true, false],
+        'miele'     => ['Miele Scout (official Miele API)', 'Miele', false, true],
+        'kaercher'  => ['Kärcher RCV/RCF/RVC (app "Kärcher Home Robots")', 'Kärcher', false, true],
+        'eufy'      => ['Eufy RoboVac/Omni, robot vacuums only (app "Eufy Clean" or "Eufy")', 'Eufy', false, false],
+        'eufymaeher' => ['Eufy robot mower E15 (locally in your home network, device key fetched once via the Eufy account)', 'Eufy mower', false, false],
+        'narwal'    => ['Narwal Flow/Freo (locally in your home network, no cloud)', 'Narwal', false, false],
     ];
 
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
@@ -218,10 +227,10 @@ class RoboHubKonto extends IPSModule
             return $this->koppeln($treiber, $konto);
         }
         if (method_exists($treiber, 'anmeldeLink') && $pass === '') {
-            return $this->melde('⛔ Bitte zuerst „🔗 Anmeldeseite öffnen", dort anmelden und die Adresse, auf der der Browser landet, ins Feld „Code" eintragen, „Übernehmen", dann anmelden.');
+            return $this->melde(RoboHubText::t('⛔ First click "🔗 Open sign-in page", sign in there and enter the address the browser lands on into the "Code" field, click "Apply", then sign in.'));
         }
         if (!method_exists($treiber, 'anmeldeLink') && ($konto === '' || $pass === '')) {
-            return $this->melde('⛔ Bitte zuerst Konto (E-Mail) und Passwort (bei Roborock: den Code aus der E-Mail) eintragen, „Übernehmen" klicken und dann anmelden.');
+            return $this->melde(RoboHubText::t('⛔ First enter the account (e-mail) and password (for Roborock: the code from the e-mail), click "Apply" and then sign in.'));
         }
         $vorstufe = json_decode((string)$this->ReadAttributeString('AnmeldeVorstufe'), true) ?: [];
         if (property_exists($treiber, 'zusatz')) {
@@ -235,7 +244,7 @@ class RoboHubKonto extends IPSModule
             }
         } catch (Throwable $e) {
             $this->WriteAttributeString('LetzterFehler', $e->getMessage());
-            $this->protokolliere('Anmeldung fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
+            $this->protokolliere(RoboHubText::t('Sign-in failed: %s', $e->getMessage()), KL_WARNING);
             if ($e instanceof RoboHubFehler && $e->vorstufe !== []) {
                 // Zweite Stufe nötig: Zwischenstand merken, Passwortfeld für den Code freimachen.
                 $this->WriteAttributeString('AnmeldeVorstufe', (string)json_encode($e->vorstufe));
@@ -245,7 +254,7 @@ class RoboHubKonto extends IPSModule
                 IPS_ApplyChanges($this->InstanceID);
                 return $text;
             }
-            return $this->melde('⛔ Anmeldung fehlgeschlagen: ' . $e->getMessage());
+            return $this->melde(RoboHubText::t('⛔ Sign-in failed: %s', $e->getMessage()));
         }
         $this->WriteAttributeString('AnmeldeVorstufe', '');
         $this->WriteAttributeString('Buendel', (string)json_encode($buendel));
@@ -254,21 +263,21 @@ class RoboHubKonto extends IPSModule
 
         $hersteller = $this->ReadPropertyString('Hersteller');
         if ($hersteller === 'ecovacs') {
-            $text = '✅ Angemeldet. Ecovacs kennt keinen Erneuerungsschlüssel: RoboHub behält einen Hash des Passworts (nicht das Passwort selbst), um sich alle 7 Tage selbst neu anzumelden. Abmelden löscht ihn.';
+            $text = RoboHubText::t('✅ Signed in. Ecovacs has no refresh token: RoboHub keeps a hash of the password (not the password itself) to sign in again by itself every 7 days. Signing out deletes it.');
         } elseif (method_exists($treiber, 'anmeldeText')) {
             $text = $treiber->anmeldeText($buendel);
         } elseif ($hersteller === 'navimow' || $hersteller === 'indego') {
-            $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, der Code wurde verworfen — RoboHub kennt dein ' . ($hersteller === 'indego' ? 'Bosch' : 'Segway') . '-Passwort nicht.';
+            $text = RoboHubText::t('✅ Signed in. The access token is stored, the code was discarded — RoboHub does not know your %s password.', ($hersteller === 'indego' ? 'Bosch' : 'Segway'));
         } elseif ($hersteller === 'husqvarna' || $hersteller === 'gardena') {
-            $text = '✅ Angemeldet. Application Key und Secret bleiben im Konto gespeichert, weil Husqvarna/GARDENA den Zugang nur damit erneuert (alle 24 h). Im Entwicklerportal kannst du sie jederzeit widerrufen; Abmelden löscht sie hier.';
+            $text = RoboHubText::t('✅ Signed in. Application key and secret stay stored in the account because Husqvarna/GARDENA only renews access with them (every 24 h). You can revoke them in the developer portal at any time; signing out deletes them here.');
         } else {
-            $text = '✅ Angemeldet. Der Zugangsschlüssel ist gespeichert, ' . ($this->perCode() ? 'der Code' : 'das Passwort') . ' wurde verworfen.';
+            $text = RoboHubText::t('✅ Signed in. The access token is stored, %s was discarded.', ($this->perCode() ? RoboHubText::t('the code') : RoboHubText::t('the password')));
         }
         try {
             $geraete = $this->ladeGeraete($buendel);
             $text .= "\n" . $this->geraeteZusammenfassung($geraete);
         } catch (Throwable $e) {
-            $text .= "\n⚠️ Die Geräteliste ließ sich noch nicht laden (" . $e->getMessage() . '). Der Konfigurator versucht es erneut.';
+            $text .= RoboHubText::t("\n⚠️ The device list could not be loaded yet (%s). The configurator will try again.", $e->getMessage());
         }
 
         // Passwort sofort unwirksam machen (Sicherheitsfall aus SUITE.md
@@ -291,13 +300,13 @@ class RoboHubKonto extends IPSModule
             $buendel = $treiber->koppeln($ip, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: []);
         } catch (Throwable $e) {
             $this->WriteAttributeString('LetzterFehler', $e->getMessage());
-            $this->protokolliere('Koppeln fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
-            return $this->melde('⛔ Koppeln fehlgeschlagen: ' . $e->getMessage());
+            $this->protokolliere(RoboHubText::t('Pairing failed: %s', $e->getMessage()), KL_WARNING);
+            return $this->melde(RoboHubText::t('⛔ Pairing failed: %s', $e->getMessage()));
         }
         $this->WriteAttributeString('Buendel', (string)json_encode($buendel));
         $this->WriteAttributeString('LetzterFehler', '');
         $text = method_exists($treiber, 'koppelText') ? $treiber->koppelText()
-            : '✅ Gekoppelt. Das Gerätepasswort und der Fingerabdruck des Roboter-Zertifikats sind gespeichert; ein Gerät mit anderem Zertifikat wird künftig abgelehnt.';
+            : RoboHubText::t('✅ Paired. The device password and the fingerprint of the robot\'s certificate are stored; a device with a different certificate will be rejected from now on.');
         try {
             $text .= "\n" . $this->geraeteZusammenfassung($this->ladeGeraete($buendel));
         } catch (Throwable $e) {
@@ -316,19 +325,19 @@ class RoboHubKonto extends IPSModule
     {
         $konto = trim((string)$this->ReadPropertyString('Konto'));
         if ($konto === '') {
-            return $this->melde('⛔ Bitte zuerst die E-Mail des Kontos eintragen und „Übernehmen" klicken.');
+            return $this->melde(RoboHubText::t('⛔ First enter the account\'s e-mail and click "Apply".'));
         }
         $treiber = $this->treiber();
         if (!method_exists($treiber, 'codeAnfordern')) {
-            return $this->melde('ℹ️ Dieser Hersteller meldet sich mit dem Passwort an — kein Code nötig.');
+            return $this->melde(RoboHubText::t('ℹ️ This vendor signs in with the password — no code needed.'));
         }
         try {
             $text = $treiber->codeAnfordern($konto, json_decode((string)$this->ReadAttributeString('AnmeldeVorstufe'), true) ?: []);
         } catch (Throwable $e) {
-            $this->protokolliere('Code anfordern fehlgeschlagen: ' . $e->getMessage(), KL_WARNING);
+            $this->protokolliere(RoboHubText::t('Requesting the code failed: %s', $e->getMessage()), KL_WARNING);
             return $this->melde('⛔ ' . $e->getMessage());
         }
-        return $this->melde('📧 ' . $text . ' Code ins Feld „Passwort bzw. Code" eintragen, „Übernehmen", dann „🔑 Jetzt anmelden".');
+        return $this->melde(RoboHubText::t('📧 %s Enter the code into the field "Password or code", click "Apply", then "🔑 Sign in now".', $text));
     }
 
     /**
@@ -350,7 +359,7 @@ class RoboHubKonto extends IPSModule
         $this->WriteAttributeInteger('GeraeteStand', 0);
         $this->aktualisiereStatus();
         $this->echtzeitKonfigurieren(false);
-        return $this->melde('⏏️ Abgemeldet — der Zugangsschlüssel wurde gelöscht. Die Roboter-Instanzen bleiben erhalten und laufen nach einer neuen Anmeldung weiter.');
+        return $this->melde(RoboHubText::t('⏏️ Signed out — the access token was deleted. The robot instances are kept and continue after a new sign-in.'));
     }
 
     /** ROBOHUB_GeraeteSuchen($id): string — Geräteliste neu von der Cloud holen. */
@@ -379,7 +388,7 @@ class RoboHubKonto extends IPSModule
         }, json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: []);
         return (string)json_encode([
             'hersteller' => $hersteller,
-            'anzeige'    => (self::HERSTELLER[$hersteller][1] ?? $hersteller) . ($this->ReadPropertyString('Konto') !== '' ? ' (' . $this->ReadPropertyString('Konto') . ')' : ''),
+            'anzeige'    => RoboHubText::wert(self::HERSTELLER[$hersteller][1] ?? $hersteller) . ($this->ReadPropertyString('Konto') !== '' ? ' (' . $this->ReadPropertyString('Konto') . ')' : ''),
             'angemeldet' => $this->ReadAttributeString('Buendel') !== '',
             'stand'      => $this->ReadAttributeInteger('GeraeteStand'),
             'geraete'    => $geraete,
@@ -420,7 +429,7 @@ class RoboHubKonto extends IPSModule
     private function echtzeitSperren(): void
     {
         $this->WriteAttributeInteger('EchtzeitGesperrtBis', time() + 86400);
-        $this->protokolliere('Echtzeit-Verbindung schlägt fehl (unter Symcon 9.1 wird das Zertifikat des Herstellerservers abgelehnt) — Verbindung für 24 h geschlossen, die Abfrage läuft weiter.', KL_WARNING);
+        $this->protokolliere(RoboHubText::t('Real-time connection fails (under Symcon 9.1 the certificate of the vendor server is rejected) — connection closed for 24 h, polling continues.'), KL_WARNING);
         $this->echtzeitKonfigurieren(false);
         $this->mqttStand(['zustand' => 'zertifikat']);
     }
@@ -438,7 +447,7 @@ class RoboHubKonto extends IPSModule
     {
         $anfrage = json_decode((string)$JSONString, true);
         if (!is_array($anfrage)) {
-            return (string)json_encode(['ok' => false, 'fehler' => 'Ungültige Anfrage.']);
+            return (string)json_encode(['ok' => false, 'fehler' => RoboHubText::t('Invalid request.')]);
         }
         try {
             $daten = $this->bearbeite($anfrage);
@@ -500,7 +509,7 @@ class RoboHubKonto extends IPSModule
             $this->verarbeiteFehler($e);
             throw $e;
         }
-        throw new RoboHubFehler('Unbekannte Aktion: ' . $aktion);
+        throw new RoboHubFehler(RoboHubText::t('Unknown action: %s', $aktion));
     }
 
     // -----------------------------------------------------------------
@@ -716,11 +725,11 @@ class RoboHubKonto extends IPSModule
             }
             IPS_DisconnectInstance($this->InstanceID);
             @IPS_DeleteInstance($eltern);
-            $this->protokolliere('Verbindungsinstanz gegen ' . ['websocket' => 'einen WebSocket Client', 'mqtt' => 'einen Client Socket', '' => 'einen Virtual IO'][$this->echtzeitArt()] . ' getauscht.');
+            $this->protokolliere(RoboHubText::t('Replaced the connection instance with %s.', ['websocket' => RoboHubText::t('a WebSocket Client'), 'mqtt' => RoboHubText::t('a Client Socket'), '' => RoboHubText::t('a Virtual IO')][$this->echtzeitArt()]));
         }
         $id = @IPS_CreateInstance($this->elternModul());
         if (!$id) {
-            $this->protokolliere('Verbindungsinstanz unter dem Konto ließ sich nicht anlegen.', KL_WARNING);
+            $this->protokolliere(RoboHubText::t('The connection instance below the account could not be created.'), KL_WARNING);
             return;
         }
         // Inzwischen doch verbunden (z. B. von der Konsole)? Dann den eigenen wieder entfernen.
@@ -769,7 +778,7 @@ class RoboHubKonto extends IPSModule
         try {
             $this->SendDataToParent((string)json_encode(['DataID' => self::DATA_ZUM_IO, 'Buffer' => mb_convert_encoding($bytes, 'UTF-8', 'ISO-8859-1')]));
         } catch (Throwable $e) {
-            $this->mqttStand(['zustand' => 'fehler', 'text' => 'Senden fehlgeschlagen: ' . $e->getMessage()]);
+            $this->mqttStand(['zustand' => 'fehler', 'text' => RoboHubText::t('Sending failed: %s', $e->getMessage())]);
         }
     }
 
@@ -783,7 +792,7 @@ class RoboHubKonto extends IPSModule
                 try {
                     $this->SendDataToParent((string)json_encode(['DataID' => self::DATA_ZUM_IO, 'Buffer' => $text]));
                 } catch (Throwable $e) {
-                    $this->mqttStand(['zustand' => 'fehler', 'text' => 'Senden fehlgeschlagen: ' . $e->getMessage()]);
+                    $this->mqttStand(['zustand' => 'fehler', 'text' => RoboHubText::t('Sending failed: %s', $e->getMessage())]);
                 }
             }
             return;
@@ -793,7 +802,7 @@ class RoboHubKonto extends IPSModule
             return;
         }
         if (time() - (int)($stand['lebenszeichen'] ?? 0) > 3 * self::MQTT_KEEPALIVE) {
-            $this->protokolliere('Echtzeit-Verbindung antwortet nicht mehr — verbinde neu.', KL_WARNING);
+            $this->protokolliere(RoboHubText::t('Real-time connection no longer responds — reconnecting.'), KL_WARNING);
             $this->echtzeitKonfigurieren(true);
             return;
         }
@@ -833,7 +842,7 @@ class RoboHubKonto extends IPSModule
             case RoboHubMqtt::CONNACK:
                 $code = RoboHubMqtt::connackCode($p['body']);
                 if ($code !== 0) {
-                    $text = 'Echtzeit-Anmeldung abgelehnt: ' . RoboHubMqtt::connackText($code);
+                    $text = RoboHubText::t('Real-time sign-in rejected: %s', RoboHubMqtt::connackText($code));
                     $this->mqttStand(['zustand' => 'fehler', 'text' => $text]);
                     $this->protokolliere($text, KL_WARNING);
                     return;
@@ -919,30 +928,27 @@ class RoboHubKonto extends IPSModule
     {
         $s = json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [];
         if (!$this->ReadPropertyBoolean('Echtzeit')) {
-            return 'ℹ️ Echtzeit ist ausgeschaltet — die Roboter werden nur per Abfrage aktualisiert.';
+            return RoboHubText::t('ℹ️ Real-time is switched off — the robots are only updated by polling.');
         }
         $treiber = $this->treiber();
         if (method_exists($treiber, 'echtzeitMoeglich') && !$treiber->echtzeitMoeglich()) {
-            return 'ℹ️ Für ' . (self::HERSTELLER[$this->ReadPropertyString('Hersteller')][1] ?? 'diesen Hersteller') . ' gibt es noch keine Echtzeit-Meldungen — die Roboter werden per Abfrage aktualisiert. Unter dem Konto hängt deshalb nur ein „Virtual IO" als Verbindungsglied, das Symcon verlangt.';
+            return RoboHubText::t('ℹ️ There are no real-time messages for %s yet — the robots are updated by polling. That\'s why only a "Virtual IO" hangs below the account as the link Symcon requires.', (RoboHubText::wert(self::HERSTELLER[$this->ReadPropertyString('Hersteller')][1] ?? null) ?? RoboHubText::t('this vendor')));
         }
         switch ($s['zustand'] ?? '') {
             case 'verbunden':
-                return '🔗 Echtzeit verbunden mit ' . ($s['host'] ?? '?') . ' seit ' . date('d.m.Y H:i', (int)($s['seit'] ?? time())) . ' Uhr, '
-                    . (int)($s['topics'] ?? 0) . ' Gerät(e) abonniert'
-                    . (!empty($s['letzte']) ? ', letzte Meldung ' . date('H:i:s', (int)$s['letzte']) . ' Uhr (' . (int)($s['anzahl'] ?? 0) . ' insgesamt)' : ', noch keine Meldung') . '.';
+                return RoboHubText::t('🔗 Real-time connected to %s since %s, %s device(s) subscribed%s.', ($s['host'] ?? '?'), date('d.m.Y H:i', (int)($s['seit'] ?? time())), (int)($s['topics'] ?? 0), (!empty($s['letzte']) ? RoboHubText::t(', last message %s (%s in total)', date('H:i:s', (int)$s['letzte']), (int)($s['anzahl'] ?? 0)) : RoboHubText::t(', no message yet')));
             case 'verbinde':
-                return '⏳ Echtzeit verbindet mit ' . ($s['host'] ?? '?') . ' …';
+                return RoboHubText::t('⏳ Real-time connecting to %s …', ($s['host'] ?? '?'));
             case 'fehler':
-                return '⛔ Echtzeit: ' . ($s['text'] ?? 'Fehler') . ' — die Abfrage läuft weiter.';
+                return RoboHubText::t('⛔ Real-time: %s — polling continues.', ($s['text'] ?? 'Fehler'));
             case 'getrennt':
-                return '⚠️ Echtzeit getrennt — Symcon verbindet automatisch neu; die Abfrage läuft weiter.';
+                return RoboHubText::t('⚠️ Real-time disconnected — Symcon reconnects automatically; polling continues.');
             case 'fehlt':
-                return '⚠️ Keine Verbindungsinstanz (Client Socket) — bitte „Übernehmen" klicken.';
+                return RoboHubText::t('⚠️ No connection instance (Client Socket) — please click "Apply".');
             case 'zertifikat':
-                return '⚠️ Die Echtzeit-Verbindung kam nicht zustande. Unter Symcon 9.1 lehnt die Verbindungsinstanz das Zertifikat des Herstellerservers ab (es gilt ab 31.12.1969, die neue TLS-Prüfung akzeptiert nichts vor 1970). RoboHub hat sie deshalb geschlossen und fragt die Roboter regelmäßig ab. Neuer Versuch am '
-                    . date('d.m.Y H:i', $this->ReadAttributeInteger('EchtzeitGesperrtBis')) . ' Uhr oder per Knopf.';
+                return RoboHubText::t('⚠️ The real-time connection could not be established. Under Symcon 9.1 the connection instance rejects the certificate of the vendor server (it is valid from 31.12.1969, the new TLS check accepts nothing before 1970). RoboHub therefore closed it and polls the robots regularly. Next attempt at %s or via the button.', date('d.m.Y H:i', $this->ReadAttributeInteger('EchtzeitGesperrtBis')));
             default:
-                return $this->ReadAttributeString('Buendel') === '' ? 'ℹ️ Echtzeit startet nach der Anmeldung.' : 'ℹ️ Echtzeit noch nicht verbunden.';
+                return $this->ReadAttributeString('Buendel') === '' ? RoboHubText::t('ℹ️ Real-time starts after sign-in.') : RoboHubText::t('ℹ️ Real-time not connected yet.');
         }
     }
 
@@ -1019,11 +1025,11 @@ class RoboHubKonto extends IPSModule
     {
         $roh = $this->ReadAttributeString('Buendel');
         if ($roh === '') {
-            throw new RoboHubFehler('Nicht angemeldet — bitte in der Konto-Instanz anmelden.');
+            throw new RoboHubFehler(RoboHubText::t('Not signed in — please sign in in the account instance.'));
         }
         $warte = $this->ReadAttributeInteger('WarteBis');
         if ($warte > time()) {
-            throw new RoboHubFehler('Die Hersteller-Cloud bremst gerade — nächster Versuch ab ' . date('d.m.Y H:i', $warte) . ' Uhr.');
+            throw new RoboHubFehler(RoboHubText::t('The vendor cloud is throttling right now — next attempt from %s.', date('d.m.Y H:i', $warte)));
         }
         $buendel = json_decode($roh, true) ?: [];
 
@@ -1141,21 +1147,21 @@ class RoboHubKonto extends IPSModule
                 return $g;
             }
         }
-        throw new RoboHubFehler('Gerät ' . $id . ' ist in diesem Konto nicht (mehr) vorhanden.');
+        throw new RoboHubFehler(RoboHubText::t('Device %s is not (or no longer) in this account.', $id));
     }
 
     private function geraeteZusammenfassung(array $geraete): string
     {
         if (count($geraete) === 0) {
-            return '⚠️ Im Konto wurde kein Roboter gefunden.';
+            return RoboHubText::t('⚠️ No robot was found in the account.');
         }
-        $zeilen = ['✅ ' . count($geraete) . ' Gerät(e) im Konto:'];
+        $zeilen = [RoboHubText::t('✅ %s device(s) in the account:', count($geraete))];
         foreach ($geraete as $g) {
             $zeilen[] = '• ' . ($g['name'] ?? '?') . ' (' . ($g['modell'] ?? '?') . ', '
-                . (($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? 'Mähroboter' : 'Saug-/Wischroboter') . ', '
+                . (($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robot mower') : 'Saug-/Wischroboter') . ', '
                 . (!empty($g['online']) ? 'online' : 'offline') . ')';
         }
-        $zeilen[] = 'Anlegen über den RoboHub-Konfigurator.';
+        $zeilen[] = RoboHubText::t('Create them with the RoboHub configurator.');
         return implode("\n", $zeilen);
     }
 
@@ -1163,10 +1169,10 @@ class RoboHubKonto extends IPSModule
     {
         $stand = $this->ReadAttributeInteger('GeraeteStand');
         if ($stand === 0) {
-            return 'ℹ️ Noch keine Geräteliste geladen.';
+            return RoboHubText::t('ℹ️ No device list loaded yet.');
         }
         $n = count(json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: []);
-        return ($n > 0 ? '✅ ' : '⚠️ ') . $n . ' Gerät(e) gefunden (zuletzt ' . date('d.m.Y H:i:s', $stand) . ' Uhr).';
+        return RoboHubText::t('%s%s device(s) found (last %s).', ($n > 0 ? '✅ ' : '⚠️ '), $n, date('d.m.Y H:i:s', $stand));
     }
 
     private function aktualisiereStatus(): void
@@ -1207,21 +1213,21 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, Eufy, Eufy-Mäher E15, iRobot, Narwal sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.',
-            'Der Nutzen: Roboter werden Teil deiner Automationen, z. B. „saugen, wenn niemand zu Hause ist" oder „Mähen bei Regen abbrechen" — ohne Hersteller-App. Die einzelnen Roboter legst du danach mit dem RoboHub-Konfigurator an.',
+            RoboHubText::t('This instance connects Symcon with your vendor account for robot vacuums, mops and lawn mowers (currently Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, Eufy, Eufy mower E15, iRobot, Narwal as well as Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW and AL-KO Robolinho). You sign in once — after that RoboHub fetches state, battery and consumables of your robots and can start, stop or send them back to base.'),
+            RoboHubText::t('The benefit: robots become part of your automations, e.g. "vacuum when nobody is home" or "stop mowing when it rains" — without the vendor app. You then create the individual robots with the RoboHub configurator.'),
         ];
     }
 
     protected function robohubDocLines(): array
     {
         return [
-            'Anmelden: Hersteller und Region wählen, E-Mail und Passwort deines Hersteller-Kontos eintragen, „Übernehmen", dann „🔑 Jetzt anmelden". Das Passwort wird nach erfolgreicher Anmeldung sofort verworfen; gespeichert bleibt nur der Zugangsschlüssel.',
-            'Ecovacs: Land wählen, E-Mail und Passwort eintragen, anmelden. Verlangt Ecovacs eine Bestätigung, „📧 Code anfordern", den Code ins Passwortfeld eintragen, „Übernehmen", erneut anmelden. Weil Ecovacs keinen Erneuerungsschlüssel kennt, behält RoboHub einen Hash des Passworts für die automatische Neuanmeldung alle 7 Tage.',
-            'Roborock: ohne Passwort — „📧 Code anfordern", den Code aus der E-Mail ins Feld eintragen, „Übernehmen", „🔑 Jetzt anmelden". Zustand und Befehle laufen verschlüsselt über den Roborock-Server; Kartenbild und Echtzeit-Meldungen folgen später.',
-            'Sicherheit: Symcon verschlüsselt gespeicherte Werte nicht. Der Zugangsschlüssel steht nicht im Formular und nicht im Protokoll, liegt aber im Klartext in der Symcon-Datenbank — wie bei jedem Cloud-Modul.',
-            'Mehrere Konten (z. B. ein Dreamehome-Konto für den Saugroboter und ein MOVAhome-Konto für den Mäher): je Konto eine eigene Konto-Instanz anlegen. Der Konfigurator zeigt trotzdem alle Roboter in einer Liste, und jeder Roboter verbindet sich selbst mit dem Konto, zu dem er gehört.',
-            'Bremst die Hersteller-Cloud (zu viele Anfragen), wartet RoboHub die angegebene Zeit automatisch ab (Status „Cloud bremst") und macht danach von selbst weiter.',
-            'Läuft der Zugangsschlüssel endgültig ab, zeigt die Instanz „Anmeldung erforderlich" — dann einfach erneut Passwort eintragen und anmelden.',
+            RoboHubText::t('Sign in: choose vendor and region, enter e-mail and password of your vendor account, click "Apply", then "🔑 Sign in now". The password is discarded right after a successful sign-in; only the access token is kept.'),
+            RoboHubText::t('Ecovacs: choose the country, enter e-mail and password, sign in. If Ecovacs asks for a confirmation, click "📧 Request code", enter the code into the password field, click "Apply", sign in again. Because Ecovacs has no refresh token, RoboHub keeps a hash of the password for the automatic re-sign-in every 7 days.'),
+            RoboHubText::t('Roborock: without a password — click "📧 Request code", enter the code from the e-mail into the field, click "Apply", "🔑 Sign in now". State and commands run encrypted via the Roborock server; map image and real-time messages will follow later.'),
+            RoboHubText::t('Security: Symcon does not encrypt stored values. The access token is not shown in the form or the log, but it is stored in plain text in the Symcon database — as with any cloud module.'),
+            RoboHubText::t('Several accounts (e.g. a Dreamehome account for the robot vacuum and a MOVAhome account for the mower): create one account instance per account. The configurator still shows all robots in one list, and every robot connects itself to the account it belongs to.'),
+            RoboHubText::t('If the vendor cloud throttles (too many requests), RoboHub automatically waits the given time (status "Cloud throttling") and then continues by itself.'),
+            RoboHubText::t('If the access token finally expires, the instance shows "Sign-in required" — then simply enter the password again and sign in.'),
         ];
     }
 
@@ -1242,6 +1248,7 @@ class RoboHubKonto extends IPSModule
         $mitRegion = (bool)(self::HERSTELLER[$this->ReadPropertyString('Hersteller')][3] ?? true);
         $auswahl = [];
         foreach (self::HERSTELLER as $wert => [$text]) {
+            $text = RoboHubText::wert($text);
             $auswahl[] = ['caption' => $text, 'value' => $wert];
         }
         $angemeldet = $this->ReadAttributeString('Buendel') !== '';
@@ -1249,52 +1256,52 @@ class RoboHubKonto extends IPSModule
         if ($angemeldet) {
             $zeile = '✅ Angemeldet' . ($this->ReadPropertyString('Konto') !== '' ? ' als ' . $this->ReadPropertyString('Konto') : '') . '.';
         } elseif ($fehler !== '') {
-            $zeile = '⛔ Nicht angemeldet — letzter Fehler: ' . $fehler;
+            $zeile = RoboHubText::t('⛔ Not signed in — last error: %s', $fehler);
         } else {
-            $zeile = 'ℹ️ Noch nicht angemeldet.';
+            $zeile = RoboHubText::t('ℹ️ Not signed in yet.');
         }
         $warte = $this->ReadAttributeInteger('WarteBis');
         if ($warte > time()) {
-            $zeile .= "\n⏳ Die Cloud bremst — nächster Versuch ab " . date('d.m.Y H:i', $warte) . ' Uhr.';
+            $zeile .= RoboHubText::t("\n⏳ The cloud is throttling — next attempt from %s.", date('d.m.Y H:i', $warte));
         }
 
         return [
             'type' => 'ExpansionPanel', 'expanded' => true,
-            'caption' => '🔑  Konto',
+            'caption' => RoboHubText::t('🔑  Account'),
             'items' => [
-                ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Hersteller / App', 'options' => $auswahl],
-                ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs || $miele ? 'Land des Kontos (wie in der App)' : 'Region des Kontos',
-                    'options' => $miele ? array_map(function ($wert, $text) { return ['caption' => $text, 'value' => $wert]; }, array_keys(RoboHubMiele::LAENDER), RoboHubMiele::LAENDER)
+                ['type' => 'Select', 'name' => 'Hersteller', 'caption' => RoboHubText::t('Vendor / app'), 'options' => $auswahl],
+                ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs || $miele ? RoboHubText::t('Country of the account (as in the app)') : RoboHubText::t('Region of the account'),
+                    'options' => $miele ? array_map(function ($wert, $text) { return ['caption' => RoboHubText::wert($text), 'value' => $wert]; }, array_keys(RoboHubMiele::LAENDER), RoboHubMiele::LAENDER)
                         : ($ecovacs ? RoboHubEcovacs::regionen() : ($this->ReadPropertyString('Hersteller') === 'kaercher' ? RoboHubKaercher::regionen() : RoboHubDreame::regionen())), 'visible' => $mitRegion],
-                ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? 'IP-Adresse des Roboters' : ($husqvarna ? 'Application Key' : 'E-Mail des Kontos')],
-                ['type' => 'Label', 'visible' => $husqvarna, 'caption' => 'Husqvarna nutzt die offizielle Schnittstelle: Auf developer.husqvarnagroup.cloud mit dem Husqvarna-Konto anmelden, „Create application" (Redirect-URL beliebig, z. B. http://localhost), die APIs „Authentication API" und „' . $api . '" verbinden, dann Application Key und Application Secret hier eintragen. Wegen des Abfragelimits fragt RoboHub ' . ($api === 'GARDENA smart system API' ? 'höchstens alle 15 Minuten' : 'höchstens alle 5 Minuten') . ' ab.'],
-                ['type' => 'Label', 'visible' => $narwal, 'caption' => 'Narwal läuft lokal, ohne Cloud und ohne Passwort: IP-Adresse des Roboters eintragen (am besten im Router fest vergeben), „Übernehmen", „🔑 Jetzt anmelden". Der Roboter muss eingeschaltet sein. Geht mit Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge und JX; Freo X Ultra, X Plus, J1/J4 und T10 haben keine lokale Schnittstelle. Für einen weiteren Narwal dasselbe mit dessen IP.'],
-                ['type' => 'Label', 'visible' => $lokal && !$narwal, 'caption' => 'iRobot läuft lokal, ohne Cloud: Roboter auf die Station stellen, IP-Adresse eintragen, „Übernehmen". Einmal „🔑 Jetzt anmelden" drücken (RoboHub sucht den Roboter). Dann am Roboter die HOME-Taste etwa 2 Sekunden halten, bis Töne kommen, und sofort noch einmal „🔑 Jetzt anmelden" drücken. Für einen weiteren Roboter dasselbe mit dessen IP.'],
-                ['type' => 'Label', 'visible' => $roborock && $this->ReadPropertyString('Hersteller') === 'vorwerk', 'caption' => 'Vorwerk meldet sich ohne Passwort an: E-Mail des MyKobold-Kontos eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Unterstützt sind Kobold VR200 und VR300; der VR7 nutzt eine andere Cloud und geht (noch) nicht. Kommt später ein Roboter dazu, einfach erneut anmelden.'],
-                ['type' => 'Label', 'visible' => $roborock && $this->ReadPropertyString('Hersteller') !== 'vorwerk', 'caption' => 'Roborock meldet sich ohne Passwort an: E-Mail eintragen, „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Die Region findet Roborock selbst.'],
-                ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Navimow meldet sich ohne Passwort bei RoboHub an: „🔗 Anmeldeseite öffnen", dort mit dem Navimow-Konto anmelden. Danach landet der Browser auf einer Seite, die nicht lädt (http://localhost:1/callback?code=…) — das ist gewollt. Diese Adresse aus der Adresszeile kopieren, unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten.'],
-                ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Offen gesagt: Segway vergibt für Smart-Home-Systeme keine eigenen Zugänge. RoboHub nutzt deshalb, wie ioBroker, die von Segway veröffentlichte Smart-Home-Kennung „homeassistant". Auf der Anmeldeseite steht darum „Home Assistant" — gemeint ist diese Schnittstelle, nicht dein Home Assistant.'],
-                ['type' => 'Label', 'visible' => $alko, 'caption' => 'AL-KO nutzt die offizielle Schnittstelle: Den Zugang (Client-ID und Client-Secret) beantragst du einmalig bei AL-KO unter alko-garden.de/iot-api-zugang-anfordern. Dann Client-ID und Secret sowie E-Mail und Passwort der inTOUCH-App eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen; Client-ID und Secret bleiben im Konto gespeichert, weil AL-KO den Zugang nur damit erneuert.'],
-                ['type' => 'Label', 'visible' => $miele, 'caption' => 'Miele nutzt die offizielle Schnittstelle: Auf developer.miele.com einmalig einen Zugang anlegen (Client-ID und Client-Secret). Dann Client-ID und Secret, E-Mail und Passwort der Miele-App sowie das Land des Kontos eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen; Client-ID und Secret bleiben im Konto gespeichert, weil Miele den Zugang nur damit erneuert. Am Roboter muss die Fernsteuerung erlaubt sein.'],
-                ['type' => 'ValidationTextBox', 'name' => 'MaeherIP', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufymaeher', 'caption' => 'IP-Adresse des Mähers'],
-                ['type' => 'Label', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufymaeher', 'caption' => 'Eufy-Mäher E15: läuft lokal im Heimnetz. IP-Adresse des Mähers eintragen (im Router fest vergeben), dazu E-Mail und Passwort des Eufy-Kontos, „Übernehmen", „🔑 Jetzt anmelden". Das Konto wird nur dieses eine Mal gebraucht, um den Geräteschlüssel zu holen; das Passwort wird danach verworfen. Der Mäher erlaubt nur eine lokale Verbindung, also keine zweite Integration parallel betreiben. Wird er neu gekoppelt, ändert sich der Schlüssel: dann neu anmelden. Karte, Zonen und Anhalten an Ort und Stelle gehen lokal nicht. E18 und C15 sind nicht geprüft.'],
-                ['type' => 'Label', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufy', 'caption' => 'Eufy: E-Mail und Passwort der App „Eufy Clean" bzw. „Eufy" eintragen, „Übernehmen", „🔑 Jetzt anmelden". Das Passwort wird danach verworfen. Unterstützt sind Roboter mit Eufys neuer Cloud-Anbindung (u. a. X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro); ältere Modelle mit reinem Tuya-Protokoll (z. B. RoboVac 11S, 30C, G30) noch nicht.'],
-                ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $mitClient, 'caption' => 'Client-ID (von ' . ($miele ? 'Miele' : 'AL-KO') . ')'],
-                ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $mitClient, 'caption' => 'Client-Secret (von ' . ($miele ? 'Miele' : 'AL-KO') . ', wird nach der Anmeldung ins Konto übernommen)'],
-                ['type' => 'Label', 'visible' => $indego, 'caption' => 'Indego meldet sich ohne Passwort bei RoboHub an. Am besten in Chrome, Edge oder Firefox: zuerst die Entwicklerkonsole öffnen (F12, am Mac Wahl + Befehl + I), dann „🔗 Anmeldeseite öffnen" und mit der Bosch SingleKey ID anmelden. Danach passiert scheinbar nichts — die Konsole zeigt aber eine fehlgeschlagene Weiterleitung auf „com.bosch.indegoconnect://login?…code=…". Diese Adresse (oder die ganze Konsolenzeile) unten eintragen, „Übernehmen", „🔑 Jetzt anmelden". Der Code gilt nur wenige Minuten. So macht es auch ioBroker.'],
-                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? 'Code bzw. Adresse nach der Anmeldung (wird danach verworfen)' : ($roborock ? 'Code aus der E-Mail (wird nach der Anmeldung verworfen)' : ($husqvarna ? 'Application Secret (bleibt im Konto gespeichert)' : 'Passwort (nur für die Anmeldung, wird danach verworfen)'))],
+                ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? RoboHubText::t('IP address of the robot') : ($husqvarna ? RoboHubText::t('Application key') : RoboHubText::t('E-mail of the account'))],
+                ['type' => 'Label', 'visible' => $husqvarna, 'caption' => RoboHubText::t('Husqvarna uses the official API: sign in on developer.husqvarnagroup.cloud with your Husqvarna account, "Create application" (any redirect URL, e.g. http://localhost), connect the APIs "Authentication API" and "%s", then enter application key and application secret here. Because of the request limit RoboHub polls %s.', $api, ($api === 'GARDENA smart system API' ? RoboHubText::t('at most every 15 minutes') : RoboHubText::t('at most every 5 minutes')))],
+                ['type' => 'Label', 'visible' => $narwal, 'caption' => RoboHubText::t('Narwal runs locally, without cloud and without password: enter the robot\'s IP address (ideally fixed in your router), click "Apply", "🔑 Sign in now". The robot must be switched on. Works with Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge and JX; Freo X Ultra, X Plus, J1/J4 and T10 have no local interface. For another Narwal do the same with its IP.')],
+                ['type' => 'Label', 'visible' => $lokal && !$narwal, 'caption' => RoboHubText::t('iRobot runs locally, without cloud: put the robot on its base, enter the IP address, click "Apply". Press "🔑 Sign in now" once (RoboHub searches for the robot). Then hold the HOME button on the robot for about 2 seconds until it plays tones, and immediately press "🔑 Sign in now" again. For another robot do the same with its IP.')],
+                ['type' => 'Label', 'visible' => $roborock && $this->ReadPropertyString('Hersteller') === 'vorwerk', 'caption' => RoboHubText::t('Vorwerk signs in without a password: enter the e-mail of the MyKobold account, click "Apply", "📧 Request code", enter the code from the e-mail below, click "Apply", "🔑 Sign in now". Supported are Kobold VR200 and VR300; the VR7 uses a different cloud and does not work (yet). If a robot is added later, simply sign in again.')],
+                ['type' => 'Label', 'visible' => $roborock && $this->ReadPropertyString('Hersteller') !== 'vorwerk', 'caption' => RoboHubText::t('Roborock signs in without a password: enter the e-mail, click "Apply", "📧 Request code", enter the code from the e-mail below, click "Apply", "🔑 Sign in now". Roborock finds the region itself.')],
+                ['type' => 'Label', 'visible' => $navimow, 'caption' => RoboHubText::t('Navimow signs in to RoboHub without a password: "🔗 Open sign-in page", sign in there with your Navimow account. The browser then lands on a page that does not load (http://localhost:1/callback?code=…) — that is intended. Copy this address from the address bar, enter it below, click "Apply", "🔑 Sign in now". The code is only valid for a few minutes.')],
+                ['type' => 'Label', 'visible' => $navimow, 'caption' => RoboHubText::t('To be clear: Segway does not issue separate access for smart home systems. Like ioBroker, RoboHub therefore uses the smart home ID "homeassistant" published by Segway. That\'s why the sign-in page says "Home Assistant" — it means this interface, not your Home Assistant.')],
+                ['type' => 'Label', 'visible' => $alko, 'caption' => RoboHubText::t('AL-KO uses the official API: apply once for access (client ID and client secret) at AL-KO under alko-garden.de/iot-api-zugang-anfordern. Then enter client ID and secret as well as e-mail and password of the inTOUCH app, click "Apply", "🔑 Sign in now". The password is discarded afterwards; client ID and secret stay stored in the account because AL-KO only renews access with them.')],
+                ['type' => 'Label', 'visible' => $miele, 'caption' => RoboHubText::t('Miele uses the official API: create access once on developer.miele.com (client ID and client secret). Then enter client ID and secret, e-mail and password of the Miele app and the country of the account, click "Apply", "🔑 Sign in now". The password is discarded afterwards; client ID and secret stay stored in the account because Miele only renews access with them. Remote control must be allowed on the robot.')],
+                ['type' => 'ValidationTextBox', 'name' => 'MaeherIP', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufymaeher', 'caption' => RoboHubText::t('IP address of the mower')],
+                ['type' => 'Label', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufymaeher', 'caption' => RoboHubText::t('Eufy mower E15: runs locally in your home network. Enter the mower\'s IP address (fixed in your router), plus e-mail and password of the Eufy account, click "Apply", "🔑 Sign in now". The account is only needed this one time to fetch the device key; the password is discarded afterwards. The mower allows only one local connection, so do not run a second integration in parallel. If it is paired again, the key changes: then sign in again. Map, zones and stopping in place are not available locally. E18 and C15 are not tested.')],
+                ['type' => 'Label', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufy', 'caption' => RoboHubText::t('Eufy: enter e-mail and password of the app "Eufy Clean" or "Eufy", click "Apply", "🔑 Sign in now". The password is discarded afterwards. Supported are robots with Eufy\'s new cloud connection (including X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro); older models with the pure Tuya protocol (e.g. RoboVac 11S, 30C, G30) not yet.')],
+                ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $mitClient, 'caption' => RoboHubText::t('Client ID (from %s)', ($miele ? 'Miele' : 'AL-KO'))],
+                ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $mitClient, 'caption' => RoboHubText::t('Client secret (from %s, moved into the account after sign-in)', ($miele ? 'Miele' : 'AL-KO'))],
+                ['type' => 'Label', 'visible' => $indego, 'caption' => RoboHubText::t('Indego signs in to RoboHub without a password. Best in Chrome, Edge or Firefox: first open the developer console (F12, on a Mac Option + Command + I), then "🔗 Open sign-in page" and sign in with the Bosch SingleKey ID. Afterwards nothing seems to happen — but the console shows a failed redirect to "com.bosch.indegoconnect://login?…code=…". Enter this address (or the whole console line) below, click "Apply", "🔑 Sign in now". The code is only valid for a few minutes. ioBroker does it the same way.')],
+                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? RoboHubText::t('Code or address after sign-in (discarded afterwards)') : ($roborock ? RoboHubText::t('Code from the e-mail (discarded after sign-in)') : ($husqvarna ? RoboHubText::t('Application secret (stays stored in the account)') : RoboHubText::t('Password (only for sign-in, discarded afterwards)')))],
                 ['type' => 'Label', 'name' => 'Ergebnis', 'caption' => $zeile],
                 ['type' => 'RowLayout', 'items' => [
-                    ['type' => 'Button', 'caption' => '📧 Code anfordern', 'visible' => $roborock, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],
-                    ['type' => 'Button', 'caption' => '🔗 Anmeldeseite öffnen', 'visible' => $perLink, 'onClick' => 'echo ROBOHUB_Anmeldelink($id);', 'link' => true],
-                    ['type' => 'Button', 'caption' => '🔑 Jetzt anmelden', 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('📧 Request code'), 'visible' => $roborock, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('🔗 Open sign-in page'), 'visible' => $perLink, 'onClick' => 'echo ROBOHUB_Anmeldelink($id);', 'link' => true],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('🔑 Sign in now'), 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
                     ['type' => 'Button', 'caption' => '⏏️ Abmelden', 'onClick' => 'echo ROBOHUB_Abmelden($id);'],
                 ]],
-                ['type' => 'PopupButton', 'caption' => 'Welche Region hat mein Konto?', 'width' => '460px', 'visible' => $mitRegion && !$ecovacs && !$miele, 'popup' => [
-                    'caption' => 'Welche Region hat mein Konto?',
+                ['type' => 'PopupButton', 'caption' => RoboHubText::t('Which region is my account in?'), 'width' => '460px', 'visible' => $mitRegion && !$ecovacs && !$miele, 'popup' => [
+                    'caption' => RoboHubText::t('Which region is my account in?'),
                     'items' => [
-                        ['type' => 'Label', 'caption' => 'Die Region richtet sich nach dem Land, das du bei der Registrierung in der App gewählt hast — für Deutschland, Österreich und die Schweiz ist das „Europa".'],
-                        ['type' => 'Label', 'caption' => 'Schlägt die Anmeldung mit „Konto nicht gefunden" fehl, obwohl E-Mail und Passwort stimmen, liegt das Konto meist in einer anderen Region.'],
+                        ['type' => 'Label', 'caption' => RoboHubText::t('The region follows the country you chose when registering in the app — for Germany, Austria and Switzerland that is "Europe".')],
+                        ['type' => 'Label', 'caption' => RoboHubText::t('If sign-in fails with "account not found" although e-mail and password are correct, the account is usually in a different region.')],
                     ],
                 ]],
             ],
@@ -1305,11 +1312,11 @@ class RoboHubKonto extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => true,
-            'caption' => '🤖  Geräte im Konto',
+            'caption' => RoboHubText::t('🤖  Devices in the account'),
             'items' => [
-                ['type' => 'Button', 'caption' => '🔎 Geräte jetzt suchen', 'onClick' => 'echo ROBOHUB_GeraeteSuchen($id);'],
+                ['type' => 'Button', 'caption' => RoboHubText::t('🔎 Search devices now'), 'onClick' => 'echo ROBOHUB_GeraeteSuchen($id);'],
                 ['type' => 'Label', 'name' => 'GeraeteZeile', 'caption' => $this->geraeteZeile()],
-                ['type' => 'Label', 'caption' => 'Angelegt werden die Roboter über den „RoboHub Konfigurator" — ein einziger Konfigurator zeigt die Roboter aller RoboHub-Konten.'],
+                ['type' => 'Label', 'caption' => RoboHubText::t('Robots are created with the "RoboHub configurator" — a single configurator shows the robots of all RoboHub accounts.')],
             ],
         ];
     }
@@ -1318,13 +1325,13 @@ class RoboHubKonto extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '⚡  Echtzeit-Meldungen',
+            'caption' => RoboHubText::t('⚡  Real-time messages'),
             'items' => [
-                ['type' => 'CheckBox', 'name' => 'Echtzeit', 'caption' => 'Änderungen sofort von der Hersteller-Cloud empfangen (statt nur alle paar Minuten abzufragen)'],
+                ['type' => 'CheckBox', 'name' => 'Echtzeit', 'caption' => RoboHubText::t('Receive changes immediately from the vendor cloud (instead of only polling every few minutes)')],
                 ['type' => 'Label', 'name' => 'EchtzeitZeile', 'caption' => $this->echtzeitZeile()],
-                ['type' => 'Button', 'caption' => '🔁 Echtzeit jetzt erneut versuchen', 'visible' => $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time(), 'onClick' => 'ROBOHUB_EchtzeitNeuVersuchen($id);'],
-                ['type' => 'Label', 'caption' => 'Technik: verschlüsselte MQTT-Verbindung zum Server des Herstellers über eine eigene Client-Socket-Instanz. Das Server-Zertifikat wird gegen die Zertifizierungsstelle des Herstellers geprüft (Zertifikat und Servername) — fremde Server werden abgelehnt.'],
-                ['type' => 'Label', 'caption' => 'Die regelmäßige Abfrage läuft zusätzlich weiter (Sicherheitsnetz). Karten- und Positionsdaten werden nicht verarbeitet.'],
+                ['type' => 'Button', 'caption' => RoboHubText::t('🔁 Retry real-time now'), 'visible' => $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time(), 'onClick' => 'ROBOHUB_EchtzeitNeuVersuchen($id);'],
+                ['type' => 'Label', 'caption' => RoboHubText::t('Technology: encrypted MQTT connection to the vendor\'s server via a separate Client Socket instance. The server certificate is checked against the vendor\'s certificate authority (certificate and server name) — foreign servers are rejected.')],
+                ['type' => 'Label', 'caption' => RoboHubText::t('Regular polling continues in addition (safety net). Map and position data are not processed.')],
             ],
         ];
     }
@@ -1337,10 +1344,10 @@ class RoboHubKonto extends IPSModule
     public function GetConfigurationForm()
     {
         $status = [
-            ['code' => 102, 'icon' => 'active', 'caption' => 'Angemeldet'],
-            ['code' => 104, 'icon' => 'inactive', 'caption' => 'Noch nicht angemeldet'],
-            ['code' => 201, 'icon' => 'error', 'caption' => 'Anmeldung erforderlich (Zugangsschlüssel abgelaufen oder abgelehnt)'],
-            ['code' => 202, 'icon' => 'inactive', 'caption' => 'Cloud bremst — RoboHub wartet die Sperrfrist ab'],
+            ['code' => 102, 'icon' => 'active', 'caption' => RoboHubText::t('Signed in')],
+            ['code' => 104, 'icon' => 'inactive', 'caption' => RoboHubText::t('Not signed in yet')],
+            ['code' => 201, 'icon' => 'error', 'caption' => RoboHubText::t('Sign-in required (access token expired or rejected)')],
+            ['code' => 202, 'icon' => 'inactive', 'caption' => RoboHubText::t('Cloud throttling — RoboHub waits for the lockout period')],
         ];
         return $this->robohubBuildForm($this->robohubFachpanels(), [], $status);
     }

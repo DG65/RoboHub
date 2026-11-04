@@ -132,6 +132,7 @@ class IPSModule
     public function SendDebug(string $a, string $b, int $c): void { $this->debug[] = "$a: $b"; }
     public function LogMessage(string $m, int $t): void { $GLOBALS['LOG'][] = $m; $GLOBALS['LOGSTUFE'][] = $t; }
     public function UpdateFormField(string $n, string $p, $v): void { $this->fields[] = [$n, $p, $v]; }
+    public function Translate(string $t): string { return robohubUebersetze($t); }
     public $elternMeldung = null;           // null = normal; false = HasActiveParent() meldet fälschlich „nein" (Live-Befund)
     public function HasActiveParent(): bool { return $this->elternMeldung ?? ($this->parent !== null); }
     public $puffer = [];
@@ -207,9 +208,17 @@ class IPSModule
     public function GetValue(string $ident) { return $GLOBALS['OBJ'][IPS_GetObjectIDByIdent($ident, $this->InstanceID)]['value']; }
 }
 
+// Sprache des Prüfstands: Deutsch wie Dietmars Symcon (locale.json), umschaltbar für die englischen Prüfungen.
+$GLOBALS['SPRACHE'] = 'de';
+$GLOBALS['LOCALE'] = json_decode((string)file_get_contents(dirname(__DIR__) . '/libs/locale.json'), true)['translations'] ?? [];
+function robohubUebersetze(string $t): string
+{
+    return $GLOBALS['LOCALE'][$GLOBALS['SPRACHE']][$t] ?? $t;
+}
 require dirname(__DIR__) . '/RoboHubKonto/module.php';
 require dirname(__DIR__) . '/RoboHubGeraet/module.php';
 require dirname(__DIR__) . '/RoboHubKonfigurator/module.php';
+RoboHubText::setzen('robohubUebersetze');
 
 // ---------------------------------------------------------------------------
 // Attrappe der Dreame-Cloud: ersetzt nur http(), der Rest ist echter Code.

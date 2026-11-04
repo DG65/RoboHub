@@ -37,11 +37,11 @@ class RoboHubEcovacs implements RoboHubTreiber
 
     // Land → Kontinent der Portal-Adresse (util/continents.py, Auszug).
     private const LAENDER = [
-        'DE' => ['Deutschland', 'eu'], 'AT' => ['Österreich', 'eu'], 'CH' => ['Schweiz', 'eu'], 'NL' => ['Niederlande', 'eu'],
-        'BE' => ['Belgien', 'eu'], 'LU' => ['Luxemburg', 'eu'], 'FR' => ['Frankreich', 'eu'], 'IT' => ['Italien', 'eu'],
-        'ES' => ['Spanien', 'eu'], 'PT' => ['Portugal', 'eu'], 'GB' => ['Vereinigtes Königreich', 'eu'], 'IE' => ['Irland', 'eu'],
-        'PL' => ['Polen', 'eu'], 'CZ' => ['Tschechien', 'eu'], 'DK' => ['Dänemark', 'eu'], 'SE' => ['Schweden', 'eu'],
-        'NO' => ['Norwegen', 'eu'], 'FI' => ['Finnland', 'eu'], 'US' => ['USA', 'na'], 'CA' => ['Kanada', 'na'], 'AU' => ['Australien', 'ww'],
+        'DE' => ['Germany', 'eu'], 'AT' => ['Austria', 'eu'], 'CH' => ['Switzerland', 'eu'], 'NL' => ['Netherlands', 'eu'],
+        'BE' => ['Belgium', 'eu'], 'LU' => ['Luxembourg', 'eu'], 'FR' => ['France', 'eu'], 'IT' => ['Italy', 'eu'],
+        'ES' => ['Spain', 'eu'], 'PT' => ['Portugal', 'eu'], 'GB' => ['United Kingdom', 'eu'], 'IE' => ['Ireland', 'eu'],
+        'PL' => ['Poland', 'eu'], 'CZ' => ['Czechia', 'eu'], 'DK' => ['Denmark', 'eu'], 'SE' => ['Sweden', 'eu'],
+        'NO' => ['Norway', 'eu'], 'FI' => ['Finland', 'eu'], 'US' => ['USA', 'na'], 'CA' => ['Canada', 'na'], 'AU' => ['Australia', 'ww'],
     ];
 
     // Geräteklassen aus deebot_client/hardware (Stand 10.09.2026): Datentyp XML (nicht unterstützt),
@@ -73,12 +73,12 @@ class RoboHubEcovacs implements RoboHubTreiber
     ];
 
     private const FEHLER = [
-        101 => 'Akku schwach', 102 => 'Angehoben', 103 => 'Antriebsrad gestört', 104 => 'Absturzsensoren verschmutzt',
-        105 => 'Steckt fest', 106 => 'Seitenbürsten verbraucht', 107 => 'Staubbehälterfilter verbraucht',
-        108 => 'Seitenbürsten verheddert', 109 => 'Hauptbürste verheddert', 110 => 'Staubbehälter fehlt',
-        111 => 'Stoßsensor klemmt', 112 => 'Laser-Abstandssensor gestört', 113 => 'Hauptbürste verbraucht',
-        114 => 'Staubbehälter voll', 115 => 'Akkufehler', 116 => 'Frontsensor gestört', 117 => 'Gyroskop gestört',
-        118 => 'Sieb verstopft', 119 => 'Lüfterfehler', 120 => 'Wassertank gestört',
+        101 => 'Battery low', 102 => 'Lifted', 103 => 'Drive wheel fault', 104 => 'Cliff sensors dirty',
+        105 => 'Stuck', 106 => 'Side brushes worn out', 107 => 'Dust bin filter worn out',
+        108 => 'Side brushes tangled', 109 => 'Main brush tangled', 110 => 'Dust bin missing',
+        111 => 'Bump sensor stuck', 112 => 'Laser distance sensor fault', 113 => 'Main brush worn out',
+        114 => 'Dust bin full', 115 => 'Battery error', 116 => 'Front sensor fault', 117 => 'Gyroscope fault',
+        118 => 'Strainer clogged', 119 => 'Fan error', 120 => 'Water tank fault',
     ];
 
     // Verschleißteile (LifeSpan) → RoboHub-Ident.
@@ -86,17 +86,18 @@ class RoboHubEcovacs implements RoboHubTreiber
         'brush' => 'Hauptbuerste', 'sideBrush' => 'Seitenbuerste', 'heap' => 'Filter', 'unitCare' => 'Wartung',
         'roundMop' => 'Mopp', 'blade' => 'Messer', 'lensBrush' => 'Reinigungsbuerste',
     ];
-    private const SAUGSTUFEN = [1000 => 'Leise', 0 => 'Standard', 1 => 'Max', 2 => 'Max+'];
+    private const SAUGSTUFEN = [1000 => 'Quiet', 0 => 'Standard', 1 => 'Max', 2 => 'Max+'];
     private const RAUMTYPEN = [
-        1 => 'Wohnzimmer', 2 => 'Esszimmer', 3 => 'Schlafzimmer', 4 => 'Arbeitszimmer', 5 => 'Küche', 6 => 'Bad',
-        7 => 'Waschküche', 8 => 'Aufenthaltsraum', 9 => 'Abstellraum', 10 => 'Kinderzimmer', 11 => 'Wintergarten',
-        12 => 'Flur', 13 => 'Balkon', 14 => 'Fitnessraum',
+        1 => 'Living room', 2 => 'Dining room', 3 => 'Bedroom', 4 => 'Study', 5 => 'Kitchen', 6 => 'Bathroom',
+        7 => 'Laundry room', 8 => 'Lounge', 9 => 'Storage room', 10 => 'Children\'s room', 11 => 'Conservatory',
+        12 => 'Hallway', 13 => 'Balcony', 14 => 'Gym',
     ];
 
     public static function regionen(): array
     {
         $aus = [];
         foreach (self::LAENDER as $code => [$name]) {
+            $name = RoboHubText::wert($name);
             $aus[] = ['caption' => $name, 'value' => $code];
         }
         return $aus;
@@ -121,7 +122,7 @@ class RoboHubEcovacs implements RoboHubTreiber
     {
         $code = trim($code);
         if (!preg_match('/^[0-9A-Za-z]{4,8}$/', $code)) {
-            throw new RoboHubFehler('Bitte den Bestätigungscode aus der E-Mail von Ecovacs eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the confirmation code from Ecovacs\' e-mail.'));
         }
         $antwort = $this->privat($vorstufe, 'user/verifyDevice', [
             'encryptAccount' => $this->verschluesseln($vorstufe, (string)$vorstufe['konto']),
@@ -134,13 +135,13 @@ class RoboHubEcovacs implements RoboHubTreiber
     public function codeAnfordern(string $konto, array $vorstufe = []): string
     {
         if (($vorstufe['pwmd5'] ?? '') === '') {
-            throw new RoboHubFehler('Ein Code ist erst nötig, wenn Ecovacs bei der Anmeldung danach fragt — bitte zuerst mit dem Passwort anmelden.');
+            throw new RoboHubFehler(RoboHubText::t('A code is only needed when Ecovacs asks for it during sign-in — please sign in with the password first.'));
         }
         $this->privat($vorstufe, 'user/sendEmailVerifyCode', [
             'encryptEmail' => $this->verschluesseln($vorstufe, (string)$vorstufe['konto']),
             'verifyType' => 'EMAIL_VERIFY_DEVICE', 'supportChar' => 'N', 'isForce' => 'N',
         ]);
-        return 'Ecovacs hat einen Bestätigungscode an ' . $konto . ' geschickt.';
+        return RoboHubText::t('Ecovacs sent a confirmation code to %s.', $konto);
     }
 
     /** Ecovacs-Zugang läuft nach 7 Tagen ab: rechtzeitig mit dem gespeicherten Hash neu anmelden. */
@@ -168,7 +169,7 @@ class RoboHubEcovacs implements RoboHubTreiber
     private function abschliessen(array $vorstufe, $antwort): array
     {
         if (!is_array($antwort) || !isset($antwort['uid'], $antwort['accessToken'])) {
-            throw new RoboHubFehler('Ecovacs-Anmeldung ohne Zugangsdaten.');
+            throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in without credentials.'));
         }
         $uid = (string)$antwort['uid'];
         $code = $this->signiertGet(self::authUrl($vorstufe) . '/v1/global/auth/getAuthCode', [
@@ -176,7 +177,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             'deviceId' => $vorstufe['geraetId'], 'authTimespan' => (int)(microtime(true) * 1000),
         ], ['openId' => 'global'], self::AUTH_CLIENT_KEY, self::AUTH_CLIENT_SECRET);
         if (!is_array($code) || ($code['authCode'] ?? '') === '') {
-            throw new RoboHubFehler('Ecovacs hat keinen Anmeldecode geliefert.');
+            throw new RoboHubFehler(RoboHubText::t('Ecovacs did not deliver a sign-in code.'));
         }
         $token = null;
         for ($i = 0; $i < 3; $i++) {
@@ -190,11 +191,11 @@ class RoboHubEcovacs implements RoboHubTreiber
                 break;
             }
             if (($r['error'] ?? '') !== 'set token error.') {
-                throw new RoboHubFehler('Ecovacs-Anmeldung fehlgeschlagen: ' . (string)($r['error'] ?? 'unbekannt'));
+                throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in failed: %s', (string)($r['error'] ?? 'unbekannt')));
             }
         }
         if ($token === null) {
-            throw new RoboHubFehler('Ecovacs-Anmeldung fehlgeschlagen (Token nicht gesetzt).');
+            throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in failed (token not set).'));
         }
         $gueltig = is_numeric($token['last'] ?? null) ? (int)$token['last'] / 1000 : 604800;
         return [
@@ -240,19 +241,19 @@ class RoboHubEcovacs implements RoboHubTreiber
             return $j['data'] ?? null;
         }
         if ($code === '1005' || $code === '1010') {
-            $e = new RoboHubFehler('Ecovacs lehnt die Anmeldung ab — E-Mail/Passwort und Land prüfen.');
+            $e = new RoboHubFehler(RoboHubText::t('Ecovacs rejects the sign-in — check e-mail/password and country.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
         if ($code === '1012') {
-            throw new RoboHubFehler('Der Bestätigungscode ist falsch oder abgelaufen — neuen Code anfordern.');
+            throw new RoboHubFehler(RoboHubText::t('The confirmation code is wrong or expired — request a new code.'));
         }
         if ($code === '1013') {
-            $e = new RoboHubFehler('Ecovacs verlangt eine Bestätigung dieses Zugangs per E-Mail: „📧 Code anfordern", den Code ins Passwortfeld eintragen, „Übernehmen", „🔑 Jetzt anmelden".');
+            $e = new RoboHubFehler(RoboHubText::t('Ecovacs asks to confirm this access by e-mail: "📧 Request code", enter the code into the password field, click "Apply", "🔑 Sign in now".'));
             $e->vorstufe = $vorstufe;
             throw $e;
         }
-        throw new RoboHubFehler('Ecovacs-Anmeldung: ' . (string)($j['msg'] ?? 'Fehler') . ' (Code ' . $code . ')');
+        throw new RoboHubFehler(RoboHubText::t('Ecovacs sign-in: %s (code %s)', (string)($j['msg'] ?? 'Fehler'), $code));
     }
 
     /** Konto per RSA (öffentlicher Schlüssel aus common/getConfig, PKCS#1 v1.5) verschlüsseln. */
@@ -266,12 +267,12 @@ class RoboHubEcovacs implements RoboHubTreiber
             }
         }
         if (!is_string($der) || base64_decode($der, true) === false) {
-            throw new RoboHubFehler('Öffentlicher Schlüssel von Ecovacs fehlt.');
+            throw new RoboHubFehler(RoboHubText::t('Ecovacs public key missing.'));
         }
         $pem = "-----BEGIN PUBLIC KEY-----\n" . chunk_split($der, 64, "\n") . "-----END PUBLIC KEY-----\n";
         $aus = '';
         if (!openssl_public_encrypt($text, $aus, $pem, OPENSSL_PKCS1_PADDING)) {
-            throw new RoboHubFehler('Öffentlicher Schlüssel von Ecovacs ist ungültig.');
+            throw new RoboHubFehler(RoboHubText::t('Ecovacs public key is invalid.'));
         }
         return base64_encode($aus);
     }
@@ -375,7 +376,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             $i++;
         }
         if (count($ok) === 0) {
-            throw new RoboHubFehler('Der Ecovacs-Roboter antwortet nicht (offline?).');
+            throw new RoboHubFehler(RoboHubText::t('The Ecovacs robot does not respond (offline?).'));
         }
         if (isset($p['life2']) && is_array($p['life2'])) {
             $p['life'] = array_merge((array)($p['life'] ?? []), $p['life2']);
@@ -401,7 +402,7 @@ class RoboHubEcovacs implements RoboHubTreiber
         if (isset($p['error']['code']) && is_array($p['error']['code'])) {
             $codes = $p['error']['code'];
             $fehler = $codes === [] ? 0 : (int)end($codes);
-            $w['Fehler'] = in_array($fehler, [0, 100], true) ? 'kein Fehler' : (self::FEHLER[$fehler] ?? 'Fehlercode') . ' (' . $fehler . ')';
+            $w['Fehler'] = in_array($fehler, [0, 100], true) ? RoboHubText::t('no error') : RoboHubText::wert(self::FEHLER[$fehler] ?? 'Error code') . ' (' . $fehler . ')';
         }
         if (isset($p['clean']) && is_array($p['clean'])) {
             [$zustand, $text] = self::zustandAus($p['clean'], $laedt, $akku);
@@ -417,7 +418,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             $stufe = (int)$p['speed']['speed'];
             $liste = self::SAUGSTUFEN;
             if (!isset($liste[$stufe])) {
-                $liste[$stufe] = 'Stufe ' . $stufe;
+                $liste[$stufe] = RoboHubText::t('Level %s', $stufe);
             }
             $w['Saugstufe'] = $stufe;
             $optionen['Saugstufe'] = $liste;
@@ -456,20 +457,20 @@ class RoboHubEcovacs implements RoboHubTreiber
                 return [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
             }
             if ($bewegung === 'goCharging') {
-                return [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'];
+                return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Returning to base')];
             }
-            return [RoboHubModell::ZUSTAND_REINIGT, $state === 'washing' ? 'Wäscht' : 'Arbeitet'];
+            return [RoboHubModell::ZUSTAND_REINIGT, $state === 'washing' ? RoboHubText::t('Washing') : 'Arbeitet'];
         }
         if ($state === 'goCharging') {
-            return [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'];
+            return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Returning to base')];
         }
         if ($laedt) {
-            return ($akku !== null && $akku >= 100) ? [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'] : [RoboHubModell::ZUSTAND_LAEDT, 'Lädt'];
+            return ($akku !== null && $akku >= 100) ? [RoboHubModell::ZUSTAND_GELADEN, RoboHubText::t('Docked')] : [RoboHubModell::ZUSTAND_LAEDT, RoboHubText::t('Charging')];
         }
         if ($state === 'idle') {
             return [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'];
         }
-        return [RoboHubModell::ZUSTAND_UNBEKANNT, $state !== '' ? 'Zustand „' . $state . '"' : 'Unbekannt'];
+        return [RoboHubModell::ZUSTAND_UNBEKANNT, $state !== '' ? RoboHubText::t('State "%s"', $state) : RoboHubText::t('Unknown')];
     }
 
     // =================================================================
@@ -515,13 +516,13 @@ class RoboHubEcovacs implements RoboHubTreiber
                     $teil = $this->befehlRoh($buendel, $geraet, 'getMapSubSet', ['mid' => $mid, 'msid' => (string)($set['msid'] ?? ''), 'type' => 'ar', 'mssid' => (string)$id]);
                     $name = trim((string)($teil['name'] ?? ''));
                     if ($name === '') {
-                        $name = self::RAUMTYPEN[(int)($teil['subtype'] ?? $teil['subType'] ?? 0)] ?? '';
+                        $name = RoboHubText::wert(self::RAUMTYPEN[(int)($teil['subtype'] ?? $teil['subType'] ?? 0)] ?? '');
                     }
                 } catch (RoboHubFehler $e) {
                     $name = '';
                 }
             }
-            $raeume[$id] = $name !== '' ? $name : 'Raum ' . $id;
+            $raeume[$id] = $name !== '' ? $name : RoboHubText::t('Room %s', $id);
         }
         ksort($raeume);
         return ['raeume' => $raeume, 'bild' => '', 'marken' => [], 'station' => null];
@@ -545,40 +546,40 @@ class RoboHubEcovacs implements RoboHubTreiber
             case 'start':
                 $pausiert = (string)($geraet['stand']['clean']['cleanState']['motionState'] ?? '') === 'pause';
                 $this->befehlRoh($buendel, $geraet, $name, self::reinigung($pausiert ? 'resume' : 'start', $v2));
-                return 'Befehl „Start" gesendet.';
+                return RoboHubText::t('Command "Start" sent.');
             case 'pause':
                 $this->befehlRoh($buendel, $geraet, $name, self::reinigung('pause', $v2));
-                return 'Befehl „Pause" gesendet.';
+                return RoboHubText::t('Command "Pause" sent.');
             case 'stopp':
                 $this->befehlRoh($buendel, $geraet, $name, self::reinigung('stop', $v2));
-                return 'Befehl „Stopp" gesendet.';
+                return RoboHubText::t('Command "Stop" sent.');
             case 'station':
                 $this->befehlRoh($buendel, $geraet, 'charge', ['act' => 'go']);
-                return 'Befehl „Zur Station" gesendet.';
+                return RoboHubText::t('Command "Return to base" sent.');
             case 'orten':
                 $this->befehlRoh($buendel, $geraet, 'playSound', ['count' => 1, 'sid' => 30]);
-                return 'Befehl „Orten" gesendet.';
+                return RoboHubText::t('Command "Locate" sent.');
             case 'raum':
                 return $this->raumReinigung($buendel, $geraet, $parameter, $v2);
             case 'setze':
                 if ((string)($parameter['feld'] ?? '') === 'Saugstufe' && isset(self::SAUGSTUFEN[(int)($parameter['wert'] ?? -1)])) {
                     $this->befehlRoh($buendel, $geraet, 'setSpeed', ['speed' => (int)$parameter['wert']]);
-                    return 'Saugstufe gesetzt.';
+                    return RoboHubText::t('Suction level set.');
                 }
-                throw new RoboHubFehler('Dieser Wert lässt sich bei Ecovacs (noch) nicht setzen.');
+                throw new RoboHubFehler(RoboHubText::t('This value cannot be set on Ecovacs (yet).'));
             case 'einstellung':
                 if ((string)($parameter['feld'] ?? '') === 'Lautstaerke') {
                     $p = (int)($parameter['wert'] ?? -1);
                     if ($p < 0 || $p > 100) {
-                        throw new RoboHubFehler('Lautstärke 0 bis 100.');
+                        throw new RoboHubFehler(RoboHubText::t('Volume 0 to 100.'));
                     }
                     $gesamt = max(1, (int)($geraet['stand']['volume']['total'] ?? 10));
                     $this->befehlRoh($buendel, $geraet, 'setVolume', ['volume' => (int)round($p * $gesamt / 100)]);
-                    return 'Lautstärke gesetzt.';
+                    return RoboHubText::t('Volume set.');
                 }
-                throw new RoboHubFehler('Unbekannte Einstellung.');
+                throw new RoboHubFehler(RoboHubText::t('Unknown setting.'));
         }
-        throw new RoboHubFehler('Dieser Befehl wird für Ecovacs noch nicht unterstützt: ' . $befehl);
+        throw new RoboHubFehler(RoboHubText::t('This command is not supported for Ecovacs yet: %s', $befehl));
     }
 
     /** Argumente für clean / clean_V2 (clean.py Clean._get_args / CleanV2._get_args). */
@@ -602,7 +603,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             return $r >= 0;
         })));
         if (count($raeume) === 0) {
-            throw new RoboHubFehler('Keine Raum-ID angegeben.');
+            throw new RoboHubFehler(RoboHubText::t('No room ID given.'));
         }
         $saug = (int)($parameter['saugstufe'] ?? -1);
         if ($saug >= 0 && isset(self::SAUGSTUFEN[$saug])) {
@@ -618,7 +619,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             $this->dbg('Befehl', 'Durchgänge bei clean_V2 nicht übertragbar — einmal gereinigt.');
         }
         $this->befehlRoh($buendel, $geraet, $v2 ? 'clean_V2' : 'clean', $args);
-        return 'Reinigung ' . (count($raeume) === 1 ? 'eines Raums' : 'von ' . count($raeume) . ' Räumen') . ' gesendet.';
+        return RoboHubText::t('Cleaning %s sent.', (count($raeume) === 1 ? RoboHubText::t('of one room') : RoboHubText::t('of %s rooms', count($raeume))));
     }
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
@@ -626,10 +627,10 @@ class RoboHubEcovacs implements RoboHubTreiber
         $this->pruefeGeraet($geraet);
         $typ = array_search($teil, self::TEILE, true);
         if ($typ === false) {
-            throw new RoboHubFehler('Dieses Teil lässt sich bei Ecovacs nicht zurücksetzen: ' . $teil);
+            throw new RoboHubFehler(RoboHubText::t('This part cannot be reset on Ecovacs: %s', $teil));
         }
         $this->befehlRoh($buendel, $geraet, 'resetLifeSpan', ['type' => $typ]);
-        return 'Zurücksetzen gesendet.';
+        return RoboHubText::t('Reset sent.');
     }
 
     // =================================================================
@@ -673,10 +674,10 @@ class RoboHubEcovacs implements RoboHubTreiber
     private function pruefeGeraet(array $geraet): void
     {
         if (in_array((string)($geraet['geraetKlasse'] ?? ''), self::KLASSEN_XML, true) || ($geraet['firma'] ?? 'eco-ng') === 'eco-legacy') {
-            throw new RoboHubFehler('Dieses Ecovacs-Modell spricht das ältere XML-Protokoll, das RoboHub noch nicht unterstützt.');
+            throw new RoboHubFehler(RoboHubText::t('This Ecovacs model speaks the older XML protocol, which RoboHub does not support yet.'));
         }
         if (($geraet['ressource'] ?? '') === '' || ($geraet['geraetKlasse'] ?? '') === '') {
-            throw new RoboHubFehler('Gerätedaten unvollständig — bitte in der Konto-Instanz „Geräte jetzt suchen".');
+            throw new RoboHubFehler(RoboHubText::t('Device data incomplete — please click "Search devices now" in the account instance.'));
         }
     }
 
@@ -696,19 +697,19 @@ class RoboHubEcovacs implements RoboHubTreiber
         if (($r['ret'] ?? '') !== 'ok') {
             $errno = (int)($r['errno'] ?? 0);
             if ($errno === 4200) {
-                throw new RoboHubFehler('Der Ecovacs-Roboter ist offline.', 4200);
+                throw new RoboHubFehler(RoboHubText::t('The Ecovacs robot is offline.'), 4200);
             }
             if ($errno === 3 || in_array((string)($r['error'] ?? ''), ['auth error', 'token error'], true)) {
-                $e = new RoboHubFehler('Ecovacs-Zugang abgelehnt — bitte neu anmelden.');
+                $e = new RoboHubFehler(RoboHubText::t('Ecovacs access rejected — please sign in again.'));
                 $e->anmeldungNoetig = true;
                 throw $e;
             }
-            throw new RoboHubFehler('„' . $befehl . '" ohne Antwort' . ($errno === 500 ? ' (Gerät antwortet nicht oder kennt den Befehl nicht)' : ' (' . $errno . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('"%s" without response%s.', $befehl, ($errno === 500 ? RoboHubText::t(' (device does not respond or does not know the command)') : ' (' . $errno . ')')));
         }
         $body = $r['resp']['body'] ?? $r['resp'] ?? [];
         $code = $body['code'] ?? 0;
         if ((string)$code !== '0' && (string)$code !== '30007') {
-            throw new RoboHubFehler('Der Roboter lehnt „' . $befehl . '" ab: ' . (string)($body['msg'] ?? 'Code ' . $code));
+            throw new RoboHubFehler(RoboHubText::t('The robot rejects "%s": %s', $befehl, (string)($body['msg'] ?? RoboHubText::t('Code %s', $code))));
         }
         return $body['data'] ?? [];
     }
@@ -728,16 +729,16 @@ class RoboHubEcovacs implements RoboHubTreiber
     private function pruefeHttp(int $status, string $text): array
     {
         if ($status === 0) {
-            throw new RoboHubFehler('Ecovacs nicht erreichbar: ' . $text);
+            throw new RoboHubFehler(RoboHubText::t('Ecovacs not reachable: %s', $text));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('Ecovacs bremst gerade (zu viele Anfragen).');
+            $e = new RoboHubFehler(RoboHubText::t('Ecovacs is throttling right now (too many requests).'));
             $e->warteSekunden = 600;
             throw $e;
         }
         $j = json_decode($text, true);
         if ($status >= 300 || !is_array($j)) {
-            throw new RoboHubFehler('Ecovacs antwortet mit HTTP ' . $status . '.');
+            throw new RoboHubFehler(RoboHubText::t('Ecovacs responds with HTTP %s.', $status));
         }
         return $j;
     }

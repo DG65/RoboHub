@@ -42,15 +42,15 @@ class RoboHubNavimow implements RoboHubTreiber
 
     // vehicleState (lawn_mower.py, ioBroker lib/states.json) → [RoboHub-Zustand, Klartext].
     private const ZUSTAENDE = [
-        'isdocked'         => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'],
+        'isdocked'         => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
         'isidel'           => [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'],
         'isidle'           => [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'],
         'self-checking'    => [RoboHubModell::ZUSTAND_BEREIT, 'Selbsttest'],
         'ismapping'        => [RoboHubModell::ZUSTAND_KARTIERUNG, 'Kartiert'],
-        'isrunning'        => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht'],
+        'isrunning'        => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'],
         'ispaused'         => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
         'insoftwareupdate' => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Aktualisiert'],
-        'isdocking'        => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'],
+        'isdocking'        => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
         'error'            => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'],
         'islifted'         => [RoboHubModell::ZUSTAND_FEHLER, 'Angehoben'],
         'offline'          => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'],
@@ -62,7 +62,7 @@ class RoboHubNavimow implements RoboHubTreiber
         'weiter'   => ['action.devices.commands.PauseUnpause', ['on' => true], 'Fortsetzen'],
         'pause'    => ['action.devices.commands.PauseUnpause', ['on' => false], 'Pause'],
         'stopp'    => ['action.devices.commands.StartStop', ['on' => false], 'Stopp'],
-        'station'  => ['action.devices.commands.Dock', null, 'Zur Station'],
+        'station'  => ['action.devices.commands.Dock', null, 'Return to base'],
     ];
 
     // =================================================================
@@ -86,7 +86,7 @@ class RoboHubNavimow implements RoboHubTreiber
     {
         $code = self::codeAus($passwort);
         if ($code === '') {
-            throw new RoboHubFehler('Bitte die Adresse, auf der der Browser nach der Segway-Anmeldung gelandet ist (oder nur den Code daraus), ins Feld „Code" eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the address the browser landed on after the Segway sign-in (or just the code from it) into the "Code" field.'));
         }
         return $this->tokenHolen(['grant_type' => 'authorization_code', 'code' => $code, 'redirect_uri' => self::WEITERLEITUNG], []);
     }
@@ -119,15 +119,15 @@ class RoboHubNavimow implements RoboHubTreiber
         [$status, $text] = $this->http('POST', self::TOKEN, ['Content-Type: application/x-www-form-urlencoded', 'Accept: application/json'], http_build_query($felder));
         $this->dbg('HTTP', 'POST oauth/getAccessToken (' . $felder['grant_type'] . ') → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('Navimow nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Navimow not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         $j = json_decode($text, true);
         if (!is_array($j) || (string)($j['access_token'] ?? '') === '') {
             // Nur die Fehlerfelder nennen — die Antwort kann Zugangsdaten zurückspiegeln (HA api.py).
             $grund = is_array($j) ? (string)($j['error'] ?? $j['desc'] ?? '') : '';
             $e = new RoboHubFehler($felder['grant_type'] === 'authorization_code'
-                ? 'Segway lehnt den Code ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — der Code gilt nur kurz und nur einmal. Bitte den Anmeldelink neu öffnen.'
-                : 'Segway lehnt die Erneuerung ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — bitte neu anmelden.');
+                ? RoboHubText::t('Segway rejects the code%s — the code is only valid briefly and only once. Please open the sign-in link again.', ($grund !== '' ? ' (' . $grund . ')' : ''))
+                : RoboHubText::t('Segway rejects the renewal%s — please sign in again.', ($grund !== '' ? ' (' . $grund . ')' : '')));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -179,7 +179,7 @@ class RoboHubNavimow implements RoboHubTreiber
             }
         }
         if ($p === []) {
-            throw new RoboHubFehler('Mäher ' . $id . ' fehlt in der Navimow-Antwort — ist er noch mit dem Konto verbunden?');
+            throw new RoboHubFehler(RoboHubText::t('Mower %s is missing in the Navimow response — is it still connected to the account?', $id));
         }
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
         $zustand = strtolower((string)($p['vehicleState'] ?? ''));
@@ -194,10 +194,11 @@ class RoboHubNavimow implements RoboHubTreiber
         $w = [];
         $roh = (string)($p['vehicleState'] ?? '');
         if ($roh !== '') {
-            [$z, $text] = self::ZUSTAENDE[strtolower($roh)] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unbekannt'];
+            [$z, $text] = self::ZUSTAENDE[strtolower($roh)] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unknown'];
+            $text = RoboHubText::wert($text);
             $w['Zustand'] = $z;
             $w['ZustandRoh'] = $text . ' (' . $roh . ')';
-            $w['Fehler'] = $z === RoboHubModell::ZUSTAND_FEHLER ? $text : 'kein Fehler';
+            $w['Fehler'] = $z === RoboHubModell::ZUSTAND_FEHLER ? $text : RoboHubText::t('no error');
         }
         // „battery" kommt nur per MQTT und ist dann neuer (HA sensor.py), sonst capacityRemaining.
         $akku = $p['battery'] ?? ($p['capacityRemaining'][0]['rawValue'] ?? null);
@@ -215,10 +216,10 @@ class RoboHubNavimow implements RoboHubTreiber
             $befehl = 'weiter';   // HA async_start_mowing: aus der Pause fortsetzen statt neu starten
         }
         if (!isset(self::BEFEHLE[$befehl])) {
-            throw new RoboHubFehler(($befehl === 'orten' ? '„Orten"' : ($befehl === 'raum' ? 'Zonen mähen' : 'Dieser Befehl (' . $befehl . ')'))
-                . ' bietet Segways Smart-Home-Schnittstelle nicht — bitte in der Navimow-App.');
+            throw new RoboHubFehler(RoboHubText::t('Segway\'s smart home interface does not offer %s — please use the Navimow app.', ($befehl === 'orten' ? RoboHubText::t('"Locate"') : ($befehl === 'raum' ? RoboHubText::t('Mow zones') : RoboHubText::t('This command (%s)', $befehl)))));
         }
         [$kommando, $param, $text] = self::BEFEHLE[$befehl];
+        $text = RoboHubText::wert($text);
         $ausfuehrung = ['command' => $kommando];
         if ($param !== null) {
             $ausfuehrung['params'] = $param;
@@ -228,10 +229,10 @@ class RoboHubNavimow implements RoboHubTreiber
         foreach ((array)($antwort['payload']['commands'] ?? []) as $r) {
             $s = (string)($r['status'] ?? 'SUCCESS');
             if ($s !== 'SUCCESS' && (string)($r['errorCode'] ?? '') !== 'alreadyInState') {
-                throw new RoboHubFehler('Der Mäher hat „' . $text . '" abgelehnt (' . $s . (($r['errorCode'] ?? '') !== '' ? ', ' . $r['errorCode'] : '') . ').');
+                throw new RoboHubFehler(RoboHubText::t('The mower rejected "%s" (%s%s).', $text, $s, (($r['errorCode'] ?? '') !== '' ? ', ' . $r['errorCode'] : '')));
             }
         }
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     public function karte(array $buendel, array $geraet): array
@@ -246,7 +247,7 @@ class RoboHubNavimow implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen bietet Segways Smart-Home-Schnittstelle nicht — bitte in der Navimow-App.');
+        throw new RoboHubFehler(RoboHubText::t('Segway\'s smart home interface does not offer resetting wear parts — please use the Navimow app.'));
     }
 
     /** Keine Echtzeit (siehe Kopf) — der Client Socket am Konto bleibt geschlossen. */
@@ -291,22 +292,22 @@ class RoboHubNavimow implements RoboHubTreiber
         [$status, $text] = $this->http($methode, self::API . $pfad, $kopf, $body !== null ? (string)json_encode($body) : null);
         $this->dbg('HTTP', $methode . ' ' . $pfad . ' → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('Navimow nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Navimow not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         $j = json_decode($text, true);
         $j = is_array($j) ? $j : [];
         if ($status === 401 || in_array($j['code'] ?? null, self::AUTH_CODES, true) || in_array((string)($j['desc'] ?? ''), self::AUTH_TEXTE, true)) {
             // Schlüssel vorzeitig abgelehnt: nicht abmelden, beim nächsten Mal mit dem Erneuerungsschlüssel neu holen (HA _async_request).
             @touch($this->erneuernDatei($buendel));
-            throw new RoboHubFehler('Navimow hat den Zugangsschlüssel abgelehnt — RoboHub erneuert ihn beim nächsten Abruf.');
+            throw new RoboHubFehler(RoboHubText::t('Navimow rejected the access token — RoboHub renews it at the next update.'));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('Navimow bremst die Anfragen — RoboHub wartet.');
+            $e = new RoboHubFehler(RoboHubText::t('Navimow is throttling the requests — RoboHub is waiting.'));
             $e->warteSekunden = 600;
             throw $e;
         }
         if (($j['code'] ?? null) !== 1) {
-            throw new RoboHubFehler('Navimow antwortet mit Fehler ' . ($j['code'] ?? 'HTTP ' . $status) . (isset($j['desc']) ? ': ' . $j['desc'] : '') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Navimow responds with error %s%s.', ($j['code'] ?? 'HTTP ' . $status), (isset($j['desc']) ? ': ' . $j['desc'] : '')));
         }
         return (array)($j['data'] ?? []);
     }

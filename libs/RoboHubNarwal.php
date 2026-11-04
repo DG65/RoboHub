@@ -58,18 +58,18 @@ class RoboHubNarwal implements RoboHubTreiber
     private const IN_STATION = [2, 10, 14];
 
     // RoomType (models.py ROOM_TYPE_NAMES, App-Beschriftungen) deutsch.
-    private const RAUMTYPEN = [0 => 'Raum', 1 => 'Schlafzimmer', 2 => 'Gästezimmer', 3 => 'Wohnzimmer', 4 => 'Küche', 5 => 'Bad', 6 => 'WC',
-        7 => 'Balkon', 8 => 'Esszimmer', 9 => 'Ankleide', 10 => 'Flur', 11 => 'Arbeitszimmer', 12 => 'Kinderzimmer', 13 => 'Spielzimmer',
-        14 => 'Abstellraum', 15 => 'Sonstiges'];
+    private const RAUMTYPEN = [0 => 'Room', 1 => 'Bedroom', 2 => 'Guest room', 3 => 'Living room', 4 => 'Kitchen', 5 => 'Bathroom', 6 => 'WC',
+        7 => 'Balcony', 8 => 'Dining room', 9 => 'Dressing room', 10 => 'Hallway', 11 => 'Study', 12 => 'Children\'s room', 13 => 'Playroom',
+        14 => 'Storage room', 15 => 'Other'];
 
     // Antwortcodes (const.py CommandResult).
-    private const ABGELEHNT = [2 => 'passt gerade nicht zum Zustand des Roboters', 3 => 'läuft bereits', 4 => 'Roboter ist nicht bereit — Start und Raumreinigung gehen nur aus der Station'];
+    private const ABGELEHNT = [2 => 'does not fit the robot\'s current state', 3 => 'already running', 4 => 'Robot is not ready — start and room cleaning only work from the station'];
 
     // Befehle ohne Nutzlast: [kurzes Thema, Klartext, Wartezeit s].
     private const BEFEHLE = [
         'pause'   => ['task/pause', 'Pause', 5.0],
         'stopp'   => ['task/force_end', 'Stopp', 15.0],   // Roboter antwortet erst nach dem Anhalten (client.py stop)
-        'station' => ['supply/recall', 'Zur Station', 5.0],
+        'station' => ['supply/recall', 'Return to base', 5.0],
         'orten'   => ['common/yell', 'Orten', 5.0],
     ];
 
@@ -89,7 +89,7 @@ class RoboHubNarwal implements RoboHubTreiber
     {
         $ip = trim($ip);
         if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
-            throw new RoboHubFehler('Bitte die IP-Adresse des Narwal eintragen (z. B. 192.168.1.60).');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the Narwal\'s IP address (e.g. 192.168.1.60).'));
         }
         $v = $this->verbinden($ip);
         try {
@@ -107,7 +107,7 @@ class RoboHubNarwal implements RoboHubTreiber
 
     public function koppelText(): string
     {
-        return '✅ Gekoppelt. Narwal braucht weder Konto noch Passwort — RoboHub merkt sich nur IP-Adresse, Modellschlüssel und Geräte-ID.';
+        return RoboHubText::t('✅ Paired. Narwal needs neither account nor password — RoboHub only remembers IP address, model key and device ID.');
     }
 
     public function anmelden(string $konto, string $passwort, string $region): array
@@ -118,7 +118,7 @@ class RoboHubNarwal implements RoboHubTreiber
     public function erneuern(array $buendel): array
     {
         if (empty($buendel['roboter'])) {
-            $e = new RoboHubFehler('Noch kein Narwal gekoppelt.');
+            $e = new RoboHubFehler(RoboHubText::t('No Narwal paired yet.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -160,7 +160,7 @@ class RoboHubNarwal implements RoboHubTreiber
                 $i = 0;
             }
         }
-        throw new RoboHubFehler('Unter dieser Adresse antwortet kein Narwal (Port ' . self::PORT . '). Manche Modelle (Freo X Ultra, X Plus, J1/J4, T10) haben keine lokale Schnittstelle.');
+        throw new RoboHubFehler(RoboHubText::t('No Narwal responds at this address (port %s). Some models (Freo X Ultra, X Plus, J1/J4, T10) have no local interface.', self::PORT));
     }
 
     // =================================================================
@@ -187,7 +187,7 @@ class RoboHubNarwal implements RoboHubTreiber
     {
         $r = $buendel['roboter'][(string)$geraet['id']] ?? null;
         if (!is_array($r)) {
-            throw new RoboHubFehler('Dieser Narwal ist im Konto nicht (mehr) gekoppelt.');
+            throw new RoboHubFehler(RoboHubText::t('This Narwal is not (or no longer) paired in the account.'));
         }
         return $r;
     }
@@ -246,7 +246,7 @@ class RoboHubNarwal implements RoboHubTreiber
             $w['Akku'] = (int)max(0, min(100, round((float)$p['akku'])));
         }
         $fehler = (array)($p['fehler'] ?? []);
-        $w['Fehler'] = $fehler === [] ? 'kein Fehler' : 'Fehlercode ' . implode(', ', $fehler);
+        $w['Fehler'] = $fehler === [] ? RoboHubText::t('no error') : RoboHubText::t('Error code %s', implode(', ', $fehler));
         [$z, $text] = self::zustandAus($p, $w['Akku'] ?? null);
         $w['Zustand'] = $z;
         $w['ZustandRoh'] = $text . (isset($p['status']) ? ' (' . $p['status'] . ')' : '');
@@ -262,7 +262,7 @@ class RoboHubNarwal implements RoboHubTreiber
         }
         if (empty($p['wach'])) {
             // Ohne Rundmeldung ist der Arbeitszustand der Antwort veraltet — nur „ruht" sagen.
-            return [RoboHubModell::ZUSTAND_SCHLAF, 'Ruht (sendet gerade nichts)'];
+            return [RoboHubModell::ZUSTAND_SCHLAF, RoboHubText::t('Sleeping (not sending right now)')];
         }
         $s = (int)($p['status'] ?? 0);
         // Neue Firmware meldet 2 auch beim Reinigen außerhalb der Station, dann mit 3.4 = 3 (#115/#124).
@@ -271,21 +271,21 @@ class RoboHubNarwal implements RoboHubTreiber
             return [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
         }
         if ($aktiv && ($p['rueckfahrt'] ?? 0) === 1 && ($p['andocken'] ?? 0) === 2) {
-            return [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'];
+            return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Returning to base')];
         }
         if ($aktiv) {
-            return [RoboHubModell::ZUSTAND_REINIGT, $s === 17 ? 'Reinigt ausgewählte Räume' : 'Reinigt'];
+            return [RoboHubModell::ZUSTAND_REINIGT, $s === 17 ? RoboHubText::t('Cleaning selected rooms') : 'Reinigt'];
         }
         if ($s === 7) {
             return [RoboHubModell::ZUSTAND_KARTIERUNG, 'Kartiert'];
         }
         if ($s === 19) {
-            return [RoboHubModell::ZUSTAND_ZURUECK, 'Fertig, fährt zur Station'];
+            return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Finished, returning to base')];
         }
         $station = in_array($s, self::IN_STATION, true) || ($p['andocken'] ?? 0) === 1 || in_array($p['station'] ?? 0, [1, 6], true)
             || ($p['stationsarbeit'] ?? 0) > 0 || ($p['f11'] ?? 0) >= 2 || in_array($p['f47'] ?? 0, [1, 3], true);
         if ($station) {
-            return ($akku ?? 0) >= 100 ? [RoboHubModell::ZUSTAND_GELADEN, 'In der Station, geladen'] : [RoboHubModell::ZUSTAND_LAEDT, 'Lädt'];
+            return ($akku ?? 0) >= 100 ? [RoboHubModell::ZUSTAND_GELADEN, RoboHubText::t('In the station, charged')] : [RoboHubModell::ZUSTAND_LAEDT, RoboHubText::t('Charging')];
         }
         if ($s === 1) {
             return [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'];
@@ -317,7 +317,7 @@ class RoboHubNarwal implements RoboHubTreiber
         $antwort = self::pbLesen($this->anfrage($v, $r, 'map/get_map', '', 15.0));
         $karte = self::pbEins($antwort, 2, '');
         if (!is_string($karte) || $karte === '') {
-            throw new RoboHubFehler('Der Narwal hat keine Karte geliefert — ist eine Karte angelegt?');
+            throw new RoboHubFehler(RoboHubText::t('The Narwal did not deliver a map — has a map been created?'));
         }
         $k = self::pbLesen($karte);
         $raeume = [];
@@ -331,7 +331,7 @@ class RoboHubNarwal implements RoboHubTreiber
             if ($name === '') {
                 $typ = (int)self::pbEins($raum, 2, 0);
                 $nr = (int)self::pbEins($raum, 8, 0);
-                $name = (self::RAUMTYPEN[$typ] ?? 'Raum') . ($nr > 1 ? ' ' . $nr : '');
+                $name = RoboHubText::wert(self::RAUMTYPEN[$typ] ?? 'Room') . ($nr > 1 ? ' ' . $nr : '');
             }
             $raeume[$id] = $name;
         }
@@ -351,7 +351,7 @@ class RoboHubNarwal implements RoboHubTreiber
     {
         $r = $this->roboter($buendel, $geraet);
         if (!in_array($befehl, ['start', 'raum', 'pause', 'stopp', 'station', 'orten'], true)) {
-            throw new RoboHubFehler('Diesen Befehl kennt RoboHub für Narwal (noch) nicht: ' . $befehl);
+            throw new RoboHubFehler(RoboHubText::t('RoboHub does not know this command for Narwal (yet): %s', $befehl));
         }
         $v = $this->verbinden((string)$r['ip']);
         try {
@@ -365,6 +365,7 @@ class RoboHubNarwal implements RoboHubTreiber
             }
             if (isset(self::BEFEHLE[$befehl])) {
                 [$thema, $text, $warten] = self::BEFEHLE[$befehl];
+                $text = RoboHubText::wert($text);
                 return $this->ausfuehren($v, $r, $thema, '', $text, $warten);
             }
             [$kartenId, $raeume] = $this->kartenRaeume($v, $r);
@@ -372,15 +373,15 @@ class RoboHubNarwal implements RoboHubTreiber
                 $gewaehlt = array_values(array_unique(array_map('intval', (array)($parameter['raeume'] ?? []))));
                 $fremd = array_diff($gewaehlt, array_keys($raeume));
                 if ($gewaehlt === [] || $fremd !== []) {
-                    throw new RoboHubFehler('Unbekannte Raum-ID(s): ' . implode(', ', $fremd ?: ['keine gewählt']) . ' — „Räume laden" im Roboter-Formular zeigt die gültigen.');
+                    throw new RoboHubFehler(RoboHubText::t('Unknown room ID(s): %s — "Reload rooms" in the robot form shows the valid ones.', implode(', ', $fremd ?: [RoboHubText::t('none selected')])));
                 }
-                $text = 'Räume reinigen (' . implode(', ', array_map(function ($id) use ($raeume) { return $raeume[$id]; }, $gewaehlt)) . ')';
+                $text = RoboHubText::t('Clean rooms (%s)', implode(', ', array_map(function ($id) use ($raeume) { return $raeume[$id]; }, $gewaehlt)));
             } else {
                 $gewaehlt = array_keys($raeume);
-                $text = 'Start (alle ' . count($gewaehlt) . ' Räume)';
+                $text = RoboHubText::t('Start (all %s rooms)', count($gewaehlt));
             }
             if ($kartenId === 0 || $gewaehlt === []) {
-                throw new RoboHubFehler('Der Narwal hat keine Karte mit Räumen — bitte zuerst in der App kartieren.');
+                throw new RoboHubFehler(RoboHubText::t('The Narwal has no map with rooms — please map in the app first.'));
             }
             return $this->ausfuehren($v, $r, 'clean/start_clean', self::reinigungsAuftrag($kartenId, $gewaehlt), $text, 10.0);
         } finally {
@@ -410,14 +411,14 @@ class RoboHubNarwal implements RoboHubTreiber
         $code = self::pbEins($antwort, 1, 0);
         $code = is_int($code) ? $code : 1;   // Feld 1 als Daten statt Zahl = Datenantwort = angenommen (client.py)
         if (!in_array($code, [0, 1, 6], true)) {
-            throw new RoboHubFehler('Narwal lehnt „' . $text . '" ab: ' . (self::ABGELEHNT[$code] ?? 'Code ' . $code) . '.');
+            throw new RoboHubFehler(RoboHubText::t('Narwal rejects "%s": %s.', $text, (RoboHubText::wert(self::ABGELEHNT[$code] ?? null) ?? RoboHubText::t('Code %s', $code))));
         }
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen ist bei Narwal noch nicht eingebaut — bitte in der App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts is not built in for Narwal yet — please use the app.'));
     }
 
     public function echtzeitMoeglich(): bool
@@ -497,7 +498,7 @@ class RoboHubNarwal implements RoboHubTreiber
         while (true) {
             $antwort = $this->lies($v, $ende, true);
             if ($antwort === null) {
-                throw new RoboHubFehler('Der Narwal antwortet nicht auf „' . $kurz . '" — eingeschaltet und im WLAN?');
+                throw new RoboHubFehler(RoboHubText::t('The Narwal does not respond to "%s" — switched on and in Wi-Fi?', $kurz));
             }
             if ($this->bestaetigungVerbrauchen()) {
                 continue;   // Bestätigung einer früheren Anfrage
@@ -560,7 +561,7 @@ class RoboHubNarwal implements RoboHubTreiber
     {
         $n = strlen($thema);
         if ($n === 0 || $n > 125) {
-            throw new RoboHubFehler('Narwal-Thema hat eine ungültige Länge.');
+            throw new RoboHubFehler(RoboHubText::t('Narwal topic has an invalid length.'));
         }
         return "\x01" . chr($n + 2) . "\x22" . chr($n) . $thema . $nutzlast;
     }
@@ -569,11 +570,11 @@ class RoboHubNarwal implements RoboHubTreiber
     public static function zerlege(string $roh): array
     {
         if (strlen($roh) < 4 || $roh[0] !== "\x01" || !in_array($roh[2], ["\x22", "\x2a"], true)) {
-            throw new RoboHubFehler('Unbekannter Narwal-Rahmen.');
+            throw new RoboHubFehler(RoboHubText::t('Unknown Narwal frame.'));
         }
         $n = ord($roh[3]);
         if (strlen($roh) < 4 + $n) {
-            throw new RoboHubFehler('Narwal-Rahmen abgeschnitten.');
+            throw new RoboHubFehler(RoboHubText::t('Narwal frame truncated.'));
         }
         return [$roh[2] === "\x2a" ? 5 : 4, substr($roh, 4, $n), (string)substr($roh, 4 + $n)];
     }
@@ -714,7 +715,7 @@ class RoboHubNarwalVerbindung
         $host = strpos($ip, ':') !== false ? '[' . $ip . ']' : $ip;
         $sock = @stream_socket_client('tcp://' . $host . ':' . $port, $nr, $text, 5);
         if ($sock === false) {
-            throw new RoboHubFehler('Narwal unter ' . $ip . ':' . $port . ' nicht erreichbar (' . $text . ').');
+            throw new RoboHubFehler(RoboHubText::t('Narwal at %s:%s not reachable (%s).', $ip, $port, $text));
         }
         stream_set_blocking($sock, true);
         $schluessel = base64_encode(random_bytes(16));
@@ -727,19 +728,19 @@ class RoboHubNarwalVerbindung
             $ausnahme = null;
             if ($rest <= 0 || @stream_select($lesen, $schreiben, $ausnahme, (int)$rest, (int)(($rest - floor($rest)) * 1000000)) < 1) {
                 fclose($sock);
-                throw new RoboHubFehler('Narwal nimmt die Verbindung nicht an (keine Antwort auf Port ' . $port . ').');
+                throw new RoboHubFehler(RoboHubText::t('Narwal does not accept the connection (no response on port %s).', $port));
             }
             $stueck = fread($sock, 4096);
             if ($stueck === false || $stueck === '') {
                 fclose($sock);
-                throw new RoboHubFehler('Narwal hat die Verbindung geschlossen.');
+                throw new RoboHubFehler(RoboHubText::t('Narwal closed the connection.'));
             }
             $kopf .= $stueck;
         }
         [$antwort, $rest] = explode("\r\n\r\n", $kopf, 2);
         if (!preg_match('#^HTTP/1\.1 101#', $antwort) || !preg_match('/^Sec-WebSocket-Accept:\s*(\S+)/mi', $antwort, $m) || $m[1] !== RoboHubMqttSitzung::wsAkzeptanz($schluessel)) {
             fclose($sock);
-            throw new RoboHubFehler('Narwal lehnt die WebSocket-Verbindung ab: ' . strtok($antwort, "\r\n"));
+            throw new RoboHubFehler(RoboHubText::t('Narwal rejects the WebSocket connection: %s', strtok($antwort, "\r\n")));
         }
         return new self($sock, $rest);
     }

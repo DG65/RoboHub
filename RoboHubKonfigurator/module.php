@@ -22,6 +22,15 @@ class RoboHubKonfigurator extends IPSModule
 {
     use RoboHubFormular;
 
+    public function __construct($InstanceID)
+    {
+        parent::__construct($InstanceID);
+        // Treiber, Modell und Kachel übersetzen über RoboHubText (englische Quelltexte, Deutsch in locale.json).
+        RoboHubText::setzen(function (string $text): string {
+            return $this->Translate($text);
+        });
+    }
+
     private const KONTO_GUID  = '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}';
     private const GERAET_GUID = '{631DA85B-5985-4C25-B222-E47FDD49E302}';
     private const SOCKET_GUID = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
@@ -56,10 +65,10 @@ class RoboHubKonfigurator extends IPSModule
     {
         $id = @IPS_CreateInstance(self::KONTO_GUID);
         if (!$id) {
-            return '⛔ Das Konto ließ sich nicht anlegen.';
+            return RoboHubText::t('⛔ The account could not be created.');
         }
         IPS_SetName($id, 'RoboHub Konto');
-        return '✅ „RoboHub Konto" #' . $id . ' angelegt (im Objektbaum ganz oben). Dort öffnen, Hersteller wählen, Zugangsdaten eintragen, „Übernehmen", „🔑 Jetzt anmelden" — danach erscheinen die Roboter hier mit „🔎 Jetzt neu suchen".';
+        return RoboHubText::t('✅ "RoboHub Konto" #%s created (at the top of the object tree). Open it there, choose the vendor, enter the credentials, click "Apply", "🔑 Sign in now" — then the robots appear here with "🔎 Search again now".', $id);
     }
 
     public function Suchen(): string
@@ -122,7 +131,7 @@ class RoboHubKonfigurator extends IPSModule
                     'id'         => $id,
                     'name'       => (string)($g['name'] ?? $id),
                     'modell'     => (string)($g['modell'] ?? ''),
-                    'klasse'     => $klasse === RoboHubModell::KLASSE_MAEHER ? 'Rasenmähroboter' : 'Saug-/Wischroboter',
+                    'klasse'     => $klasse === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robotic lawn mower') : 'Saug-/Wischroboter',
                     'konto'      => (string)($info['anzeige'] ?? ('#' . $kid)),
                     'online'     => !empty($g['online']) ? 'online' : 'offline',
                     'instanceID' => $vorhanden[$id] ?? 0,
@@ -154,7 +163,7 @@ class RoboHubKonfigurator extends IPSModule
         foreach ($vorhanden as $id => $iid) {
             $id = (string)$id;
             if ($id !== '' && !isset($bekannt[$id])) {
-                $werte[] = ['id' => $id, 'name' => IPS_GetName($iid), 'modell' => (string)IPS_GetProperty($iid, 'Modell'), 'klasse' => '', 'konto' => '—', 'online' => 'in keinem Konto gefunden', 'instanceID' => $iid];
+                $werte[] = ['id' => $id, 'name' => IPS_GetName($iid), 'modell' => (string)IPS_GetProperty($iid, 'Modell'), 'klasse' => '', 'konto' => '—', 'online' => RoboHubText::t('not found in any account'), 'instanceID' => $iid];
             }
         }
         return $werte;
@@ -163,15 +172,14 @@ class RoboHubKonfigurator extends IPSModule
     private function suchZeile(array $konten): string
     {
         if (count($konten) === 0) {
-            return 'ℹ️ Noch keine RoboHub-Konto-Instanz vorhanden — mit „➕ Neues RoboHub Konto anlegen" eins anlegen und dort anmelden.';
+            return RoboHubText::t('ℹ️ No RoboHub account instance yet — create one with "➕ Create new RoboHub account" and sign in there.');
         }
         $anzahl = 0;
         foreach ($konten as $info) {
             $anzahl += count((array)($info['geraete'] ?? []));
         }
         $ts = $this->ReadAttributeInteger('LetzteSuche');
-        return ($anzahl > 0 ? '✅ ' : '⚠️ ') . $anzahl . ' Gerät(e) in ' . count($konten) . ' Konto/Konten gefunden'
-            . ($ts > 0 ? ' (zuletzt ' . date('H:i:s', $ts) . ' Uhr).' : '.');
+        return RoboHubText::t('%s%s device(s) found in %s account(s)%s', ($anzahl > 0 ? '✅ ' : '⚠️ '), $anzahl, count($konten), ($ts > 0 ? RoboHubText::t(' (last %s).', date('H:i:s', $ts)) : '.'));
     }
 
     private function kontenZeile(array $konten): string
@@ -180,7 +188,7 @@ class RoboHubKonfigurator extends IPSModule
         foreach ($konten as $kid => $info) {
             $n = count((array)($info['geraete'] ?? []));
             $zeilen[] = (empty($info['angemeldet']) ? '⛔ ' : '🔗 ') . ($info['anzeige'] ?? '') . ' — Instanz #' . $kid . ': '
-                . (empty($info['angemeldet']) ? 'nicht angemeldet' : $n . ' Gerät(e)');
+                . (empty($info['angemeldet']) ? RoboHubText::t('not signed in') : RoboHubText::t('%s device(s)', $n));
         }
         return implode("\n", $zeilen);
     }
@@ -193,17 +201,17 @@ class RoboHubKonfigurator extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Der Konfigurator zeigt alle Saug-, Wisch- und Mähroboter aus allen deinen RoboHub-Konten in einer Liste und legt sie mit einem Klick an — Geräte-ID und Modell musst du nicht abtippen.',
+            RoboHubText::t('The configurator shows all robot vacuums, mops and lawn mowers from all your RoboHub accounts in one list and creates them with one click — no need to type device ID and model.'),
         ];
     }
 
     protected function robohubDocLines(): array
     {
         return [
-            'Voraussetzung: mindestens eine angemeldete RoboHub-Konto-Instanz. Der Konfigurator braucht selbst keine Verbindung — er sammelt die Roboter aller Konten.',
-            'Gerät wählen und „Erstellen" klicken. Der neue Roboter verbindet sich selbst mit dem Konto, in dem er gefunden wurde.',
-            'Der Papierkorb hinter einer Zeile LÖSCHT die Roboter-Instanz samt Variablen. Rote Zeilen sind Instanzen, deren Gerät in keinem Konto mehr vorkommt.',
-            'Ein neu gekaufter Roboter erscheint nach „🔎 Jetzt neu suchen", sobald er in der Hersteller-App eingerichtet ist.',
+            RoboHubText::t('Requirement: at least one signed-in RoboHub account instance. The configurator itself needs no connection — it collects the robots of all accounts.'),
+            RoboHubText::t('Choose a device and click "Create". The new robot connects itself to the account in which it was found.'),
+            RoboHubText::t('The trash can behind a row DELETES the robot instance including its variables. Red rows are instances whose device no longer appears in any account.'),
+            RoboHubText::t('A newly bought robot appears after "🔎 Search again now" as soon as it is set up in the vendor app.'),
         ];
     }
 
@@ -230,30 +238,30 @@ class RoboHubKonfigurator extends IPSModule
 
         $panel = [
             'type' => 'ExpansionPanel', 'expanded' => true,
-            'caption' => '🤖  Roboter aller Konten',
+            'caption' => RoboHubText::t('🤖  Robots of all accounts'),
             'items' => [
                 ['type' => 'RowLayout', 'items' => [
-                    ['type' => 'Button', 'caption' => '🔎 Jetzt neu suchen', 'onClick' => 'echo ROBOCFG_Suchen($id);'],
-                    ['type' => 'Button', 'caption' => '➕ Neues RoboHub Konto anlegen', 'onClick' => 'echo ROBOCFG_KontoAnlegen($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('🔎 Search again now'), 'onClick' => 'echo ROBOCFG_Suchen($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('➕ Create new RoboHub account'), 'onClick' => 'echo ROBOCFG_KontoAnlegen($id);'],
                 ]],
                 ['type' => 'Label', 'name' => 'SuchZeile', 'caption' => $this->suchZeile($konten)],
                 [
-                    'type' => 'Configurator', 'name' => 'Geraete', 'caption' => 'Geräte',
+                    'type' => 'Configurator', 'name' => 'Geraete', 'caption' => RoboHubText::t('Devices'),
                     'rowCount' => 8, 'add' => false, 'delete' => true,
                     'columns' => [
                         ['caption' => 'Name', 'name' => 'name', 'width' => 'auto'],
                         ['caption' => 'Art', 'name' => 'klasse', 'width' => '180px'],
-                        ['caption' => 'Konto', 'name' => 'konto', 'width' => '260px'],
-                        ['caption' => 'Modell', 'name' => 'modell', 'width' => '200px'],
-                        ['caption' => 'Erreichbar', 'name' => 'online', 'width' => '170px'],
+                        ['caption' => RoboHubText::t('Account'), 'name' => 'konto', 'width' => '260px'],
+                        ['caption' => RoboHubText::t('Model'), 'name' => 'modell', 'width' => '200px'],
+                        ['caption' => RoboHubText::t('Reachable'), 'name' => 'online', 'width' => '170px'],
                     ],
                     'values' => $this->listenWerte($konten),
                 ],
-                ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => 'Konten im Detail', 'items' => [
-                    ['type' => 'Label', 'name' => 'KontenZeile', 'caption' => count($konten) > 0 ? $this->kontenZeile($konten) : 'ℹ️ Keine Konten.'],
+                ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => RoboHubText::t('Accounts in detail'), 'items' => [
+                    ['type' => 'Label', 'name' => 'KontenZeile', 'caption' => count($konten) > 0 ? $this->kontenZeile($konten) : RoboHubText::t('ℹ️ No accounts.')],
                 ]],
             ],
         ];
-        return $this->robohubBuildForm([$panel], [], [['code' => 102, 'icon' => 'active', 'caption' => 'Bereit']]);
+        return $this->robohubBuildForm([$panel], [], [['code' => 102, 'icon' => 'active', 'caption' => RoboHubText::t('Ready')]]);
     }
 }

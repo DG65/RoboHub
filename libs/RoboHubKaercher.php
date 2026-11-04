@@ -41,9 +41,9 @@ class RoboHubKaercher implements RoboHubTreiber
     private const PROJEKT = 'android_iot.karcher';
 
     private const REGIONEN = [
-        'eu' => ['Europa (auch DE/AT/CH)', 'https://eu-appaiot.3irobotix.net'],
-        'us' => ['Nordamerika (ungeprüft)', 'https://us-appaiot.3irobotix.net'],
-        'cn' => ['China/Asien (ungeprüft)', 'https://cn-appaiot.3irobotix.net'],
+        'eu' => ['Europe (also DE/AT/CH)', 'https://eu-appaiot.3irobotix.net'],
+        'us' => ['North America (untested)', 'https://us-appaiot.3irobotix.net'],
+        'cn' => ['China/Asia (untested)', 'https://cn-appaiot.3irobotix.net'],
     ];
 
     // Selbst signiertes Zertifikat der 3iRobotix-Server (live gelesen 27.10.2026 von
@@ -91,27 +91,27 @@ class RoboHubKaercher implements RoboHubTreiber
 
     // Fehlercodes (const.py FAULT_CODE_DESCRIPTIONS, Texte eigene Übersetzung).
     private const FEHLER = [
-        100 => 'Hardwarefehler', 500 => 'Laserturm antwortet nicht', 501 => 'Rad angehoben', 502 => 'Akku zu schwach zum Starten',
-        503 => 'Staubbehälter fehlt', 504 => 'Magnetsensor gestört', 505 => 'Start aus der Station fehlgeschlagen',
-        506 => 'Infrarot-Leitsensor gestört', 507 => 'Position nicht wiedergefunden', 508 => 'Start auf Schräge nicht möglich',
-        509 => 'Absturzsensor gestört', 510 => 'Stoßfänger gestört', 511 => 'Rückkehr zur Station fehlgeschlagen',
-        512 => 'Roboter in die Station setzen', 513 => 'Navigation fehlgeschlagen', 514 => 'Roboter steckt fest',
-        515 => 'Station: Kontakt gestört', 516 => 'Akkutemperatur gestört', 517 => 'Firmware wird aktualisiert',
-        518 => 'Wartet aufs Laden', 519 => 'Hauptbürste blockiert', 520 => 'Seitenbürste blockiert', 521 => 'Wassertank fehlt',
-        522 => 'Wischtuch fehlt', 523 => 'Staubbehälter voll', 524 => 'Hauptschalter aus', 525 => 'Wassertank leer',
-        526 => 'Wischtuch verschmutzt', 527 => 'Staubbehälter voll', 530 => 'Akkutemperatur ungewöhnlich',
-        531 => 'Akkutemperatur wieder normal', 2000 => 'Staubbehälter voll', 2001 => 'Linke Bürste blockiert',
-        2002 => 'Rechte Bürste blockiert', 2003 => 'Kein Strom / Zeitplan aus', 2007 => 'Reinigung unterbrochen',
-        2008 => 'Reinigung abgeschlossen', 2009 => 'Geplante Reinigung abgeschlossen', 2010 => 'Abstandssensor gestört',
-        2100 => 'Rückkehr zur Station unterbrochen', 2101 => 'Laden unterbrochen', 2102 => 'Fährt zur Station',
-        2103 => 'Wechselt den Zustand', 2104 => 'Zur Station geschickt', 2105 => 'Laden abgeschlossen',
-        2106 => 'Warten aufs Laden unterbrochen', 2107 => 'Geplante Reinigung läuft', 2108 => 'Sucht seine Position',
-        2109 => 'Reinigt erneut', 2110 => 'Selbsttest', 4002 => 'Kartenfehler',
+        100 => 'Hardware error', 500 => 'Laser tower not responding', 501 => 'Wheel lifted', 502 => 'Battery too low to start',
+        503 => 'Dust bin missing', 504 => 'Magnetic sensor fault', 505 => 'Start from the station failed',
+        506 => 'Infrared guide sensor fault', 507 => 'Position not found again', 508 => 'Cannot start on a slope',
+        509 => 'Cliff sensor fault', 510 => 'Bumper fault', 511 => 'Return to base failed',
+        512 => 'Put the robot into the station', 513 => 'Navigation failed', 514 => 'Robot stuck',
+        515 => 'Station: contact fault', 516 => 'Battery temperature fault', 517 => 'Firmware is being updated',
+        518 => 'Waiting to charge', 519 => 'Main brush blocked', 520 => 'Side brush blocked', 521 => 'Water tank missing',
+        522 => 'Mop cloth missing', 523 => 'Dust bin full', 524 => 'Main switch off', 525 => 'Water tank empty',
+        526 => 'Mop cloth dirty', 527 => 'Dust bin full', 530 => 'Battery temperature unusual',
+        531 => 'Battery temperature back to normal', 2000 => 'Dust bin full', 2001 => 'Left brush blocked',
+        2002 => 'Right brush blocked', 2003 => 'No power / schedule off', 2007 => 'Cleaning interrupted',
+        2008 => 'Cleaning finished', 2009 => 'Scheduled cleaning finished', 2010 => 'Distance sensor fault',
+        2100 => 'Return to base interrupted', 2101 => 'Charging interrupted', 2102 => 'Returning to base',
+        2103 => 'Changing state', 2104 => 'Sent to base', 2105 => 'Charging finished',
+        2106 => 'Waiting to charge interrupted', 2107 => 'Scheduled cleaning running', 2108 => 'Searching for its position',
+        2109 => 'Cleaning again', 2110 => 'Self-test', 4002 => 'Map error',
     ];
 
-    private const SAUGSTUFEN = [0 => 'Leise', 1 => 'Standard', 2 => 'Mittel', 3 => 'Turbo'];
-    private const WASSER = [0 => 'Niedrig', 1 => 'Mittel', 2 => 'Hoch'];
-    private const MODI = [0 => 'Saugen', 1 => 'Saugen und Wischen', 2 => 'Wischen'];
+    private const SAUGSTUFEN = [0 => 'Quiet', 1 => 'Standard', 2 => 'Medium', 3 => 'Turbo'];
+    private const WASSER = [0 => 'Low', 1 => 'Medium', 2 => 'High'];
+    private const MODI = [0 => 'Vacuum', 1 => 'Vacuum and mop', 2 => 'Mop'];
     private const EINSTELLUNGEN = ['Saugstufe' => ['wind', self::SAUGSTUFEN], 'Wassermenge' => ['water', self::WASSER],
         'Reinigungsmodus' => ['mode', self::MODI]];
 
@@ -119,6 +119,7 @@ class RoboHubKaercher implements RoboHubTreiber
     {
         $aus = [];
         foreach (self::REGIONEN as $wert => [$text]) {
+            $text = RoboHubText::wert($text);
             $aus[] = ['caption' => $text, 'value' => $wert];
         }
         return $aus;
@@ -132,7 +133,7 @@ class RoboHubKaercher implements RoboHubTreiber
     {
         $konto = trim($konto);
         if (!filter_var($konto, FILTER_VALIDATE_EMAIL) || $passwort === '') {
-            throw new RoboHubFehler('Bitte E-Mail und Passwort des Kärcher-Kontos (App „Kärcher Home Robots") eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter e-mail and password of the Kärcher account (app "Kärcher Home Robots").'));
         }
         $region = isset(self::REGIONEN[$region]) ? $region : 'eu';
         $basis = self::REGIONEN[$region][1];
@@ -143,7 +144,7 @@ class RoboHubKaercher implements RoboHubTreiber
         $api = self::serverAus((string)($server['APP_api'] ?? ''), 443) ?? [parse_url($basis, PHP_URL_HOST), 443];
         $mqtt = self::serverAus((string)($server['MQTT'] ?? ''), 8883);
         if ($mqtt === null) {
-            throw new RoboHubFehler('Kärcher-Cloud nennt keinen gültigen MQTT-Server.');
+            throw new RoboHubFehler(RoboHubText::t('Kärcher cloud names no valid MQTT server.'));
         }
         $b = ['region' => $region, 'api' => 'https://' . $api[0] . ($api[1] !== 443 ? ':' . $api[1] : ''), 'mqtt' => $mqtt[0], 'mqttPort' => $mqtt[1],
             'geraetId' => self::zufall(19)];
@@ -168,15 +169,14 @@ class RoboHubKaercher implements RoboHubTreiber
         $emq = (string)($r['EMQ_TOKEN'] ?? $r['emq_token'] ?? $b['emq'] ?? '');
         $id = (string)($r['id'] ?? $r['userId'] ?? $b['userId'] ?? '');
         if ($auth === '' || $emq === '' || $id === '') {
-            throw new RoboHubFehler('Kärcher-Anmeldung lieferte keinen vollständigen Zugang (AUTH/EMQ_TOKEN/id fehlt).');
+            throw new RoboHubFehler(RoboHubText::t('Kärcher sign-in did not deliver complete access (AUTH/EMQ_TOKEN/id missing).'));
         }
         return ['auth' => $auth, 'emq' => $emq, 'userId' => $id, 'ablauf' => self::ablaufAus($auth), 'erneuert' => time()] + $b;
     }
 
     public function anmeldeText(array $buendel): string
     {
-        return '✅ Angemeldet. Das Passwort wurde verworfen. Kärcher kennt keinen Erneuerungsschlüssel — läuft der Zugang ab, meldet RoboHub das und du meldest dich hier neu an'
-            . ((int)($buendel['ablauf'] ?? 0) > 0 ? ' (laut Schlüssel gültig bis ' . date('d.m.Y H:i', (int)$buendel['ablauf']) . ' Uhr)' : '') . '.';
+        return RoboHubText::t('✅ Signed in. The password was discarded. Kärcher has no refresh token — if access expires, RoboHub reports it and you sign in here again%s.', ((int)($buendel['ablauf'] ?? 0) > 0 ? RoboHubText::t(' (valid until %s according to the token)', date('d.m.Y H:i', (int)$buendel['ablauf'])) : ''));
     }
 
     /**
@@ -198,7 +198,7 @@ class RoboHubKaercher implements RoboHubTreiber
                 throw $f;   // Cloud gerade nicht erreichbar: beim nächsten Abruf noch einmal
             }
             @unlink($this->erneuernDatei($buendel));
-            $e = new RoboHubFehler('Kärcher hat den Zugang beendet und lässt ihn nicht ohne Passwort erneuern — bitte in der Konto-Instanz neu anmelden.');
+            $e = new RoboHubFehler(RoboHubText::t('Kärcher ended the access and does not allow renewing it without a password — please sign in again in the account instance.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -263,12 +263,12 @@ class RoboHubKaercher implements RoboHubTreiber
         $antwort = $this->mqttAustausch($buendel, $geraet, 'service/property/get', self::umschlag('prop.get', ['property' => self::EIGENSCHAFTEN], '3.0'), 'service/property/get_reply', 8.0);
         if ($antwort === null) {
             // Keine Antwort = Roboter schläft oder ist nicht im WLAN (karcher-rcv5-ha: Zeitüberschreitung).
-            return ['werte' => ['Zustand' => RoboHubModell::ZUSTAND_UNBEKANNT, 'ZustandRoh' => 'Keine Antwort vom Roboter'],
+            return ['werte' => ['Zustand' => RoboHubModell::ZUSTAND_UNBEKANNT, 'ZustandRoh' => RoboHubText::t('No response from the robot')],
                 'optionen' => array_map(function (array $e): array { return $e[1]; }, self::EINSTELLUNGEN), 'schreibbar' => [], 'online' => false,
                 'bloecke' => ['ok' => [], 'fehl' => [0]], 'roh' => ['properties' => null]];
         }
         if ((int)($antwort['code'] ?? 0) !== 0) {
-            throw new RoboHubFehler('Der Roboter lehnt die Abfrage ab (Code ' . (int)$antwort['code'] . ').');
+            throw new RoboHubFehler(RoboHubText::t('The robot rejects the query (code %s).', (int)$antwort['code']));
         }
         $p = is_array($antwort['data'] ?? null) ? $antwort['data'] : [];
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p + ['_produkt' => (string)($geraet['produkt'] ?? '')]);
@@ -305,10 +305,10 @@ class RoboHubKaercher implements RoboHubTreiber
             $z = RoboHubModell::ZUSTAND_LAEDT;
         }
         $w['Zustand'] = $z;
-        $w['ZustandRoh'] = RoboHubModell::ZUSTAENDE[$z][0] . ' (work_mode ' . $modus . ')';
-        $w['Fehler'] = $echterFehler ? (self::FEHLER[$fehler] ?? 'Fehler') . ' (' . $fehler . ')' : 'kein Fehler';
+        $w['ZustandRoh'] = RoboHubText::wert(RoboHubModell::ZUSTAENDE[$z][0]) . ' (work_mode ' . $modus . ')';
+        $w['Fehler'] = $echterFehler ? RoboHubText::wert(self::FEHLER[$fehler] ?? 'Error') . ' (' . $fehler . ')' : RoboHubText::t('no error');
         if ($fehler !== 0 && !$echterFehler) {
-            $w['Meldung'] = (self::FEHLER[$fehler] ?? 'Meldung') . ' (' . $fehler . ')';
+            $w['Meldung'] = RoboHubText::wert(self::FEHLER[$fehler] ?? 'Message') . ' (' . $fehler . ')';
         }
         $w['Akku'] = $akku;
         $w['Laedt'] = $z === RoboHubModell::ZUSTAND_LAEDT;
@@ -355,12 +355,12 @@ class RoboHubKaercher implements RoboHubTreiber
             $feld = (string)($parameter['feld'] ?? '');
             $wert = (int)($parameter['wert'] ?? -1);
             if (!isset(self::EINSTELLUNGEN[$feld]) || !isset(self::EINSTELLUNGEN[$feld][1][$wert])) {
-                throw new RoboHubFehler('Diese Einstellung gibt es bei Kärcher nicht.');
+                throw new RoboHubFehler(RoboHubText::t('This setting does not exist on Kärcher.'));
             }
             [$eig, $werte] = self::EINSTELLUNGEN[$feld];
             $roh = $wert + ($feld === 'Saugstufe' && in_array((string)($geraet['produkt'] ?? ''), self::SAUGSTUFE_AB_1, true) ? 1 : 0);
             $this->mqttAustausch($buendel, $geraet, 'service/property/set', self::umschlag('prop.set', [$eig => $roh], '1.0'), null, 5.0);
-            return $feld === 'Reinigungsmodus' ? 'Reinigungsmodus „' . $werte[$wert] . '" gesendet.' : $feld . ' „' . $werte[$wert] . '" gesendet.';
+            return RoboHubText::t('%s "%s" sent.', RoboHubText::wert(RoboHubModell::FELDER[$feld][0] ?? $feld), RoboHubText::wert($werte[$wert]));
         }
         // Pause/Fortsetzen/Stopp einer Bereichsreinigung laufen über set_zone_clean (vacuum.py) — dafür den Arbeitsmodus kennen.
         $zone = false;
@@ -380,18 +380,18 @@ class RoboHubKaercher implements RoboHubTreiber
             'pause'        => ['set_room_clean', ['room_ids' => [], 'ctrl_value' => 2, 'clean_type' => 0], 'Pause'],
             'stopp'        => ['set_room_clean', ['room_ids' => [], 'ctrl_value' => 0, 'clean_type' => 0], 'Stopp'],
             'heimwegStopp' => ['stop_recharge', new stdClass(), 'Stopp'],
-            'station'      => ['start_recharge', new stdClass(), 'Zur Station'],
+            'station'      => ['start_recharge', new stdClass(), RoboHubText::t('Return to base')],
             'orten'        => ['find_device', new stdClass(), 'Orten'],
         ];
         if (!isset($map[$befehl])) {
-            throw new RoboHubFehler($befehl === 'raum' ? 'Räume steuert RoboHub bei Kärcher (noch) nicht.' : 'Dieser Befehl wird bei Kärcher nicht unterstützt: ' . $befehl);
+            throw new RoboHubFehler($befehl === 'raum' ? RoboHubText::t('RoboHub does not control rooms on Kärcher (yet).') : RoboHubText::t('This command is not supported by Kärcher: %s', $befehl));
         }
         [$dienst, $param, $text] = $map[$befehl];
         if ($zone && in_array($befehl, ['start', 'pause', 'stopp'], true)) {
             [$dienst, $param] = ['set_zone_clean', ['ctrl_value' => $param['ctrl_value']]];
         }
         $this->mqttAustausch($buendel, $geraet, 'service_invoke/' . $dienst, self::umschlag('service.' . $dienst, $param, '3.0'), null, 5.0);
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     /** Nutzlast wie in der App: method, msgId (ms als Text), tenantId, version, params. */
@@ -413,7 +413,7 @@ class RoboHubKaercher implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen geht bei Kärcher (noch) nur in der App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts on Kärcher is (still) only possible in the app.'));
     }
 
     public function echtzeitMoeglich(): bool
@@ -459,20 +459,20 @@ class RoboHubKaercher implements RoboHubTreiber
             $sitzung->senden(RoboHubMqtt::connect($nutzer . '_' . bin2hex(random_bytes(8)), $nutzer, (string)$buendel['emq'], 60));
             $p = $sitzung->warte(RoboHubMqtt::CONNACK, null, $ende);
             if ($p === null) {
-                throw new RoboHubFehler('Kärcher-Server hat die Anmeldung nicht beantwortet.');
+                throw new RoboHubFehler(RoboHubText::t('Kärcher server did not answer the sign-in.'));
             }
             $code = RoboHubMqtt::connackCode($p['body']);
             if ($code === 4 || $code === 5) {
                 @touch($this->erneuernDatei($buendel));   // nicht abmelden: nächster Abruf erneuert
-                throw new RoboHubFehler('Kärcher-MQTT lehnt den Zugang ab (' . RoboHubMqtt::connackText($code) . ') — RoboHub erneuert ihn beim nächsten Abruf.');
+                throw new RoboHubFehler(RoboHubText::t('Kärcher MQTT rejects the access (%s) — RoboHub renews it at the next update.', RoboHubMqtt::connackText($code)));
             }
             if ($code !== 0) {
-                throw new RoboHubFehler('Kärcher-Server lehnt die Verbindung ab: ' . RoboHubMqtt::connackText($code) . '.');
+                throw new RoboHubFehler(RoboHubText::t('Kärcher server rejects the connection: %s.', RoboHubMqtt::connackText($code)));
             }
             if ($antwortThema !== null) {
                 $sitzung->senden(RoboHubMqtt::subscribe(1, [$basis . $antwortThema], 0));
                 if ($sitzung->warte(RoboHubMqtt::SUBACK, null, $ende) === null) {
-                    throw new RoboHubFehler('Kärcher-Server hat das Abonnement nicht bestätigt.');
+                    throw new RoboHubFehler(RoboHubText::t('Kärcher server did not confirm the subscription.'));
                 }
             }
             $sitzung->senden(RoboHubMqtt::publish($basis . $ziel, $inhalt));
@@ -490,7 +490,7 @@ class RoboHubKaercher implements RoboHubTreiber
                 $antwort = is_array($j) ? $j : null;
                 return $antwort !== null;
             }, $ende);
-            $this->dbg('MQTT', $antwortThema . ($antwort === null ? ' blieb aus' : ' erhalten'));
+            $this->dbg('MQTT', $antwortThema . ($antwort === null ? RoboHubText::t(' did not arrive') : ' erhalten'));
             return $antwort;
         } finally {
             $sitzung->schliessen();
@@ -561,28 +561,28 @@ class RoboHubKaercher implements RoboHubTreiber
         [$status, $text] = $this->http($methode, $url, $kopf, $body);
         $this->dbg('HTTP', $methode . ' ' . preg_replace('#/getDeviceInfoByUserId/.*#', '/getDeviceInfoByUserId/…', $pfad) . ' → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('Kärcher-Cloud nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.', 503);
+            throw new RoboHubFehler(RoboHubText::t('Kärcher cloud not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')), 503);
         }
         $j = json_decode($text, true);
         if ($status !== 200 || !is_array($j)) {
-            throw new RoboHubFehler('Unerwartete Antwort der Kärcher-Cloud (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('Unexpected response from the Kärcher cloud (HTTP %s).', $status));
         }
         $code = (int)($j['code'] ?? -1);
         if ($code === 0) {
             return is_array($j['result'] ?? null) ? $j['result'] : [];
         }
         if ($anmeldung && ($code === 620 || $code === 623)) {
-            throw new RoboHubFehler($code === 620 ? 'Kärcher lehnt die Anmeldung ab: E-Mail oder Passwort falsch.'
-                : 'Kärcher kennt diese E-Mail nicht — Schreibweise und Region prüfen.');
+            throw new RoboHubFehler($code === 620 ? RoboHubText::t('Kärcher rejects the sign-in: e-mail or password wrong.')
+                : RoboHubText::t('Kärcher does not know this e-mail — check spelling and region.'));
         }
         if (in_array($code, [401, 609, 613], true)) {
             if ($pfad === '/user-center/auth/login/token') {
-                throw new RoboHubFehler('Kärcher lehnt die Erneuerung ab (Code ' . $code . ').', 401);
+                throw new RoboHubFehler(RoboHubText::t('Kärcher rejects the renewal (code %s).', $code), 401);
             }
             @touch($this->erneuernDatei($buendel));   // nicht abmelden: nächster Abruf erneuert per login/token
-            throw new RoboHubFehler('Kärcher hat den Zugangsschlüssel abgelehnt (Code ' . $code . ') — RoboHub erneuert ihn beim nächsten Abruf.');
+            throw new RoboHubFehler(RoboHubText::t('Kärcher rejected the access token (code %s) — RoboHub renews it at the next update.', $code));
         }
-        throw new RoboHubFehler('Kärcher-Cloud meldet Code ' . $code . (isset($j['msg']) && is_string($j['msg']) ? ': ' . $j['msg'] : '') . '.');
+        throw new RoboHubFehler(RoboHubText::t('Kärcher cloud reports code %s%s.', $code, (isset($j['msg']) && is_string($j['msg']) ? ': ' . $j['msg'] : '')));
     }
 
     /** curl gegen das gepinnte 3iRobotix-Zertifikat (mit Namensprüfung); im Prüfstand ersetzbar. */

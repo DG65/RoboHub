@@ -36,32 +36,32 @@ class RoboHubMiele implements RoboHubTreiber
     private const TYP_SAUGROBOTER = 23;
 
     // Länder für „vg" (ioBroker admin: oauth2_vg).
-    public const LAENDER = ['de-DE' => 'Deutschland', 'de-AT' => 'Österreich', 'de-CH' => 'Schweiz (deutsch)', 'fr-CH' => 'Schweiz (französisch)',
-        'it-CH' => 'Schweiz (italienisch)', 'nl-NL' => 'Niederlande', 'nl-BE' => 'Belgien (niederländisch)', 'fr-BE' => 'Belgien (französisch)',
-        'de-LU' => 'Luxemburg', 'fr-FR' => 'Frankreich', 'it-IT' => 'Italien', 'es-ES' => 'Spanien', 'en-GB' => 'Großbritannien',
-        'da-DK' => 'Dänemark', 'sv-SE' => 'Schweden', 'nb-NO' => 'Norwegen', 'pl-PL' => 'Polen', 'cs-CZ' => 'Tschechien'];
+    public const LAENDER = ['de-DE' => 'Germany', 'de-AT' => 'Austria', 'de-CH' => 'Switzerland (German)', 'fr-CH' => 'Switzerland (French)',
+        'it-CH' => 'Switzerland (Italian)', 'nl-NL' => 'Netherlands', 'nl-BE' => 'Belgium (Dutch)', 'fr-BE' => 'Belgium (French)',
+        'de-LU' => 'Luxembourg', 'fr-FR' => 'France', 'it-IT' => 'Italy', 'es-ES' => 'Spain', 'en-GB' => 'Great Britain',
+        'da-DK' => 'Denmark', 'sv-SE' => 'Sweden', 'nb-NO' => 'Norway', 'pl-PL' => 'Poland', 'cs-CZ' => 'Czechia'];
 
     // programPhase (astrandb/miele const.py) → [Zustand, Klartext]; Fehler F1–F8.
     private const PHASEN = [
         5889 => [RoboHubModell::ZUSTAND_REINIGT, 'Reinigt'],
-        5890 => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'],
+        5890 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
         5891 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
-        5892 => [RoboHubModell::ZUSTAND_REINIGT, 'Fährt zum Zielbereich'],
-        5893 => [RoboHubModell::ZUSTAND_FEHLER, 'F1: Rad angehoben'],
-        5894 => [RoboHubModell::ZUSTAND_FEHLER, 'F2: Sensoren verschmutzt'],
-        5895 => [RoboHubModell::ZUSTAND_FEHLER, 'F3: Staubbehälter fehlt'],
-        5896 => [RoboHubModell::ZUSTAND_FEHLER, 'F4: Antriebsräder blockiert'],
-        5897 => [RoboHubModell::ZUSTAND_FEHLER, 'F5: Bürsten blockiert'],
-        5898 => [RoboHubModell::ZUSTAND_FEHLER, 'F6: Staubbehälter und Filter prüfen'],
-        5899 => [RoboHubModell::ZUSTAND_FEHLER, 'F7: Interner Fehler — Roboter neu starten'],
-        5900 => [RoboHubModell::ZUSTAND_FEHLER, 'F8: Vorderrad blockiert'],
-        5903 => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'],
-        5904 => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'],
+        5892 => [RoboHubModell::ZUSTAND_REINIGT, 'Going to the target area'],
+        5893 => [RoboHubModell::ZUSTAND_FEHLER, 'F1: wheel lifted'],
+        5894 => [RoboHubModell::ZUSTAND_FEHLER, 'F2: sensors dirty'],
+        5895 => [RoboHubModell::ZUSTAND_FEHLER, 'F3: dust bin missing'],
+        5896 => [RoboHubModell::ZUSTAND_FEHLER, 'F4: drive wheels blocked'],
+        5897 => [RoboHubModell::ZUSTAND_FEHLER, 'F5: brushes blocked'],
+        5898 => [RoboHubModell::ZUSTAND_FEHLER, 'F6: check dust bin and filter'],
+        5899 => [RoboHubModell::ZUSTAND_FEHLER, 'F7: internal error — restart the robot'],
+        5900 => [RoboHubModell::ZUSTAND_FEHLER, 'F8: front wheel blocked'],
+        5903 => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
+        5904 => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
         5910 => [RoboHubModell::ZUSTAND_REINIGT, 'Ferngesteuert'],
     ];
 
     // Programme (vacuum.py PROG_*): Auswahl „Saugstufe".
-    private const PROGRAMME = [1 => 'Auto', 3 => 'Turbo', 4 => 'Leise'];
+    private const PROGRAMME = [1 => 'Auto', 3 => 'Turbo', 4 => 'Quiet'];
 
     // =================================================================
     // Anmeldung
@@ -72,10 +72,10 @@ class RoboHubMiele implements RoboHubTreiber
         $id = trim((string)($this->zusatz['clientId'] ?? ''));
         $geheim = trim((string)($this->zusatz['clientSecret'] ?? ''));
         if ($id === '' || $geheim === '') {
-            throw new RoboHubFehler('Bitte Client-ID und Client-Secret eintragen, die Miele dir für die Entwickler-Schnittstelle gegeben hat.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the client ID and client secret that Miele gave you for the developer API.'));
         }
         if (!filter_var(trim($konto), FILTER_VALIDATE_EMAIL) || $passwort === '') {
-            throw new RoboHubFehler('Bitte E-Mail und Passwort des Miele-Kontos (Miele-App) eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter e-mail and password of the Miele account (Miele app).'));
         }
         $land = isset(self::LAENDER[$region]) ? $region : 'de-DE';
         return $this->tokenHolen(['grant_type' => 'password', 'username' => trim($konto), 'password' => $passwort, 'vg' => $land],
@@ -84,7 +84,7 @@ class RoboHubMiele implements RoboHubTreiber
 
     public function anmeldeText(array $buendel): string
     {
-        return '✅ Angemeldet. Client-ID und Client-Secret bleiben im Konto gespeichert, weil Miele den Zugang nur damit erneuert; das Passwort wurde verworfen. Den Zugang kannst du bei Miele jederzeit widerrufen, „Abmelden" löscht ihn hier.';
+        return RoboHubText::t('✅ Signed in. Client ID and client secret stay stored in the account because Miele only renews access with them; the password was discarded. You can revoke the access at Miele at any time, "Sign out" deletes it here.');
     }
 
     public function erneuern(array $buendel): array
@@ -104,10 +104,10 @@ class RoboHubMiele implements RoboHubTreiber
             http_build_query($felder, '', '&', PHP_QUERY_RFC3986));
         $this->dbg('HTTP', 'POST thirdparty/token (' . $felder['grant_type'] . ') → ' . $status);
         if ($status === 0 || ($status >= 500 && $status !== 0)) {
-            throw new RoboHubFehler('Miele-Anmeldung nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Miele sign-in not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('Miele-Anmeldung gerade überlastet — RoboHub versucht es später.');
+            $e = new RoboHubFehler(RoboHubText::t('Miele sign-in overloaded right now — RoboHub will try later.'));
             $e->warteSekunden = 600;
             throw $e;
         }
@@ -115,8 +115,8 @@ class RoboHubMiele implements RoboHubTreiber
         if ($status !== 200 || !is_array($j) || (string)($j['access_token'] ?? '') === '') {
             $grund = is_array($j) ? (string)($j['error'] ?? '') : '';
             $e = new RoboHubFehler($felder['grant_type'] === 'password'
-                ? 'Miele lehnt die Anmeldung ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — Client-ID/Secret, E-Mail/Passwort und Land prüfen.'
-                : 'Miele lehnt die Erneuerung ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — bitte neu anmelden.');
+                ? RoboHubText::t('Miele rejects the sign-in%s — check client ID/secret, e-mail/password and country.', ($grund !== '' ? ' (' . $grund . ')' : ''))
+                : RoboHubText::t('Miele rejects the renewal%s — please sign in again.', ($grund !== '' ? ' (' . $grund . ')' : '')));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -168,7 +168,7 @@ class RoboHubMiele implements RoboHubTreiber
     {
         $g = $this->roboterListe($buendel)[(string)$geraet['id']] ?? null;
         if (!is_array($g)) {
-            throw new RoboHubFehler('Dieser Miele-Saugroboter ist im Konto nicht (mehr) vorhanden.');
+            throw new RoboHubFehler(RoboHubText::t('This Miele robot vacuum is not (or no longer) in the account.'));
         }
         $p = (array)($g['state'] ?? []);
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
@@ -185,14 +185,15 @@ class RoboHubMiele implements RoboHubTreiber
         $phase = (int)($p['programPhase']['value_raw'] ?? 0);
         $akku = isset($p['batteryLevel']) && is_numeric($p['batteryLevel']) ? (int)$p['batteryLevel'] : null;
         if ($status === 255) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_UNBEKANNT, 'Nicht verbunden'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_UNBEKANNT, RoboHubText::t('Not connected')];
         } elseif (isset(self::PHASEN[$phase])) {
             [$z, $t] = self::PHASEN[$phase];
+            $t = RoboHubText::wert($t);
             if ($z === RoboHubModell::ZUSTAND_GELADEN && $akku !== null && $akku < 100) {
                 $z = RoboHubModell::ZUSTAND_LAEDT;
             }
         } elseif ($status === 8) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_FEHLER, 'Störung'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_FEHLER, RoboHubText::t('Fault')];
         } elseif ($status === 6) {
             [$z, $t] = [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
         } elseif ($status === 5) {
@@ -206,7 +207,7 @@ class RoboHubMiele implements RoboHubTreiber
         $mieleText = trim((string)($p['programPhase']['value_localized'] ?? ''));
         $w['Zustand'] = $z;
         $w['ZustandRoh'] = ($mieleText !== '' ? $mieleText : $t) . ' (' . $status . '/' . $phase . ')';
-        $w['Fehler'] = $z === RoboHubModell::ZUSTAND_FEHLER ? ($mieleText !== '' ? $mieleText : $t) : 'kein Fehler';
+        $w['Fehler'] = $z === RoboHubModell::ZUSTAND_FEHLER ? ($mieleText !== '' ? $mieleText : $t) : RoboHubText::t('no error');
         $w['Akku'] = $akku;
         $w['Laedt'] = $z === RoboHubModell::ZUSTAND_LAEDT;
         $optionen = [];
@@ -228,31 +229,30 @@ class RoboHubMiele implements RoboHubTreiber
         if ($befehl === 'setze') {
             $wert = (int)($parameter['wert'] ?? 0);
             if (($parameter['feld'] ?? '') !== 'Saugstufe' || !isset(self::PROGRAMME[$wert])) {
-                throw new RoboHubFehler('Diese Einstellung gibt es beim Miele Scout nicht.');
+                throw new RoboHubFehler(RoboHubText::t('This setting does not exist on the Miele Scout.'));
             }
             $this->aktion($buendel, $id, ['programId' => $wert]);
-            return 'Programm „' . self::PROGRAMME[$wert] . '" gesendet.';
+            return RoboHubText::t('Program "%s" sent.', RoboHubText::wert(self::PROGRAMME[$wert]));
         }
         $map = ['start' => [1, 'Start'], 'stopp' => [2, 'Stopp'], 'pause' => [3, 'Pause']];
         if (!isset($map[$befehl])) {
-            throw new RoboHubFehler($befehl === 'station' ? '„Zur Station" bietet die Miele-Schnittstelle nicht — „Stopp" beenden und in der App zurückschicken.'
-                : ($befehl === 'orten' ? '„Orten" bietet Miele nicht.' : ($befehl === 'raum' ? 'Räume steuert RoboHub beim Miele Scout (noch) nicht.' : 'Dieser Befehl wird bei Miele nicht unterstützt: ' . $befehl)));
+            throw new RoboHubFehler($befehl === 'station' ? RoboHubText::t('The Miele API does not offer "Return to base" — end with "Stop" and send it back in the app.')
+                : ($befehl === 'orten' ? RoboHubText::t('Miele does not offer "Locate".') : ($befehl === 'raum' ? RoboHubText::t('RoboHub does not control rooms on the Miele Scout (yet).') : RoboHubText::t('This command is not supported by Miele: %s', $befehl))));
         }
         // Erlaubte Aktionen fragt Miele je Zustand ab (GET actions) — ehrliche Absage statt stiller 400.
         $erlaubt = (array)($this->anfrage($buendel, 'GET', 'v1/devices/' . rawurlencode($id) . '/actions', null)['processAction'] ?? []);
         if (!in_array($map[$befehl][0], array_map('intval', $erlaubt), true)) {
-            throw new RoboHubFehler('„' . $map[$befehl][1] . '" ist gerade nicht möglich (Miele erlaubt im aktuellen Zustand nur: '
-                . ($erlaubt === [] ? 'nichts' : implode(', ', array_map(function ($a) use ($map) {
+            throw new RoboHubFehler(RoboHubText::t('"%s" is not possible right now (in the current state Miele only allows: %s). Is "Remote control" allowed on the robot?', $map[$befehl][1], ($erlaubt === [] ? 'nichts' : implode(', ', array_map(function ($a) use ($map) {
                     foreach ($map as [$nr, $text]) {
                         if ($nr === (int)$a) {
                             return $text;
                         }
                     }
                     return (string)$a;
-                }, $erlaubt))) . '). Ist „Fernsteuerung" am Roboter erlaubt?');
+                }, $erlaubt)))));
         }
         $this->aktion($buendel, $id, ['processAction' => $map[$befehl][0]]);
-        return 'Befehl „' . $map[$befehl][1] . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $map[$befehl][1]);
     }
 
     private function aktion(array $buendel, string $id, array $body): void
@@ -272,7 +272,7 @@ class RoboHubMiele implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen geht beim Miele Scout nur in der App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts on the Miele Scout is only possible in the app.'));
     }
 
     public function echtzeitMoeglich(): bool
@@ -310,20 +310,20 @@ class RoboHubMiele implements RoboHubTreiber
         [$status, $text] = $this->http($methode, self::BASIS . $pfad, $kopf, $body !== null ? (string)json_encode($body) : null);
         $this->dbg('HTTP', $methode . ' ' . preg_replace('/\?.*/', '', $pfad) . ' → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('Miele-Cloud nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Miele cloud not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         if ($status === 401) {
             @touch($this->erneuernDatei($buendel));   // nicht abmelden: beim nächsten Abruf erneuern
-            throw new RoboHubFehler('Miele hat den Zugangsschlüssel abgelehnt — RoboHub erneuert ihn beim nächsten Abruf.');
+            throw new RoboHubFehler(RoboHubText::t('Miele rejected the access token — RoboHub renews it at the next update.'));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('Miele bremst die Anfragen — RoboHub wartet.');
+            $e = new RoboHubFehler(RoboHubText::t('Miele is throttling the requests — RoboHub is waiting.'));
             $e->warteSekunden = 600;
             throw $e;
         }
         if ($status >= 300) {
             $j = json_decode($text, true);
-            throw new RoboHubFehler('Miele antwortet mit HTTP ' . $status . (is_array($j) && isset($j['message']) ? ': ' . $j['message'] : '') . '.');
+            throw new RoboHubFehler(RoboHubText::t('Miele responds with HTTP %s%s.', $status, (is_array($j) && isset($j['message']) ? ': ' . $j['message'] : '')));
         }
         $j = json_decode($text, true);
         return is_array($j) ? $j : [];

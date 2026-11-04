@@ -73,65 +73,65 @@ PEM;
 
     // Zustandscodes (data/v1/v1_code_mappings.py RoborockStateCode).
     private const ZUSTAND = [
-        1 => ['Startet', RoboHubModell::ZUSTAND_REINIGT],
-        2 => ['Vom Ladegerät getrennt', RoboHubModell::ZUSTAND_BEREIT],
-        3 => ['Bereit', RoboHubModell::ZUSTAND_BEREIT],
-        4 => ['Fernsteuerung', RoboHubModell::ZUSTAND_REINIGT],
-        5 => ['Reinigt', RoboHubModell::ZUSTAND_REINIGT],
-        6 => ['Kehrt zurück', RoboHubModell::ZUSTAND_ZURUECK],
-        7 => ['Manueller Betrieb', RoboHubModell::ZUSTAND_REINIGT],
-        8 => ['Lädt', RoboHubModell::ZUSTAND_LAEDT],
-        9 => ['Ladeproblem', RoboHubModell::ZUSTAND_FEHLER],
-        10 => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
-        11 => ['Punktreinigung', RoboHubModell::ZUSTAND_REINIGT],
-        12 => ['Fehler', RoboHubModell::ZUSTAND_FEHLER],
-        13 => ['Schaltet ab', RoboHubModell::ZUSTAND_SCHLAF],
-        14 => ['Aktualisiert', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
-        15 => ['Dockt an', RoboHubModell::ZUSTAND_ZURUECK],
-        16 => ['Fährt zum Ziel', RoboHubModell::ZUSTAND_REINIGT],
-        17 => ['Zonenreinigung', RoboHubModell::ZUSTAND_REINIGT],
-        18 => ['Raumreinigung', RoboHubModell::ZUSTAND_REINIGT],
-        22 => ['Entleert den Staubbehälter', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        23 => ['Wäscht den Mopp', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        25 => ['Wäscht den Mopp', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        26 => ['Fährt zum Moppwaschen', RoboHubModell::ZUSTAND_ZURUECK],
-        28 => ['Im Gespräch', RoboHubModell::ZUSTAND_BEREIT],
-        29 => ['Kartiert', RoboHubModell::ZUSTAND_KARTIERUNG],
-        30 => ['Reinigt', RoboHubModell::ZUSTAND_REINIGT],
-        32 => ['Patrouille', RoboHubModell::ZUSTAND_REINIGT],
-        33 => ['Setzt den Mopp ein', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        34 => ['Nimmt den Mopp ab', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        100 => ['Geladen', RoboHubModell::ZUSTAND_GELADEN],
+        1 => ['Starting', RoboHubModell::ZUSTAND_REINIGT],
+        2 => ['Disconnected from charger', RoboHubModell::ZUSTAND_BEREIT],
+        3 => ['Ready', RoboHubModell::ZUSTAND_BEREIT],
+        4 => ['Remote control', RoboHubModell::ZUSTAND_REINIGT],
+        5 => ['Cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        6 => ['Returning', RoboHubModell::ZUSTAND_ZURUECK],
+        7 => ['Manual mode', RoboHubModell::ZUSTAND_REINIGT],
+        8 => ['Charging', RoboHubModell::ZUSTAND_LAEDT],
+        9 => ['Charging problem', RoboHubModell::ZUSTAND_FEHLER],
+        10 => ['Paused', RoboHubModell::ZUSTAND_PAUSIERT],
+        11 => ['Spot cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        12 => ['Error', RoboHubModell::ZUSTAND_FEHLER],
+        13 => ['Shutting down', RoboHubModell::ZUSTAND_SCHLAF],
+        14 => ['Updating', RoboHubModell::ZUSTAND_AKTUALISIERUNG],
+        15 => ['Docking', RoboHubModell::ZUSTAND_ZURUECK],
+        16 => ['Going to target', RoboHubModell::ZUSTAND_REINIGT],
+        17 => ['Zone cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        18 => ['Room cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        22 => ['Emptying the dust bin', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        23 => ['Washing the mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        25 => ['Washing the mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        26 => ['Going to wash the mop', RoboHubModell::ZUSTAND_ZURUECK],
+        28 => ['In call', RoboHubModell::ZUSTAND_BEREIT],
+        29 => ['Mapping', RoboHubModell::ZUSTAND_KARTIERUNG],
+        30 => ['Cleaning', RoboHubModell::ZUSTAND_REINIGT],
+        32 => ['Patrol', RoboHubModell::ZUSTAND_REINIGT],
+        33 => ['Attaching the mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        34 => ['Removing the mop', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        100 => ['Charged', RoboHubModell::ZUSTAND_GELADEN],
         101 => ['Offline', RoboHubModell::ZUSTAND_UNBEKANNT],
-        103 => ['Gesperrt', RoboHubModell::ZUSTAND_FEHLER],
-        202 => ['Trocknung endet', RoboHubModell::ZUSTAND_STATIONSARBEIT],
-        6301 => ['Wischt', RoboHubModell::ZUSTAND_REINIGT],
-        6302 => ['Saugt und wischt', RoboHubModell::ZUSTAND_REINIGT],
-        6303 => ['Wischt', RoboHubModell::ZUSTAND_REINIGT],
-        6304 => ['Wischt Räume', RoboHubModell::ZUSTAND_REINIGT],
-        6305 => ['Saugt und wischt Räume', RoboHubModell::ZUSTAND_REINIGT],
-        6306 => ['Wischt Räume', RoboHubModell::ZUSTAND_REINIGT],
-        6307 => ['Wischt Zonen', RoboHubModell::ZUSTAND_REINIGT],
-        6308 => ['Saugt und wischt Zonen', RoboHubModell::ZUSTAND_REINIGT],
-        6309 => ['Wischt Zonen', RoboHubModell::ZUSTAND_REINIGT],
-        6310 => ['Kehrt zum Waschen zurück', RoboHubModell::ZUSTAND_ZURUECK],
+        103 => ['Locked', RoboHubModell::ZUSTAND_FEHLER],
+        202 => ['Drying ending', RoboHubModell::ZUSTAND_STATIONSARBEIT],
+        6301 => ['Mopping', RoboHubModell::ZUSTAND_REINIGT],
+        6302 => ['Vacuuming and mopping', RoboHubModell::ZUSTAND_REINIGT],
+        6303 => ['Mopping', RoboHubModell::ZUSTAND_REINIGT],
+        6304 => ['Mopping rooms', RoboHubModell::ZUSTAND_REINIGT],
+        6305 => ['Vacuuming and mopping rooms', RoboHubModell::ZUSTAND_REINIGT],
+        6306 => ['Mopping rooms', RoboHubModell::ZUSTAND_REINIGT],
+        6307 => ['Mopping zones', RoboHubModell::ZUSTAND_REINIGT],
+        6308 => ['Vacuuming and mopping zones', RoboHubModell::ZUSTAND_REINIGT],
+        6309 => ['Mopping zones', RoboHubModell::ZUSTAND_REINIGT],
+        6310 => ['Returning to wash', RoboHubModell::ZUSTAND_ZURUECK],
     ];
 
     // Fehlercodes (RoborockErrorCode), die häufigen auf Deutsch.
     private const FEHLER = [
-        1 => 'Lasersensor blockiert', 2 => 'Stoßfänger klemmt', 3 => 'Räder in der Luft', 4 => 'Absturzsensor',
-        5 => 'Hauptbürste blockiert', 6 => 'Seitenbürste blockiert', 7 => 'Räder blockiert', 8 => 'Roboter steckt fest',
-        9 => 'Staubbehälter fehlt', 10 => 'Filter nass oder verstopft', 11 => 'Starkes Magnetfeld', 12 => 'Akku schwach',
-        13 => 'Ladefehler', 14 => 'Akkufehler', 15 => 'Wandsensor verschmutzt', 16 => 'Roboter gekippt',
-        17 => 'Seitenbürstenfehler', 18 => 'Lüfterfehler', 19 => 'Station ohne Strom', 20 => 'Bodensensor verschmutzt',
-        21 => 'Stoßfänger gedrückt', 22 => 'Station nicht gefunden', 23 => 'Rückkehr zur Station fehlgeschlagen',
-        24 => 'Sperrzone erkannt', 25 => 'Kamerafehler', 26 => 'Wandsensorfehler', 27 => 'Moppanhebung klemmt',
-        28 => 'Roboter auf Teppich', 29 => 'Filter verstopft', 30 => 'Virtuelle Wand erkannt', 31 => 'Teppich nicht überquerbar',
-        32 => 'Interner Fehler', 34 => 'Absaugstation reinigen', 35 => 'Absaugstation Spannungsfehler',
-        36 => 'Waschrolle blockiert', 37 => 'Waschrolle nicht abgesenkt', 38 => 'Frischwassertank prüfen',
-        39 => 'Schmutzwassertank prüfen', 40 => 'Wasserfilter einsetzen', 41 => 'Frischwassertank leer',
-        44 => 'Wasserfilter der Station reinigen', 45 => 'Waschrolle blockiert', 48 => 'Wasserzufuhr gestört',
-        49 => 'Wasserablauf gestört', 51 => 'Temperaturschutz', 56 => 'Lautsprecherfehler',
+        1 => 'Laser sensor blocked', 2 => 'Bumper stuck', 3 => 'Wheels in the air', 4 => 'Cliff sensor',
+        5 => 'Main brush blocked', 6 => 'Side brush blocked', 7 => 'Wheels blocked', 8 => 'Robot stuck',
+        9 => 'Dust bin missing', 10 => 'Filter wet or clogged', 11 => 'Strong magnetic field', 12 => 'Battery low',
+        13 => 'Charging error', 14 => 'Battery error', 15 => 'Wall sensor dirty', 16 => 'Robot tilted',
+        17 => 'Side brush error', 18 => 'Fan error', 19 => 'Station without power', 20 => 'Floor sensor dirty',
+        21 => 'Bumper pressed', 22 => 'Station not found', 23 => 'Return to base failed',
+        24 => 'No-go zone detected', 25 => 'Camera error', 26 => 'Wall sensor error', 27 => 'Mop lift stuck',
+        28 => 'Robot on carpet', 29 => 'Filter clogged', 30 => 'Virtual wall detected', 31 => 'Carpet cannot be crossed',
+        32 => 'Internal error', 34 => 'Clean the auto-empty dock', 35 => 'Auto-empty dock voltage error',
+        36 => 'Washing roller blocked', 37 => 'Washing roller not lowered', 38 => 'Check clean water tank',
+        39 => 'Check dirty water tank', 40 => 'Insert water filter', 41 => 'Clean water tank empty',
+        44 => 'Clean the station\'s water filter', 45 => 'Washing roller blocked', 48 => 'Water supply disturbed',
+        49 => 'Water drain disturbed', 51 => 'Temperature protection', 56 => 'Speaker error',
     ];
 
     // Verbrauchsteile: Feld in get_consumable → [RoboHub-Ident, Lebensdauer in Sekunden]
@@ -146,9 +146,9 @@ PEM;
 
     // Saugstufen. Neuere Geräte nutzen 101–108, ältere 38–100
     // (RoborockFanSpeedV1/V2/V3/E2) — welche gilt, zeigt der gemeldete Wert.
-    private const SAUGSTUFEN_NEU = [105 => 'Sanft', 101 => 'Leise', 102 => 'Ausgewogen', 103 => 'Turbo', 104 => 'Max', 108 => 'Max+', 106 => 'Benutzerdefiniert'];
-    private const SAUGSTUFEN_ALT = [38 => 'Leise', 60 => 'Standard', 75 => 'Mittel', 100 => 'Turbo'];
-    private const WASSERMENGEN = [200 => 'Aus', 201 => 'Niedrig', 202 => 'Mittel', 203 => 'Hoch', 204 => 'Benutzerdefiniert', 207 => 'Benutzerdefiniert'];
+    private const SAUGSTUFEN_NEU = [105 => 'Gentle', 101 => 'Quiet', 102 => 'Balanced', 103 => 'Turbo', 104 => 'Max', 108 => 'Max+', 106 => 'Custom'];
+    private const SAUGSTUFEN_ALT = [38 => 'Quiet', 60 => 'Standard', 75 => 'Medium', 100 => 'Turbo'];
+    private const WASSERMENGEN = [200 => 'Off', 201 => 'Low', 202 => 'Medium', 203 => 'High', 204 => 'Custom', 207 => 'Custom'];
 
     // =================================================================
     // Anmeldung
@@ -157,7 +157,7 @@ PEM;
     /** Regionen-Auswahl: Roborock findet den Server über die E-Mail selbst. */
     public static function regionen(): array
     {
-        return [['caption' => 'automatisch (über die E-Mail)', 'value' => 'eu']];
+        return [['caption' => RoboHubText::t('automatic (via the e-mail)'), 'value' => 'eu']];
     }
 
     /** Schritt 1: Roborock schickt einen Anmeldecode an die E-Mail. */
@@ -170,8 +170,8 @@ PEM;
         } else {
             $antwort = $this->anfrage('POST', $info['basis'] . '/api/v1/sendEmailCode', $this->grundKopf($konto), ['username' => $konto, 'type' => 'auth'], null);
         }
-        $this->pruefeCode($antwort, 'Code anfordern');
-        return 'Roborock hat einen Anmeldecode an ' . $konto . ' geschickt.';
+        $this->pruefeCode($antwort, RoboHubText::t('Request code'));
+        return RoboHubText::t('Roborock sent a sign-in code to %s.', $konto);
     }
 
     /** Schritt 2: Anmeldung mit dem Code aus der E-Mail (im Passwortfeld). */
@@ -179,7 +179,7 @@ PEM;
     {
         $code = trim($passwort);
         if (!preg_match('/^[0-9]{4,8}$/', $code)) {
-            throw new RoboHubFehler('Bei Roborock bitte zuerst „📧 Code anfordern" und dann den Code aus der E-Mail (nur Ziffern) eintragen — nicht das Passwort.');
+            throw new RoboHubFehler(RoboHubText::t('For Roborock please first click "📧 Request code" and then enter the code from the e-mail (digits only) — not the password.'));
         }
         $info = $this->kontoServer($konto);
         if ($info['land'] !== '' && $info['landcode'] !== '') {
@@ -187,7 +187,7 @@ PEM;
             $signatur = $this->anfrage('POST', $info['basis'] . '/api/v3/key/sign', $this->grundKopf($konto), ['s' => $s], null);
             $k = (string)($signatur['data']['k'] ?? '');
             if ($k === '') {
-                throw new RoboHubFehler('Roborock hat die Anmeldung nicht vorbereitet (Schlüssel-Signatur fehlt).');
+                throw new RoboHubFehler(RoboHubText::t('Roborock did not prepare the sign-in (key signature missing).'));
             }
             $version = $this->vertragsVersion($info);
             $kopf = $this->grundKopf($konto) + [
@@ -206,7 +206,7 @@ PEM;
         $this->pruefeCode($antwort, 'Anmeldung');
         $nutzer = $antwort['data'] ?? null;
         if (!is_array($nutzer) || !isset($nutzer['rriot']['u'], $nutzer['rriot']['s'], $nutzer['rriot']['h'], $nutzer['rriot']['k'], $nutzer['token'])) {
-            throw new RoboHubFehler('Roborock hat keine vollständigen Zugangsdaten geliefert.');
+            throw new RoboHubFehler(RoboHubText::t('Roborock did not deliver complete credentials.'));
         }
         return [
             'marke'  => 'roborock',
@@ -222,7 +222,7 @@ PEM;
     public function erneuern(array $buendel): array
     {
         if (!isset($buendel['rriot']['u'], $buendel['token'])) {
-            $e = new RoboHubFehler('Zugangsdaten unvollständig — bitte neu anmelden.');
+            $e = new RoboHubFehler(RoboHubText::t('Credentials incomplete — please sign in again.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -237,7 +237,7 @@ PEM;
             $antwort = $this->anfrage('POST', $basis . '/api/v1/getUrlByEmail', [], ['email' => $konto, 'needtwostepauth' => 'false'], null, false);
             $code = (int)($antwort['code'] ?? 0);
             if ($code === 2003) {
-                throw new RoboHubFehler('Die E-Mail-Adresse hat ein ungültiges Format.');
+                throw new RoboHubFehler(RoboHubText::t('The e-mail address has an invalid format.'));
             }
             if ($code !== 200) {
                 $letzter = (string)($antwort['msg'] ?? '');
@@ -253,7 +253,7 @@ PEM;
                 'landcode' => (string)($d['countrycode'] ?? ''),
             ];
         }
-        throw new RoboHubFehler('Kein Roborock-Konto mit dieser E-Mail gefunden' . ($letzter !== '' ? ' (' . $letzter . ')' : '') . '.');
+        throw new RoboHubFehler(RoboHubText::t('No Roborock account found with this e-mail%s.', ($letzter !== '' ? ' (' . $letzter . ')' : '')));
     }
 
     /** Aktuelle Version der Nutzungsbedingungen (Anmeldung lehnt alte mit 3006 ab). */
@@ -278,12 +278,12 @@ PEM;
             return;
         }
         $texte = [
-            2008 => 'Konto existiert nicht — E-Mail prüfen.',
-            9002 => 'Zu viele Codes angefordert — bitte später erneut versuchen.',
-            2018 => 'Der Code ist falsch oder abgelaufen — neuen Code anfordern.',
-            3009 => 'Bitte zuerst in der Roborock-App die Nutzungsbedingungen bestätigen.',
-            3006 => 'Nutzungsbedingungen neu bestätigen (Roborock-App) — oder es ist ein Mi-Home-Konto.',
-            3039 => 'Konto in dieser Region nicht gefunden.',
+            2008 => RoboHubText::t('Account does not exist — check the e-mail.'),
+            9002 => RoboHubText::t('Too many codes requested — please try again later.'),
+            2018 => RoboHubText::t('The code is wrong or expired — request a new code.'),
+            3009 => RoboHubText::t('Please first accept the terms of use in the Roborock app.'),
+            3006 => RoboHubText::t('Accept the terms of use again (Roborock app) — or it is a Mi Home account.'),
+            3039 => RoboHubText::t('Account not found in this region.'),
         ];
         throw new RoboHubFehler($schritt . ' fehlgeschlagen: ' . ($texte[$code] ?? ((string)($antwort['msg'] ?? 'unbekannt') . ' (Code ' . $code . ')')));
     }
@@ -335,7 +335,7 @@ PEM;
         $this->pruefeCode($detail, 'Hausdaten');
         $heimId = (string)($detail['data']['rrHomeId'] ?? '');
         if ($heimId === '') {
-            throw new RoboHubFehler('Im Roborock-Konto ist kein Zuhause angelegt.');
+            throw new RoboHubFehler(RoboHubText::t('No home has been created in the Roborock account.'));
         }
         $pfad = '/v3/user/homes/' . $heimId;
         $antwort = $this->hawk($buendel, 'GET', $pfad);
@@ -357,11 +357,11 @@ PEM;
         $r = (array)$buendel['rriot'];
         $basis = rtrim((string)($r['r']['a'] ?? ''), '/');
         if ($basis === '') {
-            throw new RoboHubFehler('Zugangsdaten ohne API-Adresse — bitte neu anmelden.');
+            throw new RoboHubFehler(RoboHubText::t('Credentials without API address — please sign in again.'));
         }
         $antwort = $this->anfrage($methode, $basis . $pfad, ['Authorization' => self::hawkKopf($r, $pfad, time(), self::zufallsText(8))], [], null);
         if (empty($antwort['success'])) {
-            throw new RoboHubFehler('Roborock-API: ' . (string)($antwort['msg'] ?? json_encode($antwort)));
+            throw new RoboHubFehler(RoboHubText::t('Roborock API: %s', (string)($antwort['msg'] ?? json_encode($antwort))));
         }
         return $antwort;
     }
@@ -410,7 +410,7 @@ PEM;
             }
         }
         if (count($ok) === 0) {
-            throw new RoboHubFehler('Der Roborock antwortet nicht (offline oder im Ruhezustand?).');
+            throw new RoboHubFehler(RoboHubText::t('The Roborock does not respond (offline or sleeping?).'));
         }
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
         $daten['online'] = true;
@@ -428,14 +428,15 @@ PEM;
         $optionen = [];
         if (isset($p['state'])) {
             $roh = (int)$p['state'];
-            [$text, $zustand] = self::ZUSTAND[$roh] ?? ['Zustand ' . $roh, RoboHubModell::ZUSTAND_UNBEKANNT];
+            [$text, $zustand] = self::ZUSTAND[$roh] ?? [RoboHubText::t('State %s', $roh), RoboHubModell::ZUSTAND_UNBEKANNT];
+            $text = RoboHubText::wert($text);
             $w['Zustand'] = $zustand;
             $w['ZustandRoh'] = $text . ' (' . $roh . ')';
             $w['Laedt'] = in_array($roh, [8], true) || (isset($p['charge_status']) && (int)$p['charge_status'] === 1);
         }
         if (isset($p['error_code'])) {
             $code = (int)$p['error_code'];
-            $w['Fehler'] = $code === 0 ? 'kein Fehler' : (self::FEHLER[$code] ?? 'Fehlercode') . ' (' . $code . ')';
+            $w['Fehler'] = $code === 0 ? RoboHubText::t('no error') : RoboHubText::wert(self::FEHLER[$code] ?? 'Error code') . ' (' . $code . ')';
         }
         $w['Akku'] = isset($p['battery']) ? (int)$p['battery'] : null;
         $w['Dauer'] = isset($p['clean_time']) ? (int)round((int)$p['clean_time'] / 60) : null;
@@ -445,7 +446,7 @@ PEM;
             $stufe = (int)$p['fan_power'];
             $liste = $stufe > 100 ? self::SAUGSTUFEN_NEU : self::SAUGSTUFEN_ALT;
             if (!isset($liste[$stufe])) {
-                $liste[$stufe] = 'Stufe ' . $stufe;
+                $liste[$stufe] = RoboHubText::t('Level %s', $stufe);
             }
             $w['Saugstufe'] = $stufe;
             $optionen['Saugstufe'] = $liste;
@@ -455,7 +456,7 @@ PEM;
             $liste = self::WASSERMENGEN;
             unset($liste[$menge === 207 ? 204 : 207]);
             if (!isset($liste[$menge])) {
-                $liste[$menge] = 'Stufe ' . $menge;
+                $liste[$menge] = RoboHubText::t('Level %s', $menge);
             }
             $w['Wassermenge'] = $menge;
             $optionen['Wassermenge'] = $liste;
@@ -472,9 +473,9 @@ PEM;
         // Station (dss, Bitfelder wie StatusV2: Frischwasser >>2, Schmutzwasser >>4, Staubbeutel >>6).
         if (!empty($p['dss']) && is_numeric($p['dss'])) {
             $dss = (int)$p['dss'];
-            $w['Frischwasser'] = (($dss >> 2) & 3) === 0 ? 'In Ordnung' : 'Leer oder fehlt';
-            $w['Schmutzwasser'] = (($dss >> 4) & 3) === 0 ? 'In Ordnung' : 'Voll oder fehlt';
-            $w['Staubbeutel'] = (($dss >> 6) & 3) === 0 ? 'In Ordnung' : 'Voll oder fehlt';
+            $w['Frischwasser'] = (($dss >> 2) & 3) === 0 ? RoboHubText::t('OK') : RoboHubText::t('Empty or missing');
+            $w['Schmutzwasser'] = (($dss >> 4) & 3) === 0 ? RoboHubText::t('OK') : RoboHubText::t('Full or missing');
+            $w['Staubbeutel'] = (($dss >> 6) & 3) === 0 ? RoboHubText::t('OK') : RoboHubText::t('Full or missing');
         }
 
         // Gesamtstatistik: Liste [Zeit s, Fläche mm², Anzahl, …] oder Objekt.
@@ -520,7 +521,7 @@ PEM;
         }
         $raeume = [];
         foreach (self::raumZuordnung(is_array($zuordnung) ? $zuordnung : []) as $segment => $iot) {
-            $raeume[$segment] = ($namen[$iot] ?? '') !== '' ? $namen[$iot] : 'Raum ' . $segment;
+            $raeume[$segment] = ($namen[$iot] ?? '') !== '' ? $namen[$iot] : RoboHubText::t('Room %s', $segment);
         }
         ksort($raeume);
         return ['raeume' => $raeume, 'bild' => '', 'marken' => [], 'station' => null];
@@ -563,19 +564,19 @@ PEM;
                     $methode = $offen === 3 ? 'resume_segment_clean' : ($offen === 2 ? 'resume_zoned_clean' : 'app_start');
                 }
                 $this->rpc($buendel, $geraet, $methode, []);
-                return 'Befehl „Start" gesendet.';
+                return RoboHubText::t('Command "Start" sent.');
             case 'pause':
                 $this->rpc($buendel, $geraet, 'app_pause', []);
-                return 'Befehl „Pause" gesendet.';
+                return RoboHubText::t('Command "Pause" sent.');
             case 'stopp':
                 $this->rpc($buendel, $geraet, 'app_stop', []);
-                return 'Befehl „Stopp" gesendet.';
+                return RoboHubText::t('Command "Stop" sent.');
             case 'station':
                 $this->rpc($buendel, $geraet, 'app_charge', []);
-                return 'Befehl „Zur Station" gesendet.';
+                return RoboHubText::t('Command "Return to base" sent.');
             case 'orten':
                 $this->rpc($buendel, $geraet, 'find_me', []);
-                return 'Befehl „Orten" gesendet.';
+                return RoboHubText::t('Command "Locate" sent.');
             case 'raum':
                 return $this->raumReinigung($buendel, $geraet, $parameter);
             case 'setze':
@@ -583,7 +584,7 @@ PEM;
             case 'einstellung':
                 return $this->einstellung($buendel, $geraet, (string)($parameter['feld'] ?? ''), $parameter['wert'] ?? null);
         }
-        throw new RoboHubFehler('Dieser Befehl wird für Roborock noch nicht unterstützt: ' . $befehl);
+        throw new RoboHubFehler(RoboHubText::t('This command is not supported for Roborock yet: %s', $befehl));
     }
 
     private function raumReinigung(array $buendel, array $geraet, array $parameter): string
@@ -592,16 +593,16 @@ PEM;
             return $r > 0;
         })));
         if (count($raeume) === 0) {
-            throw new RoboHubFehler('Keine Raum-ID angegeben.');
+            throw new RoboHubFehler(RoboHubText::t('No room ID given.'));
         }
         $durchgaenge = (int)($parameter['durchgaenge'] ?? -1);
         if ($durchgaenge > 3 || $durchgaenge === 0) {
-            throw new RoboHubFehler('Durchgänge 1 bis 3.');
+            throw new RoboHubFehler(RoboHubText::t('Passes 1 to 3.'));
         }
         $saug = (int)($parameter['saugstufe'] ?? -1);
         if ($saug >= 0) {
             if (!isset(self::SAUGSTUFEN_NEU[$saug]) && !isset(self::SAUGSTUFEN_ALT[$saug])) {
-                throw new RoboHubFehler('Unbekannte Roborock-Saugstufe ' . $saug . '.');
+                throw new RoboHubFehler(RoboHubText::t('Unknown Roborock suction level %s.', $saug));
             }
             $this->rpc($buendel, $geraet, 'set_custom_mode', [$saug]);
         }
@@ -616,26 +617,26 @@ PEM;
             $this->dbg('Befehl', 'Raumreinigung mit Objekt abgelehnt (' . $e->getMessage() . '), versuche einfache Liste.');
             $this->rpc($buendel, $geraet, 'app_segment_clean', $raeume);
         }
-        return 'Reinigung ' . (count($raeume) === 1 ? 'eines Raums' : 'von ' . count($raeume) . ' Räumen') . ' gesendet.';
+        return RoboHubText::t('Cleaning %s sent.', (count($raeume) === 1 ? RoboHubText::t('of one room') : RoboHubText::t('of %s rooms', count($raeume))));
     }
 
     private function setze(array $buendel, array $geraet, string $feld, int $wert): string
     {
         if ($feld === 'Saugstufe') {
             if (!isset(self::SAUGSTUFEN_NEU[$wert]) && !isset(self::SAUGSTUFEN_ALT[$wert])) {
-                throw new RoboHubFehler('Unbekannte Saugstufe ' . $wert . '.');
+                throw new RoboHubFehler(RoboHubText::t('Unknown suction level %s.', $wert));
             }
             $this->rpc($buendel, $geraet, 'set_custom_mode', [$wert]);
-            return 'Saugstufe gesetzt.';
+            return RoboHubText::t('Suction level set.');
         }
         if ($feld === 'Wassermenge') {
             if (!isset(self::WASSERMENGEN[$wert])) {
-                throw new RoboHubFehler('Unbekannte Wassermenge ' . $wert . '.');
+                throw new RoboHubFehler(RoboHubText::t('Unknown water level %s.', $wert));
             }
             $this->rpc($buendel, $geraet, 'set_water_box_custom_mode', [$wert]);
-            return 'Wassermenge gesetzt.';
+            return RoboHubText::t('Water level set.');
         }
-        throw new RoboHubFehler('„' . $feld . '" lässt sich bei Roborock (noch) nicht setzen.');
+        throw new RoboHubFehler(RoboHubText::t('"%s" cannot be set on Roborock (yet).', $feld));
     }
 
     private function einstellung(array $buendel, array $geraet, string $feld, $wert): string
@@ -643,19 +644,19 @@ PEM;
         if ($feld === 'Lautstaerke') {
             $v = (int)$wert;
             if ($v < 0 || $v > 100) {
-                throw new RoboHubFehler('Lautstärke 0 bis 100.');
+                throw new RoboHubFehler(RoboHubText::t('Volume 0 to 100.'));
             }
             $this->rpc($buendel, $geraet, 'change_sound_volume', [$v]);
-            return 'Lautstärke gesetzt.';
+            return RoboHubText::t('Volume set.');
         }
         if (!in_array($feld, ['NichtStoeren', 'NichtStoerenVon', 'NichtStoerenBis'], true)) {
-            throw new RoboHubFehler('Unbekannte Einstellung: ' . $feld);
+            throw new RoboHubFehler(RoboHubText::t('Unknown setting: %s', $feld));
         }
         // Read-Modify-Write: aktuelles Fenster lesen, nur das eine Feld ändern.
         $d = $this->rpc($buendel, $geraet, 'get_dnd_timer', []);
         $d = is_array($d) && isset($d[0]) ? $d[0] : $d;
         if (!is_array($d) || !isset($d['start_hour'])) {
-            throw new RoboHubFehler('„Nicht stören" ließ sich nicht lesen — nichts geändert.');
+            throw new RoboHubFehler(RoboHubText::t('"Do not disturb" could not be read — nothing changed.'));
         }
         $an = !empty($d['enabled']);
         $von = [(int)$d['start_hour'], (int)($d['start_minute'] ?? 0)];
@@ -663,14 +664,14 @@ PEM;
         if ($feld === 'NichtStoeren') {
             if (!$wert) {
                 $this->rpc($buendel, $geraet, 'close_dnd_timer', []);
-                return '„Nicht stören" ausgeschaltet.';
+                return RoboHubText::t('"Do not disturb" switched off.');
             }
             $this->rpc($buendel, $geraet, 'set_dnd_timer', [$von[0], $von[1], $bis[0], $bis[1]]);
-            return '„Nicht stören" eingeschaltet.';
+            return RoboHubText::t('"Do not disturb" switched on.');
         }
         $t = trim((string)$wert);
         if (!RoboHubModell::istUhrzeit($t)) {
-            throw new RoboHubFehler('Uhrzeit bitte als HH:MM angeben (z. B. 22:00).');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the time as HH:MM (e.g. 22:00).'));
         }
         [$h, $m] = array_map('intval', explode(':', $t));
         if ($feld === 'NichtStoerenVon') {
@@ -679,14 +680,14 @@ PEM;
             $bis = [$h, $m];
         }
         if ($von === $bis) {
-            throw new RoboHubFehler('Beginn und Ende dürfen nicht gleich sein.');
+            throw new RoboHubFehler(RoboHubText::t('Start and end must not be the same.'));
         }
         if (!$an) {
             // set_dnd_timer schaltet bei Roborock zugleich ein — ausgeschaltet nichts ungefragt einschalten.
-            throw new RoboHubFehler('„Nicht stören" ist aus — bitte erst einschalten, dann die Zeit ändern.');
+            throw new RoboHubFehler(RoboHubText::t('"Do not disturb" is off — please switch it on first, then change the time.'));
         }
         $this->rpc($buendel, $geraet, 'set_dnd_timer', [$von[0], $von[1], $bis[0], $bis[1]]);
-        return 'Zeit für „Nicht stören" gesetzt.';
+        return RoboHubText::t('Time for "Do not disturb" set.');
     }
 
     // reset_consumable mit dem Feldnamen (consumeable.py).
@@ -699,10 +700,10 @@ PEM;
     {
         $this->pruefeProtokoll($geraet);
         if (!isset(self::RUECKSETZEN[$teil])) {
-            throw new RoboHubFehler('Dieses Teil lässt sich bei Roborock nicht zurücksetzen: ' . $teil);
+            throw new RoboHubFehler(RoboHubText::t('This part cannot be reset on Roborock: %s', $teil));
         }
         $this->rpc($buendel, $geraet, 'reset_consumable', [self::RUECKSETZEN[$teil]]);
-        return 'Zurücksetzen gesendet.';
+        return RoboHubText::t('Reset sent.');
     }
 
     // =================================================================
@@ -742,10 +743,10 @@ PEM;
     {
         $pv = (string)($geraet['protokoll'] ?? '1.0');
         if ($pv !== '' && $pv !== '1.0') {
-            throw new RoboHubFehler('Dieses Roborock-Gerät spricht das Protokoll „' . $pv . '", das RoboHub noch nicht unterstützt.');
+            throw new RoboHubFehler(RoboHubText::t('This Roborock device speaks the protocol "%s", which RoboHub does not support yet.', $pv));
         }
         if ((string)($geraet['schluessel'] ?? '') === '') {
-            throw new RoboHubFehler('Gerätschlüssel fehlt — bitte in der Konto-Instanz „Geräte jetzt suchen".');
+            throw new RoboHubFehler(RoboHubText::t('Device key missing — please click "Search devices now" in the account instance.'));
         }
     }
 
@@ -754,10 +755,10 @@ PEM;
     {
         $r = $this->rpcMehrere($buendel, $geraet, [[$methode, $params]])[0] ?? null;
         if ($r === null) {
-            throw new RoboHubFehler('Der Roborock hat auf „' . $methode . '" nicht geantwortet (offline?).');
+            throw new RoboHubFehler(RoboHubText::t('The Roborock did not respond to "%s" (offline?).', $methode));
         }
         if (isset($r['fehler'])) {
-            throw new RoboHubFehler('Der Roborock lehnt „' . $methode . '" ab: ' . $r['fehler']);
+            throw new RoboHubFehler(RoboHubText::t('The Roborock rejects "%s": %s', $methode, $r['fehler']));
         }
         return $r['ergebnis'];
     }
@@ -820,7 +821,7 @@ PEM;
     {
         $teile = parse_url((string)($rriot['r']['m'] ?? ''));
         if (!isset($teile['host'], $teile['port'])) {
-            throw new RoboHubFehler('Zugangsdaten ohne MQTT-Adresse — bitte neu anmelden.');
+            throw new RoboHubFehler(RoboHubText::t('Credentials without MQTT address — please sign in again.'));
         }
         return [(string)$teile['host'], (int)$teile['port']];
     }
@@ -853,11 +854,11 @@ PEM;
         }
         $ergebnis = $a['result'] ?? null;
         if ($fehler === null && $ergebnis === 'unknown_method') {
-            $fehler = 'Befehl unbekannt (Modell kann das nicht)';
+            $fehler = RoboHubText::t('Command unknown (model cannot do this)');
         } elseif ($fehler === null && is_string($ergebnis) && $ergebnis !== 'ok') {
-            $fehler = 'unerwartete Antwort „' . $ergebnis . '"';
+            $fehler = RoboHubText::t('unexpected response "%s"', $ergebnis);
         } elseif ($fehler === null && $ergebnis === null) {
-            $fehler = 'Antwort ohne Ergebnis';
+            $fehler = RoboHubText::t('Response without result');
         }
         return ['id' => (int)$a['id'], 'ergebnis' => $ergebnis, 'fehler' => $fehler];
     }
@@ -948,17 +949,17 @@ PEM;
             $sitzung->senden(RoboHubMqtt::connect('robohub_' . bin2hex(random_bytes(6)), $benutzer, $passwort, 30));
             $p = $sitzung->warte(RoboHubMqtt::CONNACK, null, $ende);
             if ($p === null) {
-                throw new RoboHubFehler('Roborock-Server hat die Anmeldung nicht beantwortet.');
+                throw new RoboHubFehler(RoboHubText::t('Roborock server did not answer the sign-in.'));
             }
             $code = RoboHubMqtt::connackCode($p['body']);
             if ($code !== 0) {
-                $e = new RoboHubFehler('Roborock-Server lehnt die Anmeldung ab: ' . RoboHubMqtt::connackText($code) . '.');
+                $e = new RoboHubFehler(RoboHubText::t('Roborock server rejects the sign-in: %s.', RoboHubMqtt::connackText($code)));
                 $e->anmeldungNoetig = in_array($code, [4, 5], true);
                 throw $e;
             }
             $sitzung->senden(RoboHubMqtt::subscribe(1, [$abo], 0));
             if ($sitzung->warte(RoboHubMqtt::SUBACK, null, $ende) === null) {
-                throw new RoboHubFehler('Roborock-Server hat das Abonnement nicht bestätigt.');
+                throw new RoboHubFehler(RoboHubText::t('Roborock server did not confirm the subscription.'));
             }
             foreach ($rahmen as $r) {
                 $sitzung->senden(RoboHubMqtt::publish($ziel, $r));
@@ -1019,15 +1020,15 @@ PEM;
         [$status, $text] = $this->http($methode, $url, $zeilen, $body);
         $this->dbg('HTTP', $methode . ' ' . preg_replace('/(email|username)=[^&]*/', '$1=…', $url) . ' → ' . $status);
         if ($status === 0) {
-            throw new RoboHubFehler('Roborock nicht erreichbar: ' . $text);
+            throw new RoboHubFehler(RoboHubText::t('Roborock not reachable: %s', $text));
         }
         if ($status === 401) {
-            $e = new RoboHubFehler('Roborock hat den Zugang abgelehnt — bitte neu anmelden.');
+            $e = new RoboHubFehler(RoboHubText::t('Roborock rejected the access — please sign in again.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('Roborock bremst gerade (zu viele Anfragen).');
+            $e = new RoboHubFehler(RoboHubText::t('Roborock is throttling right now (too many requests).'));
             $e->warteSekunden = 600;
             throw $e;
         }
@@ -1036,7 +1037,7 @@ PEM;
             if (!$pruefen) {
                 return [];
             }
-            throw new RoboHubFehler('Unerwartete Antwort von Roborock (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('Unexpected response from Roborock (HTTP %s).', $status));
         }
         return $j;
     }

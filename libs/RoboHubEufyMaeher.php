@@ -85,15 +85,15 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         $ips = array_values(array_filter(array_map('trim', explode(',', (string)($this->zusatz['ip'] ?? '')))));
         foreach ($ips as $ip) {
             if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
-                throw new RoboHubFehler('„' . $ip . '" ist keine IP-Adresse. Bitte die IP-Adresse des Mähers eintragen (am besten im Router fest vergeben).');
+                throw new RoboHubFehler(RoboHubText::t('"%s" is not an IP address. Please enter the mower\'s IP address (ideally fixed in your router).', $ip));
             }
         }
         if ($ips === []) {
-            throw new RoboHubFehler('Bitte die IP-Adresse des Mähers eintragen (am besten im Router fest vergeben), „Übernehmen", dann erneut anmelden.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the mower\'s IP address (ideally fixed in your router), click "Apply", then sign in again.'));
         }
         $kandidaten = $this->geraeteSchluessel($konto, $passwort);
         if ($kandidaten === []) {
-            throw new RoboHubFehler('In diesem Eufy-Konto ist kein Gerät mit lokalem Schlüssel. Ist der Mäher in genau diesem Konto eingerichtet (nicht nur geteilt)?');
+            throw new RoboHubFehler(RoboHubText::t('There is no device with a local key in this Eufy account. Is the mower set up in exactly this account (not just shared)?'));
         }
         $roboter = [];
         $erreicht = false;
@@ -118,7 +118,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
             }
         }
         if ($roboter === [] && $erreicht) {
-            throw new RoboHubFehler('Unter ' . implode(', ', $ips) . ' antwortet ein Gerät, aber kein Schlüssel aus diesem Konto passt. Stimmt die IP-Adresse, und ist keine andere lokale Verbindung zum Mäher offen?');
+            throw new RoboHubFehler(RoboHubText::t('A device responds at %s, but no key from this account fits. Is the IP address correct, and is no other local connection to the mower open?', implode(', ', $ips)));
         }
         if ($roboter === []) {
             // Mäher aus oder außer WLAN-Reichweite (z. B. Winterlager): bei eindeutiger Lage trotzdem übernehmen.
@@ -126,7 +126,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
                 $did = (string)array_key_first($kandidaten);
                 $roboter[$did] = $kandidaten[$did] + ['ip' => $ips[0], 'geprueft' => false];
             } else {
-                throw new RoboHubFehler('Unter ' . implode(', ', $ips) . ':' . self::PORT . ' antwortet kein Mäher. Ist er eingeschaltet und im WLAN? Die IP-Adresse steht im Router.');
+                throw new RoboHubFehler(RoboHubText::t('No mower responds at %s:%s. Is it switched on and in Wi-Fi? The IP address is shown in your router.', implode(', ', $ips), self::PORT));
             }
         }
         return ['marke' => 'eufymaeher', 'roboter' => $roboter];
@@ -134,10 +134,10 @@ class RoboHubEufyMaeher implements RoboHubTreiber
 
     public function anmeldeText(array $buendel): string
     {
-        $text = '✅ Angemeldet. Passwort und Cloud-Zugang sind verworfen, gespeichert ist nur der Geräteschlüssel. Ab jetzt läuft alles lokal im Heimnetz.';
+        $text = RoboHubText::t('✅ Signed in. Password and cloud access are discarded, only the device key is stored. From now on everything runs locally in your home network.');
         foreach ((array)($buendel['roboter'] ?? []) as $r) {
             if (empty($r['geprueft'])) {
-                $text .= "\n⚠️ Unter " . $r['ip'] . ' antwortet der Mäher gerade nicht. RoboHub versucht es weiter; ist er eingeschaltet und im WLAN, erscheint er von selbst.';
+                $text .= RoboHubText::t("\n⚠️ The mower at %s does not respond right now. RoboHub keeps trying; once it is switched on and in Wi-Fi, it appears by itself.", $r['ip']);
             }
         }
         return $text;
@@ -146,7 +146,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
     public function erneuern(array $buendel): array
     {
         if (empty($buendel['roboter'])) {
-            $e = new RoboHubFehler('Noch kein Mäher angemeldet.');
+            $e = new RoboHubFehler(RoboHubText::t('No mower signed in yet.'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -159,7 +159,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         [$status, $text] = $this->http('POST', self::EUFY_LOGIN, array_merge(self::eufyKoepfe(), ['Content-Type: application/json']),
             (string)json_encode(['client_id' => self::EUFY_ID, 'client_Secret' => self::EUFY_GEHEIM, 'email' => $konto, 'password' => $passwort]));
         if ($status === 429) {
-            $e = new RoboHubFehler('Eufy bremst die Anmeldung (zu viele Versuche). Bitte später erneut versuchen.');
+            $e = new RoboHubFehler(RoboHubText::t('Eufy is throttling the sign-in (too many attempts). Please try again later.'));
             $e->warteSekunden = 900;
             throw $e;
         }
@@ -167,12 +167,12 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         $token = (string)($l['access_token'] ?? '');
         $uid = (string)($l['user_info']['id'] ?? '');
         if ($token === '' || $uid === '') {
-            throw new RoboHubFehler($status === 0 ? 'Eufy nicht erreichbar: ' . $text : 'Eufy lehnt die Anmeldung ab: ' . (string)($l['msg'] ?? $l['message'] ?? ('HTTP ' . $status)));
+            throw new RoboHubFehler($status === 0 ? RoboHubText::t('Eufy not reachable: %s', $text) : RoboHubText::t('Eufy rejects the sign-in: %s', (string)($l['msg'] ?? $l['message'] ?? ('HTTP ' . $status))));
         }
         $land = (string)($l['user_info']['phone_code'] ?? '49') ?: '49';
         $basis = self::TUYA_REGION[$this->tuyaRegion($l, $token, $uid)] ?? null;
         if ($basis === null) {
-            throw new RoboHubFehler('Eufy nennt eine unbekannte Tuya-Region.');
+            throw new RoboHubFehler(RoboHubText::t('Eufy names an unknown Tuya region.'));
         }
 
         $tuyaUid = 'eh-' . $uid;
@@ -185,7 +185,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         $mobil = (string)($s['domain']['mobileApiUrl'] ?? '');
         // Die Sitzung geht nur an Tuyas eigene Server, egal was die Antwort nennt.
         if ($sid === '' || !preg_match('#^https://[a-z0-9.-]+\.tuya(eu|us|cn|in)\.com$#i', rtrim($mobil, '/'))) {
-            throw new RoboHubFehler('Tuya nennt einen unerwarteten Server — RoboHub bricht die Anmeldung ab.');
+            throw new RoboHubFehler(RoboHubText::t('Tuya names an unexpected server — RoboHub aborts the sign-in.'));
         }
         $mobil = rtrim($mobil, '/');
 
@@ -237,7 +237,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
             ['User-Agent: TY-UA=APP/Android/2.4.0/SDK/null', 'Content-Type: application/x-www-form-urlencoded'], $post !== '' ? 'postData=' . rawurlencode($post) : '');
         $d = json_decode($text, true);
         if (!is_array($d) || !array_key_exists('result', $d)) {
-            throw new RoboHubFehler($status === 0 ? 'Tuya nicht erreichbar: ' . $text : 'Tuya lehnt ' . $aktion . ' ab: ' . (string)($d['errorMsg'] ?? $d['errorCode'] ?? ('HTTP ' . $status)));
+            throw new RoboHubFehler($status === 0 ? RoboHubText::t('Tuya not reachable: %s', $text) : RoboHubText::t('Tuya rejects %s: %s', $aktion, (string)($d['errorMsg'] ?? $d['errorCode'] ?? ('HTTP ' . $status))));
         }
         return $d['result'];
     }
@@ -275,7 +275,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         $e = self::dezimalZuBytes($exponent);
         $n = ltrim($n, "\0");
         if ($n === '' || $e === '') {
-            throw new RoboHubFehler('Tuya liefert keinen gültigen Schlüssel für die Anmeldung.');
+            throw new RoboHubFehler(RoboHubText::t('Tuya delivers no valid key for the sign-in.'));
         }
         $folge = self::derTeil("\x02", (ord($n[0]) & 0x80 ? "\0" : '') . $n) . self::derTeil("\x02", (ord($e[0]) & 0x80 ? "\0" : '') . $e);
         $algo = self::derTeil("\x30", "\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x01\x01\x05\x00");
@@ -283,7 +283,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         $pem = "-----BEGIN PUBLIC KEY-----\n" . chunk_split(base64_encode($der), 64, "\n") . "-----END PUBLIC KEY-----\n";
         $aus = '';
         if (!openssl_public_encrypt(str_pad($klartext, strlen($n), "\0", STR_PAD_LEFT), $aus, $pem, OPENSSL_NO_PADDING)) {
-            throw new RoboHubFehler('Verschlüsseln für die Tuya-Anmeldung fehlgeschlagen.');
+            throw new RoboHubFehler(RoboHubText::t('Encryption for the Tuya sign-in failed.'));
         }
         return bin2hex($aus);
     }
@@ -332,7 +332,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
             $modell = self::PRODUKTE[(string)$r['produkt']] ?? '';
             $liste[] = [
                 'id'     => (string)$r['did'],
-                'name'   => (string)($r['name'] ?: 'Eufy ' . ($modell ?: 'Mäher')),
+                'name'   => (string)($r['name'] ?: 'Eufy ' . ($modell ?: RoboHubText::t('mower'))),
                 'modell' => 'eufy.mower.' . strtolower($modell ?: (string)$r['produkt']),
                 'klasse' => RoboHubModell::KLASSE_MAEHER,
                 'online' => true,
@@ -346,7 +346,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
     {
         $r = $buendel['roboter'][(string)$geraet['id']] ?? null;
         if (!is_array($r)) {
-            throw new RoboHubFehler('Dieser Mäher ist im Konto nicht (mehr) angemeldet.');
+            throw new RoboHubFehler(RoboHubText::t('This mower is not (or no longer) signed in in the account.'));
         }
         return $r;
     }
@@ -364,7 +364,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
             }
             // Aus oder außer WLAN-Reichweite ist bei einem Mäher normal, kein Fehlerfall.
             $this->dbg('Eufy-Mäher', $e->getMessage());
-            return ['werte' => ['Zustand' => RoboHubModell::ZUSTAND_UNBEKANNT, 'ZustandRoh' => 'Keine Antwort vom Mäher (aus, außer WLAN-Reichweite oder neu gekoppelt)'], 'optionen' => self::optionen(),
+            return ['werte' => ['Zustand' => RoboHubModell::ZUSTAND_UNBEKANNT, 'ZustandRoh' => RoboHubText::t('No response from the mower (off, out of Wi-Fi range or paired again)')], 'optionen' => self::optionen(),
                 'schreibbar' => [], 'online' => false, 'bloecke' => ['ok' => [], 'fehl' => [0]], 'roh' => ['modell' => $geraet['modell'] ?? null, 'properties' => null]];
         }
         $stand = $this->merkeStand($r, $dps);
@@ -527,8 +527,8 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         }
         $w['Zustand'] = $z;
         $a = (array)($p['_auftrag'] ?? []);
-        $w['ZustandRoh'] = isset($p['_auftrag']) ? 'Auftrag ' . (int)($a[1] ?? 0) . ', Phase ' . (int)($a[2] ?? 0) . ', Stand ' . (int)($a[3] ?? 0) : 'Noch keine Meldung vom Mäher';
-        $w['Fehler'] = !empty($a[5]) ? 'Der Mäher meldet ein Problem — Einzelheiten in der App' : 'kein Fehler';
+        $w['ZustandRoh'] = isset($p['_auftrag']) ? RoboHubText::t('Task %s, phase %s, state %s', (int)($a[1] ?? 0), (int)($a[2] ?? 0), (int)($a[3] ?? 0)) : RoboHubText::t('No message from the mower yet');
+        $w['Fehler'] = !empty($a[5]) ? RoboHubText::t('The mower reports a problem — details in the app') : RoboHubText::t('no error');
         if (isset($p['_lader'])) {
             $w['Laedt'] = $z === RoboHubModell::ZUSTAND_LAEDT;
         }
@@ -567,13 +567,13 @@ class RoboHubEufyMaeher implements RoboHubTreiber
             return $this->setzen($r, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
         }
         if ($befehl === 'stopp') {
-            throw new RoboHubFehler('Anhalten an Ort und Stelle kann der E15 im Heimnetz nicht. „Pause" hält ihn an, „Zur Station" schickt ihn heim.');
+            throw new RoboHubFehler(RoboHubText::t('The E15 cannot stop in place in the home network. "Pause" stops it, "Return to base" sends it home.'));
         }
         if ($befehl === 'orten') {
-            throw new RoboHubFehler('Orten kann der E15 im Heimnetz nicht — bitte in der App.');
+            throw new RoboHubFehler(RoboHubText::t('The E15 cannot locate in the home network — please use the app.'));
         }
         if (!in_array($befehl, ['start', 'pause', 'station'], true)) {
-            throw new RoboHubFehler('Diesen Befehl kennt RoboHub für den Eufy-Mäher nicht: ' . $befehl);
+            throw new RoboHubFehler(RoboHubText::t('RoboHub does not know this command for the Eufy mower: %s', $befehl));
         }
         return $this->gesperrt($r, function () use ($r, $befehl): string {
             $dps = $this->abfragen($r);
@@ -581,20 +581,20 @@ class RoboHubEufyMaeher implements RoboHubTreiber
             $karte = $dps[self::DP_KARTE_SPEICHERN] ?? null;
             // Während die Karte gespeichert wird, ignoriert der Mäher Befehle (lawn_mower.py).
             if (is_numeric($karte) && $karte > 0 && $karte < 100 && $befehl !== 'pause') {
-                throw new RoboHubFehler('Der Mäher speichert gerade seine Karte und nimmt keine Befehle an. Bitte gleich noch einmal.');
+                throw new RoboHubFehler(RoboHubText::t('The mower is saving its map right now and does not accept commands. Please try again in a moment.'));
             }
             $z = (int)($stand['_zustand'] ?? RoboHubModell::ZUSTAND_UNBEKANNT);
             if ($befehl === 'pause' && $z !== RoboHubModell::ZUSTAND_REINIGT) {
-                throw new RoboHubFehler('Pause geht nur, während der Mäher mäht.');
+                throw new RoboHubFehler(RoboHubText::t('Pause only works while the mower is mowing.'));
             }
             if ($befehl === 'start') {
                 return $z === RoboHubModell::ZUSTAND_PAUSIERT
-                    ? $this->schreiben($r, [self::DP_PAUSE => false], 'Fortsetzen')
+                    ? $this->schreiben($r, [self::DP_PAUSE => false], 'Resume')
                     : $this->schreiben($r, [self::DP_START => true], 'Start');
             }
             return $befehl === 'pause'
                 ? $this->schreiben($r, [self::DP_PAUSE => true], 'Pause')
-                : $this->schreiben($r, [self::DP_START => false], 'Zur Station');
+                : $this->schreiben($r, [self::DP_START => false], 'Return to base');
         });
     }
 
@@ -602,12 +602,12 @@ class RoboHubEufyMaeher implements RoboHubTreiber
     {
         if ($feld === 'Schnitthoehe' && isset(self::optionen()['Schnitthoehe'][$wert])) {
             $dp = [self::DP_SCHNITTHOEHE => $wert];
-            $text = 'Schnitthöhe ' . $wert . ' mm';
+            $text = RoboHubText::t('Cutting height %s mm', $wert);
         } elseif ($feld === 'Lautstaerke' && $wert >= 0 && $wert <= 100) {
             $dp = [self::DP_LAUTSTAERKE => $wert];
-            $text = 'Lautstärke ' . $wert . ' %';
+            $text = RoboHubText::t('Volume %s %%', $wert);
         } else {
-            throw new RoboHubFehler('Diese Einstellung gibt es beim Eufy-Mäher nicht.');
+            throw new RoboHubFehler(RoboHubText::t('This setting does not exist on the Eufy mower.'));
         }
         return $this->gesperrt($r, function () use ($r, $dp, $text): string {
             return $this->schreiben($r, $dp, $text);
@@ -624,12 +624,12 @@ class RoboHubEufyMaeher implements RoboHubTreiber
         } finally {
             $s->schliessen();
         }
-        return $text . ' gesendet.';
+        return RoboHubText::t('%s sent.', RoboHubText::wert($text));
     }
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen geht beim Eufy-Mäher nur in der App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts on the Eufy mower is only possible in the app.'));
     }
 
     public function karte(array $buendel, array $geraet): array
@@ -676,7 +676,7 @@ class RoboHubEufyMaeher implements RoboHubTreiber
     {
         $sperre = 'RoboHub_EufyMaeher_' . md5((string)$r['did']);
         if (function_exists('IPS_SemaphoreEnter') && !IPS_SemaphoreEnter($sperre, 30000)) {
-            throw new RoboHubFehler('Der Mäher ist gerade mit einem anderen Befehl beschäftigt — bitte gleich noch einmal.');
+            throw new RoboHubFehler(RoboHubText::t('The mower is busy with another command right now — please try again in a moment.'));
         }
         try {
             return $tun();
@@ -785,7 +785,7 @@ final class RoboHubTuyaSitzung
         }
         $h = unpack('nfrei/Nfolge/Nbefehl/Nlaenge', substr($puffer, 4, 14));
         if ($h['laenge'] < 28 || $h['laenge'] > 262144) {
-            throw new RoboHubFehler('Ungültiger Rahmen vom Gerät.');
+            throw new RoboHubFehler(RoboHubText::t('Invalid frame from the device.'));
         }
         $gesamt = 18 + $h['laenge'] + 4;
         if (strlen($puffer) < $gesamt) {
@@ -796,7 +796,7 @@ final class RoboHubTuyaSitzung
         $puffer = (string)substr($puffer, $gesamt);
         $klar = openssl_decrypt(substr($rumpf, 12, -16), 'aes-128-gcm', $schluessel, OPENSSL_RAW_DATA, substr($rumpf, 0, 12), substr($rumpf, -16), $kopf);
         if ($klar === false) {
-            throw new RoboHubFehler('Antwort des Geräts lässt sich nicht entschlüsseln.');
+            throw new RoboHubFehler(RoboHubText::t('The device\'s response cannot be decrypted.'));
         }
         return [(int)$h['befehl'], $klar];
     }
@@ -814,7 +814,7 @@ final class RoboHubTuyaSitzung
         if ($m === null) {
             // Verbindung steht, aber keine Antwort: falscher Schlüssel ODER schon eine andere lokale Sitzung offen.
             // Nicht unterscheidbar, deshalb kein Abmelden (das würde den Schlüssel wegwerfen).
-            throw new RoboHubFehler('Der Mäher antwortet nicht auf die Schlüsselaushandlung. Ist eine andere lokale Verbindung offen, oder wurde er neu gekoppelt (dann neu anmelden)?', self::KEINE_ANTWORT);
+            throw new RoboHubFehler(RoboHubText::t('The mower does not respond to the key negotiation. Is another local connection open, or was it paired again (then sign in again)?'), self::KEINE_ANTWORT);
         }
         $inhalt = $m[1];
         if ($m[0] !== 0x04 || strlen($inhalt) < 48) {
@@ -831,7 +831,7 @@ final class RoboHubTuyaSitzung
 
     private function schluesselFalsch(): void
     {
-        $e = new RoboHubFehler('Der Mäher nimmt den Geräteschlüssel nicht an. Wurde er neu gekoppelt, oder ist er kein Tuya-3.5-Gerät? Dann bitte neu anmelden.');
+        $e = new RoboHubFehler(RoboHubText::t('The mower does not accept the device key. Was it paired again, or is it not a Tuya 3.5 device? Then please sign in again.'));
         $e->anmeldungNoetig = true;
         throw $e;
     }
@@ -896,7 +896,7 @@ final class RoboHubTuyaVerbindung
         $text = '';
         $sock = @stream_socket_client('tcp://' . $ziel, $nr, $text, $frist);
         if ($sock === false) {
-            throw new RoboHubFehler('Mäher unter ' . $ziel . ' nicht erreichbar (' . $text . ').');
+            throw new RoboHubFehler(RoboHubText::t('Mower at %s not reachable (%s).', $ziel, $text));
         }
         stream_set_blocking($sock, false);
         return new self($sock);
@@ -909,7 +909,7 @@ final class RoboHubTuyaVerbindung
         while ($rest !== '') {
             $n = @fwrite($this->sock, $rest);
             if ($n === false || ($n === 0 && microtime(true) > $ende)) {
-                throw new RoboHubFehler('Verbindung zum Mäher abgerissen.');
+                throw new RoboHubFehler(RoboHubText::t('Connection to the mower lost.'));
             }
             $rest = (string)substr($rest, $n);
             if ($rest !== '') {

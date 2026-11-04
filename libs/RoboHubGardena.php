@@ -34,31 +34,31 @@ class RoboHubGardena extends RoboHubHusqvarna
 
     // MOWER.activity → [Text, Zustand]
     private const TAETIGKEIT = [
-        'OK_CUTTING'                  => ['Mäht', RoboHubModell::ZUSTAND_REINIGT],
-        'OK_CUTTING_TIMER_OVERRIDDEN' => ['Mäht (manuell)', RoboHubModell::ZUSTAND_REINIGT],
-        'OK_LEAVING'                  => ['Verlässt die Station', RoboHubModell::ZUSTAND_REINIGT],
-        'OK_SEARCHING'                => ['Sucht die Station', RoboHubModell::ZUSTAND_ZURUECK],
-        'OK_CHARGING'                 => ['Lädt', RoboHubModell::ZUSTAND_LAEDT],
-        'PARKED_TIMER'                => ['Geparkt (Zeitplan)', RoboHubModell::ZUSTAND_GELADEN],
-        'PARKED_PARK_SELECTED'        => ['Geparkt bis auf Weiteres', RoboHubModell::ZUSTAND_GELADEN],
-        'PARKED_AUTOTIMER'            => ['Geparkt (SensorControl)', RoboHubModell::ZUSTAND_WETTERPAUSE],
-        'PARKED_FROST'                => ['Geparkt (Frost)', RoboHubModell::ZUSTAND_WETTERPAUSE],
-        'PAUSED'                      => ['Pausiert', RoboHubModell::ZUSTAND_PAUSIERT],
-        'STOPPED_IN_GARDEN'           => ['Steht im Garten', RoboHubModell::ZUSTAND_BEREIT],
-        'SEARCHING_FOR_SATELLITES'    => ['Sucht Satelliten', RoboHubModell::ZUSTAND_BEREIT],
-        'NONE'                        => ['Keine Tätigkeit', RoboHubModell::ZUSTAND_BEREIT],
+        'OK_CUTTING'                  => ['Mowing', RoboHubModell::ZUSTAND_REINIGT],
+        'OK_CUTTING_TIMER_OVERRIDDEN' => ['Mowing (manual)', RoboHubModell::ZUSTAND_REINIGT],
+        'OK_LEAVING'                  => ['Leaving the station', RoboHubModell::ZUSTAND_REINIGT],
+        'OK_SEARCHING'                => ['Searching for the station', RoboHubModell::ZUSTAND_ZURUECK],
+        'OK_CHARGING'                 => ['Charging', RoboHubModell::ZUSTAND_LAEDT],
+        'PARKED_TIMER'                => ['Parked (schedule)', RoboHubModell::ZUSTAND_GELADEN],
+        'PARKED_PARK_SELECTED'        => ['Parked until further notice', RoboHubModell::ZUSTAND_GELADEN],
+        'PARKED_AUTOTIMER'            => ['Parked (SensorControl)', RoboHubModell::ZUSTAND_WETTERPAUSE],
+        'PARKED_FROST'                => ['Parked (frost)', RoboHubModell::ZUSTAND_WETTERPAUSE],
+        'PAUSED'                      => ['Paused', RoboHubModell::ZUSTAND_PAUSIERT],
+        'STOPPED_IN_GARDEN'           => ['Standing in the garden', RoboHubModell::ZUSTAND_BEREIT],
+        'SEARCHING_FOR_SATELLITES'    => ['Searching for satellites', RoboHubModell::ZUSTAND_BEREIT],
+        'NONE'                        => ['No activity', RoboHubModell::ZUSTAND_BEREIT],
     ];
 
     // MOWER.lastErrorCode (Auszug, deutsch).
     private const FEHLER = [
-        'NO_MESSAGE' => null, 'OUTSIDE_WORKING_AREA' => 'Außerhalb des Arbeitsbereichs', 'NO_LOOP_SIGNAL' => 'Kein Schleifensignal',
-        'WRONG_LOOP_SIGNAL' => 'Falsches Schleifensignal', 'TRAPPED' => 'Eingeklemmt', 'UPSIDE_DOWN' => 'Kopfüber',
-        'EMPTY_BATTERY' => 'Akku leer', 'NO_DRIVE' => 'Kein Antrieb', 'TEMPORARILY_LIFTED' => 'Kurz angehoben', 'LIFTED' => 'Angehoben',
-        'STUCK_IN_CHARGING_STATION' => 'Steckt in der Ladestation', 'CHARGING_STATION_BLOCKED' => 'Ladestation blockiert',
-        'CUTTING_SYSTEM_BLOCKED' => 'Schneidsystem blockiert', 'MOWER_TILTED' => 'Mäher gekippt', 'ALARM_MOWER_LIFTED' => 'Alarm: angehoben',
-        'ALARM_MOWER_STOPPED' => 'Alarm: angehalten', 'ALARM_MOWER_SWITCHED_OFF' => 'Alarm: ausgeschaltet', 'OFF_DISABLED' => 'Ausgeschaltet',
-        'OFF_HATCH_OPEN' => 'Klappe offen', 'OFF_HATCH_CLOSED' => 'Ausgeschaltet (Klappe zu)', 'PARKED_DAILY_LIMIT_REACHED' => 'Tageslimit erreicht',
-        'SLOPE_TOO_STEEP' => 'Zu steil', 'WHEEL_MOTOR_BLOCKED_LEFT' => 'Radmotor links blockiert', 'WHEEL_MOTOR_BLOCKED_RIGHT' => 'Radmotor rechts blockiert',
+        'NO_MESSAGE' => null, 'OUTSIDE_WORKING_AREA' => 'Outside the working area', 'NO_LOOP_SIGNAL' => 'No loop signal',
+        'WRONG_LOOP_SIGNAL' => 'Wrong loop signal', 'TRAPPED' => 'Trapped', 'UPSIDE_DOWN' => 'Upside down',
+        'EMPTY_BATTERY' => 'Battery empty', 'NO_DRIVE' => 'No drive', 'TEMPORARILY_LIFTED' => 'Briefly lifted', 'LIFTED' => 'Lifted',
+        'STUCK_IN_CHARGING_STATION' => 'Stuck in the charging station', 'CHARGING_STATION_BLOCKED' => 'Charging station blocked',
+        'CUTTING_SYSTEM_BLOCKED' => 'Cutting system blocked', 'MOWER_TILTED' => 'Mower tilted', 'ALARM_MOWER_LIFTED' => 'Alarm: lifted',
+        'ALARM_MOWER_STOPPED' => 'Alarm: stopped', 'ALARM_MOWER_SWITCHED_OFF' => 'Alarm: switched off', 'OFF_DISABLED' => 'Switched off',
+        'OFF_HATCH_OPEN' => 'Hatch open', 'OFF_HATCH_CLOSED' => 'Switched off (hatch closed)', 'PARKED_DAILY_LIMIT_REACHED' => 'Daily limit reached',
+        'SLOPE_TOO_STEEP' => 'Too steep', 'WHEEL_MOTOR_BLOCKED_LEFT' => 'Left wheel motor blocked', 'WHEEL_MOTOR_BLOCKED_RIGHT' => 'Right wheel motor blocked',
     ];
 
     /** Neue Adresse je Verbindung (gilt nur kurz) — für den ersten Ort mit einem Mäher. */
@@ -72,12 +72,12 @@ class RoboHubGardena extends RoboHubHusqvarna
             }
         }
         if ($ort === '') {
-            throw new RoboHubFehler('Kein GARDENA-Ort mit Mähroboter gefunden.');
+            throw new RoboHubFehler(RoboHubText::t('No GARDENA location with a robot mower found.'));
         }
         $j = $this->anfrage($buendel, 'POST', 'websocket', ['data' => ['type' => 'WEBSOCKET', 'attributes' => ['locationId' => $ort], 'id' => 'robohub']]);
         $url = (string)($j['data']['attributes']['url'] ?? '');
         if (strpos($url, 'wss://') !== 0) {
-            throw new RoboHubFehler('GARDENA hat keine Echtzeit-Adresse geliefert.');
+            throw new RoboHubFehler(RoboHubText::t('GARDENA did not deliver a real-time address.'));
         }
         return ['url' => $url, 'kopf' => []];
     }
@@ -178,7 +178,7 @@ class RoboHubGardena extends RoboHubHusqvarna
             $c = $g['common'];
             $liste[] = [
                 'id'     => (string)$g['id'],
-                'name'   => (string)($c['name'] ?? 'GARDENA Mähroboter'),
+                'name'   => (string)($c['name'] ?? RoboHubText::t('GARDENA robot mower')),
                 'modell' => 'gardena.mower.' . (preg_replace('/[^a-z0-9]+/', '', strtolower(str_replace(['GARDENA', 'smart'], '', (string)($c['modelType'] ?? 'sileno')))) ?: 'sileno'),
                 'klasse' => RoboHubModell::KLASSE_MAEHER,
                 'online' => strtoupper((string)($c['rfLinkState'] ?? 'ONLINE')) === 'ONLINE',
@@ -207,12 +207,13 @@ class RoboHubGardena extends RoboHubHusqvarna
         $taetigkeit = strtoupper((string)($m['activity'] ?? ''));
         $zustand = strtoupper((string)($m['state'] ?? ''));
         if ($taetigkeit !== '' || $zustand !== '') {
-            [$text, $z] = self::TAETIGKEIT[$taetigkeit] ?? ['Tätigkeit „' . $taetigkeit . '"', RoboHubModell::ZUSTAND_UNBEKANNT];
+            [$text, $z] = self::TAETIGKEIT[$taetigkeit] ?? [RoboHubText::t('Activity "%s"', $taetigkeit), RoboHubModell::ZUSTAND_UNBEKANNT];
+            $text = RoboHubText::wert($text);
             if ($zustand === 'ERROR') {
                 $z = RoboHubModell::ZUSTAND_FEHLER;
             } elseif ($zustand === 'UNAVAILABLE') {
                 $z = RoboHubModell::ZUSTAND_UNBEKANNT;
-                $text = 'Nicht erreichbar';
+                $text = RoboHubText::t('Not reachable');
             }
             $w['Zustand'] = $z;
             $w['ZustandRoh'] = $text . ' (' . strtolower($taetigkeit) . ', ' . strtolower($zustand) . ')';
@@ -221,8 +222,8 @@ class RoboHubGardena extends RoboHubHusqvarna
         if (array_key_exists('lastErrorCode', $m) || $zustand !== '') {
             $code = strtoupper((string)($m['lastErrorCode'] ?? 'NO_MESSAGE'));
             $w['Fehler'] = in_array($zustand, ['ERROR', 'WARNING'], true) && $code !== 'NO_MESSAGE'
-                ? (self::FEHLER[$code] ?? str_replace('_', ' ', strtolower($code))) . ' (' . $code . ')'
-                : 'kein Fehler';
+                ? (RoboHubText::wert(self::FEHLER[$code] ?? null) ?? str_replace('_', ' ', strtolower($code))) . ' (' . $code . ')'
+                : RoboHubText::t('no error');
         }
         $w['Akku'] = isset($c['batteryLevel']) && is_numeric($c['batteryLevel']) ? (int)$c['batteryLevel'] : null;
         $w['GesamtDauer'] = isset($m['operatingHours']) && is_numeric($m['operatingHours']) ? (int)$m['operatingHours'] : null;
@@ -238,14 +239,14 @@ class RoboHubGardena extends RoboHubHusqvarna
     {
         $pausiert = strtoupper((string)($geraet['stand']['mower']['activity'] ?? '')) === 'PAUSED';
         $befehle = [
-            'start'   => $pausiert ? [['command' => 'START_DONT_OVERRIDE'], 'Fortsetzen nach Zeitplan']
-                : [['command' => 'START_SECONDS_TO_OVERRIDE', 'seconds' => self::START_SEKUNDEN], 'Start (3 h)'],
-            'station' => [['command' => 'PARK_UNTIL_NEXT_TASK'], 'Parken bis zum nächsten Zeitplan'],
-            'stopp'   => [['command' => 'PARK_UNTIL_FURTHER_NOTICE'], 'Parken bis auf Weiteres'],
+            'start'   => $pausiert ? [['command' => 'START_DONT_OVERRIDE'], RoboHubText::t('Resume according to schedule')]
+                : [['command' => 'START_SECONDS_TO_OVERRIDE', 'seconds' => self::START_SEKUNDEN], RoboHubText::t('Start (3 h)')],
+            'station' => [['command' => 'PARK_UNTIL_NEXT_TASK'], RoboHubText::t('Park until the next schedule')],
+            'stopp'   => [['command' => 'PARK_UNTIL_FURTHER_NOTICE'], RoboHubText::t('Park until further notice')],
         ];
         if (!isset($befehle[$befehl])) {
-            throw new RoboHubFehler(['pause' => '„Pause" kennt die GARDENA-Schnittstelle nicht — „Zur Station" parkt den Mäher.', 'orten' => '„Orten" gibt es bei GARDENA-Mähern nicht.'][$befehl]
-                ?? 'Dieser Befehl wird bei GARDENA (noch) nicht unterstützt: ' . $befehl);
+            throw new RoboHubFehler(['pause' => RoboHubText::t('The GARDENA API does not know "Pause" — "Return to base" parks the mower.'), 'orten' => RoboHubText::t('GARDENA mowers have no "Locate".')][$befehl]
+                ?? RoboHubText::t('This command is not supported by GARDENA (yet): %s', $befehl));
         }
         $g = $this->einer($buendel, (string)$geraet['id']);
         [$attribute, $text] = $befehle[$befehl];
@@ -253,7 +254,7 @@ class RoboHubGardena extends RoboHubHusqvarna
             'id' => self::anfrageId(), 'type' => 'MOWER_CONTROL', 'attributes' => $attribute,
         ]]);
         @unlink($this->speicherDatei($buendel));
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     /** Eindeutige Anfrage-ID (die API verlangt eine beliebige ID je Befehl). */

@@ -37,21 +37,21 @@ class RoboHubAlko implements RoboHubTreiber
 
     // operationState (API.md, HA lawn_mower.py) → [RoboHub-Zustand, Klartext].
     private const ZUSTAENDE = [
-        'WORKING'           => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht'],
-        'HOMING'            => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'],
-        'CHARGING'          => [RoboHubModell::ZUSTAND_LAEDT, 'Lädt'],
-        'IDLE_BASE_STATION' => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'],
+        'WORKING'           => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'],
+        'HOMING'            => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
+        'CHARGING'          => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
+        'IDLE_BASE_STATION' => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
         'IDLE'              => [RoboHubModell::ZUSTAND_PAUSIERT, 'Angehalten'],
     ];
 
     // Grund der Heimfahrt aus situationFlags (API.md: „die mit Abstand nützlichsten").
     private const HEIMFAHRT = [
-        'homingTriggerBatteryWeak' => 'Akku schwach', 'homingTriggerRain' => 'Regen', 'homingTriggerSchedule' => 'Mähzeit vorbei',
-        'homingTriggerUserRequest' => 'auf Wunsch', 'homingTriggerFrost' => 'Frost', 'homingTriggerTemperature' => 'Temperatur',
-        'homingTriggerMowingUnitOverload' => 'Messer überlastet', 'homingTriggerRestart' => 'Neustart',
+        'homingTriggerBatteryWeak' => 'Battery low', 'homingTriggerRain' => 'Rain', 'homingTriggerSchedule' => 'Mowing time over',
+        'homingTriggerUserRequest' => 'on request', 'homingTriggerFrost' => 'Frost', 'homingTriggerTemperature' => 'Temperature',
+        'homingTriggerMowingUnitOverload' => 'Blades overloaded', 'homingTriggerRestart' => 'Restart',
     ];
 
-    private const TAGE = ['monday' => 'Mo', 'tuesday' => 'Di', 'wednesday' => 'Mi', 'thursday' => 'Do', 'friday' => 'Fr', 'saturday' => 'Sa', 'sunday' => 'So'];
+    private const TAGE = ['monday' => 'Mon', 'tuesday' => 'Tue', 'wednesday' => 'Wed', 'thursday' => 'Thu', 'friday' => 'Fri', 'saturday' => 'Sat', 'sunday' => 'Sun'];
 
     // =================================================================
     // Anmeldung
@@ -62,10 +62,10 @@ class RoboHubAlko implements RoboHubTreiber
         $id = trim((string)($this->zusatz['clientId'] ?? ''));
         $geheim = trim((string)($this->zusatz['clientSecret'] ?? ''));
         if ($id === '' || $geheim === '') {
-            throw new RoboHubFehler('Bitte Client-ID und Client-Secret eintragen, die AL-KO dir für den API-Zugang geschickt hat.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter the client ID and client secret that AL-KO sent you for API access.'));
         }
         if (!filter_var(trim($konto), FILTER_VALIDATE_EMAIL) || $passwort === '') {
-            throw new RoboHubFehler('Bitte E-Mail und Passwort der AL-KO-inTOUCH-App eintragen.');
+            throw new RoboHubFehler(RoboHubText::t('Please enter e-mail and password of the AL-KO inTOUCH app.'));
         }
         return $this->tokenHolen(['grant_type' => 'password', 'username' => trim($konto), 'password' => $passwort, 'scope' => self::SCOPE],
             ['clientId' => $id, 'clientSecret' => $geheim]);
@@ -73,7 +73,7 @@ class RoboHubAlko implements RoboHubTreiber
 
     public function anmeldeText(array $buendel): string
     {
-        return '✅ Angemeldet. Client-ID und Client-Secret bleiben im Konto gespeichert, weil AL-KO den Zugang nur damit erneuert; das Passwort wurde verworfen. Den API-Zugang kannst du bei AL-KO jederzeit sperren lassen, „Abmelden" löscht ihn hier.';
+        return RoboHubText::t('✅ Signed in. Client ID and client secret stay stored in the account because AL-KO only renews access with them; the password was discarded. You can have AL-KO block the API access at any time, "Sign out" deletes it here.');
     }
 
     public function erneuern(array $buendel): array
@@ -93,17 +93,17 @@ class RoboHubAlko implements RoboHubTreiber
             http_build_query($felder, '', '&', PHP_QUERY_RFC3986));
         $this->dbg('HTTP', 'POST connect/token (' . $felder['grant_type'] . ') → ' . $status);
         if ($status === 0) {
-            throw new RoboHubFehler('AL-KO-Anmeldung nicht erreichbar: ' . $text);
+            throw new RoboHubFehler(RoboHubText::t('AL-KO sign-in not reachable: %s', $text));
         }
         $j = json_decode($text, true);
         if ($status !== 200 || !is_array($j) || (string)($j['access_token'] ?? '') === '') {
             $grund = is_array($j) ? (string)($j['error'] ?? '') : '';
             if ($status >= 500 && $grund === '') {
-                throw new RoboHubFehler('AL-KO-Anmeldung antwortet mit HTTP ' . $status . ' — bitte später erneut versuchen.');
+                throw new RoboHubFehler(RoboHubText::t('AL-KO sign-in responds with HTTP %s — please try again later.', $status));
             }
             $e = new RoboHubFehler($felder['grant_type'] === 'password'
-                ? 'AL-KO lehnt die Anmeldung ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — Client-ID/Secret und E-Mail/Passwort prüfen.'
-                : 'AL-KO lehnt die Erneuerung ab' . ($grund !== '' ? ' (' . $grund . ')' : '') . ' — bitte neu anmelden.');
+                ? RoboHubText::t('AL-KO rejects the sign-in%s — check client ID/secret and e-mail/password.', ($grund !== '' ? ' (' . $grund . ')' : ''))
+                : RoboHubText::t('AL-KO rejects the renewal%s — please sign in again.', ($grund !== '' ? ' (' . $grund . ')' : '')));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -153,7 +153,7 @@ class RoboHubAlko implements RoboHubTreiber
         $s = $this->anfrage($buendel, 'GET', 'things/' . rawurlencode((string)$geraet['id']) . '/state', null);
         $p = (array)($s['state']['reported'] ?? []);
         if ($p === []) {
-            throw new RoboHubFehler('AL-KO liefert für diesen Mäher keinen Zustand — ist er noch im Konto?');
+            throw new RoboHubFehler(RoboHubText::t('AL-KO delivers no state for this mower — is it still in the account?'));
         }
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
         $daten['online'] = !empty($p['isConnected']);
@@ -167,9 +167,11 @@ class RoboHubAlko implements RoboHubTreiber
         $w = [];
         $f = (array)($p['situationFlags'] ?? []);
         $roh = (string)($p['operationState'] ?? '');
-        [$z, $text] = self::ZUSTAENDE[$roh] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unbekannt'];
+        [$z, $text] = self::ZUSTAENDE[$roh] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unknown'];
+        $text = RoboHubText::wert($text);
         if ($roh === 'HOMING') {
             foreach (self::HEIMFAHRT as $flag => $grund) {
+                $grund = RoboHubText::wert($grund);
                 if (!empty($f[$flag])) {
                     $text .= ' (' . $grund . ')';
                     break;
@@ -181,15 +183,15 @@ class RoboHubAlko implements RoboHubTreiber
         if ($wetter && in_array($z, [RoboHubModell::ZUSTAND_GELADEN, RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::ZUSTAND_PAUSIERT], true)) {
             [$z, $text] = [RoboHubModell::ZUSTAND_WETTERPAUSE, !empty($f['frostDetected']) ? 'Frostpause' : 'Regenpause'];
         }
-        $fehler = 'kein Fehler';
+        $fehler = RoboHubText::t('no error');
         $code = (int)($p['operationError']['code'] ?? 999);
         if ($code !== 999) {
             $beschreibung = (string)($p['operationError']['description'] ?? '');
-            $fehler = 'Fehler ' . $code . ($beschreibung !== '' && $beschreibung !== 'UNKNOWN' ? ' (' . $beschreibung . ')' : '');
+            $fehler = RoboHubText::t('Error %s%s', $code, ($beschreibung !== '' && $beschreibung !== 'UNKNOWN' ? ' (' . $beschreibung . ')' : ''));
             [$z, $text] = [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'];
         } elseif (($p['operationSubState'] ?? '') === 'LOCKED_PIN' || ($p['operationSituation'] ?? '') === 'OPERATION_NOT_PERMITTED_LOCKED') {
             // PIN-Sperre (z. B. nach Firmware-Update) — per API nicht lösbar (FINDINGS.md)
-            $fehler = 'PIN-Sperre — bitte am Mäher entsperren';
+            $fehler = RoboHubText::t('PIN lock — please unlock on the mower');
             [$z, $text] = [RoboHubModell::ZUSTAND_FEHLER, 'Gesperrt'];
         }
         if (array_key_exists('isConnected', $p) && !$p['isConnected']) {
@@ -214,9 +216,9 @@ class RoboHubAlko implements RoboHubTreiber
             $w['Regenverzoegerung'] = (int)$p['rainDelay'] === 0 ? 'Aus' : (int)$p['rainDelay'] . ' min';
         }
         if (!empty($f['userInteraction'])) {
-            $w['Meldung'] = 'Der Mäher wartet auf eine Eingabe am Gerät.';
+            $w['Meldung'] = RoboHubText::t('The mower is waiting for an input on the device.');
         } elseif (!empty($f['bladeService'])) {
-            $w['Meldung'] = 'Messer-Service fällig.';
+            $w['Meldung'] = RoboHubText::t('Blade service due.');
         }
         $aus = ['werte' => $w, 'optionen' => [], 'schreibbar' => []];
         if (isset($p['mowingWindows']) && is_array($p['mowingWindows'])) {
@@ -231,13 +233,14 @@ class RoboHubAlko implements RoboHubTreiber
         $termine = [];
         $i = 0;
         foreach (self::TAGE as $tag => $kurz) {
+            $kurz = RoboHubText::wert($kurz);
             foreach ((array)($fenster[$tag] ?? []) as $f) {
                 $i++;
                 if (!is_array($f) || empty($f['activityMode']) || (int)($f['duration'] ?? 0) <= 0) {
                     continue;
                 }
                 $termine[] = ['id' => $i, 'an' => true, 'art' => 'text', 'text' => $kurz . ' ' . sprintf('%02d:%02d', (int)($f['startHour'] ?? 0), (int)($f['startMinute'] ?? 0))
-                    . ' · ' . (int)$f['duration'] . ' min' . (!empty($f['marginMode']) ? ' · mit Randmähen' : '') . (!empty($f['narrowPassageMode']) ? ' · Engstelle' : '')];
+                    . ' · ' . (int)$f['duration'] . ' min' . (!empty($f['marginMode']) ? RoboHubText::t(' · with edge mowing') : '') . (!empty($f['narrowPassageMode']) ? ' · Engstelle' : '')];
             }
         }
         return $termine;
@@ -249,19 +252,19 @@ class RoboHubAlko implements RoboHubTreiber
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {
-        $ziel = ['start' => ['WORKING', 'Mähen'], 'pause' => ['IDLE', 'Anhalten'], 'station' => ['HOMING', 'Zur Station']][$befehl] ?? null;
+        $ziel = ['start' => ['WORKING', RoboHubText::t('Mow')], 'pause' => ['IDLE', RoboHubText::t('Halt')], 'station' => ['HOMING', RoboHubText::t('Return to base')]][$befehl] ?? null;
         if ($ziel === null) {
-            throw new RoboHubFehler($befehl === 'stopp' ? '„Stopp" gibt es beim Robolinho nicht — „Pause" oder „Zur Station" nehmen.'
-                : ($befehl === 'orten' ? '„Orten" bietet AL-KO nicht.' : ($befehl === 'raum' ? 'Zonen kennt der Robolinho nicht.' : 'Dieser Befehl wird bei AL-KO nicht unterstützt: ' . $befehl)));
+            throw new RoboHubFehler($befehl === 'stopp' ? RoboHubText::t('The Robolinho has no "Stop" — use "Pause" or "Return to base".')
+                : ($befehl === 'orten' ? RoboHubText::t('AL-KO does not offer "Locate".') : ($befehl === 'raum' ? RoboHubText::t('The Robolinho does not know zones.') : RoboHubText::t('This command is not supported by AL-KO: %s', $befehl))));
         }
         $stand = (array)($geraet['stand'] ?? []);
         if (($stand['operationSubState'] ?? '') === 'LOCKED_PIN' && $befehl === 'start') {
-            throw new RoboHubFehler('Der Mäher ist per PIN gesperrt — bitte am Gerät entsperren.');
+            throw new RoboHubFehler(RoboHubText::t('The mower is locked by PIN — please unlock it on the device.'));
         }
         // Uhrzeit mitsenden wie die HA-Integration (lawn_mower.py).
         $this->anfrage($buendel, 'PATCH', 'things/' . rawurlencode((string)$geraet['id']) . '/state/desired',
             ['operationState' => $ziel[0], 'rtc' => date('Y-m-d\TH:i:s')]);
-        return 'Befehl „' . $ziel[1] . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $ziel[1]);
     }
 
     public function karte(array $buendel, array $geraet): array
@@ -276,7 +279,7 @@ class RoboHubAlko implements RoboHubTreiber
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Messer zurücksetzen geht beim Robolinho (noch) nur in der inTOUCH-App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting the blades on the Robolinho is (still) only possible in the inTOUCH app.'));
     }
 
     public function echtzeitMoeglich(): bool
@@ -315,20 +318,19 @@ class RoboHubAlko implements RoboHubTreiber
         $this->dbg('HTTP', $methode . ' ' . preg_replace('/\?.*/', '', $pfad) . ' → ' . $status);
         if ($status === 0 || $status >= 500) {
             $j = json_decode($text, true);
-            throw new RoboHubFehler('AL-KO-Cloud' . ($status === 0 ? ' nicht erreichbar: ' . $text : ' antwortet mit HTTP ' . $status
-                . (is_array($j) && isset($j['message']) ? ': ' . $j['message'] : '')) . '.');
+            throw new RoboHubFehler('AL-KO-Cloud' . ($status === 0 ? RoboHubText::t(' not reachable: %s', $text) : RoboHubText::t(' responds with HTTP %s%s', $status, (is_array($j) && isset($j['message']) ? ': ' . $j['message'] : ''))) . '.');
         }
         if ($status === 401) {
             @touch($this->erneuernDatei($buendel));   // nicht abmelden: beim nächsten Abruf erneuern
-            throw new RoboHubFehler('AL-KO hat den Zugangsschlüssel abgelehnt — RoboHub erneuert ihn beim nächsten Abruf.');
+            throw new RoboHubFehler(RoboHubText::t('AL-KO rejected the access token — RoboHub renews it at the next update.'));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('AL-KO bremst die Anfragen — RoboHub wartet.');
+            $e = new RoboHubFehler(RoboHubText::t('AL-KO is throttling the requests — RoboHub is waiting.'));
             $e->warteSekunden = 600;
             throw $e;
         }
         if ($status >= 300) {
-            throw new RoboHubFehler('AL-KO antwortet mit HTTP ' . $status . '.');
+            throw new RoboHubFehler(RoboHubText::t('AL-KO responds with HTTP %s.', $status));
         }
         $j = json_decode($text, true);
         return is_array($j) ? $j : [];

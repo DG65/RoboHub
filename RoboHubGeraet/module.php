@@ -24,6 +24,15 @@ class RoboHubGeraet extends IPSModule
 {
     use RoboHubFormular;
 
+    public function __construct($InstanceID)
+    {
+        parent::__construct($InstanceID);
+        // Treiber, Modell und Kachel übersetzen über RoboHubText (englische Quelltexte, Deutsch in locale.json).
+        RoboHubText::setzen(function (string $text): string {
+            return $this->Translate($text);
+        });
+    }
+
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
 
     // Während einer Reinigung schneller nachsehen als im Ruhezustand.
@@ -83,11 +92,11 @@ class RoboHubGeraet extends IPSModule
         parent::ApplyChanges();
 
         $klasse = $this->klasse();
-        $this->MaintainVariable('Erreichbar', 'Erreichbar', VARIABLETYPE_BOOLEAN, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 1, true);
+        $this->MaintainVariable('Erreichbar', RoboHubText::t('Reachable'), VARIABLETYPE_BOOLEAN, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 1, true);
         // Nur Anzeige → Wertanzeige mit Optionen. Die Aufzählung verlangt eine Variablenaktion; ohne sie
         // lässt sich die Variable in der Konsole nicht mehr bearbeiten, z. B. Archiv einschalten (Forum Thilo 25.10.2026).
-        $this->MaintainVariable('Zustand', 'Zustand', VARIABLETYPE_INTEGER, $this->presAnzeige($this->zustandsOptionen($klasse)), 10, true);
-        $this->MaintainVariable('Befehl', 'Befehl', VARIABLETYPE_INTEGER, $this->presEnum($this->befehlsOptionen($klasse)), 5, true);
+        $this->MaintainVariable('Zustand', RoboHubText::t('State'), VARIABLETYPE_INTEGER, $this->presAnzeige($this->zustandsOptionen($klasse)), 10, true);
+        $this->MaintainVariable('Befehl', RoboHubText::t('Command'), VARIABLETYPE_INTEGER, $this->presEnum($this->befehlsOptionen($klasse)), 5, true);
         $this->EnableAction('Befehl');
         $this->SetVisualizationType(1);
         if ($this->ReadAttributeString('WebSchluessel') === '') {
@@ -177,7 +186,7 @@ class RoboHubGeraet extends IPSModule
                     return;
                 }
         }
-        throw new Exception('Unbekannte Aktion: ' . $Ident);
+        throw new Exception(RoboHubText::t('Unknown action: %s', $Ident));
     }
 
     // -----------------------------------------------------------------
@@ -220,7 +229,7 @@ class RoboHubGeraet extends IPSModule
     public function Aktualisieren(): string
     {
         if ($this->ReadPropertyBoolean('Deaktiviert')) {
-            return '🔌 Dieser Roboter ist deaktiviert.';
+            return RoboHubText::t('🔌 This robot is deactivated.');
         }
         if (!$this->kontoAktiv()) {
             $this->ordneKontoZu();
@@ -242,8 +251,7 @@ class RoboHubGeraet extends IPSModule
         }
         $this->kachelAktualisieren();
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
-        return '✅ Zustand abgerufen: ' . RoboHubModell::zustandsName((int)$this->GetValue('Zustand'), $this->klasse())
-            . ($this->hatVariable('Akku') ? ', Akku ' . $this->GetValue('Akku') . ' %' : '') . '.';
+        return RoboHubText::t('✅ State fetched: %s%s.', RoboHubModell::zustandsName((int)$this->GetValue('Zustand'), $this->klasse()), ($this->hatVariable('Akku') ? ', Akku ' . $this->GetValue('Akku') . ' %' : ''));
     }
 
     /** ROBO_Starten($id): string */
@@ -285,7 +293,7 @@ class RoboHubGeraet extends IPSModule
     {
         $ids = self::raumIds($raumIDs);
         if (count($ids) === 0) {
-            return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
+            return RoboHubText::t('⛔ No room ID given (e.g. "3,5").');
         }
         return $this->befehlMitKachel('raum', ['raeume' => $ids]);
     }
@@ -299,7 +307,7 @@ class RoboHubGeraet extends IPSModule
     {
         $ids = self::raumIds($raumIDs);
         if (count($ids) === 0) {
-            return '⛔ Keine Raum-ID angegeben (z. B. "3,5").';
+            return RoboHubText::t('⛔ No room ID given (e.g. "3,5").');
         }
         return $this->befehlMitKachel('raum', ['raeume' => $ids, 'modus' => $modus, 'saugstufe' => $saugstufe, 'durchgaenge' => $durchgaenge]);
     }
@@ -343,23 +351,23 @@ class RoboHubGeraet extends IPSModule
         $name = null;
         foreach (self::TEILE as [$pIdent, , $anzeige]) {
             if ($pIdent === $teil) {
-                $name = $anzeige;
+                $name = RoboHubText::wert($anzeige);
             }
         }
         if ($name === null || $this->wert($teil) === null) {
-            return '⛔ Unbekanntes oder bei diesem Gerät nicht vorhandenes Verbrauchsteil: ' . $teil;
+            return RoboHubText::t('⛔ Unknown consumable or not present on this device: %s', $teil);
         }
         $vorher = (int)$this->wert($teil);
         $antwort = $this->frageKonto(['Aktion' => 'zuruecksetzen', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Teil' => $teil]);
         if (!$antwort['ok']) {
-            $this->protokolliere($name . ' zurücksetzen fehlgeschlagen: ' . $antwort['fehler'], KL_WARNING);
+            $this->protokolliere(RoboHubText::t('Resetting %s failed: %s', $name, $antwort['fehler']), KL_WARNING);
             return '⛔ ' . $antwort['fehler'];
         }
         // Dauerhaft festhalten — so ist später nachvollziehbar, wann gewechselt wurde.
-        $this->protokolliere($name . ' zurückgesetzt (vorher ' . $vorher . ' %).');
+        $this->protokolliere(RoboHubText::t('%s reset (previously %s %%).', $name, $vorher));
         $this->Aktualisieren();
         $nachher = $this->wert($teil);
-        return '✅ ' . $name . ' zurückgesetzt (vorher ' . $vorher . ' %' . ($nachher !== null ? ', jetzt ' . (int)$nachher . ' %' : '') . ').';
+        return RoboHubText::t('✅ %s reset (previously %s %%%s).', $name, $vorher, ($nachher !== null ? ', jetzt ' . (int)$nachher . ' %' : ''));
     }
 
     /** ROBO_ZeitplanSchalten($id, int $termin, bool $an): string — Zeitplan der Hersteller-App ein-/ausschalten. */
@@ -372,18 +380,18 @@ class RoboHubGeraet extends IPSModule
             }
         }
         if ($bekannt === null) {
-            return '⛔ Unbekannter Zeitplan: ' . $termin;
+            return RoboHubText::t('⛔ Unknown schedule: %s', $termin);
         }
         if (($bekannt['art'] ?? '') !== 'maeher') {
             return $this->befehlText('zeitplan', ['id' => $termin, 'an' => $an]);
         }
         if (!isset($bekannt['tabelle'])) {
-            return '⛔ Dieser Mäh-Plan lässt sich (noch) nicht schalten.';
+            return RoboHubText::t('⛔ This mowing plan cannot be switched (yet).');
         }
         $text = $this->befehlText('zeitplan', ['tabelle' => (int)$bekannt['tabelle'], 'an' => $an]);
         if (strpos($text, '⛔') !== 0) {
             // Der Mäher hat bestätigt; Pläne neu lesen (Nachbarplan kann sich mitgeschaltet haben).
-            $this->protokolliere('Mäh-Plan ' . ((int)($bekannt['nummer'] ?? $termin) + 1) . ' ' . ($an ? 'eingeschaltet' : 'ausgeschaltet') . '.');
+            $this->protokolliere(RoboHubText::t('Mowing plan %s %s.', ((int)($bekannt['nummer'] ?? $termin) + 1), ($an ? 'eingeschaltet' : 'ausgeschaltet')));
             $this->ladeRaeume();
         }
         return $text;
@@ -397,7 +405,7 @@ class RoboHubGeraet extends IPSModule
     {
         // Gesperrt (Live-Befund 12.10.2026): die Hersteller-App zeigt diese gespeicherten Werte
         // nicht an und schreibt sie nicht; wofür der Roboter sie nutzt, ist noch offen.
-        return '⛔ Das Ändern der im Roboter gespeicherten Raum-Einstellungen ist vorerst gesperrt — bitte beim Start Modus/Saugstufe wählen (ROBO_RaeumeReinigenMit).';
+        return RoboHubText::t('⛔ Changing the room settings stored in the robot is blocked for now — please choose mode/suction level when starting (ROBO_RaeumeReinigenMit).');
     }
 
     /** ROBO_Rohdaten($id): string — letzte Rohantwort des Herstellers (zur Fehlersuche). */
@@ -405,7 +413,7 @@ class RoboHubGeraet extends IPSModule
     {
         $roh = $this->ReadAttributeString('LetzteRohdaten');
         if ($roh === '') {
-            return 'ℹ️ Noch keine Rohdaten — erst einmal „Jetzt aktualisieren".';
+            return RoboHubText::t('ℹ️ No raw data yet — click "Update now" first.');
         }
         $daten = json_decode($roh, true);
         $verlauf = json_decode((string)$this->ReadAttributeString('EchtzeitVerlauf'), true) ?: [];
@@ -474,10 +482,10 @@ class RoboHubGeraet extends IPSModule
             IPS_DisconnectInstance($this->InstanceID);
         }
         if (!IPS_ConnectInstance($this->InstanceID, $ziel)) {
-            $this->protokolliere('Verbinden mit Konto #' . $ziel . ' fehlgeschlagen.', KL_WARNING);
-            return '⛔ Verbinden mit Konto #' . $ziel . ' fehlgeschlagen.';
+            $this->protokolliere(RoboHubText::t('Connecting to account #%s failed.', $ziel), KL_WARNING);
+            return RoboHubText::t('⛔ Connecting to account #%s failed.', $ziel);
         }
-        $text = '🔗 Mit Konto „' . IPS_GetName($ziel) . '" (#' . $ziel . ') verbunden — dort ist dieses Gerät registriert.';
+        $text = RoboHubText::t('🔗 Connected to account "%s" (#%s) — this device is registered there.', IPS_GetName($ziel), $ziel);
         $this->protokolliere($text);
         return $text;
     }
@@ -497,13 +505,13 @@ class RoboHubGeraet extends IPSModule
     {
         $antwort = $this->frageKonto(['Aktion' => 'befehl', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Befehl' => $befehl, 'Parameter' => $parameter]);
         if (!$antwort['ok']) {
-            $this->protokolliere('Befehl „' . $befehl . '" fehlgeschlagen: ' . $antwort['fehler'], KL_WARNING);
+            $this->protokolliere(RoboHubText::t('Command "%s" failed: %s', $befehl, $antwort['fehler']), KL_WARNING);
             return '⛔ ' . $antwort['fehler'];
         }
         // Gesendet ist nicht ausgeführt: Zustand gleich nachziehen und
         // danach zügiger nachsehen (Takt richtet sich nach dem Zustand).
         $this->SetTimerInterval('Abruf', 5000);
-        return '📤 ' . (string)$antwort['daten'] . ' Der Zustand aktualisiert sich in wenigen Sekunden.';
+        return RoboHubText::t('📤 %s The state will update in a few seconds.', (string)$antwort['daten']);
     }
 
     /** Für Aktionsvariablen (WebFront): Fehlschlag protokollieren, Erfolg als bool. */
@@ -536,20 +544,20 @@ class RoboHubGeraet extends IPSModule
     protected function frageKonto(array $anfrage): array
     {
         if ($this->ReadPropertyBoolean('Deaktiviert')) {
-            return ['ok' => false, 'fehler' => 'Dieser Roboter ist deaktiviert (Formular: „Diesen Roboter deaktivieren").'];
+            return ['ok' => false, 'fehler' => RoboHubText::t('This robot is deactivated (form: "Deactivate this robot").')];
         }
         if (!$this->kontoAktiv()) {
-            return ['ok' => false, 'fehler' => 'Keine aktive RoboHub-Konto-Instanz verbunden — bitte unter „Übergeordnete Instanz" ein angemeldetes Konto wählen.'];
+            return ['ok' => false, 'fehler' => RoboHubText::t('No active RoboHub account instance connected — please choose a signed-in account under "Parent instance".')];
         }
         $anfrage['DataID'] = self::DATA_ZUM_KONTO;
         try {
             $roh = $this->SendDataToParent((string)json_encode($anfrage));
         } catch (Throwable $e) {
-            return ['ok' => false, 'fehler' => 'Konto-Instanz nicht erreichbar: ' . $e->getMessage()];
+            return ['ok' => false, 'fehler' => RoboHubText::t('Account instance not reachable: %s', $e->getMessage())];
         }
         $antwort = json_decode((string)$roh, true);
         if (!is_array($antwort) || !isset($antwort['ok'])) {
-            return ['ok' => false, 'fehler' => 'Unerwartete Antwort der Konto-Instanz.'];
+            return ['ok' => false, 'fehler' => RoboHubText::t('Unexpected response from the account instance.')];
         }
         return $antwort;
     }
@@ -565,7 +573,7 @@ class RoboHubGeraet extends IPSModule
             return;
         }
         $antwort = $this->frageKonto(['Aktion' => 'kartenobjekt', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Name' => $name]);
-        $d = $antwort['ok'] ? (array)$antwort['daten'] : ['kartenobjektInfo' => 'Echtzeit ' . $name . ': ' . ($antwort['fehler'] ?? '?')];
+        $d = $antwort['ok'] ? (array)$antwort['daten'] : ['kartenobjektInfo' => RoboHubText::t('Real-time %s: %s', $name, ($antwort['fehler'] ?? '?'))];
         $q = json_decode((string)$this->ReadAttributeString('RaumEinstellungenQuellen'), true) ?: [];
         $q['kartenobjektInfo'] = date('d.m.Y H:i:s') . ' ' . (string)($d['kartenobjektInfo'] ?? '');
         $this->WriteAttributeString('RaumEinstellungenQuellen', (string)json_encode($q));
@@ -604,13 +612,13 @@ class RoboHubGeraet extends IPSModule
             return;
         }
         $re = json_decode((string)$this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
-        $kopf = ($re['an'] ?? null) === false ? "⏸️ In der App ausgeschaltet — es gelten die allgemeinen Einstellungen.\n" : '';
-        $this->MaintainVariable('RaumEinstellungen', 'Raum-Einstellungen im Roboter', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 96, true);
+        $kopf = ($re['an'] ?? null) === false ? RoboHubText::t("⏸️ Switched off in the app — the general settings apply.\n") : '';
+        $this->MaintainVariable('RaumEinstellungen', RoboHubText::t('Room settings in the robot'), VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 96, true);
         // MaintainVariable benennt vorhandene Variablen nicht um — den alten Standardnamen (0.10/0.11)
         // gezielt ersetzen, einen selbst vergebenen Namen nicht anfassen.
         $vid = (int)IPS_GetObjectIDByIdent('RaumEinstellungen', $this->InstanceID);
         if (IPS_GetName($vid) === 'Einstellungen je Raum') {
-            IPS_SetName($vid, 'Raum-Einstellungen im Roboter');
+            IPS_SetName($vid, RoboHubText::t('Room settings in the robot'));
         }
         $this->SetValue('RaumEinstellungen', $kopf . implode("\n", $zeilen));
     }
@@ -636,10 +644,10 @@ class RoboHubGeraet extends IPSModule
             array_push($teile, (string)$e['saugstufe'], (int)$e['durchgaenge'] . '×');
             // Wasser nur, wenn auch gewischt wird (die App blendet es sonst aus).
             if (empty($e['modus']) || strpos((string)$e['modus'], 'Wischen') !== false || strpos((string)$e['modus'], 'wischen') !== false) {
-                $teile[] = (strpos((string)$e['wasser'], 'Feuchte') === 0 ? '' : 'Wasser ') . $e['wasser'];
+                $teile[] = (strpos((string)$e['wasser'], 'Feuchte') === 0 ? '' : RoboHubText::t('Water ')) . $e['wasser'];
             }
             $nr = (int)($e['reihenfolge'] ?? 0);
-            $zeilen[(int)$id] = ($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? $namen[(int)$id] ?? 'Raum ' . $id) . ': ' . implode(' · ', $teile);
+            $zeilen[(int)$id] = ($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? $namen[(int)$id] ?? RoboHubText::t('Room %s', $id)) . ': ' . implode(' · ', $teile);
         }
         return $zeilen;
     }
@@ -660,7 +668,7 @@ class RoboHubGeraet extends IPSModule
     {
         $this->WriteAttributeString('Zeitplaene', (string)json_encode(array_values($termine)));
         $zeilen = array_map(function (array $t): string { return ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t); }, $termine);
-        $this->MaintainVariable('Zeitplaene', 'Zeitpläne', VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 95, true);
+        $this->MaintainVariable('Zeitplaene', RoboHubText::t('Schedules'), VARIABLETYPE_STRING, ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION], 95, true);
         $this->SetValue('Zeitplaene', $zeilen === [] ? 'keine' : implode("\n", $zeilen));
     }
 
@@ -671,7 +679,7 @@ class RoboHubGeraet extends IPSModule
         $gruppen = [];
         foreach ((array)($t['eintraege'] ?? []) as $e) {
             $was = $e['art'] === 'zonen'
-                ? implode(', ', array_map(function ($z) use ($namen): string { return (string)($namen[(string)$z] ?? $namen[(int)$z] ?? 'Zone ' . $z); }, (array)$e['zonen']))
+                ? implode(', ', array_map(function ($z) use ($namen): string { return (string)($namen[(string)$z] ?? $namen[(int)$z] ?? RoboHubText::t('Zone %s', $z)); }, (array)$e['zonen']))
                 : ['alle' => 'alles', 'kante' => 'Kante', 'patrouille' => 'Patrouille'][$e['art']] ?? $e['art'];
             $schluessel = $e['von'] . ($e['bis'] !== null ? '–' . $e['bis'] : '') . ' · ' . $was;
             $gruppen[$schluessel][] = $e['tag'];
@@ -679,13 +687,12 @@ class RoboHubGeraet extends IPSModule
         $teile = [];
         foreach ($gruppen as $wann => $tage) {
             $tage = array_values(array_unique($tage));
-            $tageText = count($tage) === 7 ? 'täglich' : ($tage === ['Mo', 'Di', 'Mi', 'Do', 'Fr'] ? 'werktags' : implode(', ', $tage));
+            $tageText = count($tage) === 7 ? RoboHubText::t('daily') : ($tage === ['Mo', 'Di', 'Mi', 'Do', 'Fr'] ? 'werktags' : implode(', ', $tage));
             $teile[] = $tageText . ' ' . $wann;
         }
         // Ohne Namen wie in der App gezählt: erster Plan = „Plan 1".
-        $kopf = trim((string)($t['name'] ?? '')) !== '' ? 'Plan „' . $t['name'] . '"' : 'Plan ' . ((int)($t['nummer'] ?? $t['id']) + 1)
-            . ((int)($t['platz'] ?? 0) > 0 ? ' (Karte ' . ((int)$t['platz'] + 1) . ')' : '');
-        return $kopf . ($teile === [] ? ' · ohne Termine' : ' · ' . implode('; ', $teile));
+        $kopf = trim((string)($t['name'] ?? '')) !== '' ? RoboHubText::t('Plan "%s"', $t['name']) : RoboHubText::t('Plan %s%s', ((int)($t['nummer'] ?? $t['id']) + 1), ((int)($t['platz'] ?? 0) > 0 ? RoboHubText::t(' (map %s)', ((int)$t['platz'] + 1)) : ''));
+        return $kopf . ($teile === [] ? RoboHubText::t(' · no appointments') : ' · ' . implode('; ', $teile));
     }
 
     /** Ein Termin in Klartext, mit Raumnamen aus der Karte: „07:00 · Mo, Mi, Fr · Vorrat, Küche · Saugen". */
@@ -701,7 +708,7 @@ class RoboHubGeraet extends IPSModule
         if (!empty($t['einmalig'])) {
             $wann = 'einmalig';
         } elseif (count($tage) === 7) {
-            $wann = 'täglich';
+            $wann = RoboHubText::t('daily');
         } elseif ($tage === ['Mo', 'Di', 'Mi', 'Do', 'Fr']) {
             $wann = 'werktags';
         } else {
@@ -712,7 +719,7 @@ class RoboHubGeraet extends IPSModule
         switch ($t['art'] ?? '') {
             case 'raeume':
                 $teile[] = implode(', ', array_map(function (array $r) use ($namen): string {
-                    return (string)($namen[(string)$r['id']] ?? $namen[(int)$r['id']] ?? 'Raum ' . $r['id']);
+                    return (string)($namen[(string)$r['id']] ?? $namen[(int)$r['id']] ?? RoboHubText::t('Room %s', $r['id']));
                 }, (array)($t['raeume'] ?? [])));
                 $modi = array_values(array_unique(array_filter(array_column((array)($t['raeume'] ?? []), 'modus'))));
                 if (count($modi) === 1) {
@@ -720,17 +727,17 @@ class RoboHubGeraet extends IPSModule
                 }
                 break;
             case 'alle':
-                $teile[] = 'alle Räume';
+                $teile[] = RoboHubText::t('all rooms');
                 if (!empty($t['modus'])) {
                     $teile[] = $t['modus'];
                 }
                 break;
             case 'kurzbefehl':
-                $teile[] = 'Kurzbefehl ' . (int)($t['kurzbefehl'] ?? 0);
+                $teile[] = RoboHubText::t('Shortcut %s', (int)($t['kurzbefehl'] ?? 0));
                 break;
         }
         if (!empty($t['ungueltig'])) {
-            $teile[] = '⚠️ ungültig';
+            $teile[] = RoboHubText::t('⚠️ invalid');
         }
         return implode(' · ', $teile);
     }
@@ -765,14 +772,14 @@ class RoboHubGeraet extends IPSModule
         if ($ident === 'Lautstaerke') {
             $wert = (int)$wert;
             if ($wert < 0 || $wert > 100) {
-                $fehler = 'Lautstärke muss zwischen 0 und 100 % liegen.';
+                $fehler = RoboHubText::t('Volume must be between 0 and 100 %.');
             }
         } elseif ($ident === 'NichtStoeren') {
             $wert = (bool)$wert;
         } else {
             $wert = trim((string)$wert);
             if (!RoboHubModell::istUhrzeit($wert)) {
-                $fehler = 'Uhrzeit bitte als HH:MM angeben (z. B. 22:00), nicht „' . $wert . '".';
+                $fehler = RoboHubText::t('Please enter the time as HH:MM (e.g. 22:00), not "%s".', $wert);
             }
         }
         if ($fehler !== null) {
@@ -847,13 +854,13 @@ class RoboHubGeraet extends IPSModule
             }
             if (isset($optionen[$ident]) && is_array($optionen[$ident])) {
                 // Einstellbar mit Auswahlliste → Integer + Aufzählung + Aktion.
-                $this->MaintainVariable($ident, $name, VARIABLETYPE_INTEGER, $this->presEnum($optionen[$ident]), $pos, true);
+                $this->MaintainVariable($ident, RoboHubText::wert($name), VARIABLETYPE_INTEGER, $this->presEnum($optionen[$ident]), $pos, true);
                 $this->EnableAction($ident);
                 $this->SetValue($ident, (int)$werte[$ident]);
                 continue;
             }
             if (in_array($ident, $schreibbar, true)) {
-                $this->MaintainVariable($ident, $name, $typ, $this->presSchreibbar($typ, $suffix), $pos, true);
+                $this->MaintainVariable($ident, RoboHubText::wert($name), $typ, $this->presSchreibbar($typ, $suffix), $pos, true);
                 $this->EnableAction($ident);
                 $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
                 continue;
@@ -867,7 +874,7 @@ class RoboHubGeraet extends IPSModule
             if ($typ === VARIABLETYPE_INTEGER || $typ === VARIABLETYPE_FLOAT) {
                 $pres['DIGITS'] = $stellen;
             }
-            $this->MaintainVariable($ident, $name, $typ, $pres, $pos, true);
+            $this->MaintainVariable($ident, RoboHubText::wert($name), $typ, $pres, $pos, true);
             $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
         }
         $this->WriteAttributeString('Optionen', (string)json_encode($optionen));
@@ -903,7 +910,7 @@ class RoboHubGeraet extends IPSModule
         $this->raumEinstellungenMerken($d, 'liveKarte');
         $this->raumEinstellungenVariable();
         if ((string)($d['bild'] ?? '') === '') {
-            return 'ℹ️ Keine aktuelle Karte geliefert.';
+            return RoboHubText::t('ℹ️ No current map delivered.');
         }
         $weg = array_values((array)($d['weg'] ?? []));
         if ($weg === [] && !$this->ReadAttributeBoolean('LiveAktiv')) {
@@ -922,7 +929,7 @@ class RoboHubGeraet extends IPSModule
         foreach ((array)($d['weg'] ?? []) as $s) {
             $punkte += count((array)$s);
         }
-        return '✅ Live-Karte geladen: ' . $punkte . ' Wegpunkte' . (isset($d['roboter']) ? ', Roboter auf der Karte.' : '.');
+        return RoboHubText::t('✅ Live map loaded: %s waypoints%s', $punkte, (isset($d['roboter']) ? RoboHubText::t(', robot on the map.') : '.'));
     }
 
     /** Zustand → Live-Takt an/aus. Am Ende der Arbeit einmal den fertigen Weg holen. */
@@ -992,12 +999,12 @@ class RoboHubGeraet extends IPSModule
             if (isset($daten['zeitplaene']) && is_array($daten['zeitplaene'])) {
                 $this->zeitplaeneUebernehmen($daten['zeitplaene']);
             }
-            return 'ℹ️ Keine Räume/Zonen gefunden — der Roboter hat noch keine gespeicherte Karte, oder sein Kartenformat ist noch nicht bekannt (Debug „Karte").';
+            return RoboHubText::t('ℹ️ No rooms/zones found — the robot has no saved map yet, or its map format is not known yet (debug "Karte").');
         }
         $alt = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
         if ($alt != $raeume || !$this->hatVariable('Raum')) {
             $this->WriteAttributeString('Raeume', (string)json_encode($raeume));
-            $this->MaintainVariable('Raum', $this->klasse() === RoboHubModell::KLASSE_MAEHER ? 'Zone mähen' : 'Raum reinigen', VARIABLETYPE_INTEGER, $this->presEnum($raeume), 6, true);
+            $this->MaintainVariable('Raum', $this->klasse() === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('Mow zone') : RoboHubText::t('Clean room'), VARIABLETYPE_INTEGER, $this->presEnum($raeume), 6, true);
             $this->EnableAction('Raum');
         }
         // Nach den Raum-/Zonennamen, damit die Pläne schon die neuen Namen tragen.
@@ -1006,7 +1013,7 @@ class RoboHubGeraet extends IPSModule
         }
         $this->raumEinstellungenVariable();
         $this->kachelAktualisieren();
-        return '✅ ' . count($raeume) . ' Räume/Zonen: ' . implode(', ', $raeume) . '.';
+        return RoboHubText::t('✅ %s rooms/zones: %s.', count($raeume), implode(', ', $raeume));
     }
 
     private function typisiere(int $typ, $wert)
@@ -1015,7 +1022,7 @@ class RoboHubGeraet extends IPSModule
             case VARIABLETYPE_BOOLEAN: return (bool)$wert;
             case VARIABLETYPE_INTEGER: return (int)round((float)$wert);
             case VARIABLETYPE_FLOAT:   return (float)$wert;
-            default:                   return (string)$wert;
+            default:                   return (string)RoboHubText::wert((string)$wert);
         }
     }
 
@@ -1065,7 +1072,7 @@ class RoboHubGeraet extends IPSModule
             RoboHubModell::BEFEHL_ORTEN   => 'orten',
         ];
         if (!isset($namen[$wert])) {
-            throw new Exception('Unbekannter Befehl: ' . $wert);
+            throw new Exception(RoboHubText::t('Unknown command: %s', $wert));
         }
         return $namen[$wert];
     }
@@ -1080,7 +1087,7 @@ class RoboHubGeraet extends IPSModule
     {
         $intervalle = [];
         foreach ($map as $wert => $caption) {
-            $intervalle[] = ['IntervalMinValue' => (int)$wert, 'IntervalMaxValue' => (int)$wert, 'ConstantActive' => true, 'ConstantValue' => (string)$caption,
+            $intervalle[] = ['IntervalMinValue' => (int)$wert, 'IntervalMaxValue' => (int)$wert, 'ConstantActive' => true, 'ConstantValue' => (string)RoboHubText::wert((string)$caption),
                 'ConversionFactor' => 1, 'PrefixActive' => false, 'SuffixActive' => false, 'DigitsActive' => false,
                 'IconActive' => false, 'IconValue' => '', 'ColorActive' => false, 'ColorValue' => -1];
         }
@@ -1093,7 +1100,7 @@ class RoboHubGeraet extends IPSModule
         foreach ($map as $wert => $caption) {
             // Schlüssel laut Symcon-Doku (Darstellung Aufzählung): Value, Caption, IconActive, IconValue, Color.
             // Neuere Versionen brechen bei anderen ab („unknown sub-parameters", Forum 13.10.2026).
-            $options[] = ['Value' => (int)$wert, 'Caption' => (string)$caption, 'IconActive' => false, 'IconValue' => '', 'Color' => -1];
+            $options[] = ['Value' => (int)$wert, 'Caption' => (string)RoboHubText::wert((string)$caption), 'IconActive' => false, 'IconValue' => '', 'Color' => -1];
         }
         return ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($options)];
     }
@@ -1116,16 +1123,16 @@ class RoboHubGeraet extends IPSModule
 
     // Verbrauchsteile für die Kachel: [Prozent-Ident, Stunden-Ident, Name].
     private const TEILE = [
-        ['Hauptbuerste', 'HauptbuersteRest', 'Hauptbürste'],
-        ['Seitenbuerste', 'SeitenbuersteRest', 'Seitenbürste'],
+        ['Hauptbuerste', 'HauptbuersteRest', 'Main brush'],
+        ['Seitenbuerste', 'SeitenbuersteRest', 'Side brush'],
         ['Filter', 'FilterRest', 'Filter'],
-        ['Mopp', 'MoppRest', 'Mopp/Walze'],
-        ['Sensoren', 'SensorenRest', 'Sensoren'],
-        ['Abwasserfilter', 'AbwasserfilterRest', 'Abwasserauslassfilter'],
-        ['Schmutzwasserbehaelter', 'SchmutzwasserbehaelterRest', 'Schmutzwasserbehälter'],
-        ['Messer', 'MesserRest', 'Klingen'],
-        ['Reinigungsbuerste', 'ReinigungsbuersteRest', 'Reinigungsbürste'],
-        ['Wartung', 'WartungRest', 'Wartung des Roboters'],
+        ['Mopp', 'MoppRest', 'Mop/roller'],
+        ['Sensoren', 'SensorenRest', 'Sensors'],
+        ['Abwasserfilter', 'AbwasserfilterRest', 'Waste water outlet filter'],
+        ['Schmutzwasserbehaelter', 'SchmutzwasserbehaelterRest', 'Dirty water tank'],
+        ['Messer', 'MesserRest', 'Cutting blades'],
+        ['Reinigungsbuerste', 'ReinigungsbuersteRest', 'Cleaning brush'],
+        ['Wartung', 'WartungRest', 'Robot maintenance'],
     ];
 
     private function hookPfad(): string
@@ -1160,13 +1167,13 @@ class RoboHubGeraet extends IPSModule
         if (isset($_GET['cmd'])) {
             $this->kopf('application/json');
             if (!$darf) {
-                echo json_encode(['ok' => false, 'text' => '🔒 Bedienung über diese Seite ist nicht freigegeben.']);
+                echo json_encode(['ok' => false, 'text' => RoboHubText::t('🔒 Control via this page is not enabled.')]);
                 return;
             }
             $cmd = (string)$_GET['cmd'];
             $wert = (string)($_GET['wert'] ?? '');
             if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen', 'Zeitplan'], true)) {
-                echo json_encode(['ok' => false, 'text' => '⛔ Unbekannter Befehl.']);
+                echo json_encode(['ok' => false, 'text' => RoboHubText::t('⛔ Unknown command.')]);
                 return;
             }
             try {
@@ -1179,7 +1186,7 @@ class RoboHubGeraet extends IPSModule
                     $text = $this->ZeitplanSchalten((int)$tid, $an === '1');
                 } else {
                     $start = self::raumStart($wert);
-                    $text = $start['raeume'] === [] ? '⛔ Keine Raum-ID angegeben.' : $this->befehlText('raum', $start);
+                    $text = $start['raeume'] === [] ? RoboHubText::t('⛔ No room ID given.') : $this->befehlText('raum', $start);
                 }
             } catch (Throwable $e) {
                 $text = '⛔ ' . $e->getMessage();
@@ -1222,11 +1229,12 @@ class RoboHubGeraet extends IPSModule
             $unter[] = preg_replace('/\s*\(\d+\)$/', '', $roh);
         }
         if ($seit > 0) {
-            $unter[] = 'seit ' . date(date('Ymd', $seit) === date('Ymd') ? 'H:i' : 'd.m. H:i', $seit) . ' Uhr';
+            $unter[] = RoboHubText::t('since %s', date(date('Ymd', $seit) === date('Ymd') ? 'H:i' : 'd.m. H:i', $seit));
         }
 
         $teile = [];
         foreach (self::TEILE as [$pIdent, $hIdent, $name]) {
+            $name = RoboHubText::wert($name);
             $p = $this->wert($pIdent);
             if ($p === null) {
                 continue;
@@ -1238,7 +1246,7 @@ class RoboHubGeraet extends IPSModule
         $hinweise = [];
         foreach (['Frischwasser' => '🚰 Frischwasser', 'Schmutzwasser' => '🪣 Schmutzwasser', 'Staubbeutel' => '🗑️ Staubbeutel', 'Reinigungsmittel' => '🧴 Reinigungsmittel'] as $ident => $name) {
             $v = $this->wert($ident);
-            if ($v !== null && $v !== '' && $v !== 'In Ordnung') {
+            if ($v !== null && $v !== '' && $v !== RoboHubText::t('OK') && $v !== 'In Ordnung') {
                 $hinweise[] = $name . ': ' . $v;
             }
         }
@@ -1253,19 +1261,19 @@ class RoboHubGeraet extends IPSModule
             $t = $this->auswahlText($ident);
             if ($t !== null) {
                 // Mit Namen davor — „Hoch" oder „An" allein sagt in der Kachel nichts (Forum Thilo 24.10.2026).
-                $info[] = $ident === 'Reinigungsmodus' ? $t : RoboHubModell::FELDER[$ident][0] . ': ' . $t;
+                $info[] = $ident === 'Reinigungsmodus' ? $t : RoboHubText::wert(RoboHubModell::FELDER[$ident][0]) . ': ' . $t;
             }
         }
         if ($einst && $this->wert('NichtStoeren') !== null) {
             $info[] = $this->wert('NichtStoeren')
-                ? '🌙 Nicht stören ' . $this->wert('NichtStoerenVon') . '–' . $this->wert('NichtStoerenBis')
-                : '🔔 Nicht stören aus';
+                ? RoboHubText::t('🌙 Do not disturb %s–%s', $this->wert('NichtStoerenVon'), $this->wert('NichtStoerenBis'))
+                : RoboHubText::t('🔔 Do not disturb off');
         }
         if ($einst && $this->wert('Lautstaerke') !== null) {
             $info[] = ((int)$this->wert('Lautstaerke') === 0 ? '🔇 ' : '🔊 ') . (int)$this->wert('Lautstaerke') . ' %';
         }
         if ($this->wert('Regensensor') !== null) {
-            $info[] = $this->wert('Regensensor') ? '🌧️ Regen erkannt' : '☀️ kein Regen';
+            $info[] = $this->wert('Regensensor') ? RoboHubText::t('🌧️ Rain detected') : RoboHubText::t('☀️ no rain');
         }
         $flaeche = $this->wert('Flaeche');
         if ($flaeche !== null && in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_PAUSIERT], true)) {
@@ -1290,7 +1298,7 @@ class RoboHubGeraet extends IPSModule
             'akku'        => $this->wert('Akku') === null ? null : (int)$this->wert('Akku'),
             'laedt'       => (bool)$this->wert('Laedt'),
             'erreichbar'  => $this->wert('Erreichbar') !== false,
-            'fehler'      => ($fehler === '' || $fehler === 'kein Fehler') ? '' : $fehler,
+            'fehler'      => ($fehler === '' || $fehler === 'kein Fehler' || $fehler === RoboHubText::t('no error')) ? '' : $fehler,
             'hinweise'    => $hinweise,
             'info'        => $info,
             'raeume'      => $raeume,
@@ -1322,7 +1330,7 @@ class RoboHubGeraet extends IPSModule
         $liste = function (string $ident) use ($optionen): array {
             $aus = [];
             foreach ((array)($optionen[$ident] ?? []) as $wert => $text) {
-                $aus[] = [(int)$wert, (string)$text];
+                $aus[] = [(int)$wert, (string)RoboHubText::wert((string)$text)];
             }
             return $aus;
         };
@@ -1344,7 +1352,7 @@ class RoboHubGeraet extends IPSModule
         if ($wert === null || !isset($optionen[$ident])) {
             return null;
         }
-        return (string)($optionen[$ident][(int)$wert] ?? $optionen[$ident][(string)(int)$wert] ?? $wert);
+        return (string)RoboHubText::wert($optionen[$ident][(int)$wert] ?? $optionen[$ident][(string)(int)$wert] ?? $wert);
     }
 
     /** WebHook beim WebHook-Control eintragen (Verbund-Muster, z. B. NRGDashboard). */
@@ -1379,41 +1387,41 @@ class RoboHubGeraet extends IPSModule
     {
         $this->WriteAttributeString('WebSchluessel', bin2hex(random_bytes(12)));
         $this->UpdateFormField('WebAdresseBedienung', 'caption', $this->webAdresseZeile());
-        return '🔑 Neuer Schlüssel erzeugt. Die bisherige Bedien-Adresse funktioniert ab sofort nicht mehr — in IPSView die neue Adresse eintragen.';
+        return RoboHubText::t('🔑 New key created. The previous control address stops working immediately — enter the new address in IPSView.');
     }
 
     private function webAdresseZeile(): string
     {
-        return '🔑 Mit Bedienung: ' . $this->hookPfad() . '?key=' . $this->ReadAttributeString('WebSchluessel');
+        return RoboHubText::t('🔑 With control: %s?key=%s', $this->hookPfad(), $this->ReadAttributeString('WebSchluessel'));
     }
 
     private function kachelPanel(): array
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '📱  Kachel und IPSView',
+            'caption' => RoboHubText::t('📱  Tile and IPSView'),
             'items' => [
-                ['type' => 'Label', 'caption' => 'Kachel-Visualisierung: Diese Instanz ist selbst eine Kachel — einfach auf dem Dashboard platzieren. Bedienen geht dort immer (Anmeldung der Visualisierung).'],
-                ['type' => 'Select', 'name' => 'Farbschema', 'caption' => 'Farben der Kachel', 'options' => [
-                    ['caption' => 'Automatisch (Hintergrund erkennen, sonst Einstellung des Geräts)', 'value' => 0],
-                    ['caption' => 'Hell', 'value' => 1],
-                    ['caption' => 'Dunkel', 'value' => 2],
+                ['type' => 'Label', 'caption' => RoboHubText::t('Tile visualization: this instance is a tile itself — just place it on the dashboard. Control always works there (visualization sign-in).')],
+                ['type' => 'Select', 'name' => 'Farbschema', 'caption' => RoboHubText::t('Tile colours'), 'options' => [
+                    ['caption' => RoboHubText::t('Automatic (detect background, otherwise device setting)'), 'value' => 0],
+                    ['caption' => RoboHubText::t('Light'), 'value' => 1],
+                    ['caption' => RoboHubText::t('Dark'), 'value' => 2],
                 ]],
-                ['type' => 'Label', 'caption' => 'Symcon verrät einer Kachel nicht, ob die Visualisierung hell oder dunkel eingestellt ist. Ist die Schrift schlecht lesbar, hier „Hell" oder „Dunkel" fest einstellen.'],
-                ['type' => 'Select', 'name' => 'Symbole', 'caption' => 'Symbole in der Kachel', 'options' => [
-                    ['caption' => 'Symcon-Symbole (wie die übrige Visualisierung)', 'value' => 0],
-                    ['caption' => 'Emojis (bunte Schriftzeichen des Geräts)', 'value' => 1],
+                ['type' => 'Label', 'caption' => RoboHubText::t('Symcon does not tell a tile whether the visualization is set to light or dark. If the text is hard to read, set "Light" or "Dark" here.')],
+                ['type' => 'Select', 'name' => 'Symbole', 'caption' => RoboHubText::t('Icons in the tile'), 'options' => [
+                    ['caption' => RoboHubText::t('Symcon icons (like the rest of the visualization)'), 'value' => 0],
+                    ['caption' => RoboHubText::t('Emojis (colourful characters of the device)'), 'value' => 1],
                 ]],
-                ['type' => 'Label', 'caption' => 'Symcon-Symbole kommen vom Symcon-Server und sehen auf jedem Gerät gleich aus. Emojis braucht eine Emoji-Schrift auf dem anzeigenden Gerät (fehlt z. B. auf dem Raspberry Pi). Lassen sich die Symcon-Symbole nicht laden, zeigt die Kachel von selbst Emojis.'],
-                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Einstellungen des Roboters (Saugstufe, Durchgänge, Nicht stören …) im Überblick der Kachel zeigen — die Variablen der Instanz bleiben immer'],
-                ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Kartenbild zeigen (Räume bzw. Mähzonen zum Antippen)'],
-                ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live-Karte während der Arbeit (gefahrener Weg und Roboterposition; Sauger alle 30 s, Mäher alle 60 s)'],
-                ['type' => 'Label', 'caption' => 'IPSView oder Browser: In IPSView ein WebView-Element anlegen und als Adresse http://<Symcon-IP>:3777' . $this->hookPfad() . ' eintragen. Die Seite aktualisiert sich alle 15 Sekunden selbst.'],
-                ['type' => 'Label', 'caption' => '👁 Nur Anzeige: ' . $this->hookPfad()],
-                ['type' => 'CheckBox', 'name' => 'WebBedienung', 'caption' => 'Bedienung über die eigenständige Seite erlauben (nur mit Schlüssel in der Adresse)'],
+                ['type' => 'Label', 'caption' => RoboHubText::t('Symcon icons come from the Symcon server and look the same on every device. Emojis need an emoji font on the displaying device (missing e.g. on a Raspberry Pi). If the Symcon icons cannot be loaded, the tile shows emojis by itself.')],
+                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => RoboHubText::t('Show the robot\'s settings (suction level, passes, do not disturb …) in the tile overview — the instance\'s variables always stay')],
+                ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => RoboHubText::t('Show map image (rooms or mowing zones to tap)')],
+                ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => RoboHubText::t('Live map while working (driven path and robot position; vacuums every 30 s, mowers every 60 s)')],
+                ['type' => 'Label', 'caption' => RoboHubText::t('IPSView or browser: create a WebView element in IPSView and enter http://<Symcon-IP>:3777%s as the address. The page refreshes itself every 15 seconds.', $this->hookPfad())],
+                ['type' => 'Label', 'caption' => RoboHubText::t('👁 Display only: %s', $this->hookPfad())],
+                ['type' => 'CheckBox', 'name' => 'WebBedienung', 'caption' => RoboHubText::t('Allow control via the standalone page (only with key in the address)')],
                 ['type' => 'Label', 'name' => 'WebAdresseBedienung', 'caption' => $this->webAdresseZeile()],
-                ['type' => 'Button', 'caption' => '🔑 Neuen Schlüssel erzeugen', 'onClick' => 'echo ROBO_NeuerWebSchluessel($id);'],
-                ['type' => 'Label', 'caption' => '⚠️ Die eigenständige Seite ist ohne Symcon-Anmeldung erreichbar. Wer die Adresse mit Schlüssel kennt, kann den Roboter starten — Adresse nicht weitergeben. Alternativ in IPSView die Variablen „Befehl" und „Raum reinigen" direkt als Schalter binden; dann gilt die IPSView-Anmeldung.'],
+                ['type' => 'Button', 'caption' => RoboHubText::t('🔑 Create new key'), 'onClick' => 'echo ROBO_NeuerWebSchluessel($id);'],
+                ['type' => 'Label', 'caption' => RoboHubText::t('⚠️ The standalone page can be reached without Symcon sign-in. Anyone who knows the address with key can start the robot — do not share the address. Alternatively bind the variables "Command" and "Clean room" directly as switches in IPSView; then the IPSView sign-in applies.')],
             ],
         ];
     }
@@ -1430,19 +1438,19 @@ class RoboHubGeraet extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'Diese Instanz steht für genau einen Roboter (Saug-/Wischroboter oder Rasenmäher). Sie zeigt Zustand, Akku, Reinigungs- bzw. Mähfortschritt und den Verschleiß der Verbrauchsteile und nimmt Befehle an.',
-            'Der Nutzen: Der Roboter lässt sich wie jedes andere Gerät in Symcon automatisieren — z. B. starten, sobald alle das Haus verlassen haben, oder zur Station schicken, wenn es klingelt.',
+            RoboHubText::t('This instance represents exactly one robot (robot vacuum/mop or lawn mower). It shows state, battery, cleaning or mowing progress and the wear of the consumables, and accepts commands.'),
+            RoboHubText::t('The benefit: the robot can be automated like any other device in Symcon — e.g. start as soon as everyone has left the house, or send it back to base when the doorbell rings.'),
         ];
     }
 
     protected function robohubDocLines(): array
     {
         return [
-            'Angelegt wird diese Instanz normalerweise vom RoboHub-Konfigurator; Geräte-ID, Modell und Geräteklasse trägt er selbst ein.',
-            'Bedienen: Variable „Befehl" (Start/Fortsetzen, Pause, Stopp, Zur Station, Orten), „Raum reinigen" bzw. „Zone mähen" sowie Saugstufe, Wassermenge usw. — sobald der Hersteller eine Auswahlliste liefert, sind sie direkt schaltbar.',
-            'Skripte: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, "3,5"), ROBO_Aktualisieren($id). Alle liefern einen Klartext zurück.',
-            'Ein Befehl heißt zunächst nur „gesendet": Ob der Roboter ihn ausführt, zeigt die Variable „Zustand" wenige Sekunden später.',
-            'Variablen entstehen erst, wenn dein Modell den Wert tatsächlich liefert. Fehlt etwas, das die Hersteller-App zeigt: „📋 Rohdaten anzeigen" klicken und den Auszug als GitHub-Issue schicken.',
+            RoboHubText::t('This instance is normally created by the RoboHub configurator; it fills in device ID, model and device class itself.'),
+            RoboHubText::t('Control: variable "Command" (Start/resume, Pause, Stop, Return to base, Locate), "Clean room" or "Mow zone" as well as suction level, water level etc. — as soon as the vendor provides a selection list, they can be switched directly.'),
+            RoboHubText::t('Scripts: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, "3,5"), ROBO_Aktualisieren($id). All return a plain text.'),
+            RoboHubText::t('A command at first only means "sent": whether the robot carries it out is shown by the variable "State" a few seconds later.'),
+            RoboHubText::t('Variables are only created when your model actually delivers the value. If something the vendor app shows is missing: click "📋 Show raw data" and send the excerpt as a GitHub issue.'),
         ];
     }
 
@@ -1451,39 +1459,39 @@ class RoboHubGeraet extends IPSModule
         $abruf = $this->ReadAttributeInteger('LetzterAbruf');
         $fehler = $this->ReadAttributeString('LetzterFehler');
         if ($this->ReadPropertyString('GeraetID') === '') {
-            $zeile = 'ℹ️ Noch keinem Gerät zugeordnet — am einfachsten über den RoboHub-Konfigurator anlegen.';
+            $zeile = RoboHubText::t('ℹ️ Not assigned to a device yet — easiest to create via the RoboHub configurator.');
         } elseif ($fehler !== '') {
-            $zeile = '⛔ Letzter Abruf fehlgeschlagen: ' . $fehler;
+            $zeile = RoboHubText::t('⛔ Last update failed: %s', $fehler);
         } elseif ($abruf > 0) {
-            $zeile = '✅ Zuletzt abgerufen ' . date('d.m.Y H:i:s', $abruf) . ' Uhr.';
+            $zeile = RoboHubText::t('✅ Last updated %s.', date('d.m.Y H:i:s', $abruf));
         } else {
-            $zeile = 'ℹ️ Noch nicht abgerufen.';
+            $zeile = RoboHubText::t('ℹ️ Not updated yet.');
         }
-        $klasse = $this->klasse() === RoboHubModell::KLASSE_MAEHER ? 'Rasenmähroboter' : 'Saug-/Wischroboter';
+        $klasse = $this->klasse() === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robotic lawn mower') : 'Saug-/Wischroboter';
         $raeume = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
         $raumZeile = count($raeume) === 0
-            ? 'ℹ️ Noch keine Räume/Zonen bekannt (erscheinen nach dem ersten Abruf, sofern der Roboter eine Karte hat).'
-            : '🗺️ Räume/Zonen (ID: Name): ' . implode(', ', array_map(function ($id, $name) {
+            ? RoboHubText::t('ℹ️ No rooms/zones known yet (they appear after the first update if the robot has a map).')
+            : RoboHubText::t('🗺️ Rooms/zones (ID: name): %s', implode(', ', array_map(function ($id, $name) {
                 return $id . ': ' . $name;
-            }, array_keys($raeume), $raeume));
+            }, array_keys($raeume), $raeume)));
 
         return [
             'type' => 'ExpansionPanel', 'expanded' => true,
-            'caption' => '🤖  Gerät',
+            'caption' => RoboHubText::t('🤖  Device'),
             'items' => [
-                ['type' => 'CheckBox', 'name' => 'Deaktiviert', 'caption' => '🔌 Diesen Roboter deaktivieren (keine Abfragen, keine Befehle; Konto und andere Roboter laufen weiter)'],
-                ['type' => 'Label', 'caption' => '🔗 ' . $klasse . ($this->ReadPropertyString('Modell') !== '' ? ', Modell ' . $this->ReadPropertyString('Modell') : '') . ($this->ReadPropertyString('GeraetID') !== '' ? ', Geräte-ID ' . $this->ReadPropertyString('GeraetID') : '') . ' (vom Konfigurator übernommen)'],
+                ['type' => 'CheckBox', 'name' => 'Deaktiviert', 'caption' => RoboHubText::t('🔌 Deactivate this robot (no polling, no commands; account and other robots keep running)')],
+                ['type' => 'Label', 'caption' => RoboHubText::t('🔗 %s%s%s (taken over from the configurator)', $klasse, ($this->ReadPropertyString('Modell') !== '' ? ', Modell ' . $this->ReadPropertyString('Modell') : ''), ($this->ReadPropertyString('GeraetID') !== '' ? RoboHubText::t(', device ID %s', $this->ReadPropertyString('GeraetID')) : ''))],
                 $this->kontoZeile(),
                 ['type' => 'Label', 'name' => 'AbrufZeile', 'caption' => $zeile],
-                ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => 'Abfrage alle', 'suffix' => ' s', 'minimum' => 30, 'maximum' => 3600],
-                ['type' => 'Label', 'caption' => 'Während der Roboter arbeitet, fragt RoboHub automatisch alle ' . self::TAKT_AKTIV_S . ' s nach — außer Echtzeit-Meldungen kommen an (Konto-Instanz). Kürzere Abstände belasten die Hersteller-Cloud, die bei zu vielen Anfragen eine Sperrfrist verhängt.'],
-                ['type' => 'Label', 'caption' => $this->ReadAttributeInteger('LetzteEchtzeit') > 0 ? '⚡ Letzte Echtzeit-Meldung ' . date('d.m.Y H:i:s', $this->ReadAttributeInteger('LetzteEchtzeit')) . ' Uhr.' : 'ℹ️ Noch keine Echtzeit-Meldung empfangen.'],
+                ['type' => 'NumberSpinner', 'name' => 'Intervall', 'caption' => RoboHubText::t('Poll every'), 'suffix' => ' s', 'minimum' => 30, 'maximum' => 3600],
+                ['type' => 'Label', 'caption' => RoboHubText::t('While the robot is working, RoboHub automatically polls every %s s — unless real-time messages arrive (account instance). Shorter intervals load the vendor cloud, which imposes a lockout period after too many requests.', self::TAKT_AKTIV_S)],
+                ['type' => 'Label', 'caption' => $this->ReadAttributeInteger('LetzteEchtzeit') > 0 ? RoboHubText::t('⚡ Last real-time message %s.', date('d.m.Y H:i:s', $this->ReadAttributeInteger('LetzteEchtzeit'))) : RoboHubText::t('ℹ️ No real-time message received yet.')],
                 ['type' => 'Label', 'caption' => $raumZeile],
                 ['type' => 'RowLayout', 'items' => [
-                    ['type' => 'Button', 'caption' => '🔄 Jetzt aktualisieren', 'onClick' => 'echo ROBO_Aktualisieren($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('🔄 Update now'), 'onClick' => 'echo ROBO_Aktualisieren($id);'],
                     ['type' => 'Button', 'caption' => '📍 Orten', 'onClick' => 'echo ROBO_Orten($id);'],
-                    ['type' => 'Button', 'caption' => '🗺️ Räume neu laden', 'onClick' => 'echo ROBO_RaeumeLaden($id);'],
-                    ['type' => 'Button', 'caption' => '📋 Rohdaten anzeigen', 'onClick' => 'echo ROBO_Rohdaten($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('🗺️ Reload rooms'), 'onClick' => 'echo ROBO_RaeumeLaden($id);'],
+                    ['type' => 'Button', 'caption' => RoboHubText::t('📋 Show raw data'), 'onClick' => 'echo ROBO_Rohdaten($id);'],
                 ]],
             ],
         ];
@@ -1493,9 +1501,9 @@ class RoboHubGeraet extends IPSModule
     {
         $kid = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
         if ($kid > 0) {
-            return ['type' => 'Label', 'caption' => '🔗 Konto: ' . IPS_GetName($kid) . ' (#' . $kid . ') — automatisch zugeordnet über die Geräte-ID', 'color' => 0x2E8B3D];
+            return ['type' => 'Label', 'caption' => RoboHubText::t('🔗 Account: %s (#%s) — assigned automatically via the device ID', IPS_GetName($kid), $kid), 'color' => 0x2E8B3D];
         }
-        return ['type' => 'Label', 'caption' => '⛔ Kein Konto verbunden — die Geräte-ID wurde in keiner angemeldeten RoboHub-Konto-Instanz gefunden.', 'color' => 0xFF0000];
+        return ['type' => 'Label', 'caption' => RoboHubText::t('⛔ No account connected — the device ID was not found in any signed-in RoboHub account instance.'), 'color' => 0xFF0000];
     }
 
     private function raumPanel(): ?array
@@ -1509,13 +1517,13 @@ class RoboHubGeraet extends IPSModule
         uksort($liste, function ($a, $b) use ($liste): int {
             return ((int)($liste[$a]['reihenfolge'] ?? 0) ?: 999) <=> ((int)($liste[$b]['reihenfolge'] ?? 0) ?: 999) ?: ((int)$a <=> (int)$b);
         });
-        $items = [['type' => 'Label', 'caption' => 'Im Roboter gespeicherte Werte je Raum (aus der Live-Karte). Die Hersteller-App zeigt sie nicht an — ihr „benutzerdefiniert"-Fenster gibt Modus und Saugleistung erst beim Start mit. Das kann RoboHub genauso: Kachel → Räume wählen → Modus/Saugstufe/Durchgänge → Start, oder ROBO_RaeumeReinigenMit.']];
+        $items = [['type' => 'Label', 'caption' => RoboHubText::t('Values per room stored in the robot (from the live map). The vendor app does not show them — its "custom" window only passes mode and suction power when starting. RoboHub can do the same: tile → choose rooms → mode/suction level/passes → start, or ROBO_RaeumeReinigenMit.')]];
         foreach ($liste as $id => $e) {
             $id = (int)$id;
             $nr = (int)($e['reihenfolge'] ?? 0);
-            $items[] = ['type' => 'Label', 'caption' => ($this->raumEinstellungenZeilen()[$id] ?? (($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? 'Raum ' . $id)))];
+            $items[] = ['type' => 'Label', 'caption' => ($this->raumEinstellungenZeilen()[$id] ?? (($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? RoboHubText::t('Room %s', $id))))];
         }
-        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🏠  Raum-Einstellungen im Roboter (' . count($liste) . ')', 'items' => $items];
+        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => RoboHubText::t('🏠  Room settings in the robot (%s)', count($liste)), 'items' => $items];
     }
 
     private function zeitplanPanel(): ?array
@@ -1525,8 +1533,8 @@ class RoboHubGeraet extends IPSModule
             return null;
         }
         $items = [['type' => 'Label', 'caption' => $this->klasse() === RoboHubModell::KLASSE_MAEHER
-            ? 'Mäh-Pläne aus der Hersteller-App. Anlegen und ändern geht nur dort; hier lassen sie sich ein- und ausschalten, solange der Mäher ruht (Station oder bereit). Einschalten kann einen anderen Plan derselben Karte ausschalten.'
-            : 'Zeitpläne aus der Hersteller-App. Anlegen und ändern geht nur dort, hier lassen sie sich ein- und ausschalten.']];
+            ? RoboHubText::t('Mowing plans from the vendor app. Creating and changing is only possible there; here they can be switched on and off while the mower is idle (base or ready). Switching one on may switch off another plan of the same map.')
+            : RoboHubText::t('Schedules from the vendor app. Creating and changing is only possible there, here they can be switched on and off.')]];
         foreach ($termine as $t) {
             $items[] = ['type' => 'RowLayout', 'items' => [
                 ['type' => 'Label', 'caption' => ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t), 'width' => '520px'],
@@ -1534,25 +1542,26 @@ class RoboHubGeraet extends IPSModule
                     'onClick' => 'echo ROBO_ZeitplanSchalten($id, ' . (int)$t['id'] . ', ' . ($t['an'] ? 'false' : 'true') . ');'],
             ]];
         }
-        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🗓️  Zeitpläne (' . count($termine) . ')', 'items' => $items];
+        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => RoboHubText::t('🗓️  Schedules (%s)', count($termine)), 'items' => $items];
     }
 
     private function verbrauchPanel(): ?array
     {
-        $items = [['type' => 'Label', 'caption' => 'Nach dem Wechsel oder der Reinigung eines Teils hier den Zähler zurücksetzen — wie in der Hersteller-App. Jede Rücksetzung steht danach im Symcon-Protokoll.']];
+        $items = [['type' => 'Label', 'caption' => RoboHubText::t('After replacing or cleaning a part, reset its counter here — as in the vendor app. Every reset is recorded in the Symcon log.')]];
         foreach (self::TEILE as [$pIdent, $hIdent, $name]) {
+            $name = RoboHubText::wert($name);
             $p = $this->wert($pIdent);
             if ($p === null) {
                 continue;
             }
-            $items[] = ['type' => 'Button', 'caption' => '↺ ' . $name . ' zurücksetzen (jetzt ' . (int)$p . ' %)', 'width' => '420px',
-                'confirm' => $name . ' wirklich zurücksetzen? Das geht nicht rückgängig — nur nach Wechsel oder Reinigung.',
+            $items[] = ['type' => 'Button', 'caption' => RoboHubText::t('↺ Reset %s (now %s %%)', $name, (int)$p), 'width' => '420px',
+                'confirm' => RoboHubText::t('Really reset %s? This cannot be undone — only after replacing or cleaning.', $name),
                 'onClick' => 'echo ROBO_VerbrauchsteilZuruecksetzen($id, ' . var_export($pIdent, true) . ');'];
         }
         if (count($items) === 1) {
             return null;
         }
-        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🔧  Verbrauchsteile zurücksetzen', 'items' => $items];
+        return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => RoboHubText::t('🔧  Reset consumables'), 'items' => $items];
     }
 
     private function technikPanel(): array
@@ -1561,13 +1570,13 @@ class RoboHubGeraet extends IPSModule
         // sie bei der Anlage), sind hier aber nur für Sonderfälle editierbar.
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '🛠️  Zuordnung (nur bei Bedarf ändern)',
+            'caption' => RoboHubText::t('🛠️  Assignment (change only if needed)'),
             'items' => [
-                ['type' => 'ValidationTextBox', 'name' => 'GeraetID', 'caption' => 'Geräte-ID beim Hersteller'],
-                ['type' => 'ValidationTextBox', 'name' => 'Modell', 'caption' => 'Modellkennung'],
-                ['type' => 'Select', 'name' => 'Klasse', 'caption' => 'Geräteklasse', 'options' => [
+                ['type' => 'ValidationTextBox', 'name' => 'GeraetID', 'caption' => RoboHubText::t('Device ID at the vendor')],
+                ['type' => 'ValidationTextBox', 'name' => 'Modell', 'caption' => RoboHubText::t('Model ID')],
+                ['type' => 'Select', 'name' => 'Klasse', 'caption' => RoboHubText::t('Device class'), 'options' => [
                     ['caption' => 'Saug-/Wischroboter', 'value' => RoboHubModell::KLASSE_SAUGER],
-                    ['caption' => 'Rasenmähroboter', 'value' => RoboHubModell::KLASSE_MAEHER],
+                    ['caption' => RoboHubText::t('robotic lawn mower'), 'value' => RoboHubModell::KLASSE_MAEHER],
                 ]],
             ],
         ];
@@ -1584,10 +1593,10 @@ class RoboHubGeraet extends IPSModule
     public function GetConfigurationForm()
     {
         $status = [
-            ['code' => 102, 'icon' => 'active', 'caption' => 'Verbunden'],
-            ['code' => 104, 'icon' => 'inactive', 'caption' => 'Inaktiv — deaktiviert oder noch keinem Gerät zugeordnet'],
-            ['code' => 201, 'icon' => 'error', 'caption' => 'Konto muss neu angemeldet werden'],
-            ['code' => 202, 'icon' => 'inactive', 'caption' => 'Abruf fehlgeschlagen — wird automatisch erneut versucht'],
+            ['code' => 102, 'icon' => 'active', 'caption' => RoboHubText::t('Connected')],
+            ['code' => 104, 'icon' => 'inactive', 'caption' => RoboHubText::t('Inactive — deactivated or not yet assigned to a device')],
+            ['code' => 201, 'icon' => 'error', 'caption' => RoboHubText::t('Account must be signed in again')],
+            ['code' => 202, 'icon' => 'inactive', 'caption' => RoboHubText::t('Update failed — will be retried automatically')],
         ];
         return $this->robohubBuildForm($this->robohubFachpanels(), [], $status);
     }

@@ -61,7 +61,7 @@ final class RoboHubTls
     {
         $sock = @stream_socket_client('tcp://' . $host . ':' . $port, $nr, $text, $frist);
         if ($sock === false) {
-            throw new RoboHubFehler('TCP-Verbindung zu ' . $host . ':' . $port . ' fehlgeschlagen (' . $text . ').');
+            throw new RoboHubFehler(RoboHubText::t('TCP connection to %s:%s failed (%s).', $host, $port, $text));
         }
         $tls = new self($sock);
         try {
@@ -145,19 +145,19 @@ final class RoboHubTls
             [$typ, $inhalt] = $this->handschlagNachricht($ende);
             if ($typ === 2) {                                   // ServerHello
                 if (substr($inhalt, 0, 2) !== self::VERSION) {
-                    throw new RoboHubFehler('Gerät spricht kein TLS 1.2.');
+                    throw new RoboHubFehler(RoboHubText::t('Device does not speak TLS 1.2.'));
                 }
                 $serverZufall = substr($inhalt, 2, 32);
                 $sidLaenge = ord($inhalt[34]);
                 $this->suite = unpack('n', substr($inhalt, 35 + $sidLaenge, 2))[1];
                 if (!isset(self::SUITEN[$this->suite]) || ord($inhalt[37 + $sidLaenge]) !== 0) {
-                    throw new RoboHubFehler(sprintf('Gerät wählt nicht unterstützte Verschlüsselung 0x%04X.', $this->suite));
+                    throw new RoboHubFehler(RoboHubText::t('Device chooses an unsupported cipher 0x%s.', sprintf('%04X', $this->suite)));
                 }
             } elseif ($typ === 11) {                            // Certificate
                 $laenge = unpack('N', "\x00" . substr($inhalt, 3, 3))[1];
                 $this->zertifikat = substr($inhalt, 6, $laenge);
             } elseif ($typ === 12) {                            // ServerKeyExchange — nur bei DHE/ECDHE
-                throw new RoboHubFehler('Gerät verlangt einen Schlüsseltausch, den RoboHub hier nicht anbietet.');
+                throw new RoboHubFehler(RoboHubText::t('Device requires a key exchange that RoboHub does not offer here.'));
             } elseif ($typ === 13) {                            // CertificateRequest
                 $zertGewuenscht = true;
             } elseif ($typ === 14) {                            // ServerHelloDone
@@ -165,7 +165,7 @@ final class RoboHubTls
             }
         }
         if ($serverZufall === null || $this->zertifikat === '') {
-            throw new RoboHubFehler('Unvollständiger TLS-Handschlag des Geräts.');
+            throw new RoboHubFehler(RoboHubText::t('Incomplete TLS handshake from the device.'));
         }
         if ($zertGewuenscht) {
             $this->handschlagSenden(11, "\x00\x00\x00");          // leere Zertifikatsliste
@@ -175,7 +175,7 @@ final class RoboHubTls
         $schluessel = @openssl_pkey_get_public($pem);
         $vorab = self::VERSION . random_bytes(46);
         if ($schluessel === false || !openssl_public_encrypt($vorab, $verschluesselt, $schluessel, OPENSSL_PKCS1_PADDING)) {
-            throw new RoboHubFehler('Öffentlicher Schlüssel des Geräts unbrauchbar (kein RSA?).');
+            throw new RoboHubFehler(RoboHubText::t('Device\'s public key unusable (no RSA?).'));
         }
         $this->handschlagSenden(16, pack('n', strlen($verschluesselt)) . $verschluesselt);
 
@@ -198,7 +198,7 @@ final class RoboHubTls
         while (true) {
             $satz = $this->datensatzHolen($ende);
             if ($satz === null) {
-                throw new RoboHubFehler('Gerät hat den TLS-Handschlag nicht abgeschlossen.');
+                throw new RoboHubFehler(RoboHubText::t('Device did not complete the TLS handshake.'));
             }
             [$typ, $inhalt] = $satz;
             if ($typ === self::T_ALARM) {
@@ -214,7 +214,7 @@ final class RoboHubTls
                 && ord($inhalt[0]) === 20 && hash_equals($erwartet, (string)substr($inhalt, 4, 12))) {
                 return;
             }
-            throw new RoboHubFehler('TLS-Abschluss des Geräts ungültig.');
+            throw new RoboHubFehler(RoboHubText::t('Device\'s TLS finish invalid.'));
         }
     }
 
@@ -234,17 +234,17 @@ final class RoboHubTls
             $satz = $this->datensatzHolen($ende);
             if ($satz === null) {
                 $this->hsOffen = '';
-                throw new RoboHubFehler('Gerät hat den TLS-Handschlag abgebrochen.');
+                throw new RoboHubFehler(RoboHubText::t('Device aborted the TLS handshake.'));
             }
             [$typ, $inhalt] = $satz;
             if ($typ === self::T_ALARM) {
                 $this->hsOffen = '';
                 $this->alarm($inhalt);
-                throw new RoboHubFehler('Gerät hat den TLS-Handschlag beendet.');
+                throw new RoboHubFehler(RoboHubText::t('Device ended the TLS handshake.'));
             }
             if ($typ !== self::T_HANDSCHLAG) {
                 $this->hsOffen = '';
-                throw new RoboHubFehler('Unerwarteter TLS-Satz im Handschlag.');
+                throw new RoboHubFehler(RoboHubText::t('Unexpected TLS record in the handshake.'));
             }
             $this->hsOffen .= $inhalt;
         }
@@ -267,7 +267,7 @@ final class RoboHubTls
         }
         if ($stufe === 2) {
             $this->zu = true;
-            throw new RoboHubFehler('Gerät meldet TLS-Fehler ' . $grund . '.');
+            throw new RoboHubFehler(RoboHubText::t('Device reports TLS error %s.', $grund));
         }
     }
 
@@ -296,7 +296,7 @@ final class RoboHubTls
             $n = @fwrite($this->sock, $satz);
             if ($n === false || $n === 0) {
                 $this->zu = true;
-                throw new RoboHubFehler('Verbindung zum Gerät unterbrochen.');
+                throw new RoboHubFehler(RoboHubText::t('Connection to the device interrupted.'));
             }
             $satz = (string)substr($satz, $n);
         }
@@ -310,7 +310,7 @@ final class RoboHubTls
                 $laenge = unpack('n', substr($this->roh, 3, 2))[1];
                 if ($laenge > 18432) {
                     $this->zu = true;
-                    throw new RoboHubFehler('Ungültiger TLS-Satz vom Gerät.');
+                    throw new RoboHubFehler(RoboHubText::t('Invalid TLS record from the device.'));
                 }
                 if (strlen($this->roh) >= 5 + $laenge) {
                     $typ = ord($this->roh[0]);
@@ -347,7 +347,7 @@ final class RoboHubTls
         $macLaenge = strlen(hash($macHash, '', true));
         if (strlen($satz) < 32 || strlen($satz) % 16 !== 0) {
             $this->zu = true;
-            throw new RoboHubFehler('Ungültiger verschlüsselter TLS-Satz vom Gerät.');
+            throw new RoboHubFehler(RoboHubText::t('Invalid encrypted TLS record from the device.'));
         }
         $klar = openssl_decrypt(substr($satz, 16), $algo, $key, OPENSSL_RAW_DATA | OPENSSL_ZERO_PADDING, substr($satz, 0, 16));
         $fuell = $klar === false ? 255 : ord($klar[strlen($klar) - 1]);
@@ -358,7 +358,7 @@ final class RoboHubTls
         $soll = hash_hmac($macHash, pack('J', $this->leseNr++) . chr($typ) . self::VERSION . pack('n', strlen($inhalt)) . $inhalt, $macKey, true);
         if (!$ok || !hash_equals($soll, $mac)) {
             $this->zu = true;
-            throw new RoboHubFehler('TLS-Satz vom Gerät ist beschädigt (Prüfsumme).');
+            throw new RoboHubFehler(RoboHubText::t('TLS record from the device is damaged (checksum).'));
         }
         return $inhalt;
     }

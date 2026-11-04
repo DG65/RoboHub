@@ -138,12 +138,12 @@ final class RoboHubMqtt
     {
         return [
             0 => 'angenommen',
-            1 => 'Protokollversion abgelehnt',
-            2 => 'Client-ID abgelehnt',
-            3 => 'Server nicht verfügbar',
-            4 => 'Benutzer/Zugangsschlüssel ungültig',
-            5 => 'nicht berechtigt',
-        ][$code] ?? 'Code ' . $code;
+            1 => RoboHubText::t('Protocol version rejected'),
+            2 => RoboHubText::t('Client ID rejected'),
+            3 => RoboHubText::t('Server unavailable'),
+            4 => RoboHubText::t('User/access token invalid'),
+            5 => RoboHubText::t('not authorised'),
+        ][$code] ?? RoboHubText::t('Code %s', $code);
     }
 
     private static function text(string $s): string

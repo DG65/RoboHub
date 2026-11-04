@@ -65,87 +65,87 @@ class RoboHubStihl implements RoboHubTreiber
         'busy'      => ['internalWorkInProgress'],
     ];
     private const GRUPPE_ZUSTAND = [
-        'docked' => [RoboHubModell::ZUSTAND_GELADEN, 'In der Station'], 'charging' => [RoboHubModell::ZUSTAND_LAEDT, 'Lädt'],
-        'returning' => [RoboHubModell::ZUSTAND_ZURUECK, 'Fährt zur Station'], 'driving' => [RoboHubModell::ZUSTAND_REINIGT, 'Fährt zur Zone'],
-        'mowing' => [RoboHubModell::ZUSTAND_REINIGT, 'Mäht'], 'paused' => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
-        'error' => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'], 'locked' => [RoboHubModell::ZUSTAND_FEHLER, 'Gesperrt oder angehoben'],
-        'offline' => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'], 'sleeping' => [RoboHubModell::ZUSTAND_SCHLAF, 'Schläft'],
+        'docked' => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'], 'charging' => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
+        'returning' => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'], 'driving' => [RoboHubModell::ZUSTAND_REINIGT, 'Going to zone'],
+        'mowing' => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'], 'paused' => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
+        'error' => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'], 'locked' => [RoboHubModell::ZUSTAND_FEHLER, 'Locked or lifted'],
+        'offline' => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'], 'sleeping' => [RoboHubModell::ZUSTAND_SCHLAF, 'Sleeping'],
     ];
 
     // RMI mainState (messages.py success_messages): 1 = Fehler (Text über extraStatus).
     private const RMI_ZUSTAND = [
-        1 => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'], 5 => [RoboHubModell::ZUSTAND_REINIGT, 'Am Mähen'],
-        6 => [RoboHubModell::ZUSTAND_GELADEN, 'Im Dock'], 7 => [RoboHubModell::ZUSTAND_LAEDT, 'Laden'],
+        1 => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'], 5 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'],
+        6 => [RoboHubModell::ZUSTAND_GELADEN, 'In the dock'], 7 => [RoboHubModell::ZUSTAND_LAEDT, 'Laden'],
         11 => [RoboHubModell::ZUSTAND_ZURUECK, 'Unterwegs'],
     ];
 
     // RMI extraStatus → [Meldungs-ID, Text] (messages.py error_messages, MIT).
     private const RMI_FEHLER = [
-        0 => ['M0000', 'Kein Fehler'], 1 => ['M0001', 'EEPROM Datenverlust'], 2 => ['M0002', 'Fehler RTC'], 3 => ['M0003', 'Fehler EEPROM'],
-        4 => ['M0004', 'Fehler SPI Flash'], 5 => ['M0005', 'Falsche Hardware'], 6 => ['M0006', 'Gerät hat keine Seriennummer'],
-        7 => ['M0007', 'Fehler Drahtsignal'], 8 => ['M0008', 'Ungültiger Akkutyp'], 9 => ['M0009', 'Falsche Software'],
-        10 => ['M0100', 'Unterspannung Akku'], 11 => ['M0101', 'Überspannung Akku'], 12 => ['M0102', 'Unterspannung 12V'],
-        13 => ['M0103', 'Überspannung 12V'], 14 => ['M0180', 'Temperatur Leiterplatte zu niedrig'],
-        15 => ['M0181', 'Temperatur Leiterplatte zu hoch'], 16 => ['M0183', 'Temperatur Loaderplatien zu hoch'],
-        17 => ['M0185', 'Temperatur Motorplatine zu hoch'], 18 => ['M0186', 'Temperatur im Akku zu niedrig'],
-        19 => ['M0187', 'Temperatur im Akku zu hoch'], 20 => ['M0200', 'Kommunikation linkes Rad gestört'],
-        21 => ['M0201', 'Kommunikation rechtes Rad gestört'], 22 => ['M0202', 'Kommunikation Mähmotor 1 gestört'],
-        23 => ['M0203', 'Kommunikation Mähmotor 2 gestört'], 24 => ['M0204', 'Kommunikation Fernsteuerung gestört'],
-        25 => ['M0205', 'Kommunikation SR Controller gestört'], 26 => ['M0206', 'Kommunikation Akku gestört'],
-        27 => ['M0207', 'Kommunikation Beschleunigungssensor'], 28 => ['M0208', 'Kommunikation Magnetfeldsensor'],
-        29 => ['M0209', 'Kommunikation Laderelektronik'], 30 => ['M0300', 'Linkes Rad: Batteriespannung außer Bereich (Akku)'],
-        31 => ['M0301', 'Linkes Rad: Versorgungsspannung außer Bereich (12V)'], 32 => ['M0302', 'Linkes Rad: Temperatur zu hoch'],
-        33 => ['M0303', 'Linkes Rad: Regler instabil'], 34 => ['M0304', 'Linkes Rad: Hallsensor(en) defekt'], 35 => ['M0305', 'Linkes Rad: Überlast'],
-        36 => ['M0306', 'Linkes Rad: falsche Hardware'], 37 => ['M0307', 'Linkes Rad: keine Safe-Freigabe'],
-        38 => ['M0400', 'Rechtes Rad: Batteriespannung außer Bereich (Akku)'],
-        39 => ['M0401', 'Rechtes Rad: Versorgungsspannung außer Bereich (12V)'], 40 => ['M0402', 'Rechtes Rad: Temperatur zu hoch'],
-        41 => ['M0403', 'Rechtes Rad: Regler instabil'], 42 => ['M0404', 'Rechtes Rad: Hallsensor(en) defekt'],
-        43 => ['M0405', 'Rechtes Rad: Überlast'], 44 => ['M0406', 'Rechtes Rad: falsche Hardware'],
-        45 => ['M0407', 'Rechtes Rad: keine Safe-Freigabe'], 46 => ['M0500', 'Messer 1: Batteriespannung außer Bereich (Akku)'],
-        47 => ['M0501', 'Messer 1: Versorgungsspannung außer Bereich (12V)'], 48 => ['M0502', 'Messer 1: Temperatur zu hoch'],
-        49 => ['M0503', 'Messer 1: Regler instabil'], 50 => ['M0504', 'Messer 1: Hallsensor(en) defekt'], 51 => ['M0505', 'Messer 1: Überlast'],
-        52 => ['M0506', 'Messer 1: falsche Hardware'], 53 => ['M0507', 'Messer 1: keine Safe-Freigabe '],
-        54 => ['M0600', 'Messer 2: Batteriespannung außer Bereich (Akku)'], 55 => ['M0601', 'Messer 2: Versorgungsspannung außer Bereich (12V) '],
-        56 => ['M0602', 'Messer 2: Temperatur zu hoch'], 57 => ['M0603', 'Messer 2: Regler instabil '],
-        58 => ['M0604', 'Messer 2: Hallsensor(en) defekt'], 59 => ['M0605', 'Messer 2: Überlast'], 60 => ['M0606', 'Messer 2: falsche Hardware '],
-        61 => ['M0607', 'Messer 2: keine Safe-Freigabe'], 62 => ['M0700', 'Akku Überspannung '], 63 => ['M0701', 'Akku Temperaturfehler'],
-        64 => ['M0702', 'Akku Drahtbruch'], 65 => ['M0703', 'Akku Unterspannung'], 66 => ['M0704', 'Akku Unterspannung'],
-        67 => ['M0705', 'Akku Zellen debalanciert'], 68 => ['M0706', 'Akku NTC Fehler'], 69 => ['M0707', 'Akku Fehler Alarmleitung'],
-        70 => ['M0708', 'Akku Spannungsmessung ungenau'], 71 => ['M0709', 'Akku interner Fehler'], 72 => ['M1000', 'Überschlag wurde erkannt'],
-        73 => ['M1010', 'Länger als 10s angehoben'], 74 => ['M1020', 'Stopptaster wurde betätigt'], 75 => ['M1030', 'Haube wurde abgenommen'],
-        76 => ['M1100', 'Fernsteuerung im Automatikmode entnommen'], 77 => ['M1110', 'Anheben im Automatikmode erkannt'],
-        78 => ['M1120', 'Abschaltung Automatikmode durch Bumper'], 79 => ['M1125', 'Abschaltung Referenzfahrt durch Bumper'],
-        80 => ['M1130', 'Im Automatikmode festgefahren'], 81 => ['M1135', 'iMow außerhalb'], 82 => ['M1140', 'Max. Steigung überschritten'],
-        83 => ['M1150', 'Disabling Device im Automatikmode'], 84 => ['M1160', 'Tragegriff im Automatikmode'],
-        85 => ['M1170', 'Randsignal im Automatikmode'], 86 => ['M1180', 'Dockingstation nicht gefunden'],
-        87 => ['M1190', 'Dockingstation nicht frei'], 88 => ['M1200', 'Start Mähmotor fehlgeschlagen'], 89 => ['M1210', 'Räder blockiert/überlastet'],
-        90 => ['M1220', 'Unterbrechung Automatikbetrieb wegen Regen'], 91 => ['M2000', 'Randsignal nicht eingelernt '],
-        92 => ['M2010', 'Messer 1 muss gewechselt werden'], 93 => ['M2011', 'Messer 2 muss gewechselt werden'], 94 => ['M2020', 'Wartungshinweis'],
-        95 => ['M2030', 'Akku schwach'], 96 => ['M2031', 'Akku laden mehrfach gescheitert'], 97 => ['M2032', 'Akku Ladetemperatur'],
-        98 => ['M2040', 'Akku Temperatur für Start Mähbetrieb'], 99 => ['M2050', 'Verfügbare Mähzeiten ungenügend'],
-        100 => ['M2060', 'Nebenfläche fertig'], 101 => ['M2070', 'Kein GPS Empfang  Referenzfahrt'],
-        102 => ['M2071', 'Kein GPS Empfang Startpunkt 1'], 103 => ['M2072', 'Kein GPS Empfang Startpunkt 2'],
-        104 => ['M2073', 'Kein GPS Empfang Startpunkt 3'], 105 => ['M2074', 'Kein GPS Empfang Startpunkt 4'], 106 => ['M2080', 'Kein GPRS Empfang'],
-        107 => ['M2090', 'Hardware/Kommunikation- Fehler in Erweiterungsmodul'], 108 => ['M2100', 'Diebstahl'],
-        109 => ['M2110', 'iMow woanders installiert, aber es wurde keine Neuinstallation durchgeführt'],
-        110 => ['M4000', 'SR: Über- oder Unterspannung'], 111 => ['M4001', 'SR: Über- oder Untertemperatur'],
-        112 => ['M4002', 'SR: Überschlag erkannt'], 113 => ['M4003', 'SR: Anheben 10 Sek.'],
-        114 => ['M4004', 'SR: Radmotoren Abschaltung aufgrund Zeitüberschreitung'],
-        115 => ['M4005', 'SR: Mähmotor Abschaltung aufgrund Zeitüberschreitung'],
-        116 => ['M4006', 'SR: Lader Abschaltung aufgrund Zeitüberschreitung'], 117 => ['M4008', 'SR: Fehler Remoteeinlege Sensor'],
-        118 => ['M4009', 'SR: Fehler Bumper'], 119 => ['M4010', 'SR: Wiederholte Mähmotor Abschaltung aufgrund Zeitüberschreitung'],
-        120 => ['M4011', 'SR: Fehler Überschlagsensor'], 121 => ['M4012', 'SR: Fehler Remote Tasten'],
-        122 => ['M4013', 'SR: Fehler bei der Überprüfung vom Drahtsignal'], 123 => ['M4014', 'SR: Fehler externe Temperatursensoren'],
-        124 => ['M4015', 'SR: Fehler Anhebegriffschalter'], 125 => ['M4016', 'SR: Fehler Stoptaster'], 126 => ['M4017', 'SR: DC-Bus-Fehler'],
-        127 => ['M4018', 'SR: Spannungsfehler'], 128 => ['M4019', 'SR: Fehler auf der Main Platine'],
-        129 => ['M4020', 'SR: Fehler interne Temperatursensoren'], 130 => ['M4021', 'SR: Fehler Safe Signal'], 131 => ['M4022', 'SR: Fehler Lader'],
-        132 => ['M4023', 'SR: Fehler Alarmleitungen'], 133 => ['M4024', 'SR: Fehler Drehzahlmessung'],
-        134 => ['M4025', 'SR: SR-Controller hat internen Fehler erkannt'], 135 => ['M4026', 'SR: Spannungsmessung ist nicht kalibriert'],
-        136 => ['M2075', 'Kein GPS Empfang in Wunschzone'], 137 => ['M2076', 'Wunschzone nicht erreicht'],
-        138 => ['M2077', 'Wunschzone außerhalb des Heimbereichs'], 139 => ['M2200', 'Vertrag für SIM-Karte abgelaufen'],
-        140 => ['M0104', 'Überspannung Ladekontakte'], 141 => ['M2120', 'Kinderschutz aktiv'], 142 => ['M1131', 'Festfahrerkennung'],
-        143 => ['M1230', 'Rechtes oder linkes Rad: Überlast'], 144 => ['M4027', 'Stopptaster wurde betätigt'],
-        145 => ['M2095', 'GPS Antenne nicht angeschlossen'], 146 => ['M1105', 'animation.message_M1105_long'],
+        0 => ['M0000', 'No error'], 1 => ['M0001', 'EEPROM data loss'], 2 => ['M0002', 'RTC error'], 3 => ['M0003', 'EEPROM error'],
+        4 => ['M0004', 'SPI flash error'], 5 => ['M0005', 'Wrong hardware'], 6 => ['M0006', 'Device has no serial number'],
+        7 => ['M0007', 'Wire signal error'], 8 => ['M0008', 'Invalid battery type'], 9 => ['M0009', 'Wrong software'],
+        10 => ['M0100', 'Battery undervoltage'], 11 => ['M0101', 'Battery overvoltage'], 12 => ['M0102', '12V undervoltage'],
+        13 => ['M0103', '12V overvoltage'], 14 => ['M0180', 'Circuit board temperature too low'],
+        15 => ['M0181', 'Circuit board temperature too high'], 16 => ['M0183', 'Charger board temperature too high'],
+        17 => ['M0185', 'Motor board temperature too high'], 18 => ['M0186', 'Temperature in the battery too low'],
+        19 => ['M0187', 'Temperature in the battery too high'], 20 => ['M0200', 'Communication with left wheel disturbed'],
+        21 => ['M0201', 'Communication with right wheel disturbed'], 22 => ['M0202', 'Communication with mowing motor 1 disturbed'],
+        23 => ['M0203', 'Communication with mowing motor 2 disturbed'], 24 => ['M0204', 'Communication with remote control disturbed'],
+        25 => ['M0205', 'Communication with SR controller disturbed'], 26 => ['M0206', 'Communication with battery disturbed'],
+        27 => ['M0207', 'Communication acceleration sensor'], 28 => ['M0208', 'Communication magnetic field sensor'],
+        29 => ['M0209', 'Communication charger electronics'], 30 => ['M0300', 'Left wheel: battery voltage out of range (battery)'],
+        31 => ['M0301', 'Left wheel: supply voltage out of range (12V)'], 32 => ['M0302', 'Left wheel: temperature too high'],
+        33 => ['M0303', 'Left wheel: controller unstable'], 34 => ['M0304', 'Left wheel: Hall sensor(s) defective'], 35 => ['M0305', 'Left wheel: overload'],
+        36 => ['M0306', 'Left wheel: wrong hardware'], 37 => ['M0307', 'Left wheel: no safe release'],
+        38 => ['M0400', 'Right wheel: battery voltage out of range (battery)'],
+        39 => ['M0401', 'Right wheel: supply voltage out of range (12V)'], 40 => ['M0402', 'Right wheel: temperature too high'],
+        41 => ['M0403', 'Right wheel: controller unstable'], 42 => ['M0404', 'Right wheel: Hall sensor(s) defective'],
+        43 => ['M0405', 'Right wheel: overload'], 44 => ['M0406', 'Right wheel: wrong hardware'],
+        45 => ['M0407', 'Right wheel: no safe release'], 46 => ['M0500', 'Blade 1: battery voltage out of range (battery)'],
+        47 => ['M0501', 'Blade 1: supply voltage out of range (12V)'], 48 => ['M0502', 'Blade 1: temperature too high'],
+        49 => ['M0503', 'Blade 1: controller unstable'], 50 => ['M0504', 'Blade 1: Hall sensor(s) defective'], 51 => ['M0505', 'Blade 1: overload'],
+        52 => ['M0506', 'Blade 1: wrong hardware'], 53 => ['M0507', 'Blade 1: no safe release '],
+        54 => ['M0600', 'Blade 2: battery voltage out of range (battery)'], 55 => ['M0601', 'Blade 2: supply voltage out of range (12V) '],
+        56 => ['M0602', 'Blade 2: temperature too high'], 57 => ['M0603', 'Blade 2: controller unstable '],
+        58 => ['M0604', 'Blade 2: Hall sensor(s) defective'], 59 => ['M0605', 'Blade 2: overload'], 60 => ['M0606', 'Blade 2: wrong hardware '],
+        61 => ['M0607', 'Blade 2: no safe release'], 62 => ['M0700', 'Battery overvoltage '], 63 => ['M0701', 'Battery temperature error'],
+        64 => ['M0702', 'Battery wire break'], 65 => ['M0703', 'Battery undervoltage'], 66 => ['M0704', 'Battery undervoltage'],
+        67 => ['M0705', 'Battery cells unbalanced'], 68 => ['M0706', 'Battery NTC error'], 69 => ['M0707', 'Battery alarm line error'],
+        70 => ['M0708', 'Battery voltage measurement inaccurate'], 71 => ['M0709', 'Battery internal error'], 72 => ['M1000', 'Rollover detected'],
+        73 => ['M1010', 'Lifted for more than 10 s'], 74 => ['M1020', 'Stop button pressed'], 75 => ['M1030', 'Hood removed'],
+        76 => ['M1100', 'Remote control removed in automatic mode'], 77 => ['M1110', 'Lifting detected in automatic mode'],
+        78 => ['M1120', 'Automatic mode shut down by bumper'], 79 => ['M1125', 'Reference run shut down by bumper'],
+        80 => ['M1130', 'Stuck in automatic mode'], 81 => ['M1135', 'iMow outside'], 82 => ['M1140', 'Max. slope exceeded'],
+        83 => ['M1150', 'Disabling device in automatic mode'], 84 => ['M1160', 'Carrying handle in automatic mode'],
+        85 => ['M1170', 'Edge signal in automatic mode'], 86 => ['M1180', 'Docking station not found'],
+        87 => ['M1190', 'Docking station not free'], 88 => ['M1200', 'Starting the mowing motor failed'], 89 => ['M1210', 'Wheels blocked/overloaded'],
+        90 => ['M1220', 'Automatic mode interrupted due to rain'], 91 => ['M2000', 'Edge signal not taught in '],
+        92 => ['M2010', 'Blade 1 must be replaced'], 93 => ['M2011', 'Blade 2 must be replaced'], 94 => ['M2020', 'Wartungshinweis'],
+        95 => ['M2030', 'Battery low'], 96 => ['M2031', 'Battery charging failed several times'], 97 => ['M2032', 'Battery charging temperature'],
+        98 => ['M2040', 'Battery temperature for starting to mow'], 99 => ['M2050', 'Available mowing times insufficient'],
+        100 => ['M2060', 'Secondary area finished'], 101 => ['M2070', 'No GPS reception  reference run'],
+        102 => ['M2071', 'No GPS reception start point 1'], 103 => ['M2072', 'No GPS reception start point 2'],
+        104 => ['M2073', 'No GPS reception start point 3'], 105 => ['M2074', 'No GPS reception start point 4'], 106 => ['M2080', 'No GPRS reception'],
+        107 => ['M2090', 'Hardware/communication error in extension module'], 108 => ['M2100', 'Diebstahl'],
+        109 => ['M2110', 'iMow installed elsewhere, but no reinstallation was performed'],
+        110 => ['M4000', 'SR: over- or undervoltage'], 111 => ['M4001', 'SR: over- or undertemperature'],
+        112 => ['M4002', 'SR: rollover detected'], 113 => ['M4003', 'SR: lifted 10 s'],
+        114 => ['M4004', 'SR: wheel motors shut down due to timeout'],
+        115 => ['M4005', 'SR: mowing motor shut down due to timeout'],
+        116 => ['M4006', 'SR: charger shut down due to timeout'], 117 => ['M4008', 'SR: remote insertion sensor error'],
+        118 => ['M4009', 'SR: bumper error'], 119 => ['M4010', 'SR: repeated mowing motor shutdown due to timeout'],
+        120 => ['M4011', 'SR: rollover sensor error'], 121 => ['M4012', 'SR: remote buttons error'],
+        122 => ['M4013', 'SR: error checking the wire signal'], 123 => ['M4014', 'SR: external temperature sensors error'],
+        124 => ['M4015', 'SR: lifting handle switch error'], 125 => ['M4016', 'SR: stop button error'], 126 => ['M4017', 'SR: DC bus error'],
+        127 => ['M4018', 'SR: voltage error'], 128 => ['M4019', 'SR: error on the main board'],
+        129 => ['M4020', 'SR: internal temperature sensors error'], 130 => ['M4021', 'SR: safe signal error'], 131 => ['M4022', 'SR: charger error'],
+        132 => ['M4023', 'SR: alarm lines error'], 133 => ['M4024', 'SR: speed measurement error'],
+        134 => ['M4025', 'SR: SR controller detected an internal error'], 135 => ['M4026', 'SR: voltage measurement is not calibrated'],
+        136 => ['M2075', 'No GPS reception in preferred zone'], 137 => ['M2076', 'Preferred zone not reached'],
+        138 => ['M2077', 'Preferred zone outside the home area'], 139 => ['M2200', 'SIM card contract expired'],
+        140 => ['M0104', 'Overvoltage at charging contacts'], 141 => ['M2120', 'Child lock active'], 142 => ['M1131', 'Festfahrerkennung'],
+        143 => ['M1230', 'Right or left wheel: overload'], 144 => ['M4027', 'Stop button pressed'],
+        145 => ['M2095', 'GPS antenna not connected'], 146 => ['M1105', 'animation.message_M1105_long'],
     ];
 
     // =================================================================
@@ -155,7 +155,7 @@ class RoboHubStihl implements RoboHubTreiber
     public function anmelden(string $konto, string $passwort, string $region): array
     {
         if (!filter_var($konto, FILTER_VALIDATE_EMAIL) || $passwort === '') {
-            throw new RoboHubFehler('Bitte E-Mail und Passwort des STIHL-Kontos eintragen (wie in der iMOW-App).');
+            throw new RoboHubFehler(RoboHubText::t('Please enter e-mail and password of the STIHL account (as in the iMOW app).'));
         }
         $grund5 = '';
         try {
@@ -163,7 +163,7 @@ class RoboHubStihl implements RoboHubTreiber
             if (count($this->gen5Maeher($b)) > 0) {
                 return $b;
             }
-            $grund5 = 'kein Mäher der neuen Generation im Konto';
+            $grund5 = RoboHubText::t('no mower of the new generation in the account');
         } catch (RoboHubFehler $e) {
             if (!$e->anmeldungNoetig) {
                 throw $e;   // Netz/Server: nicht stillschweigend auf die alte Anmeldung ausweichen
@@ -173,7 +173,7 @@ class RoboHubStihl implements RoboHubTreiber
         try {
             $b = $this->rmiAnmelden($konto, $passwort);
         } catch (RoboHubFehler $e) {
-            $f = new RoboHubFehler('STIHL lehnt die Anmeldung ab — neue iMOW-Generation: ' . $grund5 . '; ältere iMOW: ' . $e->getMessage());
+            $f = new RoboHubFehler(RoboHubText::t('STIHL rejects the sign-in — new iMOW generation: %s; older iMOW: %s', $grund5, $e->getMessage()));
             $f->anmeldungNoetig = true;
             throw $f;
         }
@@ -184,17 +184,16 @@ class RoboHubStihl implements RoboHubTreiber
     public function anmeldeText(array $buendel): string
     {
         if (($buendel['gen'] ?? '') === 'rmi') {
-            return '✅ Angemeldet (ältere iMOW-Generation). STIHL vergibt hier einen Zugang für 30 Tage ohne Erneuerung — RoboHub speichert dein Passwort bewusst nicht. Am '
-                . date('d.m.Y', (int)$buendel['expires_at']) . ' bitte einmal neu anmelden; drei Tage vorher erscheint ein Hinweis.';
+            return RoboHubText::t('✅ Signed in (older iMOW generation). STIHL grants access for 30 days without renewal here — RoboHub deliberately does not store your password. Please sign in again on %s; a notice appears three days before.', date('d.m.Y', (int)$buendel['expires_at']));
         }
-        return '✅ Angemeldet (neue iMOW-Generation). Der Zugangsschlüssel ist gespeichert, das Passwort wurde verworfen.';
+        return RoboHubText::t('✅ Signed in (new iMOW generation). The access token is stored, the password was discarded.');
     }
 
     public function erneuern(array $buendel): array
     {
         if (($buendel['gen'] ?? '') === 'rmi') {
             if ((int)($buendel['expires_at'] ?? 0) <= time() + 300) {
-                $e = new RoboHubFehler('Der STIHL-Zugang (ältere iMOW) ist nach 30 Tagen abgelaufen — bitte im Konto neu anmelden.');
+                $e = new RoboHubFehler(RoboHubText::t('STIHL access (older iMOW) expired after 30 days — please sign in again in the account.'));
                 $e->anmeldungNoetig = true;
                 throw $e;
             }
@@ -207,11 +206,11 @@ class RoboHubStihl implements RoboHubTreiber
             http_build_query(['grant_type' => 'refresh_token', 'refresh_token' => (string)($buendel['refresh_token'] ?? ''), 'client_id' => self::B2C_CLIENT]));
         $this->dbg('HTTP', 'POST token (refresh) → ' . $status);
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('STIHL-Anmeldung nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('STIHL sign-in not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         $j = json_decode($text, true);
         if (!is_array($j) || (string)($j['access_token'] ?? '') === '') {
-            $e = new RoboHubFehler('STIHL lehnt die Erneuerung ab' . (is_array($j) && isset($j['error']) ? ' (' . $j['error'] . ')' : '') . ' — bitte neu anmelden.');
+            $e = new RoboHubFehler(RoboHubText::t('STIHL rejects the renewal%s — please sign in again.', (is_array($j) && isset($j['error']) ? ' (' . $j['error'] . ')' : '')));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -248,7 +247,7 @@ class RoboHubStihl implements RoboHubTreiber
         ]);
         [$status, $html] = $this->folgen('GET', $url, ['User-Agent: ' . self::AGENT, 'Accept: text/html,*/*'], null, $kekse);
         if (!preg_match('/var SETTINGS\s*=\s*(\{.*?\});\s*\n/s', $html, $m) || !is_array($s = json_decode($m[1], true)) || !isset($s['transId'], $s['csrf'])) {
-            throw new RoboHubFehler('STIHL-Anmeldeseite unerwartet (HTTP ' . $status . ') — bitte später erneut versuchen.');
+            throw new RoboHubFehler(RoboHubText::t('STIHL sign-in page unexpected (HTTP %s) — please try again later.', $status));
         }
         // 2: Zugangsdaten
         [$status, $text, $kopf] = $this->http('POST', self::B2C . self::B2C_POLICY_GROSS . '/SelfAsserted?tx=' . rawurlencode($s['transId']) . '&p=' . self::B2C_POLICY_GROSS, [
@@ -258,10 +257,10 @@ class RoboHubStihl implements RoboHubTreiber
         self::kekseMerken($kopf ?? [], $kekse);
         $j = json_decode($text, true);
         if (!is_array($j)) {
-            throw new RoboHubFehler('STIHL-Anmeldung antwortet unerwartet (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('STIHL sign-in responds unexpectedly (HTTP %s).', $status));
         }
         if ((string)($j['status'] ?? '200') !== '200') {
-            $e = new RoboHubFehler('E-Mail oder Passwort falsch');
+            $e = new RoboHubFehler(RoboHubText::t('E-mail or password wrong'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -272,7 +271,7 @@ class RoboHubStihl implements RoboHubTreiber
         $ziel = self::kopfWert($kopf ?? [], 'location');
         parse_str((string)parse_url($ziel, PHP_URL_QUERY), $q);
         if (($q['state'] ?? $state) !== $state || (string)($q['code'] ?? '') === '') {
-            $e = new RoboHubFehler('STIHL hat keinen Anmeldecode geliefert' . (isset($q['error']) ? ' (' . $q['error'] . ')' : '') . '.');
+            $e = new RoboHubFehler(RoboHubText::t('STIHL did not deliver a sign-in code%s.', (isset($q['error']) ? ' (' . $q['error'] . ')' : '')));
             $e->anmeldungNoetig = isset($q['error']);
             throw $e;
         }
@@ -281,7 +280,7 @@ class RoboHubStihl implements RoboHubTreiber
             http_build_query(['code' => $q['code'], 'code_verifier' => $verifier, 'redirect_uri' => self::B2C_REDIRECT, 'client_id' => self::B2C_CLIENT, 'grant_type' => 'authorization_code']));
         $j = json_decode($text, true);
         if (!is_array($j) || (string)($j['access_token'] ?? '') === '') {
-            throw new RoboHubFehler('STIHL-Schlüsseltausch fehlgeschlagen (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('STIHL key exchange failed (HTTP %s).', $status));
         }
         return self::gen5Buendel($j, []);
     }
@@ -297,14 +296,14 @@ class RoboHubStihl implements RoboHubTreiber
         $csrf = preg_match('/name="csrf-token"[^>]*value="([^"]+)"|value="([^"]+)"[^>]*name="csrf-token"/', $html, $m) ? ($m[1] ?: $m[2]) : '';
         $anfrage = preg_match('/name="requestId"[^>]*value="([^"]+)"|value="([^"]+)"[^>]*name="requestId"/', $html, $m) ? ($m[1] ?: $m[2]) : '';
         if ($csrf === '' || $anfrage === '') {
-            throw new RoboHubFehler('Anmeldeseite der älteren iMOW unerwartet (HTTP ' . $status . ').');
+            throw new RoboHubFehler(RoboHubText::t('Sign-in page of the older iMOW unexpected (HTTP %s).', $status));
         }
         $ziel = '';
         [$status, $text] = $this->folgen('POST', self::RMI_OAUTH . '/authentication/authenticate/?lang=de', [
             'User-Agent: ' . self::AGENT, 'Content-Type: application/x-www-form-urlencoded',
         ], http_build_query(['mail' => $mail, 'password' => $passwort, 'csrf-token' => $csrf, 'requestId' => $anfrage]), $kekse, $ziel);
         if (!preg_match('/[#&?]access_token=([^&#]+)/', $ziel, $t)) {
-            $e = new RoboHubFehler('E-Mail oder Passwort falsch');
+            $e = new RoboHubFehler(RoboHubText::t('E-mail or password wrong'));
             $e->anmeldungNoetig = true;
             throw $e;
         }
@@ -326,7 +325,7 @@ class RoboHubStihl implements RoboHubTreiber
                 }
                 $liste[] = ['id' => (string)$m['id'], 'name' => (string)($m['name'] ?? 'iMOW'), 'modell' => 'stihl.mower.' . self::modellKurz((string)($m['deviceTypeDescription'] ?? 'imow')),
                     'klasse' => RoboHubModell::KLASSE_MAEHER, 'online' => !empty($m['status']['online']), 'extern' => (string)($m['externalId'] ?? ''),
-                    'roh' => ['modell' => $m['deviceTypeDescription'] ?? null, 'firmware' => $m['firmwareVersion'] ?? null, 'generation' => 'RMI (bis Gen. 4)']];
+                    'roh' => ['modell' => $m['deviceTypeDescription'] ?? null, 'firmware' => $m['firmwareVersion'] ?? null, 'generation' => RoboHubText::t('RMI (up to gen. 4)')]];
             }
             return $liste;
         }
@@ -354,7 +353,7 @@ class RoboHubStihl implements RoboHubTreiber
         if (($buendel['gen'] ?? '') === 'rmi') {
             $m = $this->rmiAnfrage($buendel, 'GET', 'mowers/' . rawurlencode($id) . '/');
             if (!isset($m['status'])) {
-                throw new RoboHubFehler('STIHL liefert für diesen Mäher keinen Zustand — ist er noch im Konto?');
+                throw new RoboHubFehler(RoboHubText::t('STIHL delivers no state for this mower — is it still in the account?'));
             }
             try {
                 $m['_statistik'] = $this->rmiAnfrage($buendel, 'GET', 'mowers/' . rawurlencode($id) . '/statistic/');
@@ -370,7 +369,7 @@ class RoboHubStihl implements RoboHubTreiber
                 }
             }
             if ($m === []) {
-                throw new RoboHubFehler('Mäher ' . $id . ' ist in diesem STIHL-Konto nicht (mehr) vorhanden.');
+                throw new RoboHubFehler(RoboHubText::t('Mower %s is not (or no longer) in this STIHL account.', $id));
             }
             $m['_fehlertexte'] = $this->fehlertexte(array_map(function ($f) { return (string)($f['code'] ?? ''); }, (array)($m['device']['errorsActive'] ?? [])));
         }
@@ -406,7 +405,8 @@ class RoboHubStihl implements RoboHubTreiber
             if ($g === 'busy') {
                 $g = !empty($p['device']['isDocked']) ? 'docked' : 'mowing';   // kurz nach einem Befehl (lawn_mower.py)
             }
-            [$z, $text] = self::GRUPPE_ZUSTAND[$g] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unbekannt'];
+            [$z, $text] = self::GRUPPE_ZUSTAND[$g] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unknown'];
+            $text = RoboHubText::wert($text);
             if (stripos($roh, 'Rain') !== false && in_array($g, ['docked', 'charging', 'paused'], true)) {
                 [$z, $text] = [RoboHubModell::ZUSTAND_WETTERPAUSE, 'Regenpause'];
             }
@@ -420,7 +420,7 @@ class RoboHubStihl implements RoboHubTreiber
                 $fehler[] = ($p['_fehlertexte'][$code] ?? 'Fehlercode') . ' (' . $code . ')';
             }
         }
-        $w['Fehler'] = $fehler === [] ? 'kein Fehler' : implode('; ', $fehler);
+        $w['Fehler'] = $fehler === [] ? RoboHubText::t('no error') : implode('; ', $fehler);
         if (isset($p['battery']['level']) && is_numeric($p['battery']['level'])) {
             $w['Akku'] = (int)round((float)$p['battery']['level'] * 100);
         }
@@ -437,7 +437,8 @@ class RoboHubStihl implements RoboHubTreiber
         $w = [];
         $st = (array)$p['status'];
         $haupt = (int)($st['mainState'] ?? -1);
-        [$z, $text] = self::RMI_ZUSTAND[$haupt] ?? [RoboHubModell::ZUSTAND_BEREIT, 'Ruhezustand'];
+        [$z, $text] = self::RMI_ZUSTAND[$haupt] ?? [RoboHubModell::ZUSTAND_BEREIT, 'Standby'];
+        $text = RoboHubText::wert($text);
         if (empty($st['online'])) {
             [$z, $text] = [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'];
         }
@@ -445,10 +446,11 @@ class RoboHubStihl implements RoboHubTreiber
         $w['ZustandRoh'] = $text . ' (' . $haupt . ')';
         if ($haupt === 1) {
             $extra = (int)($st['extraStatus'] ?? -1);
-            [$mid, $t] = self::RMI_FEHLER[$extra] ?? ['', 'Fehlercode ' . $extra];
+            [$mid, $t] = self::RMI_FEHLER[$extra] ?? ['', RoboHubText::t('Error code %s', $extra)];
+            $t = RoboHubText::wert($t);
             $w['Fehler'] = $t . ($mid !== '' ? ' (' . $mid . ')' : '');
         } else {
-            $w['Fehler'] = 'kein Fehler';
+            $w['Fehler'] = RoboHubText::t('no error');
         }
         if (isset($st['chargeLevel']) && is_numeric($st['chargeLevel'])) {
             $w['Akku'] = (int)$st['chargeLevel'];
@@ -463,7 +465,7 @@ class RoboHubStihl implements RoboHubTreiber
         $w['Firmware'] = isset($p['firmwareVersion']) && (string)$p['firmwareVersion'] !== '' ? (string)$p['firmwareVersion'] : null;
         $ablauf = (int)($p['_ablauf'] ?? 0);
         if ($ablauf > 0 && $ablauf - time() < self::RMI_WARNTAGE * 86400) {
-            $w['Meldung'] = 'STIHL-Anmeldung läuft am ' . date('d.m.Y', $ablauf) . ' ab — bitte im RoboHub-Konto neu anmelden.';
+            $w['Meldung'] = RoboHubText::t('STIHL sign-in expires on %s — please sign in again in the RoboHub account.', date('d.m.Y', $ablauf));
         }
         return ['werte' => $w, 'optionen' => [], 'schreibbar' => []];
     }
@@ -514,7 +516,7 @@ class RoboHubStihl implements RoboHubTreiber
                 }
                 foreach ((array)($m['setting']['mowingZones'] ?? []) as $z) {
                     if (isset($z['mowingZoneId'])) {
-                        $raeume[(int)$z['mowingZoneId']] = trim((string)($z['name'] ?? '')) ?: 'Zone ' . (int)$z['mowingZoneId'];
+                        $raeume[(int)$z['mowingZoneId']] = trim((string)($z['name'] ?? '')) ?: RoboHubText::t('Zone %s', (int)$z['mowingZoneId']);
                     }
                 }
             }
@@ -541,51 +543,51 @@ class RoboHubStihl implements RoboHubTreiber
                 if (self::gruppe($stand) === 'paused') {
                     [$cmd, $daten, $text] = ['resume', null, 'Fortsetzen'];
                 } else {
-                    [$cmd, $daten, $text] = ['start-mowing', ['durationInSeconds' => $dauer], 'Mähen (' . (int)round($dauer / 60) . ' min)'];
+                    [$cmd, $daten, $text] = ['start-mowing', ['durationInSeconds' => $dauer], RoboHubText::t('Mow (%s min)', (int)round($dauer / 60))];
                 }
                 break;
             case 'pause':
                 [$cmd, $daten, $text] = ['pause', null, 'Pause'];
                 break;
             case 'station':
-                [$cmd, $daten, $text] = ['end-job-and-return-to-dock', null, 'Auftrag beenden und zur Station'];
+                [$cmd, $daten, $text] = ['end-job-and-return-to-dock', null, RoboHubText::t('End task and return to base')];
                 break;
             case 'raum':
                 $zonen = array_values(array_unique(array_map('intval', (array)($parameter['raeume'] ?? []))));
                 if (count($zonen) !== 1) {
-                    throw new RoboHubFehler('STIHL iMOW mäht immer genau eine Zone — bitte eine wählen.');
+                    throw new RoboHubFehler(RoboHubText::t('STIHL iMOW always mows exactly one zone — please choose one.'));
                 }
-                [$cmd, $daten, $text] = ['start-mowing', ['durationInSeconds' => $dauer, 'mowingZoneId' => $zonen[0]], 'Zone mähen (' . (int)round($dauer / 60) . ' min)'];
+                [$cmd, $daten, $text] = ['start-mowing', ['durationInSeconds' => $dauer, 'mowingZoneId' => $zonen[0]], RoboHubText::t('Mow zone (%s min)', (int)round($dauer / 60))];
                 break;
             default:
-                throw new RoboHubFehler($befehl === 'stopp' ? '„Stopp" gibt es bei der iMOW nicht — „Pause" oder „Zur Station" nehmen.'
-                    : ($befehl === 'orten' ? '„Orten" bietet STIHL nicht.' : 'Dieser Befehl wird bei STIHL iMOW nicht unterstützt: ' . $befehl));
+                throw new RoboHubFehler($befehl === 'stopp' ? RoboHubText::t('The iMOW has no "Stop" — use "Pause" or "Return to base".')
+                    : ($befehl === 'orten' ? RoboHubText::t('STIHL does not offer "Locate".') : RoboHubText::t('This command is not supported by STIHL iMOW: %s', $befehl)));
         }
         $this->gen5Anfrage($buendel, 'POST', 'mowerctrl/api/v1/mower-commands/' . rawurlencode((string)$geraet['id']) . '/' . $cmd, $daten);
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     private function rmiBefehl(array $buendel, array $geraet, string $befehl): string
     {
         $extern = (string)($geraet['extern'] ?? '');
         if (strlen($extern) !== 16) {
-            throw new RoboHubFehler('Die Aktionskennung des Mähers fehlt — bitte im Konto „Geräte jetzt suchen".');
+            throw new RoboHubFehler(RoboHubText::t('The mower\'s action ID is missing — please click "Search devices now" in the account.'));
         }
         if ($befehl === 'start') {
             // startMowing: „<extId>,<Ende>" (Ende 2 h ab jetzt, Ortszeit — wie stihl-imow-webapi)
-            [$aktion, $wert, $text] = ['startMowing', $extern . ',' . date('Y-m-d H:i', time() + 7200), 'Mähen (2 h)'];
+            [$aktion, $wert, $text] = ['startMowing', $extern . ',' . date('Y-m-d H:i', time() + 7200), RoboHubText::t('Mow (2 h)')];
         } elseif ($befehl === 'station') {
-            [$aktion, $wert, $text] = ['toDocking', $extern, 'Zur Station'];
+            [$aktion, $wert, $text] = ['toDocking', $extern, RoboHubText::t('Return to base')];
         } else {
-            throw new RoboHubFehler('Die ältere iMOW-Generation kennt über die Cloud nur „Start" und „Zur Station".');
+            throw new RoboHubFehler(RoboHubText::t('Via the cloud the older iMOW generation only knows "Start" and "Return to base".'));
         }
         $this->rmiAnfrage($buendel, 'POST', 'mower-actions/', ['actionName' => $aktion, 'actionValue' => $wert]);
-        return 'Befehl „' . $text . '" gesendet.';
+        return RoboHubText::t('Command "%s" sent.', $text);
     }
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
-        throw new RoboHubFehler('Verschleißteile zurücksetzen geht bei STIHL iMOW nur in der App.');
+        throw new RoboHubFehler(RoboHubText::t('Resetting wear parts on STIHL iMOW is only possible in the app.'));
     }
 
     public function echtzeitMoeglich(): bool
@@ -646,24 +648,24 @@ class RoboHubStihl implements RoboHubTreiber
     private function auswerten(array $buendel, int $status, string $text, string $pfad): array
     {
         if ($status === 0 || $status >= 500) {
-            throw new RoboHubFehler('STIHL-Cloud nicht erreichbar' . ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')') . '.');
+            throw new RoboHubFehler(RoboHubText::t('STIHL cloud not reachable%s.', ($status === 0 ? ': ' . $text : ' (HTTP ' . $status . ')')));
         }
         if ($status === 401) {
             if (($buendel['gen'] ?? '') === 'rmi') {
-                $e = new RoboHubFehler('STIHL hat den Zugang (ältere iMOW) abgelehnt — bitte im Konto neu anmelden.');
+                $e = new RoboHubFehler(RoboHubText::t('STIHL rejected the access (older iMOW) — please sign in again in the account.'));
                 $e->anmeldungNoetig = true;
                 throw $e;
             }
             @touch($this->erneuernDatei($buendel));   // nicht abmelden: beim nächsten Abruf mit dem Erneuerungsschlüssel
-            throw new RoboHubFehler('STIHL hat den Zugangsschlüssel abgelehnt — RoboHub erneuert ihn beim nächsten Abruf.');
+            throw new RoboHubFehler(RoboHubText::t('STIHL rejected the access token — RoboHub renews it at the next update.'));
         }
         if ($status === 429) {
-            $e = new RoboHubFehler('STIHL bremst die Anfragen — RoboHub wartet.');
+            $e = new RoboHubFehler(RoboHubText::t('STIHL is throttling the requests — RoboHub is waiting.'));
             $e->warteSekunden = 600;
             throw $e;
         }
         if ($status >= 300) {
-            throw new RoboHubFehler('STIHL antwortet mit HTTP ' . $status . ' auf ' . $pfad . '.');
+            throw new RoboHubFehler(RoboHubText::t('STIHL responds with HTTP %s to %s.', $status, $pfad));
         }
         $j = json_decode($text, true);
         return is_array($j) ? $j : [];
@@ -686,7 +688,7 @@ class RoboHubStihl implements RoboHubTreiber
             $url = $wohin[0] === '/' ? preg_replace('#^(https?://[^/]+).*$#', '$1', $url) . $wohin : $wohin;
             [$methode, $body] = ['GET', null];
         }
-        throw new RoboHubFehler('STIHL-Anmeldung: zu viele Weiterleitungen.');
+        throw new RoboHubFehler(RoboHubText::t('STIHL sign-in: too many redirects.'));
     }
 
     private static function keksKopf(array $kekse): string
