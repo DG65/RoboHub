@@ -546,6 +546,17 @@
   Neues Fachpanel = neuer Schlüssel in `robohubFachpanels()`, Schlüssel nie umbenennen (sonst verliert der Nutzer seine Wahl).
   Konfigurator hat ein Fachpanel → kein Panel. Prüfstand `.tools/test-formlayout.inc.php`.
 
+## Sprache / Übersetzung (0.35.0)
+
+- Quelltexte im Code englisch, Deutsch in `libs/locale.json` (Haupttabelle) → `php .tools/locale-bauen.php` kopiert sie in die drei
+  Modulordner (Prüfstand vergleicht). Treiber kennen kein `$this->Translate` → `RoboHubText::t('English %s', …)` (Sätze),
+  `RoboHubText::wert()` (Tabellenwerte erst bei der Anzeige), `RoboHubText::tag()` (Wochentage). Übersetzer setzt jedes Modul im Konstruktor.
+- **Kennungen bleiben deutsch:** Idents, FELDER-/TEILE-Schlüssel, Ecovacs-/Roborock-/Dreame-Teilewerte, Befehlsschlüssel, Aliase
+  (Verbund: einheitlich deutsch). Logik nie an angezeigten Text hängen (sonst bricht sie in einer Sprache).
+- Kachel: `KACHEL_TEXTE` im Roboter, `T()` in module.html. Neuer Kacheltext = Schlüssel in `KACHEL_TEXTE` + locale.
+- Debug-Ausgaben (`SendDebug`) bleiben deutsch. Englischer Prüflauf: `ROBOHUB_SPRACHE=en php .tools/test-robohub.php`
+  (deutsche Prüftexte schlagen dort erwartungsgemäß fehl; zum Durchsuchen nach deutschen Resten gedacht).
+
 ## Prüfen
 
 ```

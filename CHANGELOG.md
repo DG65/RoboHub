@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.35.0 (04.11.2026)
+
+- **Englische Fassung.** Quelltexte im Code sind jetzt englisch (Symcon-Konvention), Deutsch kommt aus `locale.json`. Betrifft alle
+  Formulare (Konto, Roboter, Konfigurator), Variablennamen, Auswahl- und Zustandstexte, Meldungen, Fehlertexte der Treiber und die Kachel.
+  - `libs/RoboHubText.php`: `t()` übersetzt Sätze mit `%s`-Platzhaltern, `wert()` übersetzt Tabellenwerte erst bei der Anzeige,
+    `tag()` Wochentage. Die drei Module setzen den Übersetzer im Konstruktor (`$this->Translate`).
+  - Eine Haupttabelle `libs/locale.json`, `.tools/locale-bauen.php` kopiert sie in die drei Modulordner.
+  - Kachel: `KACHEL_TEXTE` im Roboter, die Kachel schlägt per `T()` nach; Uhrzeit- und Zahlenformat je Sprache.
+  - Kennungen bleiben deutsch und unverändert: Idents, Feld- und Teile-Schlüssel, Präfixe, Instanznamen der Verbindungsinstanzen.
+  - Bestehende Variablen behalten ihren Namen (`MaintainVariable` benennt nicht um); neue entstehen in der Sprache von Symcon.
+  - Logik, die an deutschen Texten hing (Wischen-Erkennung im Raumplan, Feuchte-Stufe), arbeitet jetzt sprachunabhängig.
+- Neuigkeiten im Formular auf Versionen ab 0.26.0 gekürzt (älteres im CHANGELOG).
+- Prüfstand: `.tools/test-englisch.inc.php` — Übersetzung für jeden `t()`-Text, Platzhalter-Anzahl, Formulare aller Hersteller ohne deutsche
+  Reste, Kachel-Texte vollständig. Debug-Ausgaben bleiben deutsch.
+
 ## 0.34.1 (04.11.2026)
 
 - **Store-Review (Stable 0.34.0):** „Es wäre schön, wenn du bei echtzeitKonfigurieren nur die variablen Parameter überschreiben würdest.

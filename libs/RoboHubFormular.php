@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.35.0' => [
+            '• 🇬🇧 RoboHub now speaks English: forms, variables, states, messages and the tile follow the language of your Symcon. German stays as before.',
+        ],
         '0.34.1' => [
             '• Real-time connection: RoboHub now sets the fixed settings of the connection instance (encryption, certificate) only on first setup and afterwards only changes target, port and on/off. Settings changed by hand are kept (note from the Symcon store review).',
         ],
