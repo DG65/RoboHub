@@ -104,6 +104,7 @@ class RoboHubKonto extends IPSModule
         // AL-KO: selbst beantragter API-Zugang. Das Secret wird nach der Anmeldung ins Bündel übernommen und hier geleert.
         $this->RegisterPropertyString('ClientId', '');
         $this->RegisterPropertyString('MaeherIP', '');
+        $this->RegisterAttributeInteger('ElternEingerichtet', 0);   // Verbindungsinstanz, deren feste Einstellungen gesetzt sind
         $this->RegisterPropertyString('ClientSecret', '');
 
         $this->RegisterAttributeString('Buendel', '');
@@ -569,12 +570,17 @@ class RoboHubKonto extends IPSModule
         $soll = json_decode($this->GetConfigurationForParent(), true);
         $offen = $ws ? 'Active' : 'Open';
         $ist = json_decode((string)IPS_GetConfiguration($eltern), true) ?: [];
-        $anders = false;
+        // Store-Review 2026: Feste Einstellungen (TLS, Zertifikat) kommen über GetConfigurationForParent und werden nur beim
+        // ersten Einrichten dieser Verbindungsinstanz gesetzt; danach schreibt RoboHub nur noch die veränderlichen Werte.
+        $erstmals = $this->ReadAttributeInteger('ElternEingerichtet') !== $eltern;
+        $veraenderlich = $ws ? ['Active', 'URL', 'Headers'] : ['Open', 'Host', 'Port'];
+        $schreiben = [];
         foreach ($soll as $k => $v) {
-            if (($ist[$k] ?? null) != $v) {
-                $anders = true;
+            if (($erstmals || in_array($k, $veraenderlich, true)) && ($ist[$k] ?? null) != $v) {
+                $schreiben[$k] = $v;
             }
         }
+        $anders = $schreiben !== [];
         if (!$soll[$offen]) {
             $this->SetTimerInterval('MqttPing', 0);
             $this->mqttStand(['zustand' => $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time() ? 'zertifikat' : 'aus']);
@@ -587,8 +593,17 @@ class RoboHubKonto extends IPSModule
         $skript = '';
         if ($neuVerbinden && $soll[$offen] && !$anders) {
             $skript .= 'IPS_SetProperty(' . $eltern . ', "' . $offen . '", false); IPS_ApplyChanges(' . $eltern . ');';
+            $schreiben[$offen] = true;
         }
-        $skript .= 'IPS_SetConfiguration(' . $eltern . ', ' . var_export((string)json_encode($soll), true) . '); IPS_ApplyChanges(' . $eltern . ');';
+        if ($erstmals) {
+            $skript .= 'IPS_SetConfiguration(' . $eltern . ', ' . var_export((string)json_encode($schreiben), true) . ');';
+            $this->WriteAttributeInteger('ElternEingerichtet', $eltern);
+        } else {
+            foreach ($schreiben as $k => $v) {
+                $skript .= 'IPS_SetProperty(' . $eltern . ', ' . var_export((string)$k, true) . ', ' . var_export($v, true) . ');';
+            }
+        }
+        $skript .= 'IPS_ApplyChanges(' . $eltern . ');';
         if ($soll[$offen]) {
             $this->mqttStand(['zustand' => 'verbinde', 'host' => $ws ? (string)parse_url((string)$soll['URL'], PHP_URL_HOST) : $soll['Host'] . ':' . $soll['Port']]);
         }

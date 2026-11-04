@@ -38,6 +38,9 @@ trait RoboHubFormular
         '0.1.2' => [
             '• Konfigurator: bereits angelegte Roboter erscheinen nicht mehr zusätzlich als rote Zeile „nicht mehr im Konto".',
         ],
+        '0.34.1' => [
+            '• Echtzeit-Verbindung: RoboHub setzt die festen Einstellungen der Verbindungsinstanz (Verschlüsselung, Zertifikat) nur noch beim ersten Einrichten und ändert danach nur Ziel, Port und An/Aus. Von Hand geänderte Einstellungen bleiben erhalten (Hinweis aus dem Symcon-Store-Review).',
+        ],
         '0.34.0' => [
             '• Neu: Eufy-Mähroboter E15 direkt im Heimnetz, ohne Cloud (Hersteller „Eufy Mähroboter E15"). Zustand, Akku, Schnitthöhe, Lautstärke; Start, Pause, Zur Station. Das Eufy-Konto wird nur einmal für den Geräteschlüssel gebraucht, das Passwort wird verworfen. E18 und C15 sind nicht geprüft.',
             '• Der Hersteller „Eufy" heißt jetzt ausdrücklich „nur Saugroboter"; die Fehlermeldung beim Anmelden nennt den Server und den richtigen Weg für Mäher.',

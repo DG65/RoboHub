@@ -1219,7 +1219,20 @@ check('angemeldet + Echtzeit an → Socket offen', $sockCfg['Open'] === true);
 $GLOBALS['SKRIPTE'] = [];
 $konto->ApplyChanges();
 $skript = end($GLOBALS['SKRIPTE']) ?: '';
-check('ApplyChanges konfiguriert den Socket (per Skript)', strpos($skript, 'IPS_SetConfiguration(' . $socket->InstanceID) !== false && strpos($skript, '10000.mt.eu.iot.dreame.tech') !== false, $skript);
+check('ApplyChanges konfiguriert den Socket (per Skript)', strpos($skript, '10000.mt.eu.iot.dreame.tech') !== false && strpos($skript, 'IPS_ApplyChanges(' . $socket->InstanceID) !== false, $skript);
+check('Store-Review: eingerichteter Socket bekommt nur die veränderlichen Werte, TLS-Einstellungen bleiben unangetastet', strpos($skript, 'VerifyPeer') === false && strpos($skript, 'CertificateAuthority') === false
+    && strpos($skript, 'IPS_SetConfiguration') === false, $skript);
+$konto->WriteAttributeInteger('ElternEingerichtet', 0);
+$GLOBALS['SKRIPTE'] = [];
+$konto->ApplyChanges();
+$skript = end($GLOBALS['SKRIPTE']) ?: '';
+check('… beim ersten Einrichten einmal vollständig (TLS-Prüfung und eigene Wurzel)', strpos($skript, 'IPS_SetConfiguration(' . $socket->InstanceID) !== false && strpos($skript, 'VerifyPeer') !== false
+    && strpos($skript, 'CertificateAuthority') !== false && $konto->ReadAttributeInteger('ElternEingerichtet') === $socket->InstanceID, $skript);
+$socket->config = array_merge(json_decode($konto->GetConfigurationForParent(), true), ['VerifyPeer' => false]);   // Nutzer ändert eine feste Einstellung von Hand
+$GLOBALS['SKRIPTE'] = [];
+$konto->ApplyChanges();
+check('… danach überschreibt RoboHub eine von Hand geänderte feste Einstellung nicht', $GLOBALS['SKRIPTE'] === [], implode("\n", $GLOBALS['SKRIPTE']));
+$socket->config['VerifyPeer'] = true;
 $socket->config = $sockCfg;   // Symcon hätte sie übernommen
 $GLOBALS['SKRIPTE'] = [];
 $konto->ApplyChanges();
@@ -1310,7 +1323,7 @@ $b2['expires_at'] = time() + 10;
 $konto->WriteAttributeString('Buendel', json_encode($b2));
 $konto->Erneuern();
 $skript = end($GLOBALS['SKRIPTE']) ?: '';
-check('neuer Zugangsschlüssel → Socket wird neu verbunden', strpos($skript, '"Open", false') !== false && strpos($skript, 'IPS_SetConfiguration') !== false, $skript);
+check('neuer Zugangsschlüssel → Socket wird neu verbunden', strpos($skript, '"Open", false') !== false && strpos($skript, "IPS_SetProperty(" . $socket->InstanceID . ", 'Open', true)") !== false, $skript);
 
 $GLOBALS['LOG'] = [];
 mqttVomServer($konto, "\x20\x02\x00\x05");

@@ -2,6 +2,13 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.34.1 (04.11.2026)
+
+- **Store-Review (Stable 0.34.0):** „Es wäre schön, wenn du bei echtzeitKonfigurieren nur die variablen Parameter überschreiben würdest.
+  Die anderen Parameter wurden ja bereits durch GetConfigurationForParent prinzipiell gesetzt." → `echtzeitKonfigurieren` setzt die
+  vollständige Konfiguration nur beim ersten Einrichten einer Verbindungsinstanz (Attribut `ElternEingerichtet`), danach nur Host/Port/Open
+  bzw. URL/Headers/Active per `IPS_SetProperty`. Prüfstand: drei Prüfungen, zwei Gegenproben gefangen.
+
 ## 0.34.0 (30.10.2026)
 
 - **Neuer Treiber Eufy-Mähroboter E15 (T2880)** (`libs/RoboHubEufyMaeher.php`), lokal über Tuya 3.5 auf TCP 6668, nach
