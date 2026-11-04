@@ -67,16 +67,16 @@ class RoboHubStihl implements RoboHubTreiber
     private const GRUPPE_ZUSTAND = [
         'docked' => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'], 'charging' => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
         'returning' => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'], 'driving' => [RoboHubModell::ZUSTAND_REINIGT, 'Going to zone'],
-        'mowing' => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'], 'paused' => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
-        'error' => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'], 'locked' => [RoboHubModell::ZUSTAND_FEHLER, 'Locked or lifted'],
+        'mowing' => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'], 'paused' => [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'],
+        'error' => [RoboHubModell::ZUSTAND_FEHLER, 'Error'], 'locked' => [RoboHubModell::ZUSTAND_FEHLER, 'Locked or lifted'],
         'offline' => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'], 'sleeping' => [RoboHubModell::ZUSTAND_SCHLAF, 'Sleeping'],
     ];
 
     // RMI mainState (messages.py success_messages): 1 = Fehler (Text über extraStatus).
     private const RMI_ZUSTAND = [
-        1 => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'], 5 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'],
-        6 => [RoboHubModell::ZUSTAND_GELADEN, 'In the dock'], 7 => [RoboHubModell::ZUSTAND_LAEDT, 'Laden'],
-        11 => [RoboHubModell::ZUSTAND_ZURUECK, 'Unterwegs'],
+        1 => [RoboHubModell::ZUSTAND_FEHLER, 'Error'], 5 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'],
+        6 => [RoboHubModell::ZUSTAND_GELADEN, 'In the dock'], 7 => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
+        11 => [RoboHubModell::ZUSTAND_ZURUECK, 'On the way'],
     ];
 
     // RMI extraStatus → [Meldungs-ID, Text] (messages.py error_messages, MIT).
@@ -120,13 +120,13 @@ class RoboHubStihl implements RoboHubTreiber
         85 => ['M1170', 'Edge signal in automatic mode'], 86 => ['M1180', 'Docking station not found'],
         87 => ['M1190', 'Docking station not free'], 88 => ['M1200', 'Starting the mowing motor failed'], 89 => ['M1210', 'Wheels blocked/overloaded'],
         90 => ['M1220', 'Automatic mode interrupted due to rain'], 91 => ['M2000', 'Edge signal not taught in '],
-        92 => ['M2010', 'Blade 1 must be replaced'], 93 => ['M2011', 'Blade 2 must be replaced'], 94 => ['M2020', 'Wartungshinweis'],
+        92 => ['M2010', 'Blade 1 must be replaced'], 93 => ['M2011', 'Blade 2 must be replaced'], 94 => ['M2020', 'Maintenance notice'],
         95 => ['M2030', 'Battery low'], 96 => ['M2031', 'Battery charging failed several times'], 97 => ['M2032', 'Battery charging temperature'],
         98 => ['M2040', 'Battery temperature for starting to mow'], 99 => ['M2050', 'Available mowing times insufficient'],
         100 => ['M2060', 'Secondary area finished'], 101 => ['M2070', 'No GPS reception  reference run'],
         102 => ['M2071', 'No GPS reception start point 1'], 103 => ['M2072', 'No GPS reception start point 2'],
         104 => ['M2073', 'No GPS reception start point 3'], 105 => ['M2074', 'No GPS reception start point 4'], 106 => ['M2080', 'No GPRS reception'],
-        107 => ['M2090', 'Hardware/communication error in extension module'], 108 => ['M2100', 'Diebstahl'],
+        107 => ['M2090', 'Hardware/communication error in extension module'], 108 => ['M2100', 'Theft alarm'],
         109 => ['M2110', 'iMow installed elsewhere, but no reinstallation was performed'],
         110 => ['M4000', 'SR: over- or undervoltage'], 111 => ['M4001', 'SR: over- or undertemperature'],
         112 => ['M4002', 'SR: rollover detected'], 113 => ['M4003', 'SR: lifted 10 s'],
@@ -143,7 +143,7 @@ class RoboHubStihl implements RoboHubTreiber
         134 => ['M4025', 'SR: SR controller detected an internal error'], 135 => ['M4026', 'SR: voltage measurement is not calibrated'],
         136 => ['M2075', 'No GPS reception in preferred zone'], 137 => ['M2076', 'Preferred zone not reached'],
         138 => ['M2077', 'Preferred zone outside the home area'], 139 => ['M2200', 'SIM card contract expired'],
-        140 => ['M0104', 'Overvoltage at charging contacts'], 141 => ['M2120', 'Child lock active'], 142 => ['M1131', 'Festfahrerkennung'],
+        140 => ['M0104', 'Overvoltage at charging contacts'], 141 => ['M2120', 'Child lock active'], 142 => ['M1131', 'Stuck detection'],
         143 => ['M1230', 'Right or left wheel: overload'], 144 => ['M4027', 'Stop button pressed'],
         145 => ['M2095', 'GPS antenna not connected'], 146 => ['M1105', 'animation.message_M1105_long'],
     ];
@@ -408,7 +408,7 @@ class RoboHubStihl implements RoboHubTreiber
             [$z, $text] = self::GRUPPE_ZUSTAND[$g] ?? [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unknown'];
             $text = RoboHubText::wert($text);
             if (stripos($roh, 'Rain') !== false && in_array($g, ['docked', 'charging', 'paused'], true)) {
-                [$z, $text] = [RoboHubModell::ZUSTAND_WETTERPAUSE, 'Regenpause'];
+                [$z, $text] = [RoboHubModell::ZUSTAND_WETTERPAUSE, 'Rain pause'];
             }
             $w['Zustand'] = $z;
             $w['ZustandRoh'] = $text . ' (' . $roh . ')';
@@ -541,7 +541,7 @@ class RoboHubStihl implements RoboHubTreiber
         switch ($befehl) {
             case 'start':
                 if (self::gruppe($stand) === 'paused') {
-                    [$cmd, $daten, $text] = ['resume', null, 'Fortsetzen'];
+                    [$cmd, $daten, $text] = ['resume', null, 'Resume'];
                 } else {
                     [$cmd, $daten, $text] = ['start-mowing', ['durationInSeconds' => $dauer], RoboHubText::t('Mow (%s min)', (int)round($dauer / 60))];
                 }
@@ -564,7 +564,7 @@ class RoboHubStihl implements RoboHubTreiber
                     : ($befehl === 'orten' ? RoboHubText::t('STIHL does not offer "Locate".') : RoboHubText::t('This command is not supported by STIHL iMOW: %s', $befehl)));
         }
         $this->gen5Anfrage($buendel, 'POST', 'mowerctrl/api/v1/mower-commands/' . rawurlencode((string)$geraet['id']) . '/' . $cmd, $daten);
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     private function rmiBefehl(array $buendel, array $geraet, string $befehl): string
@@ -582,7 +582,7 @@ class RoboHubStihl implements RoboHubTreiber
             throw new RoboHubFehler(RoboHubText::t('Via the cloud the older iMOW generation only knows "Start" and "Return to base".'));
         }
         $this->rmiAnfrage($buendel, 'POST', 'mower-actions/', ['actionName' => $aktion, 'actionValue' => $wert]);
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string

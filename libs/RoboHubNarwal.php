@@ -68,9 +68,9 @@ class RoboHubNarwal implements RoboHubTreiber
     // Befehle ohne Nutzlast: [kurzes Thema, Klartext, Wartezeit s].
     private const BEFEHLE = [
         'pause'   => ['task/pause', 'Pause', 5.0],
-        'stopp'   => ['task/force_end', 'Stopp', 15.0],   // Roboter antwortet erst nach dem Anhalten (client.py stop)
+        'stopp'   => ['task/force_end', 'Stop', 15.0],   // Roboter antwortet erst nach dem Anhalten (client.py stop)
         'station' => ['supply/recall', 'Return to base', 5.0],
-        'orten'   => ['common/yell', 'Orten', 5.0],
+        'orten'   => ['common/yell', 'Locate', 5.0],
     ];
 
     // Abonnierte Rundmeldungen (client.py _ALL_BROADCAST_TOPICS, ohne Karte).
@@ -258,7 +258,7 @@ class RoboHubNarwal implements RoboHubTreiber
     private static function zustandAus(array $p, ?int $akku): array
     {
         if (($p['fehler'] ?? []) !== []) {
-            return [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'];
+            return [RoboHubModell::ZUSTAND_FEHLER, 'Error'];
         }
         if (empty($p['wach'])) {
             // Ohne Rundmeldung ist der Arbeitszustand der Antwort veraltet — nur „ruht" sagen.
@@ -268,16 +268,16 @@ class RoboHubNarwal implements RoboHubTreiber
         // Neue Firmware meldet 2 auch beim Reinigen außerhalb der Station, dann mit 3.4 = 3 (#115/#124).
         $aktiv = in_array($s, self::AKTIV, true) || ($s === 2 && ($p['art'] ?? null) === 3);
         if ($aktiv && ($p['pause'] ?? 0) === 1) {
-            return [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
+            return [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'];
         }
         if ($aktiv && ($p['rueckfahrt'] ?? 0) === 1 && ($p['andocken'] ?? 0) === 2) {
             return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Returning to base')];
         }
         if ($aktiv) {
-            return [RoboHubModell::ZUSTAND_REINIGT, $s === 17 ? RoboHubText::t('Cleaning selected rooms') : 'Reinigt'];
+            return [RoboHubModell::ZUSTAND_REINIGT, $s === 17 ? RoboHubText::t('Cleaning selected rooms') : 'Cleaning'];
         }
         if ($s === 7) {
-            return [RoboHubModell::ZUSTAND_KARTIERUNG, 'Kartiert'];
+            return [RoboHubModell::ZUSTAND_KARTIERUNG, 'Mapping'];
         }
         if ($s === 19) {
             return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Finished, returning to base')];
@@ -288,9 +288,9 @@ class RoboHubNarwal implements RoboHubTreiber
             return ($akku ?? 0) >= 100 ? [RoboHubModell::ZUSTAND_GELADEN, RoboHubText::t('In the station, charged')] : [RoboHubModell::ZUSTAND_LAEDT, RoboHubText::t('Charging')];
         }
         if ($s === 1) {
-            return [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'];
+            return [RoboHubModell::ZUSTAND_BEREIT, 'Ready'];
         }
-        return [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unbekannt'];
+        return [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unknown'];
     }
 
     // =================================================================
@@ -361,7 +361,7 @@ class RoboHubNarwal implements RoboHubTreiber
             $p = isset($this->rund['status/robot_base_status']) ? self::basisAus($this->rund['status/robot_base_status'], true) : [];
             [$z] = self::zustandAus($p + ['wach' => $p !== []], null);
             if ($befehl === 'start' && $z === RoboHubModell::ZUSTAND_PAUSIERT) {
-                return $this->ausfuehren($v, $r, 'task/resume', '', 'Fortsetzen', 5.0);
+                return $this->ausfuehren($v, $r, 'task/resume', '', 'Resume', 5.0);
             }
             if (isset(self::BEFEHLE[$befehl])) {
                 [$thema, $text, $warten] = self::BEFEHLE[$befehl];
@@ -413,7 +413,7 @@ class RoboHubNarwal implements RoboHubTreiber
         if (!in_array($code, [0, 1, 6], true)) {
             throw new RoboHubFehler(RoboHubText::t('Narwal rejects "%s": %s.', $text, (RoboHubText::wert(self::ABGELEHNT[$code] ?? null) ?? RoboHubText::t('Code %s', $code))));
         }
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string

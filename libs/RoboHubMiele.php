@@ -43,9 +43,9 @@ class RoboHubMiele implements RoboHubTreiber
 
     // programPhase (astrandb/miele const.py) → [Zustand, Klartext]; Fehler F1–F8.
     private const PHASEN = [
-        5889 => [RoboHubModell::ZUSTAND_REINIGT, 'Reinigt'],
+        5889 => [RoboHubModell::ZUSTAND_REINIGT, 'Cleaning'],
         5890 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
-        5891 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
+        5891 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'],
         5892 => [RoboHubModell::ZUSTAND_REINIGT, 'Going to the target area'],
         5893 => [RoboHubModell::ZUSTAND_FEHLER, 'F1: wheel lifted'],
         5894 => [RoboHubModell::ZUSTAND_FEHLER, 'F2: sensors dirty'],
@@ -57,7 +57,7 @@ class RoboHubMiele implements RoboHubTreiber
         5900 => [RoboHubModell::ZUSTAND_FEHLER, 'F8: front wheel blocked'],
         5903 => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
         5904 => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
-        5910 => [RoboHubModell::ZUSTAND_REINIGT, 'Ferngesteuert'],
+        5910 => [RoboHubModell::ZUSTAND_REINIGT, 'Remote controlled'],
     ];
 
     // Programme (vacuum.py PROG_*): Auswahl „Saugstufe".
@@ -195,13 +195,13 @@ class RoboHubMiele implements RoboHubTreiber
         } elseif ($status === 8) {
             [$z, $t] = [RoboHubModell::ZUSTAND_FEHLER, RoboHubText::t('Fault')];
         } elseif ($status === 6) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'];
         } elseif ($status === 5) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_REINIGT, 'Reinigt'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_REINIGT, 'Cleaning'];
         } elseif ($status === 1) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_SCHLAF, 'Aus'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_SCHLAF, 'Off'];
         } else {
-            [$z, $t] = [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_BEREIT, 'Ready'];
         }
         // Miele liefert eigene deutsche Texte (language=de) — die bevorzugen, die Tabelle ist der Rückfall.
         $mieleText = trim((string)($p['programPhase']['value_localized'] ?? ''));
@@ -234,7 +234,7 @@ class RoboHubMiele implements RoboHubTreiber
             $this->aktion($buendel, $id, ['programId' => $wert]);
             return RoboHubText::t('Program "%s" sent.', RoboHubText::wert(self::PROGRAMME[$wert]));
         }
-        $map = ['start' => [1, 'Start'], 'stopp' => [2, 'Stopp'], 'pause' => [3, 'Pause']];
+        $map = ['start' => [1, 'Start'], 'stopp' => [2, 'Stop'], 'pause' => [3, 'Pause']];
         if (!isset($map[$befehl])) {
             throw new RoboHubFehler($befehl === 'station' ? RoboHubText::t('The Miele API does not offer "Return to base" — end with "Stop" and send it back in the app.')
                 : ($befehl === 'orten' ? RoboHubText::t('Miele does not offer "Locate".') : ($befehl === 'raum' ? RoboHubText::t('RoboHub does not control rooms on the Miele Scout (yet).') : RoboHubText::t('This command is not supported by Miele: %s', $befehl))));
@@ -242,17 +242,17 @@ class RoboHubMiele implements RoboHubTreiber
         // Erlaubte Aktionen fragt Miele je Zustand ab (GET actions) — ehrliche Absage statt stiller 400.
         $erlaubt = (array)($this->anfrage($buendel, 'GET', 'v1/devices/' . rawurlencode($id) . '/actions', null)['processAction'] ?? []);
         if (!in_array($map[$befehl][0], array_map('intval', $erlaubt), true)) {
-            throw new RoboHubFehler(RoboHubText::t('"%s" is not possible right now (in the current state Miele only allows: %s). Is "Remote control" allowed on the robot?', $map[$befehl][1], ($erlaubt === [] ? 'nichts' : implode(', ', array_map(function ($a) use ($map) {
+            throw new RoboHubFehler(RoboHubText::t('"%s" is not possible right now (in the current state Miele only allows: %s). Is "Remote control" allowed on the robot?', RoboHubText::wert($map[$befehl][1]), ($erlaubt === [] ? RoboHubText::t('nothing') : implode(', ', array_map(function ($a) use ($map) {
                     foreach ($map as [$nr, $text]) {
                         if ($nr === (int)$a) {
-                            return $text;
+                            return RoboHubText::wert($text);
                         }
                     }
                     return (string)$a;
                 }, $erlaubt)))));
         }
         $this->aktion($buendel, $id, ['processAction' => $map[$befehl][0]]);
-        return RoboHubText::t('Command "%s" sent.', $map[$befehl][1]);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($map[$befehl][1]));
     }
 
     private function aktion(array $buendel, string $id, array $body): void

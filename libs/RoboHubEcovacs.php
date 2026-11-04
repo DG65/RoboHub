@@ -454,12 +454,12 @@ class RoboHubEcovacs implements RoboHubTreiber
         if ($state === 'clean' || $state === 'washing') {
             $bewegung = (string)($c['cleanState']['motionState'] ?? '');
             if ($bewegung === 'pause') {
-                return [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
+                return [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'];
             }
             if ($bewegung === 'goCharging') {
                 return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Returning to base')];
             }
-            return [RoboHubModell::ZUSTAND_REINIGT, $state === 'washing' ? RoboHubText::t('Washing') : 'Arbeitet'];
+            return [RoboHubModell::ZUSTAND_REINIGT, $state === 'washing' ? RoboHubText::t('Washing') : 'Working'];
         }
         if ($state === 'goCharging') {
             return [RoboHubModell::ZUSTAND_ZURUECK, RoboHubText::t('Returning to base')];
@@ -468,7 +468,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             return ($akku !== null && $akku >= 100) ? [RoboHubModell::ZUSTAND_GELADEN, RoboHubText::t('Docked')] : [RoboHubModell::ZUSTAND_LAEDT, RoboHubText::t('Charging')];
         }
         if ($state === 'idle') {
-            return [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'];
+            return [RoboHubModell::ZUSTAND_BEREIT, 'Ready'];
         }
         return [RoboHubModell::ZUSTAND_UNBEKANNT, $state !== '' ? RoboHubText::t('State "%s"', $state) : RoboHubText::t('Unknown')];
     }

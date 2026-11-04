@@ -35,6 +35,21 @@ final class RoboHubText
         return $aus === false ? $uebersetzt : $aus;
     }
 
+    // Wochentag-Kürzel: Treiber liefern teils deutsche (Mo), teils englische (Mon) Kürzel.
+    private const TAGE = ['Mo' => 'Mon', 'Di' => 'Tue', 'Mi' => 'Wed', 'Do' => 'Thu', 'Fr' => 'Fri', 'Sa' => 'Sat', 'So' => 'Sun'];
+
+    /** Einheitliches englisches Kürzel (Mon … Sun) für Vergleiche; Unbekanntes bleibt, wie es ist. */
+    public static function tagCode(string $tag): string
+    {
+        return self::TAGE[$tag] ?? $tag;
+    }
+
+    /** Wochentag-Kürzel in der Sprache des Systems. */
+    public static function tag(string $tag): string
+    {
+        return self::t(self::tagCode($tag));
+    }
+
     /** Für Werte aus Tabellen (Konstanten), die erst beim Anzeigen übersetzt werden. */
     public static function wert($wert)
     {

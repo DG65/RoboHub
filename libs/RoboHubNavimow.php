@@ -43,25 +43,25 @@ class RoboHubNavimow implements RoboHubTreiber
     // vehicleState (lawn_mower.py, ioBroker lib/states.json) → [RoboHub-Zustand, Klartext].
     private const ZUSTAENDE = [
         'isdocked'         => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
-        'isidel'           => [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'],
-        'isidle'           => [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'],
-        'self-checking'    => [RoboHubModell::ZUSTAND_BEREIT, 'Selbsttest'],
-        'ismapping'        => [RoboHubModell::ZUSTAND_KARTIERUNG, 'Kartiert'],
+        'isidel'           => [RoboHubModell::ZUSTAND_BEREIT, 'Ready'],
+        'isidle'           => [RoboHubModell::ZUSTAND_BEREIT, 'Ready'],
+        'self-checking'    => [RoboHubModell::ZUSTAND_BEREIT, 'Self-test'],
+        'ismapping'        => [RoboHubModell::ZUSTAND_KARTIERUNG, 'Mapping'],
         'isrunning'        => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing'],
-        'ispaused'         => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
-        'insoftwareupdate' => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Aktualisiert'],
+        'ispaused'         => [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'],
+        'insoftwareupdate' => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Updating'],
         'isdocking'        => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
-        'error'            => [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'],
-        'islifted'         => [RoboHubModell::ZUSTAND_FEHLER, 'Angehoben'],
+        'error'            => [RoboHubModell::ZUSTAND_FEHLER, 'Error'],
+        'islifted'         => [RoboHubModell::ZUSTAND_FEHLER, 'Lifted'],
         'offline'          => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'],
     ];
 
     // Befehle (ioBroker COMMAND_MAP, HA lawn_mower.py).
     private const BEFEHLE = [
         'start'    => ['action.devices.commands.StartStop', ['on' => true], 'Start'],
-        'weiter'   => ['action.devices.commands.PauseUnpause', ['on' => true], 'Fortsetzen'],
+        'weiter'   => ['action.devices.commands.PauseUnpause', ['on' => true], 'Resume'],
         'pause'    => ['action.devices.commands.PauseUnpause', ['on' => false], 'Pause'],
-        'stopp'    => ['action.devices.commands.StartStop', ['on' => false], 'Stopp'],
+        'stopp'    => ['action.devices.commands.StartStop', ['on' => false], 'Stop'],
         'station'  => ['action.devices.commands.Dock', null, 'Return to base'],
     ];
 
@@ -232,7 +232,7 @@ class RoboHubNavimow implements RoboHubTreiber
                 throw new RoboHubFehler(RoboHubText::t('The mower rejected "%s" (%s%s).', $text, $s, (($r['errorCode'] ?? '') !== '' ? ', ' . $r['errorCode'] : '')));
             }
         }
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     public function karte(array $buendel, array $geraet): array

@@ -226,15 +226,15 @@ class RoboHubVorwerk implements RoboHubTreiber
         $fehler = trim((string)($p['error'] ?? ''));
         $fehler = $fehler === 'ui_alert_invalid' ? '' : $fehler;   // ältere Firmware meldet das im Normalbetrieb
         if ($s === 4 || $fehler !== '') {
-            [$z, $t] = [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_FEHLER, 'Error'];
         } elseif ($s === 3 || ($s === 2 && in_array($a, self::PAUSE_AKTIONEN, true))) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'];
         } elseif ($s === 1 && !empty($d['isCharging'])) {
             [$z, $t] = [RoboHubModell::ZUSTAND_LAEDT, RoboHubText::t('Charging')];
         } elseif ($s === 1 && !empty($d['isDocked'])) {
             [$z, $t] = [RoboHubModell::ZUSTAND_GELADEN, RoboHubText::t('Docked')];
         } elseif ($s === 1) {
-            [$z, $t] = [RoboHubModell::ZUSTAND_BEREIT, 'Bereit'];
+            [$z, $t] = [RoboHubModell::ZUSTAND_BEREIT, 'Ready'];
         } elseif ($s === 2 && $a === 12) {
             [$z, $t] = [RoboHubModell::ZUSTAND_KARTIERUNG, RoboHubText::wert(self::REINIGEN[12])];
         } elseif ($s === 2 && isset(self::REINIGEN[$a])) {
@@ -269,7 +269,7 @@ class RoboHubVorwerk implements RoboHubTreiber
                 return $text;
             }
         }
-        return 'Fehler';
+        return 'Error';
     }
 
     // =================================================================
@@ -314,7 +314,7 @@ class RoboHubVorwerk implements RoboHubTreiber
             case 'start':
                 $pausiert = (int)($stand['state'] ?? 0) === 3 || ((int)($stand['state'] ?? 0) === 2 && in_array((int)($stand['action'] ?? 0), self::PAUSE_AKTIONEN, true));
                 if ($pausiert) {
-                    [$cmd, $params, $text] = ['resumeCleaning', null, 'Fortsetzen'];
+                    [$cmd, $params, $text] = ['resumeCleaning', null, 'Resume'];
                 } else {
                     [$cmd, $params, $text] = ['startCleaning', self::startParameter($dienst, null), 'Start'];
                 }
@@ -323,13 +323,13 @@ class RoboHubVorwerk implements RoboHubTreiber
                 [$cmd, $params, $text] = ['pauseCleaning', null, 'Pause'];
                 break;
             case 'stopp':
-                [$cmd, $params, $text] = ['stopCleaning', null, 'Stopp'];
+                [$cmd, $params, $text] = ['stopCleaning', null, 'Stop'];
                 break;
             case 'station':
                 [$cmd, $params, $text] = ['sendToBase', null, RoboHubText::t('Return to base')];
                 break;
             case 'orten':
-                [$cmd, $params, $text] = ['findMe', null, 'Orten'];
+                [$cmd, $params, $text] = ['findMe', null, 'Locate'];
                 break;
             case 'raum':
                 $nr = array_values(array_unique(array_map('intval', (array)($parameter['raeume'] ?? []))));
@@ -350,7 +350,7 @@ class RoboHubVorwerk implements RoboHubTreiber
                 throw new RoboHubFehler(RoboHubText::t('This command is not supported on the Kobold: %s', $befehl));
         }
         $this->nachricht($r, $cmd, $params);
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     /**

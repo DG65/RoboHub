@@ -230,10 +230,10 @@ class RoboHubHusqvarna implements RoboHubTreiber
                 $optionen['Scheinwerfer'][$nr] = $text;
             }
         }
-        $grundText = ['WEEK_SCHEDULE' => 'Zeitplan', 'PARK_OVERRIDE' => 'Geparkt', 'SENSOR' => 'Wettersensor', 'DAILY_LIMIT' => 'Tageslimit',
-            'FOTA' => 'Firmware-Update', 'FROST' => 'Frost', 'ALL_WORK_AREAS_COMPLETED' => RoboHubText::t('All areas finished'), 'EXTERNAL' => RoboHubText::t('External pause')][$grund] ?? null;
+        $grundText = ['WEEK_SCHEDULE' => 'Schedule', 'PARK_OVERRIDE' => 'Parked', 'SENSOR' => 'Weather sensor', 'DAILY_LIMIT' => 'Daily limit',
+            'FOTA' => 'Firmware update', 'FROST' => 'Frost', 'ALL_WORK_AREAS_COMPLETED' => RoboHubText::t('All areas finished'), 'EXTERNAL' => RoboHubText::t('External pause')][$grund] ?? null;
         if ($grundText !== null && $zustand === 'RESTRICTED') {
-            $w['Meldung'] = RoboHubText::t('Restricted: %s', $grundText);
+            $w['Meldung'] = RoboHubText::t('Restricted: %s', RoboHubText::wert($grundText));
         }
         return ['werte' => $w, 'optionen' => $optionen, 'schreibbar' => []];
     }
@@ -245,15 +245,15 @@ class RoboHubHusqvarna implements RoboHubTreiber
             case 'ERROR':
             case 'FATAL_ERROR':
             case 'ERROR_AT_POWER_UP':
-                return [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'];
+                return [RoboHubModell::ZUSTAND_FEHLER, 'Error'];
             case 'STOPPED':
                 return [RoboHubModell::ZUSTAND_FEHLER, RoboHubText::t('Stopped – intervention at the mower needed')];
             case 'PAUSED':
-                return [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'];
+                return [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'];
             case 'OFF':
-                return [RoboHubModell::ZUSTAND_SCHLAF, 'Ausgeschaltet'];
+                return [RoboHubModell::ZUSTAND_SCHLAF, 'Switched off'];
             case 'WAIT_UPDATING':
-                return [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Aktualisiert'];
+                return [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Updating'];
         }
         switch ($taetigkeit) {
             case 'MOWING':
@@ -271,7 +271,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
             case 'STOPPED_IN_GARDEN':
                 return [RoboHubModell::ZUSTAND_BEREIT, RoboHubText::t('Standing in the garden')];
         }
-        return [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unbekannt'];
+        return [RoboHubModell::ZUSTAND_UNBEKANNT, 'Unknown'];
     }
 
     // =================================================================
@@ -287,7 +287,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
                 continue;
             }
             $name = trim((string)($a['name'] ?? ''));
-            $raeume[$id] = $name !== '' ? $name : ($id === 0 ? 'Hauptbereich' : RoboHubText::t('Area %s', $id));
+            $raeume[$id] = $name !== '' ? $name : ($id === 0 ? 'Main area' : RoboHubText::t('Area %s', $id));
         }
         return ['raeume' => $raeume, 'bild' => '', 'marken' => [], 'station' => null];
     }
@@ -303,7 +303,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
         switch ($befehl) {
             case 'start':
                 $daten = $pausiert ? ['type' => 'ResumeSchedule'] : ['type' => 'Start', 'attributes' => ['duration' => self::START_MINUTEN]];
-                $text = $pausiert ? 'Fortsetzen' : 'Start (' . self::START_MINUTEN . ' min)';
+                $text = $pausiert ? RoboHubText::t('Resume') : RoboHubText::t('Start (%s min)', self::START_MINUTEN);
                 break;
             case 'pause':
                 $daten = ['type' => 'Pause'];
@@ -332,7 +332,7 @@ class RoboHubHusqvarna implements RoboHubTreiber
         }
         $this->anfrage($buendel, 'POST', 'mowers/' . rawurlencode((string)$geraet['id']) . '/actions', ['data' => $daten]);
         @unlink($this->speicherDatei($buendel));
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     /** Schnitthöhe/Scheinwerfer (aioautomower commands.py set_cutting_height/set_headlight_mode). */

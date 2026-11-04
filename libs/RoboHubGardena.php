@@ -254,7 +254,7 @@ class RoboHubGardena extends RoboHubHusqvarna
             'id' => self::anfrageId(), 'type' => 'MOWER_CONTROL', 'attributes' => $attribute,
         ]]);
         @unlink($this->speicherDatei($buendel));
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     /** Eindeutige Anfrage-ID (die API verlangt eine beliebige ID je Befehl). */

@@ -508,7 +508,7 @@ class RoboHubIrobot implements RoboHubTreiber
         }
         $w['Flaeche'] = isset($c['sqft']) && is_numeric($c['sqft']) ? (int)round((float)$c['sqft'] * 0.09290304) : null;
         if (isset($p['bin']) && is_array($p['bin'])) {
-            $w['Staubbeutel'] = array_key_exists('present', $p['bin']) && !$p['bin']['present'] ? 'Fehlt' : (!empty($p['bin']['full']) ? 'Voll' : RoboHubText::t('OK'));
+            $w['Staubbeutel'] = array_key_exists('present', $p['bin']) && !$p['bin']['present'] ? 'Missing' : (!empty($p['bin']['full']) ? 'Full' : RoboHubText::t('OK'));
         }
         if (isset($p['bbrun']['hr']) && is_numeric($p['bbrun']['hr'])) {
             $w['GesamtDauer'] = (int)$p['bbrun']['hr'];
@@ -564,9 +564,9 @@ class RoboHubIrobot implements RoboHubTreiber
         $befehle = [
             'start'   => [$mitten ? 'resume' : 'start', 'Start'],
             'pause'   => ['pause', 'Pause'],
-            'stopp'   => ['stop', 'Stopp'],
+            'stopp'   => ['stop', 'Stop'],
             'station' => ['dock', RoboHubText::t('Return to base')],
-            'orten'   => ['find', 'Orten'],
+            'orten'   => ['find', 'Locate'],
         ];
         if ($befehl === 'setze') {
             return $this->einstellungSetzen($r, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
@@ -577,7 +577,7 @@ class RoboHubIrobot implements RoboHubTreiber
         [$kommando, $name] = $befehle[$befehl];
         $phase = $this->kommando($r, $kommando);
         if ($kommando === 'find') {
-            return RoboHubText::t('Command "%s" sent.', $name);
+            return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($name));
         }
         if ($phase === null) {
             return RoboHubText::t('Command "%s" sent — the robot reported no change within 10 s. Is it ready (e.g. bin inserted, not lifted)?', $name);

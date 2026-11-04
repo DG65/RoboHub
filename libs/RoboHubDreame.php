@@ -612,17 +612,17 @@ PEM;
 
         if (isset($p['4.4'])) {
             $w['Saugstufe'] = (int)$p['4.4'];
-            $optionen['Saugstufe'] = [0 => 'Leise', 1 => 'Standard', 2 => 'Stark', 3 => 'Turbo'];
+            $optionen['Saugstufe'] = [0 => 'Quiet', 1 => 'Standard', 2 => 'Strong', 3 => 'Turbo'];
         }
         // Wassermenge: neuere Modelle (Feuchte-Stufen 28.1) melden 4.5 nicht
         // oder ohne Wirkung — dann bleibt die Variable weg statt falsch zu sein.
         if (isset($p['4.5']) && !isset($p['28.1'])) {
             $w['Wassermenge'] = (int)$p['4.5'];
-            $optionen['Wassermenge'] = [1 => 'Niedrig', 2 => 'Mittel', 3 => 'Hoch'];
+            $optionen['Wassermenge'] = [1 => 'Low', 2 => 'Medium', 3 => 'High'];
         }
         if (isset($p['4.23'])) {
             $w['Reinigungsmodus'] = $this->reinigungsmodusLesen((int)$p['4.23'], $p);
-            $optionen['Reinigungsmodus'] = [0 => 'Saugen', 1 => 'Wischen', 2 => RoboHubText::t('Vacuum and mop'), 3 => RoboHubText::t('Vacuum first, then mop')];
+            $optionen['Reinigungsmodus'] = [0 => 'Vacuum', 1 => 'Mop', 2 => RoboHubText::t('Vacuum and mop'), 3 => RoboHubText::t('Vacuum first, then mop')];
         }
 
         $w['Hauptbuerste']  = isset($p['9.2']) ? (int)$p['9.2'] : null;
@@ -643,7 +643,7 @@ PEM;
         $w['SchmutzwasserbehaelterRest'] = isset($p['26.2']) ? (float)$p['26.2'] : null;
 
         if (isset($p['4.25'])) {
-            $w['Station'] = [0 => 'Bereit', 1 => RoboHubText::t('Washing'), 2 => 'Trocknet', 3 => RoboHubText::t('Robot returning'), 4 => 'Pausiert', 5 => RoboHubText::t('Filling water'), 6 => RoboHubText::t('Filling water'), 7 => RoboHubText::t('Returning to dry')][(int)$p['4.25']] ?? RoboHubText::t('State %s', (int)$p['4.25']);
+            $w['Station'] = [0 => 'Ready', 1 => RoboHubText::t('Washing'), 2 => 'Drying', 3 => RoboHubText::t('Robot returning'), 4 => 'Paused', 5 => RoboHubText::t('Filling water'), 6 => RoboHubText::t('Filling water'), 7 => RoboHubText::t('Returning to dry')][(int)$p['4.25']] ?? RoboHubText::t('State %s', (int)$p['4.25']);
         }
         if (isset($p['27.1'])) {
             $w['Frischwasser'] = [0 => RoboHubText::t('OK'), 1 => RoboHubText::t('Tank missing'), 2 => RoboHubText::t('Low water'), 3 => RoboHubText::t('Check')][(int)$p['27.1']] ?? RoboHubText::t('State %s', (int)$p['27.1']);
@@ -652,10 +652,10 @@ PEM;
             $w['Schmutzwasser'] = (int)$p['27.2'] === 0 ? RoboHubText::t('OK') : RoboHubText::t('Missing or full');
         }
         if (isset($p['27.3'])) {
-            $w['Staubbeutel'] = [0 => RoboHubText::t('OK'), 1 => 'Fehlt', 2 => RoboHubText::t('Check')][(int)$p['27.3']] ?? RoboHubText::t('State %s', (int)$p['27.3']);
+            $w['Staubbeutel'] = [0 => RoboHubText::t('OK'), 1 => 'Missing', 2 => RoboHubText::t('Check')][(int)$p['27.3']] ?? RoboHubText::t('State %s', (int)$p['27.3']);
         }
         if (isset($p['27.4'])) {
-            $w['Reinigungsmittel'] = [0 => RoboHubText::t('OK'), 1 => 'Abgeschaltet', 2 => 'Wenig'][(int)$p['27.4']] ?? RoboHubText::t('State %s', (int)$p['27.4']);
+            $w['Reinigungsmittel'] = [0 => RoboHubText::t('OK'), 1 => 'Turned off', 2 => 'Running low'][(int)$p['27.4']] ?? RoboHubText::t('State %s', (int)$p['27.4']);
         }
         $w['GesamtDauer']  = isset($p['12.2']) ? (int)round((int)$p['12.2'] / 60) : null;
         $w['GesamtAnzahl'] = isset($p['12.3']) ? (int)$p['12.3'] : null;
@@ -742,7 +742,7 @@ PEM;
         1 => ['f', 'Robot tilted'], 2 => ['f', 'Robot stuck'], 3 => ['f', 'Path to the station too narrow'],
         4 => ['f', 'Left drive wheel fault'], 5 => ['f', 'Right drive wheel fault'], 6 => ['f', 'Cutting height motor fault'],
         7 => ['f', 'Blade disc blocked'], 8 => ['f', 'Blade disc side motor fault'], 9 => ['f', 'Bumper fault'],
-        10 => ['f', 'Ladefehler'], 11 => ['f', 'Battery too hot'], 12 => ['f', 'Lidar blocked'],
+        10 => ['f', 'Charging error'], 11 => ['f', 'Battery too hot'], 12 => ['f', 'Lidar blocked'],
         13 => ['f', 'Lidar too hot (without map)'], 14 => ['f', 'Lidar too hot (with map)'], 15 => ['f', 'Lidar too hot'],
         16 => ['f', 'Lidar dirty'], 17 => ['f', 'Lidar fault'], 18 => ['f', 'Positioning signal weak'],
         19 => ['f', 'Position lost'], 20 => ['f', 'Sensor fault'], 21 => ['f', 'Mower in no-go zone'],
@@ -752,7 +752,7 @@ PEM;
         28 => ['f', 'Blades worn'], 29 => ['f', 'Station brush worn'], 30 => ['f', 'Maintenance due'],
         31 => ['f', 'Return to base failed'], 32 => ['f', 'Docking failed'],
         33 => ['f', 'Positioning failed (with map)'], 34 => ['f', 'Positioning failed (without map)'],
-        35 => ['f', 'Ortungsfehler'], 36 => ['f', 'Task could not start'], 38 => ['f', 'Lidar dirty'],
+        35 => ['f', 'Positioning error'], 36 => ['f', 'Task could not start'], 38 => ['f', 'Lidar dirty'],
         39 => ['f', 'Camera dirty'], 40 => ['f', 'Camera fault'], 41 => ['f', 'Camera covered'],
         42 => ['f', 'Charging paused — battery too hot'], 43 => ['f', 'Charging paused — battery too cold'],
         44 => ['f', 'Automatic edge detection stopped'], 45 => ['f', 'Automatic edge detection (side) stopped'],
@@ -1098,7 +1098,7 @@ PEM;
         $nachher = $this->maeherKanal($buendel, $did, ['m' => 'g', 't' => 'SCHDI', 'd' => [2 * $platz, 2 * $platz + 1]]);
         foreach ((array)$nachher as $t) {
             if (is_array($t) && (int)($t[0] ?? -1) === $tabelle && (int)($t[1] ?? -1) === ($an ? 1 : 0)) {
-                return RoboHubText::t('Mowing plan %s.', ($an ? 'eingeschaltet' : 'ausgeschaltet'));
+                return RoboHubText::t('Mowing plan %s.', ($an ? RoboHubText::t('switched on') : RoboHubText::t('switched off')));
             }
         }
         throw new RoboHubFehler(RoboHubText::t('The mower did not confirm the switch — please check in the app.'));
@@ -1245,7 +1245,7 @@ PEM;
             throw new RoboHubFehler(RoboHubText::t('Schedule %s does not exist (anymore) on the robot.', $id));
         }
         $this->setzeProperty($buendel, $did, 8, 2, implode(';', $teile));
-        return RoboHubText::t('Schedule %s.', ($an ? 'eingeschaltet' : 'ausgeschaltet'));
+        return RoboHubText::t('Schedule %s.', ($an ? RoboHubText::t('switched on') : RoboHubText::t('switched off')));
     }
 
     // -----------------------------------------------------------------
@@ -1453,7 +1453,7 @@ PEM;
                 try {
                     $this->aktion($buendel, $did, $siid, $aiid, []);
                     $this->dbg('Befehl', self::befehlName($befehl) . ' über ' . $siid . '.' . $aiid . ' angenommen.');
-                    return RoboHubText::t('Command "%s" sent.', self::befehlName($befehl));
+                    return RoboHubText::t('Command "%s" sent.', RoboHubText::wert(self::befehlName($befehl)));
                 } catch (RoboHubFehler $e) {
                     if ($e->anmeldungNoetig || $e->warteSekunden > 0) {
                         throw $e;
@@ -1498,7 +1498,7 @@ PEM;
         if ($befehl === 'setze' && !$maeher) {
             return $this->setze($buendel, $did, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? 0));
         }
-        throw new RoboHubFehler(RoboHubText::t('This command is not supported for %s yet: %s', ($maeher ? RoboHubText::t('robot mower') : 'Saugroboter'), $befehl));
+        throw new RoboHubFehler(RoboHubText::t('This command is not supported for %s yet: %s', ($maeher ? RoboHubText::t('robot mower') : RoboHubText::t('robot vacuum')), $befehl));
     }
 
     // Verbrauchsteile zurücksetzen. Sauger: eigene Aktion je Teil (Tasshack
@@ -1544,7 +1544,7 @@ PEM;
 
     private static function befehlName(string $befehl): string
     {
-        return ['start' => 'Start', 'pause' => 'Pause', 'stopp' => 'Stopp', 'station' => RoboHubText::t('Return to base'), 'orten' => 'Orten'][$befehl] ?? $befehl;
+        return ['start' => 'Start', 'pause' => 'Pause', 'stopp' => 'Stop', 'station' => RoboHubText::t('Return to base'), 'orten' => 'Locate'][$befehl] ?? $befehl;
     }
 
     /**

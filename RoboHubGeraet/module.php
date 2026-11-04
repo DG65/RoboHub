@@ -251,7 +251,7 @@ class RoboHubGeraet extends IPSModule
         }
         $this->kachelAktualisieren();
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
-        return RoboHubText::t('✅ State fetched: %s%s.', RoboHubModell::zustandsName((int)$this->GetValue('Zustand'), $this->klasse()), ($this->hatVariable('Akku') ? ', Akku ' . $this->GetValue('Akku') . ' %' : ''));
+        return RoboHubText::t('✅ State fetched: %s%s.', RoboHubModell::zustandsName((int)$this->GetValue('Zustand'), $this->klasse()), ($this->hatVariable('Akku') ? RoboHubText::t(', battery %s %%', $this->GetValue('Akku')) : ''));
     }
 
     /** ROBO_Starten($id): string */
@@ -367,7 +367,7 @@ class RoboHubGeraet extends IPSModule
         $this->protokolliere(RoboHubText::t('%s reset (previously %s %%).', $name, $vorher));
         $this->Aktualisieren();
         $nachher = $this->wert($teil);
-        return RoboHubText::t('✅ %s reset (previously %s %%%s).', $name, $vorher, ($nachher !== null ? ', jetzt ' . (int)$nachher . ' %' : ''));
+        return RoboHubText::t('✅ %s reset (previously %s %%%s).', $name, $vorher, ($nachher !== null ? RoboHubText::t(', now %s %%', (int)$nachher) : ''));
     }
 
     /** ROBO_ZeitplanSchalten($id, int $termin, bool $an): string — Zeitplan der Hersteller-App ein-/ausschalten. */
@@ -391,7 +391,7 @@ class RoboHubGeraet extends IPSModule
         $text = $this->befehlText('zeitplan', ['tabelle' => (int)$bekannt['tabelle'], 'an' => $an]);
         if (strpos($text, '⛔') !== 0) {
             // Der Mäher hat bestätigt; Pläne neu lesen (Nachbarplan kann sich mitgeschaltet haben).
-            $this->protokolliere(RoboHubText::t('Mowing plan %s %s.', ((int)($bekannt['nummer'] ?? $termin) + 1), ($an ? 'eingeschaltet' : 'ausgeschaltet')));
+            $this->protokolliere(RoboHubText::t('Mowing plan %s %s.', ((int)($bekannt['nummer'] ?? $termin) + 1), ($an ? RoboHubText::t('switched on') : RoboHubText::t('switched off'))));
             $this->ladeRaeume();
         }
         return $text;
@@ -643,8 +643,8 @@ class RoboHubGeraet extends IPSModule
             }
             array_push($teile, (string)$e['saugstufe'], (int)$e['durchgaenge'] . '×');
             // Wasser nur, wenn auch gewischt wird (die App blendet es sonst aus).
-            if (empty($e['modus']) || strpos((string)$e['modus'], 'Wischen') !== false || strpos((string)$e['modus'], 'wischen') !== false) {
-                $teile[] = (strpos((string)$e['wasser'], 'Feuchte') === 0 ? '' : RoboHubText::t('Water ')) . $e['wasser'];
+            if (empty($e['modus']) || preg_match('/wisch|mop/iu', (string)$e['modus'])) {
+                $teile[] = (preg_match('/^(Feuchte|Moisture)\b/u', (string)$e['wasser']) ? '' : RoboHubText::t('Water ')) . $e['wasser'];
             }
             $nr = (int)($e['reihenfolge'] ?? 0);
             $zeilen[(int)$id] = ($nr > 0 ? $nr . '. ' : '') . ($namen[(string)$id] ?? $namen[(int)$id] ?? RoboHubText::t('Room %s', $id)) . ': ' . implode(' · ', $teile);
@@ -680,14 +680,14 @@ class RoboHubGeraet extends IPSModule
         foreach ((array)($t['eintraege'] ?? []) as $e) {
             $was = $e['art'] === 'zonen'
                 ? implode(', ', array_map(function ($z) use ($namen): string { return (string)($namen[(string)$z] ?? $namen[(int)$z] ?? RoboHubText::t('Zone %s', $z)); }, (array)$e['zonen']))
-                : ['alle' => 'alles', 'kante' => 'Kante', 'patrouille' => 'Patrouille'][$e['art']] ?? $e['art'];
+                : [RoboHubText::t('everything'), RoboHubText::t('Edge'), RoboHubText::t('Patrol')][['alle' => 0, 'kante' => 1, 'patrouille' => 2][$e['art']] ?? -1] ?? $e['art'];
             $schluessel = $e['von'] . ($e['bis'] !== null ? '–' . $e['bis'] : '') . ' · ' . $was;
-            $gruppen[$schluessel][] = $e['tag'];
+            $gruppen[$schluessel][] = RoboHubText::tagCode((string)$e['tag']);
         }
         $teile = [];
         foreach ($gruppen as $wann => $tage) {
             $tage = array_values(array_unique($tage));
-            $tageText = count($tage) === 7 ? RoboHubText::t('daily') : ($tage === ['Mo', 'Di', 'Mi', 'Do', 'Fr'] ? 'werktags' : implode(', ', $tage));
+            $tageText = count($tage) === 7 ? RoboHubText::t('daily') : ($tage === ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] ? RoboHubText::t('weekdays') : implode(', ', array_map([RoboHubText::class, 'tag'], $tage)));
             $teile[] = $tageText . ' ' . $wann;
         }
         // Ohne Namen wie in der App gezählt: erster Plan = „Plan 1".
@@ -704,15 +704,15 @@ class RoboHubGeraet extends IPSModule
         if (($t['art'] ?? '') === 'maeher') {
             return $this->maehplanText($t);
         }
-        $tage = (array)($t['tage'] ?? []);
+        $tage = array_map(function ($x): string { return RoboHubText::tagCode((string)$x); }, (array)($t['tage'] ?? []));
         if (!empty($t['einmalig'])) {
-            $wann = 'einmalig';
+            $wann = RoboHubText::t('once');
         } elseif (count($tage) === 7) {
             $wann = RoboHubText::t('daily');
-        } elseif ($tage === ['Mo', 'Di', 'Mi', 'Do', 'Fr']) {
-            $wann = 'werktags';
+        } elseif ($tage === ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']) {
+            $wann = RoboHubText::t('weekdays');
         } else {
-            $wann = $tage === [] ? 'nie' : implode(', ', $tage);
+            $wann = $tage === [] ? RoboHubText::t('never') : implode(', ', array_map([RoboHubText::class, 'tag'], $tage));
         }
         $teile = [(string)($t['zeit'] ?? '?'), $wann];
         $namen = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
@@ -1244,10 +1244,10 @@ class RoboHubGeraet extends IPSModule
         }
 
         $hinweise = [];
-        foreach (['Frischwasser' => '🚰 Frischwasser', 'Schmutzwasser' => '🪣 Schmutzwasser', 'Staubbeutel' => '🗑️ Staubbeutel', 'Reinigungsmittel' => '🧴 Reinigungsmittel'] as $ident => $name) {
+        foreach (['Frischwasser' => '🚰', 'Schmutzwasser' => '🪣', 'Staubbeutel' => '🗑️', 'Reinigungsmittel' => '🧴'] as $ident => $symbol) {
             $v = $this->wert($ident);
             if ($v !== null && $v !== '' && $v !== RoboHubText::t('OK') && $v !== 'In Ordnung') {
-                $hinweise[] = $name . ': ' . $v;
+                $hinweise[] = $symbol . ' ' . RoboHubText::wert(RoboHubModell::FELDER[$ident][0]) . ': ' . $v;
             }
         }
         $meldung = $this->wert('Meldung');
@@ -1278,7 +1278,7 @@ class RoboHubGeraet extends IPSModule
         $flaeche = $this->wert('Flaeche');
         if ($flaeche !== null && in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_PAUSIERT], true)) {
             // Fläche erst zeigen, wenn der Roboter eine meldet (der 980 meldet sie wohl erst am Ende).
-            $info[] = '🧹 bisher ' . ((int)$flaeche > 0 ? $flaeche . ' m² · ' : '') . (int)$this->wert('Dauer') . ' min';
+            $info[] = RoboHubText::t('🧹 so far %s%s min', (int)$flaeche > 0 ? $flaeche . ' m² · ' : '', (int)$this->wert('Dauer'));
         }
 
         $raeume = [];
@@ -1538,7 +1538,7 @@ class RoboHubGeraet extends IPSModule
         foreach ($termine as $t) {
             $items[] = ['type' => 'RowLayout', 'items' => [
                 ['type' => 'Label', 'caption' => ($t['an'] ? '✅ ' : '⏸️ ') . $this->zeitplanText($t), 'width' => '520px'],
-                ['type' => 'Button', 'caption' => $t['an'] ? 'Ausschalten' : 'Einschalten', 'visible' => $this->zeitplanSchaltbar($t),
+                ['type' => 'Button', 'caption' => $t['an'] ? RoboHubText::t('Switch off') : RoboHubText::t('Switch on'), 'visible' => $this->zeitplanSchaltbar($t),
                     'onClick' => 'echo ROBO_ZeitplanSchalten($id, ' . (int)$t['id'] . ', ' . ($t['an'] ? 'false' : 'true') . ');'],
             ]];
         }

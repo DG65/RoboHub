@@ -41,7 +41,7 @@ class RoboHubAlko implements RoboHubTreiber
         'HOMING'            => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base'],
         'CHARGING'          => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
         'IDLE_BASE_STATION' => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
-        'IDLE'              => [RoboHubModell::ZUSTAND_PAUSIERT, 'Angehalten'],
+        'IDLE'              => [RoboHubModell::ZUSTAND_PAUSIERT, 'Stopped'],
     ];
 
     // Grund der Heimfahrt aus situationFlags (API.md: „die mit Abstand nützlichsten").
@@ -181,18 +181,18 @@ class RoboHubAlko implements RoboHubTreiber
         $wetter = (!empty($f['rainDetected']) && isset($f['rainAllowsMowing']) && !$f['rainAllowsMowing'])
             || (!empty($f['frostDetected']) && isset($f['frostAllowsMowing']) && !$f['frostAllowsMowing']);
         if ($wetter && in_array($z, [RoboHubModell::ZUSTAND_GELADEN, RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::ZUSTAND_PAUSIERT], true)) {
-            [$z, $text] = [RoboHubModell::ZUSTAND_WETTERPAUSE, !empty($f['frostDetected']) ? 'Frostpause' : 'Regenpause'];
+            [$z, $text] = [RoboHubModell::ZUSTAND_WETTERPAUSE, !empty($f['frostDetected']) ? 'Frost pause' : 'Rain pause'];
         }
         $fehler = RoboHubText::t('no error');
         $code = (int)($p['operationError']['code'] ?? 999);
         if ($code !== 999) {
             $beschreibung = (string)($p['operationError']['description'] ?? '');
             $fehler = RoboHubText::t('Error %s%s', $code, ($beschreibung !== '' && $beschreibung !== 'UNKNOWN' ? ' (' . $beschreibung . ')' : ''));
-            [$z, $text] = [RoboHubModell::ZUSTAND_FEHLER, 'Fehler'];
+            [$z, $text] = [RoboHubModell::ZUSTAND_FEHLER, 'Error'];
         } elseif (($p['operationSubState'] ?? '') === 'LOCKED_PIN' || ($p['operationSituation'] ?? '') === 'OPERATION_NOT_PERMITTED_LOCKED') {
             // PIN-Sperre (z. B. nach Firmware-Update) — per API nicht lösbar (FINDINGS.md)
             $fehler = RoboHubText::t('PIN lock — please unlock on the mower');
-            [$z, $text] = [RoboHubModell::ZUSTAND_FEHLER, 'Gesperrt'];
+            [$z, $text] = [RoboHubModell::ZUSTAND_FEHLER, 'Locked'];
         }
         if (array_key_exists('isConnected', $p) && !$p['isConnected']) {
             [$z, $text] = [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'];
@@ -213,7 +213,7 @@ class RoboHubAlko implements RoboHubTreiber
             $w['Regensensor'] = (bool)$f['rainDetected'];
         }
         if (isset($p['rainDelay']) && is_numeric($p['rainDelay'])) {
-            $w['Regenverzoegerung'] = (int)$p['rainDelay'] === 0 ? 'Aus' : (int)$p['rainDelay'] . ' min';
+            $w['Regenverzoegerung'] = (int)$p['rainDelay'] === 0 ? 'Off' : (int)$p['rainDelay'] . ' min';
         }
         if (!empty($f['userInteraction'])) {
             $w['Meldung'] = RoboHubText::t('The mower is waiting for an input on the device.');
@@ -264,7 +264,7 @@ class RoboHubAlko implements RoboHubTreiber
         // Uhrzeit mitsenden wie die HA-Integration (lawn_mower.py).
         $this->anfrage($buendel, 'PATCH', 'things/' . rawurlencode((string)$geraet['id']) . '/state/desired',
             ['operationState' => $ziel[0], 'rtc' => date('Y-m-d\TH:i:s')]);
-        return RoboHubText::t('Command "%s" sent.', $ziel[1]);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($ziel[1]));
     }
 
     public function karte(array $buendel, array $geraet): array

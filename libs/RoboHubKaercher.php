@@ -378,10 +378,10 @@ class RoboHubKaercher implements RoboHubTreiber
         $map = [
             'start'        => ['set_room_clean', ['room_ids' => [], 'ctrl_value' => 1, 'clean_type' => 0], 'Start'],
             'pause'        => ['set_room_clean', ['room_ids' => [], 'ctrl_value' => 2, 'clean_type' => 0], 'Pause'],
-            'stopp'        => ['set_room_clean', ['room_ids' => [], 'ctrl_value' => 0, 'clean_type' => 0], 'Stopp'],
-            'heimwegStopp' => ['stop_recharge', new stdClass(), 'Stopp'],
+            'stopp'        => ['set_room_clean', ['room_ids' => [], 'ctrl_value' => 0, 'clean_type' => 0], 'Stop'],
+            'heimwegStopp' => ['stop_recharge', new stdClass(), 'Stop'],
             'station'      => ['start_recharge', new stdClass(), RoboHubText::t('Return to base')],
-            'orten'        => ['find_device', new stdClass(), 'Orten'],
+            'orten'        => ['find_device', new stdClass(), 'Locate'],
         ];
         if (!isset($map[$befehl])) {
             throw new RoboHubFehler($befehl === 'raum' ? RoboHubText::t('RoboHub does not control rooms on Kärcher (yet).') : RoboHubText::t('This command is not supported by Kärcher: %s', $befehl));
@@ -391,7 +391,7 @@ class RoboHubKaercher implements RoboHubTreiber
             [$dienst, $param] = ['set_zone_clean', ['ctrl_value' => $param['ctrl_value']]];
         }
         $this->mqttAustausch($buendel, $geraet, 'service_invoke/' . $dienst, self::umschlag('service.' . $dienst, $param, '3.0'), null, 5.0);
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     /** Nutzlast wie in der App: method, msgId (ms als Text), tenantId, version, params. */

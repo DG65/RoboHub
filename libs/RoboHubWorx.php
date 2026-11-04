@@ -131,7 +131,7 @@ PEM;
     private const TAGE = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];   // ioBroker this.week: Sonntag = 0
 
     // Befehle (mqtt.py Command / ioBroker sendMessage): 1 Start, 2 Pause, 3 Nach Hause.
-    private const BEFEHLE = ['start' => [1, 'Start'], 'pause' => [2, 'Pause'], 'stopp' => [2, 'Stopp'], 'station' => [3, 'Return to base']];
+    private const BEFEHLE = ['start' => [1, 'Start'], 'pause' => [2, 'Pause'], 'stopp' => [2, 'Stop'], 'station' => [3, 'Return to base']];
 
     public function __construct(string $marke)
     {
@@ -287,7 +287,7 @@ PEM;
         $optionen = [];
         if (isset($cfg['rd']) && is_numeric($cfg['rd'])) {
             $w['Regenverzoegerung'] = (int)$cfg['rd'];
-            $optionen['Regenverzoegerung'] = [0 => 'Aus'];
+            $optionen['Regenverzoegerung'] = [0 => 'Off'];
             for ($m = 30; $m <= 720; $m += 30) {
                 $optionen['Regenverzoegerung'][$m] = $m < 60 ? $m . ' min' : str_replace('.', ',', (string)($m / 60)) . ' h';
             }
@@ -295,7 +295,7 @@ PEM;
         }
         if (isset($sc['m']) || isset($sc['enabled'])) {
             $w['Maehzeiten'] = isset($sc['m']) ? ((int)$sc['m'] === 1 ? 1 : 0) : ((int)$sc['enabled'] === 1 ? 1 : 0);
-            $optionen['Maehzeiten'] = [0 => isset($sc['m']) ? RoboHubText::t('Off (party mode)') : 'Aus', 1 => 'An'];
+            $optionen['Maehzeiten'] = [0 => isset($sc['m']) ? RoboHubText::t('Off (party mode)') : 'Off', 1 => 'On'];
         }
         if (isset($sc['p']) && is_numeric($sc['p'])) {
             $w['Zeitzuschlag'] = (int)$sc['p'];
@@ -319,14 +319,14 @@ PEM;
             foreach ((array)($sc[$feld] ?? []) as $tag => $e) {
                 if (is_array($e) && (int)($e[1] ?? 0) > 0) {
                     $termine[] = ['id' => $versatz + (int)$tag, 'an' => $an, 'art' => 'text',
-                        'text' => RoboHubText::wert(self::TAGE[(int)$tag] ?? '?') . ' ' . $e[0] . ' · ' . (int)$e[1] . ' min' . (!empty($e[2]) ? RoboHubText::t(' · with edge cut') : '')];
+                        'text' => RoboHubText::tag(self::TAGE[(int)$tag] ?? '?') . ' ' . $e[0] . ' · ' . (int)$e[1] . ' min' . (!empty($e[2]) ? RoboHubText::t(' · with edge cut') : '')];
                 }
             }
         }
         foreach ((array)($sc['slots'] ?? []) as $i => $s) {
             if (is_array($s) && (int)($s['t'] ?? 0) > 0) {
                 $termine[] = ['id' => 100 + (int)$i, 'an' => $an, 'art' => 'text',
-                    'text' => RoboHubText::wert(self::TAGE[(int)($s['d'] ?? 0)] ?? '?') . ' ' . sprintf('%02d:%02d', intdiv((int)($s['s'] ?? 0), 60), (int)($s['s'] ?? 0) % 60)
+                    'text' => RoboHubText::tag(self::TAGE[(int)($s['d'] ?? 0)] ?? '?') . ' ' . sprintf('%02d:%02d', intdiv((int)($s['s'] ?? 0), 60), (int)($s['s'] ?? 0) % 60)
                         . ' · ' . (int)$s['t'] . ' min' . (!empty($s['cfg']['cut']['b']) ? RoboHubText::t(' · with edge cut') : '')];
             }
         }
@@ -363,7 +363,7 @@ PEM;
         [$cmd, $name] = self::BEFEHLE[$befehl];
         $name = RoboHubText::wert($name);
         $this->senden($buendel, $geraet, ['cmd' => $cmd]);
-        return RoboHubText::t('Command "%s" sent.', $name);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($name));
     }
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string

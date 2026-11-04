@@ -51,7 +51,7 @@ class RoboHubIndego implements RoboHubTreiber
     // pyIndego MOWER_STATE_DESCRIPTION_DETAIL → [RoboHub-Zustand, Klartext].
     private const ZUSTAENDE = [
         0 => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Reading status'],
-        101 => [RoboHubModell::ZUSTAND_FEHLER, 'Angehoben'],
+        101 => [RoboHubModell::ZUSTAND_FEHLER, 'Lifted'],
         257 => [RoboHubModell::ZUSTAND_LAEDT, 'Charging'],
         258 => [RoboHubModell::ZUSTAND_GELADEN, 'Docked'],
         259 => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'In the station – software update'],
@@ -65,11 +65,11 @@ class RoboHubIndego implements RoboHubTreiber
         514 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – orienting'],
         515 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – loading map'],
         516 => [RoboHubModell::ZUSTAND_KARTIERUNG, 'Learning the lawn'],
-        517 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Pausiert'],
-        518 => [RoboHubModell::ZUSTAND_REINIGT, 'Kantenschnitt'],
+        517 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Paused'],
+        518 => [RoboHubModell::ZUSTAND_REINIGT, 'Edge cutting'],
         519 => [RoboHubModell::ZUSTAND_BEREIT, 'Standing on the lawn'],
         520 => [RoboHubModell::ZUSTAND_PAUSIERT, 'Lawn learning paused'],
-        521 => [RoboHubModell::ZUSTAND_REINIGT, 'Kantenschnitt'],
+        521 => [RoboHubModell::ZUSTAND_REINIGT, 'Edge cutting'],
         523 => [RoboHubModell::ZUSTAND_REINIGT, 'Spot mowing'],
         524 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – random'],
         525 => [RoboHubModell::ZUSTAND_REINIGT, 'Mowing – random, finished'],
@@ -83,11 +83,11 @@ class RoboHubIndego implements RoboHubTreiber
         775 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – lawn finished'],
         776 => [RoboHubModell::ZUSTAND_ZURUECK, 'Returning to base – orienting'],
         1005 => [RoboHubModell::ZUSTAND_FEHLER, 'Station not reached'],
-        1025 => [RoboHubModell::ZUSTAND_FEHLER, 'Diagnosemodus'],
-        1026 => [RoboHubModell::ZUSTAND_FEHLER, 'Lebensende'],
+        1025 => [RoboHubModell::ZUSTAND_FEHLER, 'Diagnostic mode'],
+        1026 => [RoboHubModell::ZUSTAND_FEHLER, 'End of life'],
         1027 => [RoboHubModell::ZUSTAND_FEHLER, 'Service is querying status'],
         1038 => [RoboHubModell::ZUSTAND_FEHLER, 'Mower locked'],
-        1281 => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Software-Update'],
+        1281 => [RoboHubModell::ZUSTAND_AKTUALISIERUNG, 'Software update'],
         1537 => [RoboHubModell::ZUSTAND_FEHLER, 'Stuck, help needed'],
         64513 => [RoboHubModell::ZUSTAND_SCHLAF, 'Sleeping'],
         99999 => [RoboHubModell::ZUSTAND_UNBEKANNT, 'Offline'],
@@ -290,7 +290,7 @@ class RoboHubIndego implements RoboHubTreiber
         [$kommando, $text] = self::BEFEHLE[$befehl];
         $text = RoboHubText::wert($text);
         $this->anfrage($buendel, 'PUT', 'alms/' . rawurlencode((string)$geraet['id']) . '/state', ['state' => $kommando]);
-        return RoboHubText::t('Command "%s" sent.', $text);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
     }
 
     public function karte(array $buendel, array $geraet): array

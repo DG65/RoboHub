@@ -410,17 +410,17 @@ class RoboHubEufy implements RoboHubTreiber
         if ($art === 'scalar') {
             // G50-Mitschnitt (docs/g50_capture/FINDINGS.md): Start 5=1, Heim 5=3, Pause 122=1, Weiter 122=2 (nicht 0).
             $map = ['start' => [$pausiert ? ['122' => 2] : ['5' => 1], 'Start'], 'pause' => [['122' => 1], 'Pause'],
-                'stopp' => [['122' => 1], RoboHubText::t('Stop (on this model like pause)')], 'station' => [['5' => 3], RoboHubText::t('Return to base')], 'orten' => [['103' => 1], 'Orten']];
+                'stopp' => [['122' => 1], RoboHubText::t('Stop (on this model like pause)')], 'station' => [['5' => 3], RoboHubText::t('Return to base')], 'orten' => [['103' => 1], 'Locate']];
         } else {
             $map = ['start' => [['152' => self::modusBefehl($pausiert ? self::WEITER : self::START)], 'Start'], 'pause' => [['152' => self::modusBefehl(self::PAUSE)], 'Pause'],
-                'stopp' => [['152' => self::modusBefehl(self::STOPP)], 'Stopp'], 'station' => [['152' => self::modusBefehl(self::HEIM)], RoboHubText::t('Return to base')],
-                'orten' => [['160' => true], 'Orten']];
+                'stopp' => [['152' => self::modusBefehl(self::STOPP)], 'Stop'], 'station' => [['152' => self::modusBefehl(self::HEIM)], RoboHubText::t('Return to base')],
+                'orten' => [['160' => true], 'Locate']];
         }
         if (!isset($map[$befehl])) {
             throw new RoboHubFehler($befehl === 'raum' ? RoboHubText::t('RoboHub does not control rooms on Eufy (yet).') : RoboHubText::t('This command is not supported by Eufy: %s', $befehl));
         }
         $this->senden($buendel, $geraet, $map[$befehl][0]);
-        return RoboHubText::t('Command "%s" sent.', $map[$befehl][1]);
+        return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($map[$befehl][1]));
     }
 
     /** ModeCtrlRequest (control.proto) als DPS-Wert; Start mit auto_clean{clean_times 1} wie commands.py. Nullwerte weggelassen (proto3). */

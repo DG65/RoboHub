@@ -209,7 +209,7 @@ class IPSModule
 }
 
 // Sprache des Prüfstands: Deutsch wie Dietmars Symcon (locale.json), umschaltbar für die englischen Prüfungen.
-$GLOBALS['SPRACHE'] = 'de';
+$GLOBALS['SPRACHE'] = getenv('ROBOHUB_SPRACHE') ?: 'de';
 $GLOBALS['LOCALE'] = json_decode((string)file_get_contents(dirname(__DIR__) . '/libs/locale.json'), true)['translations'] ?? [];
 function robohubUebersetze(string $t): string
 {
@@ -1814,6 +1814,7 @@ require __DIR__ . '/test-kaercher.inc.php';
 require __DIR__ . '/test-eufy.inc.php';
 require __DIR__ . '/test-eufymaeher.inc.php';
 require __DIR__ . '/test-formlayout.inc.php';
+require __DIR__ . '/test-englisch.inc.php';
 
 abschnitt('Formulare (Konvention)');
 $libVersion = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version'];

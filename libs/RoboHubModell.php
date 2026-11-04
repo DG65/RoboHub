@@ -131,7 +131,7 @@ final class RoboHubModell
         'Hauptbuerste'       => ['Main brush', 1, ' %', 0, 50],
         'Seitenbuerste'      => ['Side brush', 1, ' %', 0, 51],
         'Filter'             => ['Filter', 1, ' %', 0, 52],
-        'Mopp'               => ['Mopp/Walze', 1, ' %', 0, 53],
+        'Mopp'               => ['Mop/roller', 1, ' %', 0, 53],
         'Sensoren'           => ['Sensors', 1, ' %', 0, 54],
         'Abwasserfilter'     => ['Abwasserauslassfilter', 1, ' %', 0, 58],
         'Schmutzwasserbehaelter' => ['Dirty water tank (robot)', 1, ' %', 0, 59],

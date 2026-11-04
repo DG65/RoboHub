@@ -53,7 +53,7 @@ check('… aber nicht ohne laufende Reinigung, und nie über einen unplausiblen 
     && $z(['cleanMissionStatus' => ['phase' => 'run', 'cycle' => 'clean', 'mssnM' => 3, 'mssnStrtTm' => 1], '_abgerufen' => 1700000000])['Dauer'] === 3);
 check('Reinigungen gesamt auch aus cleanMissionStatus.nMssn (980 schickt bbmssn selten)', ($z(['cleanMissionStatus' => ['phase' => 'charge', 'cycle' => 'none', 'nMssn' => 2619]])['GesamtAnzahl'] ?? null) === 2619
     && $z(['cleanMissionStatus' => ['nMssn' => 1], 'bbmssn' => ['nMssn' => 7]])['GesamtAnzahl'] === 7);
-check('stuck + Fehler 17 = Fehler „Weg versperrt", Behälter fehlt', $s['Zustand'] === RoboHubModell::ZUSTAND_FEHLER && $s['Fehler'] === 'Weg versperrt (17)' && $s['Staubbeutel'] === 'Fehlt');
+check('stuck + Fehler 17 = Fehler „Weg versperrt", Behälter fehlt', $s['Zustand'] === RoboHubModell::ZUSTAND_FEHLER && $s['Fehler'] === 'Weg versperrt (17)' && $s['Staubbeutel'] === 'Missing');
 
 // ===========================================================================
 abschnitt('iRobot: nachgestellter Roboter (echtes TLS, UDP, MQTT)');
