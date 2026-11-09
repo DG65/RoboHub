@@ -1437,6 +1437,7 @@
             "Tuya not reachable: %s": "Tuya nicht erreichbar: %s",
             "Tuya rejects %s: %s": "Tuya lehnt %s ab: %s",
             "Two passes": "Zweifach-Reinigung",
+            "Type": "Art",
             "Ultrasonic sensor fault": "Ultraschallsensor gestört",
             "Undocking error at the station": "Abdockfehler an der Station",
             "Undocking problem": "Abdockproblem",

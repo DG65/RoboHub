@@ -250,7 +250,7 @@ class RoboHubKonfigurator extends IPSModule
                     'rowCount' => 8, 'add' => false, 'delete' => true,
                     'columns' => [
                         ['caption' => 'Name', 'name' => 'name', 'width' => 'auto'],
-                        ['caption' => 'Art', 'name' => 'klasse', 'width' => '180px'],
+                        ['caption' => 'Type', 'name' => 'klasse', 'width' => '180px'],
                         ['caption' => 'Account', 'name' => 'konto', 'width' => '260px'],
                         ['caption' => 'Model', 'name' => 'modell', 'width' => '200px'],
                         ['caption' => 'Reachable', 'name' => 'online', 'width' => '170px'],

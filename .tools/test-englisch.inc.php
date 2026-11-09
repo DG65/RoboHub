@@ -193,7 +193,7 @@ foreach (array_merge(glob(__DIR__ . '/../libs/*.php'), glob(__DIR__ . '/../RoboH
             }
             if ($tiefe === 0 && is_array($fkT[$k]) && $fkT[$k][0] === T_CONSTANT_ENCAPSED_STRING) {
                 $s = $fkLit($fkT[$k]);
-                if (preg_match('/[a-z]{3,}/', $s) && !isset($enDe[$s])) { $fkOhne[] = basename($fkDatei) . ':' . $fkT[$k][2] . ' ' . mb_substr($s, 0, 60); }
+                if (preg_match('/\p{L}{3,}/u', $s) && !isset($enDe[$s])) { $fkOhne[] = basename($fkDatei) . ':' . $fkT[$k][2] . ' ' . mb_substr($s, 0, 60); }
             }
         }
     }
