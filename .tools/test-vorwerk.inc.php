@@ -98,7 +98,7 @@ $vSuche = function ($k) use (&$vSuche, &$vSichtbar) {
         $vSuche($w);
     }
 };
-$vSuche(json_decode($vk->GetConfigurationForm(), true));
+$vSuche(json_decode(konsole($vk->GetConfigurationForm()), true));
 $vText = implode("\n", $vSichtbar);
 check('Formular: Vorwerk-Anleitung mit Code-Knopf, VR7 offen ausgenommen, keine Roborock-Anleitung', strpos($vText, 'Vorwerk meldet sich ohne Passwort an') !== false
     && strpos($vText, '📧 Code anfordern') !== false && strpos($vText, 'der VR7 nutzt eine andere Cloud') !== false && strpos($vText, 'Roborock meldet sich') === false);

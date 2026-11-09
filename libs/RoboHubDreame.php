@@ -66,12 +66,12 @@ class RoboHubDreame implements RoboHubTreiber
     public static function regionen(): array
     {
         return [
-            ['caption' => RoboHubText::t('Europe (also DE/AT/CH)'), 'value' => 'eu'],
-            ['caption' => RoboHubText::t('North America (untested)'), 'value' => 'us'],
-            ['caption' => RoboHubText::t('Singapore/Asia (untested)'), 'value' => 'sg'],
-            ['caption' => RoboHubText::t('Russia (untested)'), 'value' => 'ru'],
-            ['caption' => RoboHubText::t('South Korea (untested)'), 'value' => 'kr'],
-            ['caption' => RoboHubText::t('China (untested)'), 'value' => 'cn'],
+            ['caption' => 'Europe (also DE/AT/CH)', 'value' => 'eu'],
+            ['caption' => 'North America (untested)', 'value' => 'us'],
+            ['caption' => 'Singapore/Asia (untested)', 'value' => 'sg'],
+            ['caption' => 'Russia (untested)', 'value' => 'ru'],
+            ['caption' => 'South Korea (untested)', 'value' => 'kr'],
+            ['caption' => 'China (untested)', 'value' => 'cn'],
         ];
     }
 

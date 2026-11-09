@@ -123,7 +123,7 @@ $wk = new RoboHubKonto(5000);
 $wk->props['Hersteller'] = 'worx';
 $wk->Create();
 $wk->ApplyChanges();
-$f = json_encode(json_decode($wk->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$f = json_encode(json_decode(konsole($wk->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 $elemente = [];
 $sammeln = function (array $knoten) use (&$sammeln, &$elemente): void {
     if (isset($knoten['type'])) {
@@ -135,7 +135,7 @@ $sammeln = function (array $knoten) use (&$sammeln, &$elemente): void {
         }
     }
 };
-$sammeln(json_decode($wk->GetConfigurationForm(), true));
+$sammeln(json_decode(konsole($wk->GetConfigurationForm()), true));
 $finde = function (string $schluessel, string $wert) use ($elemente): ?array {
     foreach ($elemente as $e) {
         if (($e[$schluessel] ?? null) === $wert) {

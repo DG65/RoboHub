@@ -82,7 +82,7 @@ $hk = new RoboHubKonto(8000);
 $hk->props['Hersteller'] = 'husqvarna';
 $hk->Create();
 $hk->ApplyChanges();
-$f = json_encode(json_decode($hk->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$f = json_encode(json_decode(konsole($hk->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: Application Key/Secret, Anleitung Entwicklerportal', strpos($f, '"caption":"Application Key"') !== false && strpos($f, 'Application Secret (bleibt im Konto gespeichert)') !== false && strpos($f, 'developer.husqvarnagroup.cloud') !== false);
 $hk->props['Konto'] = 'garten@example.org';
 $hk->props['Passwort'] = 'GEHEIM';
@@ -251,7 +251,7 @@ unset($GLOBALS['INST'][8500], $GLOBALS['INST'][8501], $GLOBALS['INST'][8502]);
 $cfgW = new RoboHubKonfigurator(8600);
 $cfgW->Create();
 $cfgW->ApplyChanges();
-$wf = json_decode($cfgW->GetConfigurationForm(), true);
+$wf = json_decode(konsole($cfgW->GetConfigurationForm()), true);
 $kette = null;
 foreach ($wf['elements'] as $e) { foreach (($e['items'] ?? []) as $i) { if (($i['type'] ?? '') === 'Configurator') { foreach ($i['values'] as $v) { if (($v['id'] ?? '') === 'M2') { $kette = $v['create'] ?? null; } } } } }
 check('Konfigurator-Kette endet beim WebSocket Client des Husqvarna-Kontos', ($kette[2]['moduleID'] ?? '') === '{D68FD31F-0E90-7019-F16C-1949BD3079EF}', json_encode($kette));

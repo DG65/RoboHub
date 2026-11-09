@@ -148,7 +148,7 @@ $nwSuche = function ($k) use (&$nwSuche, &$nwSichtbar) {
         $nwSuche($w);
     }
 };
-$nwSuche(json_decode($nwk->GetConfigurationForm(), true));
+$nwSuche(json_decode(konsole($nwk->GetConfigurationForm()), true));
 $fText = implode("\n", $nwSichtbar);
 check('Formular: Narwal-Anleitung sichtbar, iRobot-Anleitung und Passwortfeld nicht, IP-Feld', strpos($fText, 'Narwal läuft lokal, ohne Cloud und ohne Passwort') !== false
     && strpos($fText, 'am Roboter die HOME-Taste') === false && strpos($fText, '[Passwort]') === false && strpos($fText, 'IP-Adresse des Roboters [Konto]') !== false, $fText);
@@ -244,7 +244,7 @@ FakeNarwalRoboter::$stumm = true;
 $t = $nwr->Orten();
 check('Roboter antwortet nicht: verständlicher Fehler', strpos($t, 'antwortet nicht auf „common/yell"') !== false, $t);
 FakeNarwalRoboter::$stumm = false;
-check('Narwal: Echtzeit-Socket bleibt geschlossen', strpos(json_encode(json_decode($nwk->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), 'Für Narwal gibt es noch keine Echtzeit') !== false);
+check('Narwal: Echtzeit-Socket bleibt geschlossen', strpos(json_encode(json_decode(konsole($nwk->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE), 'Für Narwal gibt es noch keine Echtzeit') !== false);
 $GLOBALS['robohubTreiberFabrik'] = $fabrikNw;
 
 // Netzwerkschicht gegen einen echten WebSocket-Gegenspieler (Handschlag, Ping/Pong, zerteilte Nachricht, Schließen).

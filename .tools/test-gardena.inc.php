@@ -75,7 +75,7 @@ $gk = new RoboHubKonto(9000);
 $gk->props['Hersteller'] = 'gardena';
 $gk->Create();
 $gk->ApplyChanges();
-$f = json_encode(json_decode($gk->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$f = json_encode(json_decode(konsole($gk->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: GARDENA smart system API in der Anleitung, 15-Minuten-Hinweis', strpos($f, 'GARDENA smart system API') !== false && strpos($f, 'höchstens alle 15 Minuten') !== false);
 $gk->props['Konto'] = $GLOBALS['gaSchluessel'];
 $gk->props['Passwort'] = 'FALSCH';

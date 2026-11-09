@@ -361,10 +361,10 @@ foreach ([['Schnitthoehe', 47], ['Schnitthoehe', 80], ['Lautstaerke', 101], ['Et
 check('Einstellungen außerhalb des Bereichs abgelehnt', $fehler === 4 && $emG->geschrieben === []);
 
 // Formular
-$emF = json_encode(json_decode($em->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$emF = json_encode(json_decode(konsole($em->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: IP-Feld und Hinweis nur beim Eufy-Mäher', strpos($emF, '"name":"MaeherIP","visible":true') !== false && strpos($emF, 'Eufy-Mäher E15: läuft lokal') !== false);
 $em->props['Hersteller'] = 'eufy';
-$emF = json_encode(json_decode($em->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$emF = json_encode(json_decode(konsole($em->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('… beim Saugroboter-Eufy ausgeblendet', strpos($emF, '"name":"MaeherIP","visible":false') !== false);
 $em->props['Hersteller'] = 'eufymaeher';
 

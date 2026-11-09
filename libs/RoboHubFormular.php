@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.36.0' => [
+            '• Forms are now translated by Symcon itself (as Symcon recommends) — fixed labels no longer go through RoboHub\'s own translation, so forms open faster.',
+        ],
         '0.35.2' => [
             '• Room settings: values stored before the switch (e.g. "Vacuum · Standard") now also appear in the current language, right after the update.',
         ],
@@ -143,10 +146,10 @@ trait RoboHubFormular
         foreach ($this->robohubPurposeLines() as $line) {
             $items[] = ['type' => 'Label', 'caption' => $line];
         }
-        $items[] = ['type' => 'Button', 'caption' => RoboHubText::t('Got it – don\'t show again'), 'onClick' => $this->robohubModulePrefix() . '_AckPurposeIntro($id);'];
+        $items[] = ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => $this->robohubModulePrefix() . '_AckPurposeIntro($id);'];
         return [
             'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
-            'caption' => RoboHubText::t('👋  What is this module for?'),
+            'caption' => '👋  What is this module for?',
             'items' => $items,
         ];
     }
@@ -171,10 +174,10 @@ trait RoboHubFormular
         foreach ($pending as $version => $lines) {
             $items[] = ['type' => 'Label', 'caption' => RoboHubText::t('Version %s:', $version)];
             foreach ($lines as $line) {
-                $items[] = ['type' => 'Label', 'caption' => RoboHubText::t($line)];
+                $items[] = ['type' => 'Label', 'caption' => $line];   // die Konsole übersetzt selbst (Store-Punkt 25)
             }
         }
-        $items[] = ['type' => 'Button', 'caption' => RoboHubText::t('Got it – don\'t show again'), 'onClick' => $this->robohubModulePrefix() . '_AckNews($id);'];
+        $items[] = ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => $this->robohubModulePrefix() . '_AckNews($id);'];
         $keys = array_keys($pending);
         return [
             'type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'expanded' => true,
@@ -193,10 +196,10 @@ trait RoboHubFormular
         foreach ($this->robohubDocLines() as $line) {
             $items[] = ['type' => 'Label', 'caption' => $line];
         }
-        $items[] = ['type' => 'Button', 'caption' => RoboHubText::t('Manual on GitHub'), 'onClick' => "echo '" . self::$ROBOHUB_REPO_URL . "';", 'link' => true];
+        $items[] = ['type' => 'Button', 'caption' => 'Manual on GitHub', 'onClick' => "echo '" . self::$ROBOHUB_REPO_URL . "';", 'link' => true];
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => RoboHubText::t('📖  Documentation & help'),
+            'caption' => '📖  Documentation & help',
             'items' => $items,
         ];
     }
@@ -209,12 +212,12 @@ trait RoboHubFormular
         // Forum-Thread seit 0.12.4; GitHub bleibt als zweiter Weg für Fehlerberichte.
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => RoboHubText::t('💬  Feedback'),
+            'caption' => '💬  Feedback',
             'items' => [
-                ['type' => 'Label', 'caption' => RoboHubText::t('🧪 RoboHub is new. Does your robot work? Is a value missing, or do you have a model that is not supported yet? Feel free to post in the RoboHub thread in the Symcon forum — with the model name and, if available, the content of "Raw data".')],
-                ['type' => 'Button', 'caption' => RoboHubText::t('Go to the forum thread'), 'onClick' => "echo '" . self::$ROBOHUB_FORUM_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => RoboHubText::t('Report a bug on GitHub'), 'onClick' => "echo '" . self::$ROBOHUB_ISSUES_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => RoboHubText::t('Got it – don\'t show again'), 'onClick' => $this->robohubModulePrefix() . '_AckForumHint($id);'],
+                ['type' => 'Label', 'caption' => '🧪 RoboHub is new. Does your robot work? Is a value missing, or do you have a model that is not supported yet? Feel free to post in the RoboHub thread in the Symcon forum — with the model name and, if available, the content of "Raw data".'],
+                ['type' => 'Button', 'caption' => 'Go to the forum thread', 'onClick' => "echo '" . self::$ROBOHUB_FORUM_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Report a bug on GitHub', 'onClick' => "echo '" . self::$ROBOHUB_ISSUES_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => $this->robohubModulePrefix() . '_AckForumHint($id);'],
             ],
         ];
     }
@@ -224,14 +227,14 @@ trait RoboHubFormular
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => RoboHubText::t('🧡  About this module'),
+            'caption' => '🧡  About this module',
             'items' => [
-                ['type' => 'Label', 'caption' => RoboHubText::t('Born out of real enthusiasm for my own setup — and quite a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.')],
-                ['type' => 'Label', 'caption' => RoboHubText::t('License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use requires a separate license from the rights holder.')],
-                ['type' => 'Button', 'caption' => RoboHubText::t('View license text'), 'onClick' => "echo '" . self::$ROBOHUB_LICENSE_URL . "';", 'link' => true],
-                ['type' => 'Label', 'caption' => RoboHubText::t('Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu')],
-                ['type' => 'Label', 'caption' => RoboHubText::t('You like the module and would like to leave something anyway? I am happy about a small donation — completely voluntary, nothing required in return.')],
-                ['type' => 'Button', 'caption' => RoboHubText::t('☕  Donate via PayPal'), 'onClick' => "echo '" . self::$ROBOHUB_PAYPAL_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Born out of real enthusiasm for my own setup — and quite a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.'],
+                ['type' => 'Label', 'caption' => 'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use requires a separate license from the rights holder.'],
+                ['type' => 'Button', 'caption' => 'View license text', 'onClick' => "echo '" . self::$ROBOHUB_LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'You like the module and would like to leave something anyway? I am happy about a small donation — completely voluntary, nothing required in return.'],
+                ['type' => 'Button', 'caption' => '☕  Donate via PayPal', 'onClick' => "echo '" . self::$ROBOHUB_PAYPAL_URL . "';", 'link' => true],
             ],
         ];
     }
@@ -322,7 +325,8 @@ trait RoboHubFormular
         $rows   = [];
         $hidden = [];
         foreach ($layout as $key => $l) {
-            $name = self::robohubPanelName($panels[$key] ?? [], (string)$key);
+            // Listenzeilen und Sätze mit Werten übersetzt die Konsole nicht — hier selbst (Store-Punkt 25).
+            $name = RoboHubText::t(self::robohubPanelName($panels[$key] ?? [], (string)$key));
             $rows[] = ['Key' => (string)$key, 'Panel' => $name, 'Opened' => $l['open'] === 'open', 'Closed' => $l['open'] === 'closed',
                 'Hidden' => $l['open'] === 'hidden', 'Pos' => $l['pos']];
             if ($l['open'] === 'hidden') {
@@ -336,22 +340,22 @@ trait RoboHubFormular
             'type' => 'ExpansionPanel', 'expanded' => false,
             'caption' => RoboHubText::t('🪟  Form: layout%s', ($hidden ? RoboHubText::t(' (%s hidden)', count($hidden)) : '')),
             'items' => array_merge($hiddenLine, [
-                ['type' => 'Label', 'caption' => RoboHubText::t('Here you decide which sections are expanded when the form opens and in which order they appear. Symcon does not remember expanding and collapsing, so this setting applies every time the form opens. It takes effect after "Apply" the next time the form is opened.')],
-                ['type' => 'Label', 'caption' => RoboHubText::t('No checkbox means "default": as the module intends. The position is a number; with equal numbers the default order applies. "Hidden" removes a section from the display without it losing anything: its settings are kept and keep working. To show it again, clear the checkbox or click "Reset to default". If several checkboxes are set, "Hidden" wins over "Collapsed", which wins over "Expanded". The sections at the top (purpose, news, documentation) and at the bottom (feedback, about this module) stay where they are and cannot be hidden. Sections that currently have nothing to show (e.g. rooms without a map) only appear in the list once they exist.')],
+                ['type' => 'Label', 'caption' => 'Here you decide which sections are expanded when the form opens and in which order they appear. Symcon does not remember expanding and collapsing, so this setting applies every time the form opens. It takes effect after "Apply" the next time the form is opened.'],
+                ['type' => 'Label', 'caption' => 'No checkbox means "default": as the module intends. The position is a number; with equal numbers the default order applies. "Hidden" removes a section from the display without it losing anything: its settings are kept and keep working. To show it again, clear the checkbox or click "Reset to default". If several checkboxes are set, "Hidden" wins over "Collapsed", which wins over "Expanded". The sections at the top (purpose, news, documentation) and at the bottom (feedback, about this module) stay where they are and cannot be hidden. Sections that currently have nothing to show (e.g. rooms without a map) only appear in the list once they exist.'],
                 [
-                    'type' => 'List', 'name' => 'FormLayout', 'caption' => RoboHubText::t('Sections'), 'rowCount' => count($rows), 'add' => false, 'delete' => false,
+                    'type' => 'List', 'name' => 'FormLayout', 'caption' => 'Sections', 'rowCount' => count($rows), 'add' => false, 'delete' => false,
                     'loadValuesFromConfiguration' => false,
                     'values' => $rows,
                     'columns' => [
-                        ['caption' => RoboHubText::t('Section'), 'name' => 'Panel', 'width' => 'auto', 'add' => ''],
-                        ['caption' => RoboHubText::t('Key'), 'name' => 'Key', 'width' => '0px', 'visible' => false, 'add' => '', 'save' => true],
-                        ['caption' => RoboHubText::t('Expanded'), 'name' => 'Opened', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
-                        ['caption' => RoboHubText::t('Collapsed'), 'name' => 'Closed', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
-                        ['caption' => RoboHubText::t('🙈 Hidden'), 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
-                        ['caption' => RoboHubText::t('Position'), 'name' => 'Pos', 'width' => '100px', 'add' => 1, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 1, 'maximum' => 99]],
+                        ['caption' => 'Section', 'name' => 'Panel', 'width' => 'auto', 'add' => ''],
+                        ['caption' => 'Key', 'name' => 'Key', 'width' => '0px', 'visible' => false, 'add' => '', 'save' => true],
+                        ['caption' => 'Expanded', 'name' => 'Opened', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Collapsed', 'name' => 'Closed', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => '🙈 Hidden', 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Position', 'name' => 'Pos', 'width' => '100px', 'add' => 1, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 1, 'maximum' => 99]],
                     ],
                 ],
-                ['type' => 'Button', 'caption' => RoboHubText::t('↩️ Reset to default'), 'onClick' => 'echo ' . $this->robohubModulePrefix() . '_ResetFormLayout($id);'],
+                ['type' => 'Button', 'caption' => '↩️ Reset to default', 'onClick' => 'echo ' . $this->robohubModulePrefix() . '_ResetFormLayout($id);'],
             ]),
         ];
     }

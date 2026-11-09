@@ -80,7 +80,7 @@ $miSuche = function ($k) use (&$miSuche, &$miSichtbar) {
         $miSuche($w);
     }
 };
-$miSuche(json_decode($mk->GetConfigurationForm(), true));
+$miSuche(json_decode(konsole($mk->GetConfigurationForm()), true));
 $miText = implode("\n", $miSichtbar);
 check('Formular: Miele-Anleitung, Client-Felder, Land-Auswahl (de-DE zuerst), keine AL-KO-Anleitung', strpos($miText, 'developer.miele.com') !== false
     && strpos($miText, 'Client-ID (von Miele) [ClientId]') !== false && strpos($miText, 'Land des Kontos (wie in der App) [Region] {de-DE}') !== false

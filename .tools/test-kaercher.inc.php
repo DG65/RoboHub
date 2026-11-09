@@ -140,7 +140,7 @@ $kaSuche = function ($k) use (&$kaSuche, &$kaSichtbar) {
         $kaSuche($w);
     }
 };
-$kaSuche(json_decode($ka->GetConfigurationForm(), true));
+$kaSuche(json_decode(konsole($ka->GetConfigurationForm()), true));
 $kaText = implode("\n", $kaSichtbar);
 check('Formular: Kärcher-Regionen, E-Mail + Passwort, keine Client-Felder', strpos($kaText, 'Region des Kontos [Region] {Europa (auch DE/AT/CH)}') !== false
     && strpos($kaText, 'E-Mail des Kontos [Konto]') !== false && strpos($kaText, 'Passwort (nur für die Anmeldung, wird danach verworfen) [Passwort]') !== false

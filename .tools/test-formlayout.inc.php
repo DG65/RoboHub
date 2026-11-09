@@ -30,7 +30,7 @@ $flIndex = function (array $caps, string $anfang): int {
 
 // Standard: Panel da, eingeklappt, nach den Fachpanels und vor dem Rückmeldungs-Hinweis
 $konto->props['FormLayout'] = '[]';
-$kf    = json_decode($konto->GetConfigurationForm(), true);
+$kf    = json_decode(konsole($konto->GetConfigurationForm()), true);
 $kc    = $flCaptions($kf);
 $iAuf  = $flIndex($kc, '🪟  Formular: Aufbau');
 $iKonto = $flIndex($kc, '🔑  Konto');
@@ -57,7 +57,7 @@ $konto->props['FormLayout'] = json_encode([
     ['Key' => 'geraete', 'Panel' => 'x', 'Opened' => false, 'Closed' => true, 'Hidden' => false, 'Pos' => 3],
     ['Key' => 'echtzeit', 'Panel' => 'x', 'Opened' => true, 'Closed' => false, 'Hidden' => false, 'Pos' => 1],
 ]);
-$kf = json_decode($konto->GetConfigurationForm(), true);
+$kf = json_decode(konsole($konto->GetConfigurationForm()), true);
 $kc = $flCaptions($kf);
 $iKonto = $flIndex($kc, '🔑  Konto');
 $iEcht  = $flIndex($kc, '⚡  Echtzeit-Meldungen');
@@ -75,20 +75,20 @@ $konto->props['FormLayout'] = json_encode([
     ['Key' => 'geraete', 'Opened' => true, 'Closed' => true, 'Hidden' => true, 'Pos' => 2],
     ['Key' => 'echtzeit', 'Opened' => true, 'Closed' => true, 'Hidden' => false, 'Pos' => 3],
 ]);
-$kf = json_decode($konto->GetConfigurationForm(), true);
+$kf = json_decode(konsole($konto->GetConfigurationForm()), true);
 $kc = $flCaptions($kf);
 check('Widerspruch: ausgeblendet gewinnt, dann zugeklappt', ($kf['elements'][$flIndex($kc, '🤖  Geräte im Konto')]['visible'] ?? true) === false
     && $kf['elements'][$flIndex($kc, '⚡  Echtzeit-Meldungen')]['expanded'] === false);
 
 // Rückfall: unbekannter Schlüssel, kaputter Text, gleiche Position
 $konto->props['FormLayout'] = json_encode([['Key' => 'gibtsnicht', 'Hidden' => true, 'Pos' => 1], ['Key' => 'echtzeit', 'Pos' => 1]]);
-$kf = json_decode($konto->GetConfigurationForm(), true);
+$kf = json_decode(konsole($konto->GetConfigurationForm()), true);
 $kc = $flCaptions($kf);
 check('Rückfall: unbekannter Schlüssel ignoriert, gleiche Position → Standardreihenfolge',
     $flIndex($kc, '🔑  Konto') < $flIndex($kc, '⚡  Echtzeit-Meldungen') && $flIndex($kc, '⚡  Echtzeit-Meldungen') < $flIndex($kc, '🤖  Geräte im Konto')
     && strpos((string)json_encode($kf), '"visible":false,"caption":"🔐') === false, json_encode($kc, JSON_UNESCAPED_UNICODE));
 $konto->props['FormLayout'] = '{kaputt';
-$kf = json_decode($konto->GetConfigurationForm(), true);
+$kf = json_decode(konsole($konto->GetConfigurationForm()), true);
 $kc = $flCaptions($kf);
 check('Rückfall: kaputter Text → Standard', $flIndex($kc, '🔑  Konto') < $flIndex($kc, '🤖  Geräte im Konto') && $flIndex($kc, '🤖  Geräte im Konto') < $flIndex($kc, '⚡  Echtzeit-Meldungen'));
 
@@ -109,7 +109,7 @@ $konto->props['FormLayout'] = '[]';
 
 // Roboter: nur vorhandene Fachpanels in der Liste, Aufbau vor dem Lizenz-Panel
 $geraet->props['FormLayout'] = '[]';
-$gf  = json_decode($geraet->GetConfigurationForm(), true);
+$gf  = json_decode(konsole($geraet->GetConfigurationForm()), true);
 $gauf = $flPanel($gf, '🪟  Formular: Aufbau');
 $gl = null;
 foreach ($gauf['items'] ?? [] as $it) {
@@ -122,7 +122,7 @@ check('Roboter: Aufbau-Panel mit den vorhandenen Fachpanels', $gl !== null && co
     && in_array('kachel', $gKeys, true) && in_array('technik', $gKeys, true), json_encode($gKeys));
 check('Roboter: Knopf ruft ROBO_ResetFormLayout', strpos(json_encode($gauf), 'ROBO_ResetFormLayout($id)') !== false);
 $geraet->props['FormLayout'] = json_encode([['Key' => 'technik', 'Opened' => true, 'Pos' => 1]]);
-$gf = json_decode($geraet->GetConfigurationForm(), true);
+$gf = json_decode(konsole($geraet->GetConfigurationForm()), true);
 $gc = $flCaptions($gf);
 $iTech = $flIndex($gc, '🛠️');
 check('Roboter: Technik nach oben (vor allen anderen Fachpanels) und aufgeklappt', $iTech >= 0 && $gf['elements'][$iTech]['expanded'] === true
@@ -132,4 +132,4 @@ $geraet->props['FormLayout'] = '[]';
 // Konfigurator: nur ein Fachpanel → kein Aufbau-Panel
 $cfgFl = new RoboHubKonfigurator(2990);
 $cfgFl->Create();
-check('Konfigurator (ein Fachpanel): kein Aufbau-Panel', $flPanel(json_decode($cfgFl->GetConfigurationForm(), true), '🪟  Formular: Aufbau') === null);
+check('Konfigurator (ein Fachpanel): kein Aufbau-Panel', $flPanel(json_decode(konsole($cfgFl->GetConfigurationForm()), true), '🪟  Formular: Aufbau') === null);

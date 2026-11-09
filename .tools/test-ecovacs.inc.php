@@ -145,7 +145,7 @@ $ek->props['Passwort'] = 'geheim';
 $t = $ek->Anmelden();
 $vs = json_decode($ek->ReadAttributeString('AnmeldeVorstufe'), true);
 check('Bestätigung verlangt → Hinweis, Vorstufe gemerkt, Passwortfeld geleert', strpos($t, '📧') === 0 && ($vs['pwmd5'] ?? '') === md5('geheim') && $ek->props['Passwort'] === '' && $ek->ReadAttributeString('Buendel') === '', $t);
-check('Formular zeigt jetzt den Code-Knopf', strpos(json_encode(json_decode($ek->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), '"caption":"📧 Code anfordern","visible":true') !== false);
+check('Formular zeigt jetzt den Code-Knopf', strpos(json_encode(json_decode(konsole($ek->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE), '"caption":"📧 Code anfordern","visible":true') !== false);
 $t = $ek->CodeAnfordern();
 check('Code angefordert, E-Mail RSA-verschlüsselt (mit privatem Schlüssel lesbar)', strpos($t, '📧') === 0 && FakeEcovacs::$codeMail === 'putz@example.org', $t);
 $ek->props['Passwort'] = '999999';

@@ -148,3 +148,55 @@ $GLOBALS['SPRACHE'] = 'de';
 $enAnzeigeDe = $enAlle();
 check('gespeicherte Werte auf Englisch (auch alte deutsche)', $enAnzeigeEn === 'Vacuum|Vacuum and mop|Quiet|Strong|Medium|Moisture 16|Moisture 16|Level 7|Mode 5|Standard', $enAnzeigeEn);
 check('gespeicherte Werte auf Deutsch (auch neue englische)', $enAnzeigeDe === 'Saugen|Saugen und Wischen|Leise|Stark|Mittel|Feuchte 16|Feuchte 16|Stufe 7|Modus 5|Standard', $enAnzeigeDe);
+
+// Store-Punkt 25 (Symcon-Review 06.11.2026): Die Konsole übersetzt caption/label/confirm selbst. Feste Formulartexte stehen deshalb
+// englisch im Code (kein RoboHubText::t() ohne Werte) und brauchen einen locale.json-Eintrag, sonst bleiben sie auf Deutsch englisch.
+$fkFest = [];
+$fkOhne = [];
+foreach (array_merge(glob(__DIR__ . '/../libs/*.php'), glob(__DIR__ . '/../RoboHub*/module.php')) as $fkDatei) {
+    $fkT = token_get_all((string)file_get_contents($fkDatei));
+    $fkN = count($fkT);
+    $fkSig = function ($i) use ($fkT) { return !(is_array($fkT[$i]) && in_array($fkT[$i][0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)); };
+    $fkFunktion = '';
+    for ($i = 0; $i < $fkN - 2; $i++) {
+        if (is_array($fkT[$i]) && $fkT[$i][0] === T_FUNCTION) {
+            $j = $i + 1; while (!$fkSig($j)) $j++;
+            $fkFunktion = is_array($fkT[$j]) ? $fkT[$j][1] : '';
+        }
+        $fkLit = function ($t) { return $t[1][0] === "'" ? str_replace(["\\'", '\\\\'], ["'", '\\'], substr($t[1], 1, -1)) : stripcslashes(substr($t[1], 1, -1)); };
+        // Einleitungs- und Doku-Zeilen: jedes Literal im Rückgabe-Array
+        if (in_array($fkFunktion, ['robohubPurposeLines', 'robohubDocLines'], true) && is_array($fkT[$i]) && $fkT[$i][0] === T_CONSTANT_ENCAPSED_STRING) {
+            $s = $fkLit($fkT[$i]);
+            if (!isset($enDe[$s])) { $fkOhne[] = basename($fkDatei) . ': ' . mb_substr($s, 0, 60); }
+            continue;
+        }
+        if (!(is_array($fkT[$i]) && $fkT[$i][0] === T_CONSTANT_ENCAPSED_STRING && in_array(substr($fkT[$i][1], 1, -1), ['caption', 'label', 'confirm'], true))) continue;
+        $j = $i + 1; while (!$fkSig($j)) $j++;
+        if (!(is_array($fkT[$j]) && $fkT[$j][0] === T_DOUBLE_ARROW)) continue;
+        // Wert bis zum Ende des Elements: feste t() melden, Literale (auch in Ternären) gegen locale.json prüfen
+        $tiefe = 0;
+        for ($k = $j + 1; $k < $fkN; $k++) {
+            $x = is_array($fkT[$k]) ? $fkT[$k][1] : $fkT[$k];
+            if ($x === '(' || $x === '[') { $tiefe++; continue; }
+            if ($x === ')' || $x === ']') { if ($tiefe === 0) break; $tiefe--; continue; }
+            if ($tiefe === 0 && $x === ',') break;
+            if ($x === 'RoboHubText' && ($fkT[$k + 2][1] ?? '') === 't') {
+                $a = $k + 4; while (!$fkSig($a)) $a++;
+                $b = $a + 1; while (!$fkSig($b)) $b++;
+                if (is_array($fkT[$a]) && $fkT[$a][0] === T_CONSTANT_ENCAPSED_STRING && $fkT[$b] === ')') {
+                    $fkFest[] = basename($fkDatei) . ':' . $fkT[$a][2] . ' ' . mb_substr($fkLit($fkT[$a]), 0, 50);
+                }
+                // Literale innerhalb von t(…, Werte) übersetzt RoboHub selbst — nicht als Formular-Literal prüfen
+                $d = 0;
+                for ($k = $k + 3; $k < $fkN; $k++) { $y = is_array($fkT[$k]) ? $fkT[$k][1] : $fkT[$k]; if ($y === '(') $d++; elseif ($y === ')') { if ($d === 0) break; $d--; } }
+                continue;
+            }
+            if ($tiefe === 0 && is_array($fkT[$k]) && $fkT[$k][0] === T_CONSTANT_ENCAPSED_STRING) {
+                $s = $fkLit($fkT[$k]);
+                if (preg_match('/[a-z]{3,}/', $s) && !isset($enDe[$s])) { $fkOhne[] = basename($fkDatei) . ':' . $fkT[$k][2] . ' ' . mb_substr($s, 0, 60); }
+            }
+        }
+    }
+}
+check('Formular: kein RoboHubText::t() ohne Werte als caption/label/confirm (die Konsole übersetzt selbst)', $fkFest === [], implode(' | ', array_slice($fkFest, 0, 6)) . ' (' . count($fkFest) . ')');
+check('Formular: jeder feste Text hat einen deutschen Eintrag in locale.json', $fkOhne === [], implode(' | ', array_slice($fkOhne, 0, 8)) . ' (' . count($fkOhne) . ')');

@@ -79,7 +79,7 @@ $alSuche = function ($k) use (&$alSuche, &$alSichtbar) {
         $alSuche($w);
     }
 };
-$alSuche(json_decode($ak->GetConfigurationForm(), true));
+$alSuche(json_decode(konsole($ak->GetConfigurationForm()), true));
 $alText = implode("\n", $alSichtbar);
 check('Formular: Anleitung zum API-Zugang, Felder Client-ID/Secret sichtbar, offen erklärt warum gespeichert', strpos($alText, 'iot-api-zugang-anfordern') !== false
     && strpos($alText, '[ClientId]') !== false && strpos($alText, '[ClientSecret]') !== false && strpos($alText, 'weil AL-KO den Zugang nur damit erneuert') !== false);

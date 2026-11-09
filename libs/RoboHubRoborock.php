@@ -157,7 +157,7 @@ PEM;
     /** Regionen-Auswahl: Roborock findet den Server über die E-Mail selbst. */
     public static function regionen(): array
     {
-        return [['caption' => RoboHubText::t('automatic (via the e-mail)'), 'value' => 'eu']];
+        return [['caption' => 'automatic (via the e-mail)', 'value' => 'eu']];
     }
 
     /** Schritt 1: Roborock schickt einen Anmeldecode an die E-Mail. */

@@ -215,6 +215,29 @@ function robohubUebersetze(string $t): string
 {
     return $GLOBALS['LOCALE'][$GLOBALS['SPRACHE']][$t] ?? $t;
 }
+/**
+ * Nachbildung der Konsole: Sie übersetzt caption/label/confirm im Formular selbst über die locale.json
+ * (Store-Punkt 25, Symcon-Review 06.11.2026) — exakt passende Texte, in der Sprache der Konsole.
+ */
+function konsole(string $json): string
+{
+    // Objekte bleiben Objekte (sonst würde aus {} ein []).
+    $uebersetze = function ($x) use (&$uebersetze) {
+        if (!is_array($x) && !is_object($x)) {
+            return $x;
+        }
+        foreach ($x as $k => $v) {
+            $neu = (in_array($k, ['caption', 'label', 'confirm'], true) && is_string($v)) ? robohubUebersetze($v) : $uebersetze($v);
+            if (is_object($x)) {
+                $x->$k = $neu;
+            } else {
+                $x[$k] = $neu;
+            }
+        }
+        return $x;
+    };
+    return (string)json_encode($uebersetze(json_decode($json, false)), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
 require dirname(__DIR__) . '/RoboHubKonto/module.php';
 require dirname(__DIR__) . '/RoboHubGeraet/module.php';
 require dirname(__DIR__) . '/RoboHubKonfigurator/module.php';
@@ -466,7 +489,7 @@ abschnitt('Konfigurator');
 $cfg = new RoboHubKonfigurator(3000);
 $cfg->Create();
 $cfg->ApplyChanges();
-$form = json_decode($cfg->GetConfigurationForm(), true);
+$form = json_decode(konsole($cfg->GetConfigurationForm()), true);
 check('Konfigurator-Formular ist gültiges JSON', is_array($form));
 $liste = null;
 array_walk_recursive($form, function () {});
@@ -486,7 +509,7 @@ check('kein erfundener parent-Schlüssel in create', !isset($liste['values'][0][
 $kette = $liste['values'][0]['create'] ?? [];
 check('create ist die Kette Roboter → Konto → Client Socket (Symcon 9.1 verlangt sie vollständig)', count($kette) === 3
     && $kette[2]['moduleID'] === '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}' && $kette[2]['configuration'] === []
-    && strpos($cfg->GetConfigurationForm(), '"moduleID":"{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}","configuration":{}') !== false
+    && strpos(konsole($cfg->GetConfigurationForm()), '"moduleID":"{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}","configuration":{}') !== false
     && $kette[0]['moduleID'] === '{631DA85B-5985-4C25-B222-E47FDD49E302}' && $kette[1]['moduleID'] === '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}'
     && $kette[1]['configuration'] === ['Hersteller' => 'dreame', 'Konto' => 'nutzer@example.org'] && $kette[0]['name'] === 'Aqua10', json_encode($kette));
 
@@ -842,7 +865,7 @@ $d = kachelJson(hook($geraet, ['key' => $schluessel]));
 check('Seite mit Schlüssel + Freigabe: bedienbar', $d['bedienung'] === true && $d['key'] === $schluessel);
 $t = $geraet->NeuerWebSchluessel();
 check('neuer Schlüssel: alter wird ungültig', $geraet->ReadAttributeString('WebSchluessel') !== $schluessel && json_decode(hook($geraet, ['cmd' => 'Befehl', 'wert' => '5', 'key' => $schluessel]), true)['ok'] === false);
-$form = $geraet->GetConfigurationForm();
+$form = konsole($geraet->GetConfigurationForm());
 $formKlar = json_encode(json_decode($form, true), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 check('Formular: Panel „Kachel und IPSView" mit Hook-Adresse', strpos($formKlar, 'Kachel und IPSView') !== false && strpos($formKlar, '/hook/robohub2000') !== false);
 $jd = json_decode(hook($geraet, ['json' => '1', 'key' => $geraet->ReadAttributeString('WebSchluessel')]), true);
@@ -900,7 +923,7 @@ $geraet->props['WebBedienung'] = false;
 FakeCloud::$anfragen = [];
 $j = json_decode(hook($geraet, ['cmd' => 'Zuruecksetzen', 'wert' => 'Filter', 'key' => $gespeichert]), true);
 check('Seite: ohne Freigabe trotz Schlüssel abgelehnt', $j['ok'] === false && count(FakeCloud::befehle()) === 0);
-$formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$formKlar = json_encode(json_decode(konsole($geraet->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: Zurücksetzen-Knopf mit Sicherheitsabfrage', strpos($formKlar, 'Verbrauchsteile zurücksetzen') !== false && strpos($formKlar, '"confirm":"Filter wirklich zurücksetzen?') !== false && strpos($formKlar, "ROBO_VerbrauchsteilZuruecksetzen(\$id, 'Filter')") !== false);
 check('Formular: kein Knopf für Teile ohne Variable (Messer beim Sauger)', strpos($formKlar, 'Klingen zurücksetzen') === false && strpos($formKlar, "'Messer'") === false);
 $_GET = [];
@@ -1193,9 +1216,9 @@ $unbekannt->Create();
 $unbekannt->ApplyChanges();
 $unbekannt->RequestAction('Zuordnen', 0);
 check('unbekannte Geräte-ID bei zwei Konten → keine geratene Verbindung', $unbekannt->parent === null);
-$f = json_decode($neu->GetConfigurationForm(), true);
+$f = json_decode(konsole($neu->GetConfigurationForm()), true);
 check('Roboter-Formular zeigt verbundenes Konto (grün)', strpos(json_encode($f, JSON_UNESCAPED_UNICODE), '🔗 Konto: Instanz 1100 (#1100)') !== false);
-$f = json_decode($unbekannt->GetConfigurationForm(), true);
+$f = json_decode(konsole($unbekannt->GetConfigurationForm()), true);
 check('Roboter ohne Konto: rote ⛔-Zeile', strpos(json_encode($f, JSON_UNESCAPED_UNICODE), '⛔ Kein Konto verbunden') !== false);
 unset($GLOBALS['INST'][2400], $GLOBALS['INST'][2401], $GLOBALS['INST'][2402]);
 
@@ -1251,7 +1274,7 @@ check('unveränderte Einstellungen → kein erneutes Konfigurieren (keine Neuver
 $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
 check('Socket scheitert vor erster Verbindung → Echtzeit 24 h geschlossen', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') > time() + 86000
     && json_decode($konto->GetConfigurationForParent(), true)['Open'] === false);
-$fz = json_encode(json_decode($konto->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$fz = json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular erklärt den Grund (Symcon 9.1, Zertifikat vor 1970) und bietet erneuten Versuch', strpos($fz, 'Symcon 9.1') !== false && strpos($fz, 'vor 1970') !== false
     && strpos($fz, '"caption":"🔁 Echtzeit jetzt erneut versuchen","visible":true') !== false);
 $konto->WriteAttributeInteger('EchtzeitGesperrtBis', time() - 1);
@@ -1272,7 +1295,7 @@ $socket->gesendet = [];
 mqttVomServer($konto, "\x20\x02\x00\x00");
 $sub = $socket->gesendet[0] ?? '';
 check('CONNACK 0 → SUBSCRIBE je Gerät', $sub !== '' && ord($sub[0]) === 0x82 && strpos($sub, '/status/-112663880/' . $b['uid'] . '/dreame.vacuum.r95475/eu/') !== false, bin2hex(substr($sub, 0, 8)));
-check('Formular: 🔗 verbunden', strpos(json_encode(json_decode($konto->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), '🔗 Echtzeit verbunden') !== false);
+check('Formular: 🔗 verbunden', strpos(json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE), '🔗 Echtzeit verbunden') !== false);
 $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
 check('war schon verbunden → späterer Fehler sperrt NICHT (normales Neuverbinden)', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') === 0 && json_decode($konto->GetConfigurationForParent(), true)['Open'] === true);
 $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [IS_ACTIVE]);
@@ -1336,7 +1359,7 @@ check('neuer Zugangsschlüssel → Socket wird neu verbunden', strpos($skript, '
 
 $GLOBALS['LOG'] = [];
 mqttVomServer($konto, "\x20\x02\x00\x05");
-check('CONNACK 5 → Fehler sichtbar und protokolliert', strpos(json_encode(json_decode($konto->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE), 'nicht berechtigt') !== false && strpos(implode("\n", $GLOBALS['LOG']), 'Echtzeit-Anmeldung abgelehnt') !== false);
+check('CONNACK 5 → Fehler sichtbar und protokolliert', strpos(json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE), 'nicht berechtigt') !== false && strpos(implode("\n", $GLOBALS['LOG']), 'Echtzeit-Anmeldung abgelehnt') !== false);
 
 mqttVomServer($konto, "\x20\x02\x00\x00");
 $stand = json_decode($konto->ReadAttributeString('Mqtt'), true);
@@ -1498,7 +1521,7 @@ check('Variable „Zeitpläne" in Klartext mit Raumnamen', strpos($zv, '✅ 07:0
 $k = kachelJson($geraet->GetVisualizationTile());
 check('Werktage Mo–Fr als „werktags"', strpos((function () use ($geraet) { $r = new ReflectionMethod('RoboHubGeraet', 'zeitplanText'); return $r->invoke($geraet, ['zeit' => '08:00', 'tage' => ['Mo', 'Di', 'Mi', 'Do', 'Fr'], 'art' => 'alle']); })(), '08:00 · werktags · alle Räume') === 0);
 check('Kachel: drei Zeitpläne, ungültiger nicht schaltbar', count($k['zeitplaene'] ?? []) === 3 && $k['zeitplaene'][0]['schaltbar'] === false && $k['zeitplaene'][1]['an'] === true, json_encode($k['zeitplaene'] ?? null, JSON_UNESCAPED_UNICODE));
-$formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$formKlar = json_encode(json_decode(konsole($geraet->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: Panel „Zeitpläne (3)" mit Schaltknöpfen', strpos($formKlar, 'Zeitpläne (3)') !== false && strpos($formKlar, 'ROBO_ZeitplanSchalten($id, 2, true)') !== false && strpos($formKlar, 'ROBO_ZeitplanSchalten($id, 5, false)') !== false);
 
 FakeCloud::$anfragen = [];
@@ -1683,7 +1706,7 @@ FakeCloud::$props['2.1'] = 13;
 $t = $geraet->RaumEinstellungSetzen(3, 'Saugstufe', 2);
 check('Instanz: Ändern der gespeicherten Raumwerte gesperrt, nichts gesendet', strpos($t, '⛔') === 0 && strpos($t, 'gesperrt') !== false && customeClean() === null, $t);
 $geraet->Aktualisieren();
-$formKlar = json_encode(json_decode($geraet->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$formKlar = json_encode(json_decode(konsole($geraet->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: „Raum-Einstellungen im Roboter" nur Anzeige (keine Auswahlfelder)', strpos($formKlar, 'Raum-Einstellungen im Roboter (2)') !== false && strpos($formKlar, '"onChange":"echo ROBO_RaumEinstellungSetzen') === false && strpos($formKlar, 'RaeumeReinigenMit') !== false);
 check('Variable heißt „Raum-Einstellungen im Roboter"', variable(2000, 'RaumEinstellungen')['name'] === 'Raum-Einstellungen im Roboter');
 $rid = IPS_GetObjectIDByIdent('RaumEinstellungen', 2000);
@@ -1821,7 +1844,7 @@ $libVersion = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'),
 foreach ([$konto, $geraet, $cfg] as $mod) {
     global $libVersion;
     $name = get_class($mod);
-    $json = $mod->GetConfigurationForm();
+    $json = konsole($mod->GetConfigurationForm());
     $f = json_decode($json, true);
     check("$name: gültiges JSON", is_array($f));
     $caps = array_map(function ($e) { return $e['caption'] ?? ''; }, $f['elements']);
@@ -1836,7 +1859,7 @@ foreach ([$konto, $geraet, $cfg] as $mod) {
 }
 $geraet->AckNews();
 check('AckNews speichert installierte Version ohne Suffix', $geraet->ReadAttributeString('SeenNews') === json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true)['version']);
-$f = json_decode($geraet->GetConfigurationForm(), true);
+$f = json_decode(konsole($geraet->GetConfigurationForm()), true);
 check('nach Bestätigen kein News-Panel mehr', !in_array('🆕  Neu bis Version ' . $libVersion, array_column($f['elements'], 'caption'), true));
 $lib = json_decode(file_get_contents(dirname(__DIR__) . '/library.json'), true);
 $news = (new ReflectionClass('RoboHubKonto'))->getStaticPropertyValue('ROBOHUB_NEWS_VERSIONS');

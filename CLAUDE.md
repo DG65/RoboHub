@@ -554,6 +554,11 @@
 - **Kennungen bleiben deutsch:** Idents, FELDER-/TEILE-Schlüssel, Ecovacs-/Roborock-/Dreame-Teilewerte, Befehlsschlüssel, Aliase
   (Verbund: einheitlich deutsch). Logik nie an angezeigten Text hängen (sonst bricht sie in einer Sprache).
 - Kachel: `KACHEL_TEXTE` im Roboter, `T()` in module.html. Neuer Kacheltext = Schlüssel in `KACHEL_TEXTE` + locale.
+- **Formulare NICHT selbst übersetzen (Store-Punkt 25, seit 0.36.0):** feste `caption`/`label`/`confirm` und Einleitungs-/Doku-Zeilen
+  als englisches Literal + locale.json-Eintrag, die Konsole übersetzt. `t()` im Formular nur mit eingesetzten Werten; Listenzeilen-Werte
+  übersetzt die Konsole nicht → dort selbst. Prüfstand liest Formulare über `konsole()`. Live-Befund 04.11.: Konsole/WebFront übersetzen
+  exakt passende Texte auch in Kacheln in die Browsersprache nach.
+- Haupttabelle ist `libs/locale.json` (direkt bearbeiten, dann `php .tools/locale-bauen.php`).
 - Debug-Ausgaben (`SendDebug`) bleiben deutsch. Englischer Prüflauf: `ROBOHUB_SPRACHE=en php .tools/test-robohub.php`
   (deutsche Prüftexte schlagen dort erwartungsgemäß fehl; zum Durchsuchen nach deutschen Resten gedacht).
 

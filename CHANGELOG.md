@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.36.0 (09.11.2026)
+
+- **Store-Punkt 25** (Symcon-Review 06.11.2026, SUITE.md Store-Checkliste): Formulare werden nicht mehr selbst übersetzt — die Konsole
+  übersetzt `caption`/`label`/`confirm` (auch Select-Optionen und Listenspalten) selbst über die locale.json. 148 feste
+  `RoboHubText::t('…')` in Formularen, Einleitungs- und Doku-Zeilen sind jetzt englische Literale; Hersteller-, Regionen- und
+  Miele-Länderauswahl ebenso. Selbst übersetzt wird nur noch, was die Konsole nicht sieht: Texte mit eingesetzten Werten
+  (`t('… %s', …)`), Listenzeilen-Werte (Formular: Aufbau), Variablennamen, Meldungen, Kachel.
+- Prüfstand: `konsole()` bildet die Übersetzung der Konsole nach (alle Formularabrufe laufen durch sie); neue Prüfungen „kein festes
+  t() im Formular" und „jeder feste Formulartext hat einen deutschen Eintrag" — beide Gegenproben gefangen. Dabei gefunden und
+  behoben: die Namen ausgeblendeter Bereiche in „Formular: Aufbau" wären englisch geblieben.
+
 ## 0.35.2 (04.11.2026)
 
 - Raum-Einstellungen (Dreame): bis 0.35.0 gespeicherte deutsche Werte („Saugen · Standard") erschienen unter Englisch weiter deutsch

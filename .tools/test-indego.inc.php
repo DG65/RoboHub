@@ -89,7 +89,7 @@ $ik = new RoboHubKonto(9700);
 $ik->props['Hersteller'] = 'indego';
 $ik->Create();
 $ik->ApplyChanges();
-$fText = json_encode(json_decode($ik->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$fText = json_encode(json_decode(konsole($ik->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: Anleitung mit Entwicklerkonsole, Link-Knopf sichtbar', strpos($fText, 'Entwicklerkonsole öffnen (F12') !== false && strpos($fText, '🔗 Anmeldeseite öffnen') !== false);
 $ik->props['Passwort'] = 'com.bosch.indegoconnect://login?code=ALT&state=1';
 $t = $ik->Anmelden();

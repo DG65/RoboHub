@@ -76,7 +76,7 @@ $ik = new RoboHubKonto(7000);
 $ik->props['Hersteller'] = 'irobot';
 $ik->Create();
 $ik->ApplyChanges();
-$f = json_encode(json_decode($ik->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$f = json_encode(json_decode(konsole($ik->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: IP-Feld, Anleitung HOME-Taste, kein Passwortfeld sichtbar', strpos($f, 'IP-Adresse des Roboters') !== false && strpos($f, 'HOME-Taste') !== false && strpos($f, '"name":"Passwort","visible":false') !== false);
 $ik->props['Konto'] = 'kein.ip';
 check('ungültige IP abgelehnt', strpos($ik->Anmelden(), 'IP-Adresse') !== false);

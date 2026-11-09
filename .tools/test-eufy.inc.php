@@ -112,7 +112,7 @@ $euSuche = function ($k) use (&$euSuche, &$euSichtbar) {
         $euSuche($w);
     }
 };
-$euSuche(json_decode($ek->GetConfigurationForm(), true));
+$euSuche(json_decode(konsole($ek->GetConfigurationForm()), true));
 $euText = implode("\n", $euSichtbar);
 check('Formular: Eufy-Hinweis (Tuya-Altgeräte offen genannt), keine Region, keine Client-Felder', strpos($euText, 'reinem Tuya-Protokoll') !== false
     && strpos($euText, '[Region]') === false && strpos($euText, '[ClientId]') === false && strpos($euText, 'E-Mail des Kontos [Konto]') !== false, $euText);

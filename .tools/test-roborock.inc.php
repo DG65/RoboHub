@@ -151,7 +151,7 @@ $rk = new RoboHubKonto(4000);
 $rk->props['Hersteller'] = 'roborock';
 $rk->Create();
 $rk->ApplyChanges();
-$f = json_encode(json_decode($rk->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$f = json_encode(json_decode(konsole($rk->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: Code-Knopf und Code-Feld bei Roborock', strpos($f, 'ROBOHUB_CodeAnfordern') !== false && strpos($f, 'Code aus der E-Mail') !== false);
 check('Formular: Echtzeit ehrlich als „noch nicht" beschrieben', strpos($f, 'Für Roborock gibt es noch keine Echtzeit-Meldungen') !== false);
 check('Code anfordern ohne E-Mail: klare Meldung', strpos($rk->CodeAnfordern(), '⛔') === 0);
