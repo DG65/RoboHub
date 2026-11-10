@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.36.1 (10.11.2026)
+
+- **SUITE.md Stolperstein 27 — Verbindung im Fehlerstatus selbst neu aufbauen** (Hinweis EMS/EEBUSGateway 10.11.2026): Client Socket
+  (Dreame/MOVA) und WebSocket Client (Husqvarna/GARDENA) verbinden sich nach einem Abbruch nicht zuverlässig selbst neu. Bisher blieb
+  die MQTT-Echtzeit nach einem Abbruch bis zum nächsten Übernehmen/Neustart aus; beim WebSocket gab es nur einen Versuch, und der
+  verband bei unverändertem Ziel gar nicht neu. Jetzt: Takt `Verbindung` schaltet die eigene Verbindungsinstanz im Status ≥ IS_EBASE
+  aus und wieder an, Abstand 5/10/20 … s bis 5 min (WebSocket bis 1 h wegen des Monatskontingents der Hersteller-Schnittstelle),
+  Meldung nur beim ersten Versuch und einmal bei Wiederherstellung. 24-h-Zertifikatssperre (Symcon 9.1) unverändert.
+- Konfigurator: Spaltenüberschrift „Art" → englisches Literal „Type" (Konsole übersetzt); Prüfstand prüft jetzt auch Formulartexte
+  mit weniger als drei Kleinbuchstaben am Stück.
+- Prüfstand: 10 neue Prüfungen (Nr. 27), 5/5 Gegenproben gefangen.
+
 ## 0.36.0 (09.11.2026)
 
 - **Store-Punkt 25** (Symcon-Review 06.11.2026, SUITE.md Store-Checkliste): Formulare werden nicht mehr selbst übersetzt — die Konsole

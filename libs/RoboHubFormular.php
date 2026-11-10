@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.36.1' => [
+            '• Real-time connection reconnects by itself: if the connection drops and stays in an error state, RoboHub switches it off and on again (5 s, 10 s, 20 s … up to 5 min; Husqvarna/GARDENA up to 1 h because of the API quota). Before, real-time stayed off until the next restart.',
+        ],
         '0.36.0' => [
             '• Forms are now translated by Symcon itself (as Symcon recommends) — fixed labels no longer go through RoboHub\'s own translation, so forms open faster.',
         ],

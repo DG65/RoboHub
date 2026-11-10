@@ -166,6 +166,10 @@ class RoboHubKonto extends IPSModule
         $this->elternBeobachten();
         $this->socketBenennen();
         $this->echtzeitKonfigurieren(false);
+        // Steht die Verbindung schon beim Start im Fehlerstatus, kommt kein Statuswechsel mehr (Nr. 27).
+        if ($this->ReadAttributeBoolean('EchtzeitJeVerbunden') && $this->elternImFehler() && $this->ReadAttributeInteger('WsFehler') === 0) {
+            $this->neuVerbindenPlanen();
+        }
     }
 
     /** Wurde der Socket noch als Dreame-Konto angelegt (Voreinstellung), den Namen nachziehen. */
@@ -199,6 +203,7 @@ class RoboHubKonto extends IPSModule
         }
         if ($Message === IM_CHANGESTATUS && $SenderID === $this->ReadAttributeInteger('MqttEltern')) {
             if (($Data[0] ?? 0) === IS_ACTIVE) {
+                $this->neuVerbindenErfolgreich();
                 $this->mqttAnmelden();
             } elseif ((int)($Data[0] ?? 0) >= 200 && !$this->ReadAttributeBoolean('EchtzeitJeVerbunden')
                 && $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== '') {
@@ -206,6 +211,9 @@ class RoboHubKonto extends IPSModule
             } else {
                 $this->SetTimerInterval('MqttPing', 0);
                 $this->mqttStand(['zustand' => $this->ReadPropertyBoolean('Echtzeit') ? 'getrennt' : 'aus']);
+                if ((int)($Data[0] ?? 0) >= IS_EBASE) {
+                    $this->neuVerbindenPlanen();
+                }
             }
         }
     }
@@ -637,13 +645,67 @@ class RoboHubKonto extends IPSModule
         $this->SetTimerInterval('Verbindung', 0);
         $this->verbindungSicherstellen();
         $this->elternBeobachten();
+        // SUITE.md Stolperstein 27: Ein Client Socket / WebSocket Client im Fehlerstatus verbindet sich
+        // nicht zuverlässig selbst neu — dann schaltet RoboHub ihn selbst aus und wieder an.
+        $fehler = $this->elternImFehler();
         if ($this->echtzeitArt() === 'websocket') {
             // Ziel (Adresse + Anmeldekopf) frisch holen: GARDENA vergibt je Verbindung eine neue Adresse,
             // Husqvarna braucht den aktuellen Zugangsschlüssel. Danach neu verbinden.
-            $this->echtzeitKonfigurieren($this->wsZielAktualisieren());
+            $geaendert = $this->wsZielAktualisieren();
+            $this->echtzeitKonfigurieren($geaendert || $fehler);
+        } else {
+            $this->echtzeitKonfigurieren($fehler);
+        }
+        if ($fehler) {
+            // Rückfall, falls der Socket im Fehlerstatus bleibt und kein neuer Statuswechsel kommt;
+            // ein neuer Fehlerstatus plant über MessageSink mit größerem Abstand nach.
+            $this->SetTimerInterval('Verbindung', $this->neuVerbindenAbstand(max(1, $this->ReadAttributeInteger('WsFehler'))) * 1000);
+        }
+    }
+
+    /** Eigene Verbindungsinstanz im Fehlerstatus (≥ IS_EBASE), obwohl Echtzeit gewünscht und möglich ist. */
+    private function elternImFehler(): bool
+    {
+        $eltern = (int)(IPS_GetInstance($this->InstanceID)['ConnectionID'] ?? 0);
+        return $eltern > 0 && $this->echtzeitArt() !== ''
+            && IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] === $this->elternModul()
+            && IPS_GetInstance($eltern)['InstanceStatus'] >= IS_EBASE
+            && $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== ''
+            && $this->ReadAttributeInteger('EchtzeitGesperrtBis') <= time();
+    }
+
+    /**
+     * Wartezeit vor dem n-ten Neuversuch: 5, 10, 20 … s, höchstens 5 min (SUITE.md Nr. 27).
+     * WebSocket (Husqvarna/GARDENA) höchstens 1 h: Jeder Versuch holt dort ein neues Ziel über die
+     * Hersteller-Schnittstelle, deren Monatskontingent sonst ein Dauerausfall aufbrauchen würde.
+     */
+    private function neuVerbindenAbstand(int $n): int
+    {
+        return (int)min($this->echtzeitArt() === 'websocket' ? 3600 : 300, 5 * (2 ** min(max($n, 1) - 1, 10)));
+    }
+
+    /** Nach einem Verbindungsabbruch den nächsten Neuversuch planen; nur der erste wird protokolliert. */
+    private function neuVerbindenPlanen(): void
+    {
+        if (!$this->ReadPropertyBoolean('Echtzeit') || $this->ReadAttributeString('Buendel') === '' || $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time()) {
             return;
         }
-        $this->echtzeitKonfigurieren(false);
+        $n = $this->ReadAttributeInteger('WsFehler') + 1;
+        $this->WriteAttributeInteger('WsFehler', $n);
+        if ($n === 1) {
+            $this->protokolliere(RoboHubText::t('Real-time connection lost — RoboHub reconnects automatically (further attempts are not logged).'), KL_WARNING);
+        }
+        $this->SetTimerInterval('Verbindung', $this->neuVerbindenAbstand($n) * 1000);
+    }
+
+    /** Verbindung steht: Zähler zurücksetzen, nach Neuversuchen einmal melden. */
+    private function neuVerbindenErfolgreich(): void
+    {
+        $n = $this->ReadAttributeInteger('WsFehler');
+        if ($n > 0) {
+            $this->WriteAttributeInteger('WsFehler', 0);
+            $this->protokolliere(RoboHubText::t('Real-time connection restored after %s attempt(s).', $n), KL_MESSAGE);
+        }
     }
 
     /** 'mqtt' (Dreame/MOVA über Client Socket), 'websocket' (WebSocket Client) oder '' (keine Konto-Echtzeit). */
@@ -672,7 +734,7 @@ class RoboHubKonto extends IPSModule
             $ziel = $this->treiber()->wsZiel($this->gueltigesBuendel());
         } catch (Throwable $e) {
             $this->mqttStand(['zustand' => 'fehler', 'text' => $e->getMessage()]);
-            $this->wsNeuPlanen();
+            $this->neuVerbindenPlanen();
             return false;
         }
         $neu = (string)json_encode($ziel);
@@ -685,7 +747,7 @@ class RoboHubKonto extends IPSModule
     private function wsStatus(int $status): void
     {
         if ($status === IS_ACTIVE) {
-            $this->WriteAttributeInteger('WsFehler', 0);
+            $this->neuVerbindenErfolgreich();
             $this->WriteAttributeBoolean('EchtzeitJeVerbunden', true);
             $this->mqttStand(['zustand' => 'verbunden', 'seit' => time(), 'text' => '', 'lebenszeichen' => time(),
                 'topics' => count(json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [])]);
@@ -696,18 +758,10 @@ class RoboHubKonto extends IPSModule
         $this->SetTimerInterval('MqttPing', 0);
         if ($status >= 200 && $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== '') {
             $this->mqttStand(['zustand' => 'getrennt']);
-            $this->wsNeuPlanen();
+            $this->neuVerbindenPlanen();
             return;
         }
         $this->mqttStand(['zustand' => $this->ReadPropertyBoolean('Echtzeit') ? 'getrennt' : 'aus']);
-    }
-
-    /** Neuer Verbindungsversuch mit wachsendem Abstand (30 s, 60 s … höchstens 1 h). */
-    private function wsNeuPlanen(): void
-    {
-        $n = $this->ReadAttributeInteger('WsFehler') + 1;
-        $this->WriteAttributeInteger('WsFehler', $n);
-        $this->SetTimerInterval('Verbindung', (int)min(3600, 15 * (2 ** min($n, 8))) * 1000);
     }
 
     private function verbindungSicherstellen(): void

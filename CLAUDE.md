@@ -139,6 +139,9 @@
   Client `{D68FD31F-0E90-7019-F16C-1949BD3079EF}` (live gelesen: Active/URL/Headers als JSON-Text/VerifyCertificate/Type;
   implementiert dieselbe Datenschnittstelle wie der Client Socket). `VerifyCertificate` nie aus (Fremdmodul demel42 schaltet
   sie ab — bei uns nicht). Wiederverbinden mit wachsendem Abstand (`WsFehler`), Tausch eigener Altverbindungen.
+- **Selbst neu verbinden (0.36.1, SUITE.md Stolperstein 27):** gilt für MQTT und WebSocket. `neuVerbindenPlanen()` (Zähler `WsFehler`,
+  5 s · 2^n, MQTT ≤ 5 min, WebSocket ≤ 1 h) → `VerbindungPruefen()` schaltet bei `elternImFehler()` aus/an. Nie bei aktiver
+  Zertifikatssperre; Bestandskonten ohne je erfolgte Verbindung laufen weiter in `echtzeitSperren()`.
 
 ## Echtzeit (MQTT, 0.4.0)
 

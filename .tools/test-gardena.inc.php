@@ -157,7 +157,7 @@ $gk->ReceiveData(json_encode(['DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF
 check('GARDENA-Meldungen sofort: sucht die Station, Akku 33 — ohne Abruf; Ventil-Meldung stört nicht', variable(9100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_ZURUECK
     && variable(9100, 'Akku')['value'] === 33 && FakeGardena::zaehle('GET https://api.smart.gardena.dev/v2/locations') === $vor);
 $gk->MessageSink(0, $gws->InstanceID, IM_CHANGESTATUS, [200]);
-check('GARDENA getrennt → neuer Versuch mit neuer Adresse geplant', ($gk->timers['Verbindung'] ?? 0) === 30000);
+check('GARDENA getrennt → neuer Versuch mit neuer Adresse geplant', ($gk->timers['Verbindung'] ?? 0) === 5000);
 $gk->VerbindungPruefen();
 check('… dabei wird eine neue Adresse geholt (die alte gilt nur einmal)', FakeGardena::zaehle('POST https://api.smart.gardena.dev/v2/websocket') === 2
     && strpos(implode("\n", $GLOBALS['SKRIPTE']), 'EINMAL') !== false);

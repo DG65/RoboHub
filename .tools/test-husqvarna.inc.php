@@ -222,9 +222,20 @@ check('Echtzeit steht → Zwischenspeicher gilt eine Stunde (Anfragelimit)', Fak
 $hk->MessageSink(0, $hws->InstanceID, IM_CHANGESTATUS, [200]);
 $h1->Aktualisieren();
 check('Verbindung weg → wieder Abruf nach 5 min; neuer Versuch geplant', FakeHusqvarna::zaehle('GET https://api.amc.husqvarna.dev/v1/mowers') === $vorAbruf + 1
-    && ($hk->timers['Verbindung'] ?? 0) === 30000 && ($hk->timers['MqttPing'] ?? 1) === 0);
+    && ($hk->timers['Verbindung'] ?? 0) === 5000 && ($hk->timers['MqttPing'] ?? 1) === 0);
 $hk->MessageSink(0, $hws->InstanceID, IM_CHANGESTATUS, [200]);
-check('… wachsender Abstand', ($hk->timers['Verbindung'] ?? 0) === 60000);
+check('… wachsender Abstand', ($hk->timers['Verbindung'] ?? 0) === 10000);
+// Nr. 27: Ziel unverändert (gleicher Zugangsschlüssel), Client im Fehlerstatus → trotzdem aus/an.
+$hws->status = 200;
+$hk->VerbindungPruefen();   // übernimmt ggf. noch ein geändertes Ziel
+$hws->config = array_merge($hws->config, json_decode($hk->GetConfigurationForParent(), true));   // Symcon hätte es übernommen
+$GLOBALS['SKRIPTE'] = [];
+$hk->VerbindungPruefen();
+check('Nr. 27: WebSocket im Fehlerstatus bei unverändertem Ziel → aus und wieder an', strpos(implode("\n", $GLOBALS['SKRIPTE']), 'IPS_SetProperty(' . $hws->InstanceID . ', "Active", false)') !== false, implode("\n", $GLOBALS['SKRIPTE']));
+for ($i = 0; $i < 15; $i++) { $hk->MessageSink(0, $hws->InstanceID, IM_CHANGESTATUS, [200]); }
+check('Nr. 27: WebSocket höchstens 1 h (Monatskontingent der Hersteller-Schnittstelle)', ($hk->timers['Verbindung'] ?? 0) === 3600000);
+$hws->status = 102;
+$hk->MessageSink(0, $hws->InstanceID, IM_CHANGESTATUS, [IS_ACTIVE]);
 
 // Bestandskonto: alter, ungenutzter Client Socket von RoboHub → wird gegen WebSocket Client getauscht.
 $hk2 = new RoboHubKonto(8500);

@@ -16,6 +16,7 @@ const KR_READY = 10103;
 const IPS_KERNELMESSAGE = 10100;
 const IM_CHANGESTATUS = 10505;
 const IS_ACTIVE = 102;
+if (!defined('IS_EBASE')) { define('IS_EBASE', 200); }
 const VARIABLETYPE_BOOLEAN = 0;
 const VARIABLETYPE_INTEGER = 1;
 const VARIABLETYPE_FLOAT = 2;
@@ -81,6 +82,7 @@ class FakeSocket
     public $config = ['Open' => false];
     public $modul = '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}';
     public $gesendet = [];
+    public $status = 102;   // Instanzstatus (IS_ACTIVE; Fehlerstatus ≥ 200 für Stolperstein 27)
     public $parent = null;
     public function __construct(int $id) { $this->InstanceID = $id; $GLOBALS['INST'][$id] = $this; }
     public function ForwardData(string $json): string { $d = json_decode($json, true); $this->gesendet[] = mb_convert_encoding($d['Buffer'], 'ISO-8859-1', 'UTF-8'); return ''; }
@@ -1298,7 +1300,28 @@ check('CONNACK 0 → SUBSCRIBE je Gerät', $sub !== '' && ord($sub[0]) === 0x82 
 check('Formular: 🔗 verbunden', strpos(json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE), '🔗 Echtzeit verbunden') !== false);
 $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
 check('war schon verbunden → späterer Fehler sperrt NICHT (normales Neuverbinden)', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') === 0 && json_decode($konto->GetConfigurationForParent(), true)['Open'] === true);
+// SUITE.md Stolperstein 27: Socket im Fehlerstatus verbindet sich nicht zuverlässig selbst neu → RoboHub schaltet ihn aus/an.
+$verloren = count(array_filter($GLOBALS['LOG'], function ($m) { return strpos($m, 'Real-time connection lost') !== false || strpos($m, 'Echtzeit-Verbindung verloren') !== false; }));
+check('Nr. 27: Abbruch nach früherer Verbindung → Neuversuch in 5 s geplant, einmal protokolliert', ($konto->timers['Verbindung'] ?? 0) === 5000 && $verloren === 1);
+$socket->status = 200;
+$GLOBALS['SKRIPTE'] = [];
+$konto->VerbindungPruefen();
+$sk = implode("\n", $GLOBALS['SKRIPTE']);
+check('Nr. 27: Takt schaltet den Socket im Fehlerstatus aus und wieder an', strpos($sk, 'IPS_SetProperty(' . $socket->InstanceID . ', "Open", false)') !== false
+    && strpos($sk, 'IPS_SetProperty(' . $socket->InstanceID . ", 'Open', true)") !== false && ($konto->timers['Verbindung'] ?? 0) === 5000, $sk);
+$konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
+$konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
+$verloren2 = count(array_filter($GLOBALS['LOG'], function ($m) { return strpos($m, 'Real-time connection lost') !== false || strpos($m, 'Echtzeit-Verbindung verloren') !== false; }));
+check('Nr. 27: wachsender Abstand 5/10/20 s, weitere Versuche ohne Meldung', ($konto->timers['Verbindung'] ?? 0) === 20000 && $verloren2 === 1);
+for ($i = 0; $i < 12; $i++) { $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]); }
+check('Nr. 27: höchstens 5 min', ($konto->timers['Verbindung'] ?? 0) === 300000);
+$socket->status = 102;
+$GLOBALS['SKRIPTE'] = [];
+$konto->VerbindungPruefen();
+check('Nr. 27: Socket wieder aktiv → kein Aus/An mehr', strpos(implode("\n", $GLOBALS['SKRIPTE']), '"Open", false') === false && ($konto->timers['Verbindung'] ?? 0) === 0);
 $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [IS_ACTIVE]);
+check('Nr. 27: verbunden → Zähler zurück, Wiederherstellung gemeldet', $konto->ReadAttributeInteger('WsFehler') === 0
+    && count(array_filter($GLOBALS['LOG'], function ($m) { return strpos($m, 'restored after 15') !== false || strpos($m, 'nach 15 Versuch') !== false; })) === 1, end($GLOBALS['LOG']));
 mqttVomServer($konto, "\x20\x02\x00\x00");
 
 // Sauger 2000: vollständiger Stand aus früheren Abrufen liegt vor. Push 2.1 = 1 (saugt) + Akku, in zwei Stücken.
