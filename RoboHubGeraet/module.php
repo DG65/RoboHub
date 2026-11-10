@@ -420,7 +420,11 @@ class RoboHubGeraet extends IPSModule
     public function GetActivity(): string
     {
         $zid = @IPS_GetObjectIDByIdent('Zustand', $this->InstanceID);
-        $aus = $this->ReadPropertyBoolean('Deaktiviert') || !$zid;
+        // Nicht erreichbar (ausgeschaltet, eingewintert, ohne WLAN) = Zustand unbekannt, sofort veraltet: Der letzte Zustand
+        // kann Tage alt sein, die Abfrage und die Konto-Echtzeit laufen aber weiter (live 10.11.2026: LiDAX offline seit 07.11.
+        // meldete sonst „außerhalb der Station, gültig"). Im Zweifel nichts unterdrücken.
+        $erreichbar = !$this->hatVariable('Erreichbar') || (bool)$this->GetValue('Erreichbar');
+        $aus = $this->ReadPropertyBoolean('Deaktiviert') || !$zid || !$erreichbar;
         $zustand = $aus ? RoboHubModell::ZUSTAND_UNBEKANNT : (int)GetValue($zid);
         $var = $zid ? IPS_GetVariable($zid) : [];
         $aktualisiert = max((int)($var['VariableUpdated'] ?? 0), $this->ReadAttributeInteger('LetzterAbruf'), $this->ReadAttributeInteger('LetzteEchtzeit'));

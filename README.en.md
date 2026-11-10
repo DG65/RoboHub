@@ -3,7 +3,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module Version](https://img.shields.io/badge/Module-0.37.0-informational)
+![Module Version](https://img.shields.io/badge/Module-0.37.1-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -186,7 +186,8 @@ drives through the picture). Reads Symcon variables only, never the vendor cloud
 
 `state` is vendor-neutral: -1 unknown, 0 ready (outside the station), 1 working, 2 paused,
 3 returning to base, 4 charging, 5 charged, 6 station task, 7 error, 8 sleeping, 9 mapping,
-10 firmware update, 11 weather pause. `validUntil` < now means: stale.
+10 firmware update, 11 weather pause. `validUntil` < now means: stale. An unreachable robot
+(e.g. switched off or stored for winter) reports -1 and `validUntil` 0.
 
 ## Security and privacy
 

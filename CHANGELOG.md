@@ -2,6 +2,13 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.1 (10.11.2026)
+
+- **robot_activity: nicht erreichbarer Roboter = unbekannt** (Live-Befund 10.11.2026): Der LiDAX ist seit 07.11. offline (Abdeckung offen,
+  vermutlich eingewintert), meldete aber „Bereit, außerhalb der Station" mit gültigem `validUntil` — Abruf und Konto-Echtzeit laufen weiter,
+  der Zustand war drei Tage alt. FrigateHub hätte so Alarme für einen ausgeschalteten Mäher unterdrückt. Jetzt: Variable „Erreichbar"
+  = aus → state -1, moving/outsideStation false, validUntil 0. Prüfung + Gegenprobe.
+
 ## 0.37.0 (10.11.2026)
 
 - **Neuer Vertrag `ROBO_GetActivity($id)`, `robot_activity` 1.0** (abgestimmt mit FrigateHub 10.11.2026, Dietmars Auftrag): rein

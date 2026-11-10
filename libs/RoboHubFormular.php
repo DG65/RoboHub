@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.1' => [
+            '• ROBO_GetActivity: an unreachable robot (e.g. switched off or stored for winter) now reports "unknown" instead of its last state, so other modules no longer rely on a days-old state.',
+        ],
         '0.37.0' => [
             '• New for other modules: ROBO_GetActivity tells whether a robot is moving or outside its station (contract robot_activity 1.0) — e.g. so that FrigateHub raises no false alarm when the mower drives through the picture. Reads only Symcon variables, never the vendor cloud.',
         ],

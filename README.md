@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.37.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.37.1-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -183,7 +183,8 @@ durchs Bild fährt). Liest nur Symcon-Variablen, nie die Hersteller-Cloud. Robot
 
 `state` ist herstellerneutral: -1 unbekannt, 0 bereit (außerhalb der Station), 1 arbeitet, 2 pausiert,
 3 fährt zur Station, 4 lädt, 5 geladen, 6 Stationsarbeit, 7 Fehler, 8 Schlaf, 9 Kartierung,
-10 Firmware-Update, 11 Wetterpause. `validUntil` < jetzt heißt: Stand veraltet.
+10 Firmware-Update, 11 Wetterpause. `validUntil` < jetzt heißt: Stand veraltet. Ein nicht erreichbarer Roboter
+(z. B. ausgeschaltet oder eingewintert) meldet -1 und `validUntil` 0.
 
 ## Sicherheit und Datenschutz
 

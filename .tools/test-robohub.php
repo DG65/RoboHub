@@ -1062,6 +1062,12 @@ $maeher->props['Deaktiviert'] = true;
 $akt = json_decode($maeher->GetActivity(), true);
 check('robot_activity: deaktiviert → unbekannt und sofort veraltet', $akt['state'] === RoboHubModell::ZUSTAND_UNBEKANNT && $akt['validUntil'] === 0 && $akt['outsideStation'] === false);
 $maeher->props['Deaktiviert'] = false;
+$maeher->SetValue('Zustand', RoboHubModell::ZUSTAND_BEREIT);
+$maeher->SetValue('Erreichbar', false);
+$akt = json_decode($maeher->GetActivity(), true);
+check('robot_activity: nicht erreichbar (z. B. eingewintert) → unbekannt, sofort veraltet — auch wenn zuletzt außerhalb', $akt['state'] === RoboHubModell::ZUSTAND_UNBEKANNT
+    && $akt['validUntil'] === 0 && $akt['outsideStation'] === false && $akt['moving'] === false, json_encode($akt));
+$maeher->SetValue('Erreichbar', true);
 $maeher->SetValue('Zustand', RoboHubModell::ZUSTAND_WETTERPAUSE);
 $opts = json_decode(variable(2100, 'Zustand')['pres']['INTERVALS'], true);
 $mahtCaption = '';
