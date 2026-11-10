@@ -3,7 +3,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module Version](https://img.shields.io/badge/Module-0.36.1-informational)
+![Module Version](https://img.shields.io/badge/Module-0.37.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -171,6 +171,22 @@ IPS_RequestAction($id, 'Befehl', 1); // 1 Start, 2 Pause, 3 Stop, 4 Return to ba
 
 A command at first only means "sent" — whether the robot carries it out is shown by the
 variable "State" a few seconds later.
+
+### For other modules: `ROBO_GetActivity($id)`
+
+Read-only contract `robot_activity` 1.0 (e.g. for FrigateHub: no false alarm when the mower
+drives through the picture). Reads Symcon variables only, never the vendor cloud. Robots are found via
+`IPS_GetInstanceListByModuleID('{631DA85B-5985-4C25-B222-E47FDD49E302}')`.
+
+```json
+{"contractVersion":"1.0","class":"mower","name":"LiDAX","state":1,"stateVariableID":12345,
+ "moving":true,"outsideStation":true,"since":1794300000,"updatedAt":1794300120,
+ "validUntil":1794300420,"realtime":true,"pollIntervalS":120}
+```
+
+`state` is vendor-neutral: -1 unknown, 0 ready (outside the station), 1 working, 2 paused,
+3 returning to base, 4 charging, 5 charged, 6 station task, 7 error, 8 sleeping, 9 mapping,
+10 firmware update, 11 weather pause. `validUntil` < now means: stale.
 
 ## Security and privacy
 

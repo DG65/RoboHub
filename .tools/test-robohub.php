@@ -92,7 +92,7 @@ function mqttVomServer($konto, string $bytes): void
     $konto->ReceiveData(json_encode(['DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}', 'Buffer' => mb_convert_encoding($bytes, 'UTF-8', 'ISO-8859-1')]));
 }
 function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
-function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time()]; }
+function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time(), 'VariableUpdated' => $GLOBALS['OBJ'][$id]['updated'] ?? ($GLOBALS['OBJ'][$id]['changed'] ?? time())]; }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return $GLOBALS['OBJ'][$id]['name'] ?? $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }
 function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0, 'InstanceStatus' => ($m && isset($m->status)) ? $m->status : 102,
@@ -206,7 +206,7 @@ class IPSModule
         // Wie Symcon live (Befund 12.10.2026): eine vorhandene Variable wird NICHT umbenannt.
     }
     public function EnableAction(string $ident): void { $GLOBALS['OBJ'][IPS_GetObjectIDByIdent($ident, $this->InstanceID)]['action'] = true; }
-    public function SetValue(string $ident, $v): void { $id = IPS_GetObjectIDByIdent($ident, $this->InstanceID); if ($GLOBALS['OBJ'][$id]['value'] !== $v) { $GLOBALS['OBJ'][$id]['changed'] = time(); } $GLOBALS['OBJ'][$id]['value'] = $v; }
+    public function SetValue(string $ident, $v): void { $id = IPS_GetObjectIDByIdent($ident, $this->InstanceID); if ($GLOBALS['OBJ'][$id]['value'] !== $v) { $GLOBALS['OBJ'][$id]['changed'] = time(); } $GLOBALS['OBJ'][$id]['updated'] = time(); $GLOBALS['OBJ'][$id]['value'] = $v; }
     public function GetValue(string $ident) { return $GLOBALS['OBJ'][IPS_GetObjectIDByIdent($ident, $this->InstanceID)]['value']; }
 }
 
@@ -1038,6 +1038,31 @@ check('Reinigungsbürste Reststunden 433,7 h (wie App)', variable(2100, 'Reinigu
 check('Wartung in 42,9 h (wie App)', variable(2100, 'WartungRest')['value'] === 42.9);
 check('Reststunden als Kommazahl mit Einheit h', variable(2100, 'MesserRest')['type'] === VARIABLETYPE_FLOAT && variable(2100, 'MesserRest')['pres']['SUFFIX'] === ' h');
 check('keine Sauger-Variablen beim Mäher', variable(2100, 'Staubbeutel') === null && variable(2100, 'Saugstufe') === null);
+// Vertrag robot_activity 1.0 (FrigateHub, 10.11.2026): rein lesend, ohne Cloud-Anfrage.
+FakeCloud::$anfragen = [];
+$akt = json_decode($maeher->GetActivity(), true);
+check('robot_activity: Mäher in Wetterpause = außerhalb der Station, fährt nicht', ($akt['contractVersion'] ?? '') === '1.0' && $akt['class'] === 'mower'
+    && $akt['state'] === RoboHubModell::ZUSTAND_WETTERPAUSE && $akt['outsideStation'] === true && $akt['moving'] === false
+    && $akt['stateVariableID'] === IPS_GetObjectIDByIdent('Zustand', 2100), json_encode($akt));
+check('robot_activity: keine Cloud-Anfrage', FakeCloud::$anfragen === []);
+check('robot_activity: ohne Echtzeit gilt updatedAt + 3 × Abfrageabstand', $akt['realtime'] === false && $akt['updatedAt'] >= time() - 5
+    && $akt['validUntil'] === $akt['updatedAt'] + 3 * $akt['pollIntervalS'] && $akt['pollIntervalS'] > 0, json_encode($akt));
+$maeher->SetValue('Zustand', RoboHubModell::ZUSTAND_REINIGT);
+$akt = json_decode($maeher->GetActivity(), true);
+check('robot_activity: mäht = fährt + außerhalb', $akt['moving'] === true && $akt['outsideStation'] === true);
+$maeher->SetValue('Zustand', RoboHubModell::ZUSTAND_LAEDT);
+$akt = json_decode($maeher->GetActivity(), true);
+check('robot_activity: lädt = in der Station', $akt['moving'] === false && $akt['outsideStation'] === false);
+$mqttVorher = $konto2->ReadAttributeString('Mqtt');
+$konto2->WriteAttributeString('Mqtt', json_encode(['zustand' => 'verbunden']));
+$akt = json_decode($maeher->GetActivity(), true);
+check('robot_activity: Echtzeit steht → gültig 5 min ab Abfrage', $akt['realtime'] === true && abs($akt['validUntil'] - (time() + 300)) <= 2, json_encode($akt));
+$konto2->WriteAttributeString('Mqtt', $mqttVorher);
+$maeher->props['Deaktiviert'] = true;
+$akt = json_decode($maeher->GetActivity(), true);
+check('robot_activity: deaktiviert → unbekannt und sofort veraltet', $akt['state'] === RoboHubModell::ZUSTAND_UNBEKANNT && $akt['validUntil'] === 0 && $akt['outsideStation'] === false);
+$maeher->props['Deaktiviert'] = false;
+$maeher->SetValue('Zustand', RoboHubModell::ZUSTAND_WETTERPAUSE);
 $opts = json_decode(variable(2100, 'Zustand')['pres']['INTERVALS'], true);
 $mahtCaption = '';
 foreach ($opts as $o) { if ($o['IntervalMinValue'] === RoboHubModell::ZUSTAND_REINIGT && $o['IntervalMaxValue'] === RoboHubModell::ZUSTAND_REINIGT && $o['ConstantActive'] === true) { $mahtCaption = $o['ConstantValue']; } }

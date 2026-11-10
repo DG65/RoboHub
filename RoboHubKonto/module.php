@@ -485,6 +485,8 @@ class RoboHubKonto extends IPSModule
             return [
                 'hersteller' => $this->ReadPropertyString('Hersteller'),
                 'angemeldet' => $this->ReadAttributeString('Buendel') !== '',
+                // Echtzeit-Verbindung steht (robot_activity-Vertrag: validUntil); rein lokal, keine Cloud-Anfrage.
+                'echtzeit'   => (json_decode((string)$this->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden',
             ];
         }
 

@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.0' => [
+            '• New for other modules: ROBO_GetActivity tells whether a robot is moving or outside its station (contract robot_activity 1.0) — e.g. so that FrigateHub raises no false alarm when the mower drives through the picture. Reads only Symcon variables, never the vendor cloud.',
+        ],
         '0.36.1' => [
             '• Real-time connection reconnects by itself: if the connection drops and stays in an error state, RoboHub switches it off and on again (5 s, 10 s, 20 s … up to 5 min; Husqvarna/GARDENA up to 1 h because of the API quota). Before, real-time stayed off until the next restart.',
         ],

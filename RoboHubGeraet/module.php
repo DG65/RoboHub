@@ -411,6 +411,49 @@ class RoboHubGeraet extends IPSModule
         return RoboHubText::t('⛔ Changing the room settings stored in the robot is blocked for now — please choose mode/suction level when starting (ROBO_RaeumeReinigenMit).');
     }
 
+    /**
+     * ROBO_GetActivity($id): string — Vertrag `robot_activity` 1.0 (abgestimmt mit FrigateHub 10.11.2026), rein lesend.
+     * Liest nur Variablen/Attribute und den lokalen Verbindungsstand des Kontos — nie die Hersteller-Cloud, deshalb bei
+     * jedem Kamera-Ereignis billig. Konsumenten finden Roboter über IPS_GetInstanceListByModuleID (Modul-GUID).
+     * state = Verbund-Enum aus RoboHubModell (herstellerneutral); validUntil < jetzt = veraltet.
+     */
+    public function GetActivity(): string
+    {
+        $zid = @IPS_GetObjectIDByIdent('Zustand', $this->InstanceID);
+        $aus = $this->ReadPropertyBoolean('Deaktiviert') || !$zid;
+        $zustand = $aus ? RoboHubModell::ZUSTAND_UNBEKANNT : (int)GetValue($zid);
+        $var = $zid ? IPS_GetVariable($zid) : [];
+        $aktualisiert = max((int)($var['VariableUpdated'] ?? 0), $this->ReadAttributeInteger('LetzterAbruf'), $this->ReadAttributeInteger('LetzteEchtzeit'));
+        $takt = $this->taktSekunden();
+        $echtzeit = false;
+        if (!$aus) {
+            $info = $this->frageKonto(['Aktion' => 'info']);
+            $echtzeit = !empty($info['ok']) && !empty($info['daten']['echtzeit']);
+        }
+        if ($aus || $aktualisiert === 0) {
+            $gueltig = 0;
+        } elseif ($echtzeit) {
+            $gueltig = time() + 300;   // Verbindung steht = Lebenszeichen; Abbruch erkennt das Konto (seit 0.36.1)
+        } else {
+            $gueltig = $aktualisiert + 3 * $takt;
+        }
+        return (string)json_encode([
+            'contractVersion' => '1.0',
+            'class'           => $this->klasse() === RoboHubModell::KLASSE_MAEHER ? 'mower' : 'vacuum',
+            'name'            => IPS_GetName($this->InstanceID),
+            'state'           => $zustand,
+            'stateVariableID' => (int)$zid,
+            'moving'          => in_array($zustand, [RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_ZURUECK, RoboHubModell::ZUSTAND_KARTIERUNG], true),
+            'outsideStation'  => in_array($zustand, [RoboHubModell::ZUSTAND_BEREIT, RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::ZUSTAND_PAUSIERT,
+                RoboHubModell::ZUSTAND_ZURUECK, RoboHubModell::ZUSTAND_FEHLER, RoboHubModell::ZUSTAND_KARTIERUNG, RoboHubModell::ZUSTAND_WETTERPAUSE], true),
+            'since'           => (int)($var['VariableChanged'] ?? 0),
+            'updatedAt'       => $aktualisiert,
+            'validUntil'      => $gueltig,
+            'realtime'        => $echtzeit,
+            'pollIntervalS'   => $takt,
+        ]);
+    }
+
     /** ROBO_Rohdaten($id): string — letzte Rohantwort des Herstellers (zur Fehlersuche). */
     public function Rohdaten(): string
     {

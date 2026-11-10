@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.0 (10.11.2026)
+
+- **Neuer Vertrag `ROBO_GetActivity($id)`, `robot_activity` 1.0** (abgestimmt mit FrigateHub 10.11.2026, Dietmars Auftrag): rein
+  lesend, ohne Cloud-Anfrage — class, name, state (Verbund-Enum RoboHubModell), stateVariableID, moving (1/3/9), outsideStation
+  (0/1/2/3/7/9/11), since, updatedAt (max. Variablen-Aktualisierung/Abruf/Echtzeit), validUntil (Echtzeit verbunden: jetzt + 300 s,
+  sonst updatedAt + 3 × Abfrageabstand, deaktiviert: 0), realtime, pollIntervalS. Discovery über die Modul-GUID von RoboHubGeraet.
+  Konto-Aktion `info` liefert dafür zusätzlich `echtzeit` (lokal).
+- Prüfstand: 6 neue Prüfungen, 3/3 Gegenproben gefangen.
+
 ## 0.36.1 (10.11.2026)
 
 - **SUITE.md Stolperstein 27 — Verbindung im Fehlerstatus selbst neu aufbauen** (Hinweis EMS/EEBUSGateway 10.11.2026): Client Socket

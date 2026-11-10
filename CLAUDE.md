@@ -565,6 +565,12 @@
 - Debug-Ausgaben (`SendDebug`) bleiben deutsch. Englischer Prüflauf: `ROBOHUB_SPRACHE=en php .tools/test-robohub.php`
   (deutsche Prüftexte schlagen dort erwartungsgemäß fehl; zum Durchsuchen nach deutschen Resten gedacht).
 
+## Vertrag robot_activity (0.37.0)
+
+- `ROBO_GetActivity` für FrigateHub (Konzept `Nextcloud/Claude/FrigateHub-Roboter-Konzept.md`): Unterdrückung von Fehlalarmen,
+  wenn ein Roboter im Bild ist. **Nie eine Cloud-Anfrage darin** (wird bei jedem Kamera-Ereignis aufgerufen). Felder nur additiv
+  ändern (Minor), moving/outsideStation-Mengen sind Vertragsinhalt — ein neuer ZUSTAND_ muss dort bewusst eingeordnet werden.
+
 ## Prüfen
 
 ```
