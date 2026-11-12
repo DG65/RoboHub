@@ -539,8 +539,8 @@ check('Akku aus battery der Geräteliste', variable(2000, 'Akku')['value'] === 1
 check('Fehler 0 → „kein Fehler"', variable(2000, 'Fehler')['value'] === 'kein Fehler');
 FakeCloud::$props['2.2'] = 68;
 $geraet->Aktualisieren();
-check('Sauger-Code 68 „Mopp abnehmen" ist Hinweis, kein Fehler (Forum power1625 12.11.2026, App zeigt keinen Fehler)',
-    variable(2000, 'Fehler')['value'] === 'kein Fehler' && variable(2000, 'Meldung')['value'] === 'Mopp abnehmen (68)'
+check('Sauger-Code 68 „Mopp abnehmen" weder Fehler noch Meldung (Forum power1625 144636/64+66, App zeigt nichts)',
+    variable(2000, 'Fehler')['value'] === 'kein Fehler' && (variable(2000, 'Meldung')['value'] ?? '') === ''
     && variable(2000, 'Zustand')['value'] === RoboHubModell::ZUSTAND_GELADEN, json_encode([variable(2000, 'Fehler'), variable(2000, 'Meldung')]));
 FakeCloud::$props['2.2'] = 12;
 $geraet->Aktualisieren();
@@ -639,6 +639,12 @@ check('Live-Rahmen ohne delsr: Stand der gespeicherten Karte gilt, ohne Raumlist
     && RoboHubDreame::versteckteRaeume(['seg_inf' => ['1' => []]], [], [1, 6]) === []
     && RoboHubDreame::versteckteRaeume(['delsr' => []], [1], [1, 6]) === []);
 $versteckBild = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => [], '5' => []]], 'breite' => 4, 'hoehe' => 2, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => str_repeat(chr(3), 4) . str_repeat(chr(5), 4)], [3 => 'A', 5 => 'B'], false, [5]);
+// Standard-Kodierung: Randpunkt von Raum 5 = 0x80 | 5 — trägt die Raumnummer mit (Tasshack 100 + id).
+// Raum 37 (> 31) erzwingt die Standard-Kodierung (v3 läse 0x25 als Wand von Raum 5).
+$randBild = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => [], '37' => []]], 'breite' => 4, 'hoehe' => 3, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => str_repeat(chr(3), 4) . str_repeat(chr(37), 4) . str_repeat(chr(0x80 | 37), 4)], [3 => 'A', 37 => 'B'], false, [37]);
+check('… auch seine Randpunkte (Forum 144636/66: Fragmente der ausgeblendeten Räume)', $randBild['format'] == 4 && $randBild['kodierung'] === 'standard', json_encode([$randBild['format'], $randBild['kodierung']]));
+$randV3 = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => [], '5' => []]], 'breite' => 4, 'hoehe' => 3, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => str_repeat(chr(3), 4) . str_repeat(chr(5), 4) . str_repeat(chr((1 << 5) | 5), 4)], [3 => 'A', 5 => 'B'], false, [5]);
+check('… auch in der v3-Kodierung (Wand 1 mit Raumnummer)', $randV3['format'] == 4 && $randV3['kodierung'] === 'v3', json_encode([$randV3['format'], $randV3['kodierung']]));
 check('deaktivierter Raum wird nicht gezeichnet und nicht beschriftet', $versteckBild['format'] == 4 && array_column($versteckBild['marken'], 'id') === [3], json_encode([$versteckBild['format'], $versteckBild['marken']]));
 
 FakeCloud::$props['6.8'] = json_encode(['object_name' => 'ali_dreame/123/map']);

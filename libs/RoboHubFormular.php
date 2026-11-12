@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.4' => [
+            '• Dreame/MOVA: rooms deactivated in the app now disappear from the map completely, including their edges.',
+            '• Dreame/MOVA: the notice "Remove mop" (code 68) is no longer shown at all, like in the app.',
+        ],
         '0.37.3' => [
             '• Dreame/MOVA: room type 10 is now called "Closet" like in the app (it was shown as "Storage room"), and rooms deactivated in the app disappear from the room list and the map.',
             '• Dreame/MOVA: the notice "Remove mop" (code 68) is no longer shown as an error — like in the app it appears under "Last message".',

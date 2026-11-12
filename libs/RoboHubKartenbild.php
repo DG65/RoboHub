@@ -99,7 +99,8 @@ final class RoboHubKartenbild
         $verstecktMenge = array_fill_keys(array_map('intval', $versteckt), true);
         foreach (array_keys($zaehler) as $wert) {
             $k = self::klassifiziere($kodierung, $wert);
-            $tabelle[$wert] = ($k >= 100 && isset($verstecktMenge[$k - 100])) ? self::AUSSEN : $k;
+            $seg = self::raumVonPunkt($kodierung, $wert);
+            $tabelle[$wert] = ($seg !== null && isset($verstecktMenge[$seg])) ? self::AUSSEN : $k;
         }
         for ($y = 0; $y < $h; $y++) {
             $zeile = $h - 1 - $y;                       // gespiegelt: oben im Bild = größtes y
@@ -389,6 +390,29 @@ final class RoboHubKartenbild
      *  v3       — Raum = Bits 0–4 (31 = Boden ohne Raum), Bits 5–6 = Wand (3 = nicht zeichnen)
      *  rahmen   — Raum = Bits 2–7 (63 Wand, 62 Boden, 61 unbekannt), sonst Bits 0–5: 1/3 Boden, 2 Wand
      */
+    /**
+     * Raumnummer eines Punkts einschließlich Rand-/Wandpunkten, die bei Dreame die Raumnummer
+     * mittragen (Tasshack map.py: Standard „p >> 7" mit Segment → 100 + id, v3 Wand 1/2 → 100 + id).
+     * Für das Ausblenden deaktivierter Räume — sonst bleiben deren Ränder stehen (Forum power1625
+     * 144636/66). null = Punkt gehört zu keinem Raum (reine Wand, Boden, außen, Live-Rahmen-Wand).
+     */
+    private static function raumVonPunkt(string $kodierung, int $p): ?int
+    {
+        if ($p === 0) {
+            return null;
+        }
+        if ($kodierung === 'rahmen') {
+            $seg = $p >> 2;
+            return ($seg > 0 && $seg < 61) ? $seg : null;
+        }
+        if ($kodierung === 'v3') {
+            $seg = $p & 0x1F;
+            return ($seg === 0 || $seg === 31) ? null : $seg;
+        }
+        $seg = $p & 0x3F;
+        return $seg > 0 ? $seg : null;
+    }
+
     private static function klassifiziere(string $kodierung, int $p): int
     {
         if ($p === 0) {

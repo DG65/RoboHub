@@ -588,8 +588,9 @@ PEM;
     ];
 
     // Codes, die Tasshack als Warnung statt Fehler führt (types.py WARNING_ERROR_CODE) und die
-    // die App nicht als Fehler zeigt — 68 „Mopp abnehmen“ (Forum power1625 12.11.2026), 70 „Mopp
-    // abgenommen“. Wie beim Mäher: „kein Fehler“, Text in „Letzte Meldung“. Bewusst eng gehalten.
+    // die App gar nicht zeigt — 68 „Mopp abnehmen“ (Forum power1625 12.11.2026: steht dauerhaft
+    // an, auch in der Station), 70 „Mopp abgenommen“. Wie in der App: kein Fehler, keine Meldung
+    // (0.37.3 schrieb sie noch in „Letzte Meldung“ — wird geleert). Nur im Debug. Bewusst eng gehalten.
     private const SAUGER_WARNUNGEN = [68 => 'Remove mop', 70 => 'Mop removed'];
 
     private function normalisiereSauger(array $p): array
@@ -606,7 +607,8 @@ PEM;
         if (isset($p['2.2'])) {
             $code = (int)$p['2.2'];
             if (isset(self::SAUGER_WARNUNGEN[$code])) {
-                $w['Meldung'] = RoboHubText::wert(self::SAUGER_WARNUNGEN[$code]) . ' (' . $code . ')';
+                $this->dbg('Fehler', 'Hinweis-Code ' . $code . ' (' . self::SAUGER_WARNUNGEN[$code] . ') — wie in der App nicht angezeigt.');
+                $w['Meldung'] = '';
                 $code = 0;
             }
             $w['Fehler'] = $code === 0 ? RoboHubText::t('no error') : (RoboHubText::wert(self::SAUGER_FEHLER[$code] ?? null) ?? RoboHubText::t('Error code %s', $code)) . ' (' . $code . ')';

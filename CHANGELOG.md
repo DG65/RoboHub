@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.4 (12.11.2026)
+
+- **Dreame: Ränder deaktivierter Räume ausgeblendet** (Forum power1625, 144636/66): Rand-/Wandpunkte tragen bei Dreame die Raumnummer
+  mit (Standard `0x80 | id`, v3 Wand 1/2 mit id; Tasshack `100 + id`). 0.37.3 blendete nur die Flächenpunkte aus, die Ränder blieben
+  als Fragmente stehen. Neu `RoboHubKartenbild::raumVonPunkt()`.
+- **Code 68/70 gar nicht mehr angezeigt**: Stefan sieht „Mopp abnehmen" dauerhaft, auch in der Station; die App zeigt ihn nie. Kein Fehler,
+  keine Meldung mehr (die von 0.37.3 geschriebene wird geleert), nur Debug.
+- Prüfstand: 2 neue/1 angepasste Prüfung, 2/2 Gegenproben gefangen (Standard- und v3-Kodierung je eindeutig).
+
 ## 0.37.3 (12.11.2026)
 
 - **Dreame: Raumtyp 10 = „Closet"/„Garderobe"** (Forum power1625, 144636/64): Die 0.37.2-Annahme „eigener Name schlägt Typ" war nicht
