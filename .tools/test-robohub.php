@@ -537,6 +537,16 @@ check('Zustand aus latestStatus 13 → „In der Station"', variable(2000, 'Zust
 check('Rohzustand im Klartext', variable(2000, 'ZustandRoh')['value'] === 'Geladen (13)');
 check('Akku aus battery der Geräteliste', variable(2000, 'Akku')['value'] === 100);
 check('Fehler 0 → „kein Fehler"', variable(2000, 'Fehler')['value'] === 'kein Fehler');
+FakeCloud::$props['2.2'] = 68;
+$geraet->Aktualisieren();
+check('Sauger-Code 68 „Mopp abnehmen" ist Hinweis, kein Fehler (Forum power1625 12.11.2026, App zeigt keinen Fehler)',
+    variable(2000, 'Fehler')['value'] === 'kein Fehler' && variable(2000, 'Meldung')['value'] === 'Mopp abnehmen (68)'
+    && variable(2000, 'Zustand')['value'] === RoboHubModell::ZUSTAND_GELADEN, json_encode([variable(2000, 'Fehler'), variable(2000, 'Meldung')]));
+FakeCloud::$props['2.2'] = 12;
+$geraet->Aktualisieren();
+check('… echter Fehler bleibt Fehler', variable(2000, 'Fehler')['value'] === 'Hauptbürste blockiert (12)', json_encode(variable(2000, 'Fehler')));
+FakeCloud::$props['2.2'] = 0;
+$geraet->Aktualisieren();
 check('Verbrauchsteile angelegt (Hauptbürste 88 %)', variable(2000, 'Hauptbuerste')['value'] === 88);
 check('Filter-% von piid 1', variable(2000, 'Filter')['value'] === 66);
 check('Reststunden Sauger (Haupt/Seite/Filter/Sensoren/Mopp)', variable(2000, 'HauptbuersteRest')['value'] === 169.0 && variable(2000, 'SeitenbuersteRest')['value'] === 69.0 && variable(2000, 'FilterRest')['value'] === 19.0 && variable(2000, 'SensorenRest')['value'] === 0.0 && variable(2000, 'MoppRest')['value'] === 250.0);
@@ -620,6 +630,16 @@ check('Raumnamen: eigener Name schlägt Typ (wie Tasshack; Forum: „Garderobe" 
 check('Raumnamen: Räume ohne Bildpunkte (gelöscht/deaktiviert) fallen weg, ohne Bildinfo bleiben alle',
     RoboHubDreame::raeumeAusSegmenten([1 => ['type' => 4], 6 => ['type' => 0], 11 => []], [1]) === [1 => 'Kitchen']
     && count(RoboHubDreame::raeumeAusSegmenten([1 => ['type' => 4], 6 => ['type' => 0]], [])) === 2);
+check('Raumtyp 10 heißt „Garderobe" wie in der App (Forum power1625 12.11.2026, Tasshack: Closet)',
+    RoboHubDreame::raeumeAusSegmenten([4 => ['type' => 10]]) === [4 => 'Closet'] && RoboHubText::raum('Closet') === 'Garderobe');
+check('in der App deaktivierte Räume (delsr) fallen weg, auch mit Fläche in der Karte (Forum: Raum 6 und 11)',
+    RoboHubDreame::raeumeAusSegmenten([1 => ['type' => 4], 6 => [], 11 => []], [1, 6, 11], RoboHubDreame::versteckteRaeume(['delsr' => [6, 11]])) === [1 => 'Kitchen']);
+check('Live-Rahmen ohne delsr: Stand der gespeicherten Karte gilt, ohne Raumliste wird nichts versteckt',
+    RoboHubDreame::versteckteRaeume(['seg_inf' => ['1' => [], '6' => []]], [1], [1, 6, 11]) === [6, 11]
+    && RoboHubDreame::versteckteRaeume(['seg_inf' => ['1' => []]], [], [1, 6]) === []
+    && RoboHubDreame::versteckteRaeume(['delsr' => []], [1], [1, 6]) === []);
+$versteckBild = RoboHubKartenbild::sauger(['json' => ['seg_inf' => ['3' => [], '5' => []]], 'breite' => 4, 'hoehe' => 2, 'raster' => 50, 'links' => 0, 'oben' => 0, 'station' => [0, 0], 'pixel' => str_repeat(chr(3), 4) . str_repeat(chr(5), 4)], [3 => 'A', 5 => 'B'], false, [5]);
+check('deaktivierter Raum wird nicht gezeichnet und nicht beschriftet', $versteckBild['format'] == 4 && array_column($versteckBild['marken'], 'id') === [3], json_encode([$versteckBild['format'], $versteckBild['marken']]));
 
 FakeCloud::$props['6.8'] = json_encode(['object_name' => 'ali_dreame/123/map']);
 FakeCloud::$karte = $klar;

@@ -587,6 +587,11 @@ PEM;
         222 => 'Agitator roller blocked', 225 => 'Check mop roller', 1000 => 'Return to base failed',
     ];
 
+    // Codes, die Tasshack als Warnung statt Fehler führt (types.py WARNING_ERROR_CODE) und die
+    // die App nicht als Fehler zeigt — 68 „Mopp abnehmen“ (Forum power1625 12.11.2026), 70 „Mopp
+    // abgenommen“. Wie beim Mäher: „kein Fehler“, Text in „Letzte Meldung“. Bewusst eng gehalten.
+    private const SAUGER_WARNUNGEN = [68 => 'Remove mop', 70 => 'Mop removed'];
+
     private function normalisiereSauger(array $p): array
     {
         $w = [];
@@ -600,6 +605,10 @@ PEM;
         }
         if (isset($p['2.2'])) {
             $code = (int)$p['2.2'];
+            if (isset(self::SAUGER_WARNUNGEN[$code])) {
+                $w['Meldung'] = RoboHubText::wert(self::SAUGER_WARNUNGEN[$code]) . ' (' . $code . ')';
+                $code = 0;
+            }
             $w['Fehler'] = $code === 0 ? RoboHubText::t('no error') : (RoboHubText::wert(self::SAUGER_FEHLER[$code] ?? null) ?? RoboHubText::t('Error code %s', $code)) . ' (' . $code . ')';
             if ($code !== 0 && ($w['Zustand'] ?? null) === null) {
                 $w['Zustand'] = RoboHubModell::ZUSTAND_FEHLER;
@@ -1629,7 +1638,7 @@ PEM;
     // Vordefinierte Raumtypen (ioBroker lib/cleanset.js).
     private const RAUMTYPEN = [
         1 => 'Living room', 2 => 'Bedroom', 3 => 'Study', 4 => 'Kitchen', 5 => 'Dining room',
-        6 => 'Bathroom', 7 => 'Balcony', 8 => 'Hallway', 9 => 'Utility room', 10 => 'Storage room',
+        6 => 'Bathroom', 7 => 'Balcony', 8 => 'Hallway', 9 => 'Utility room', 10 => 'Closet',
         11 => 'Meeting room', 12 => 'Office', 13 => 'Gym', 14 => 'Recreation room', 15 => 'Second bedroom',
     ];
 
@@ -1688,8 +1697,9 @@ PEM;
             $this->dbg('Karte', 'Karte nicht dekodierbar (verschlüsselt mit unbekanntem Schlüssel oder anderes Format).');
             return $leer;
         }
-        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []), RoboHubKartenbild::raeumeImBild($roh));
-        $bild = RoboHubKartenbild::sauger($roh, $raeume);
+        $versteckt = self::versteckteRaeume($roh['json'] ?? []);
+        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []), RoboHubKartenbild::raeumeImBild($roh), $versteckt);
+        $bild = RoboHubKartenbild::sauger($roh, $raeume, false, $versteckt);
         // Raum-Einstellungen mit dem Stand der App stehen im Kartenobjekt hinter 6.3 (ioBroker
         // mapController _loadCleansetFromObject); die Karte selbst trägt keine.
         $info = 'Kartendatei ' . json_encode($aufbau) . ' | ';
@@ -2021,11 +2031,12 @@ PEM;
      * $imBild: Raumnummern, die in der Karte Bildpunkte haben — Einträge ohne (gelöschte/deaktivierte
      * Räume, Forum: „Raum 6 und 11 gibt es nicht mehr") fallen weg wie bei Tasshack (map.py is_unmmaped).
      */
-    public static function raeumeAusSegmenten(array $segmente, ?array $imBild = null): array
+    public static function raeumeAusSegmenten(array $segmente, ?array $imBild = null, array $versteckt = []): array
     {
         $raeume = [];
+        $versteckt = array_map('intval', $versteckt);
         foreach ($segmente as $id => $seg) {
-            if (!is_array($seg) || !is_numeric($id)) {
+            if (!is_array($seg) || !is_numeric($id) || in_array((int)$id, $versteckt, true)) {
                 continue;
             }
             if ($imBild !== null && $imBild !== [] && !in_array((int)$id, $imBild, true)) {
@@ -2075,8 +2086,28 @@ PEM;
             return $this->maehKarte($buendel, $did, true) + ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0];
         }
         $roh = $this->liveRahmen($buendel, $geraet);
-        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []), RoboHubKartenbild::raeumeImBild($roh));
-        return $this->liveKarteAus($roh, $raeume, $geraet);
+        $versteckt = self::versteckteRaeume($roh['json'] ?? [], array_keys((array)($geraet['raeume'] ?? [])), RoboHubKartenbild::raeumeImBild($roh));
+        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []), RoboHubKartenbild::raeumeImBild($roh), $versteckt);
+        return $this->liveKarteAus($roh, $raeume, $geraet, $versteckt);
+    }
+
+    /**
+     * In der App deaktivierte Räume: Kartenfeld „delsr“ (Tasshack map.py hidden_segments).
+     * Trägt ein Live-Rahmen das Feld nicht, gilt wie bei Tasshack der Stand der gespeicherten
+     * Karte — deren Raumliste ($bekannt) enthält deaktivierte Räume schon nicht mehr.
+     * Forum power1625 12.11.2026: deaktivierte Räume 6 und 11 haben weiter Fläche in der Karte.
+     */
+    public static function versteckteRaeume(array $json, ?array $bekannt = null, array $imBild = []): array
+    {
+        if (isset($json['delsr']) && is_array($json['delsr'])) {
+            return array_values(array_map('intval', array_filter($json['delsr'], 'is_numeric')));
+        }
+        if ($bekannt === null || $bekannt === []) {
+            return [];
+        }
+        $bekannt = array_map('intval', $bekannt);
+        $ids = array_unique(array_merge(array_map('intval', array_keys((array)($json['seg_inf'] ?? []))), array_map('intval', $imBild)));
+        return array_values(array_filter($ids, fn ($id) => !in_array($id, $bekannt, true)));
     }
 
     /** Aktuellen Vollrahmen holen und dekodieren (für Live-Karte und Raum-Einstellungen). */
@@ -2130,7 +2161,7 @@ PEM;
         return $roh;
     }
 
-    private function liveKarteAus(array $roh, array $raeume, array $geraet): array
+    private function liveKarteAus(array $roh, array $raeume, array $geraet, array $versteckt = []): array
     {
         if ($raeume === []) {
             // Live-Rahmen ohne seg_inf: Namen aus der gespeicherten Karte (vom Roboter mitgegeben).
@@ -2138,7 +2169,7 @@ PEM;
                 $raeume[(int)$id] = (string)$name;
             }
         }
-        $bild = RoboHubKartenbild::sauger($roh, $raeume, true);
+        $bild = RoboHubKartenbild::sauger($roh, $raeume, true, $versteckt);
         $bild += self::raumEinstellungenAus($roh['json'], $this->hatMoppAnhebung((array)($geraet['stand'] ?? [])));
         $this->dbg('Live-Karte', $roh['breite'] . '×' . $roh['hoehe'] . ', Kodierung „' . $bild['kodierung'] . '", Weg ' . count($bild['weg'] ?? []) . ' Stücke, Roboter ' . json_encode($bild['roboter'] ?? null));
         unset($bild['kodierung']);

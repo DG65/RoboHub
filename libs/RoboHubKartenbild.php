@@ -67,7 +67,11 @@ final class RoboHubKartenbild
         return array_keys($ids);
     }
 
-    public static function sauger(array $roh, array $raeume, bool $live = false): array
+    /**
+     * $versteckt: in der App deaktivierte Räume (Kartenfeld „delsr“) — ihre Bildpunkte
+     * werden nicht gezeichnet, wie bei Tasshack (map.py hidden_segments).
+     */
+    public static function sauger(array $roh, array $raeume, bool $live = false, array $versteckt = []): array
     {
         $leer = ['bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0, 'kodierung' => ''];
         $b = (int)($roh['breite'] ?? 0);
@@ -92,8 +96,10 @@ final class RoboHubKartenbild
         $maxY = -1;
         $zaehler = count_chars($pixel, 1);
         $tabelle = [];
+        $verstecktMenge = array_fill_keys(array_map('intval', $versteckt), true);
         foreach (array_keys($zaehler) as $wert) {
-            $tabelle[$wert] = self::klassifiziere($kodierung, $wert);
+            $k = self::klassifiziere($kodierung, $wert);
+            $tabelle[$wert] = ($k >= 100 && isset($verstecktMenge[$k - 100])) ? self::AUSSEN : $k;
         }
         for ($y = 0; $y < $h; $y++) {
             $zeile = $h - 1 - $y;                       // gespiegelt: oben im Bild = größtes y

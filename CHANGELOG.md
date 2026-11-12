@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.3 (12.11.2026)
+
+- **Dreame: Raumtyp 10 = „Closet"/„Garderobe"** (Forum power1625, 144636/64): Die 0.37.2-Annahme „eigener Name schlägt Typ" war nicht
+  die Ursache — Stefans Raum 4 hat keinen eigenen Namen, sondern Typ 10. Tasshack nennt ihn „Closet", die App „Garderobe"; RoboHub hatte
+  „Storage room" („Abstellraum").
+- **Dreame: in der App deaktivierte Räume ausgeblendet** — Kartenfeld `delsr` (Tasshack `hidden_segments`). Deaktivierte Räume behalten
+  ihre Fläche in der Karte, deshalb griff der 0.37.2-Filter „ohne Bildpunkte" nicht. Jetzt fallen sie aus Raumliste, Raumknöpfen und
+  Kartenbild (Punkte nicht gezeichnet, keine Marke). Live-Rahmen ohne `delsr`: Stand der gespeicherten Karte (Raumliste) gilt.
+- **Dreame-Sauger: Code 68 „Mopp abnehmen" / 70 „Mopp abgenommen" sind Hinweise** (Tasshack `WARNING_ERROR_CODE`, App zeigt keinen
+  Fehler): „kein Fehler", Text in „Letzte Meldung" wie beim Mäher. Bewusst eng gehalten.
+- Prüfstand: 6 neue Prüfungen, 4/4 Gegenproben gefangen.
+
 ## 0.37.2 (12.11.2026)
 
 - **Raumnamen nach Minuten englisch** (Forum power1625, 144636/61, Symcon 9.1 auf Raspberry Pi): Dreame, Ecovacs, Narwal und Roborock
