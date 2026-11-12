@@ -331,7 +331,7 @@ class RoboHubNarwal implements RoboHubTreiber
             if ($name === '') {
                 $typ = (int)self::pbEins($raum, 2, 0);
                 $nr = (int)self::pbEins($raum, 8, 0);
-                $name = RoboHubText::wert(self::RAUMTYPEN[$typ] ?? 'Room') . ($nr > 1 ? ' ' . $nr : '');
+                $name = (self::RAUMTYPEN[$typ] ?? 'Room') . ($nr > 1 ? ' ' . $nr : '');
             }
             $raeume[$id] = $name;
         }

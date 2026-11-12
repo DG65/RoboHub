@@ -611,7 +611,15 @@ check('verschlüsselte Karte (leerer IV) dekodiert', (RoboHubDreame::dekodiereKa
 $enc2 = base64_encode(openssl_encrypt(gzcompress($roh), 'aes-256-cbc', $key, OPENSSL_RAW_DATA, 'NRwnBj5FsNPgBNbT')) . ',' . $suffix;
 check('r2253 nutzt seinen eigenen IV', (RoboHubDreame::dekodiereKarte($enc2, 'dreame.vacuum.r2253c')['seg_inf'] ?? null) == $segs);
 check('Müll ergibt null statt Absturz', RoboHubDreame::dekodiereKarte('%%%kaputt', 'x') === null);
-check('Raumnamen: Typ, eigener Name, Index', RoboHubDreame::raeumeAusSegmenten($segs) === [3 => 'Küche', 5 => 'Hobbykeller', 7 => 'Schlafzimmer 2']);
+check('Raumnamen: Typ, eigener Name, Index — sprachneutral gespeichert', RoboHubDreame::raeumeAusSegmenten($segs) === [3 => 'Kitchen', 5 => 'Hobbykeller', 7 => 'Bedroom 2'], json_encode(RoboHubDreame::raeumeAusSegmenten($segs)));
+check('Raumnamen erst bei der Anzeige übersetzt (Forum power1625 12.11.2026: sonst nach Minuten englisch)', RoboHubText::raum('Kitchen') === 'Küche'
+    && RoboHubText::raum('Bedroom 2') === 'Schlafzimmer 2' && RoboHubText::raum('Room 6') === 'Raum 6' && RoboHubText::raum('Hobbykeller') === 'Hobbykeller'
+    && RoboHubText::raum('Küche') === 'Küche' && RoboHubText::raum('Flur 2') === 'Flur 2');
+check('Raumnamen: eigener Name schlägt Typ (wie Tasshack; Forum: „Garderobe" erschien als „Abstellraum")',
+    RoboHubDreame::raeumeAusSegmenten([4 => ['type' => 10, 'name' => base64_encode('Garderobe')]]) === [4 => 'Garderobe']);
+check('Raumnamen: Räume ohne Bildpunkte (gelöscht/deaktiviert) fallen weg, ohne Bildinfo bleiben alle',
+    RoboHubDreame::raeumeAusSegmenten([1 => ['type' => 4], 6 => ['type' => 0], 11 => []], [1]) === [1 => 'Kitchen']
+    && count(RoboHubDreame::raeumeAusSegmenten([1 => ['type' => 4], 6 => ['type' => 0]], [])) === 2);
 
 FakeCloud::$props['6.8'] = json_encode(['object_name' => 'ali_dreame/123/map']);
 FakeCloud::$karte = $klar;

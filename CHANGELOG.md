@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.2 (12.11.2026)
+
+- **Raumnamen nach Minuten englisch** (Forum power1625, 144636/61, Symcon 9.1 auf Raspberry Pi): Dreame, Ecovacs, Narwal und Roborock
+  übersetzten Raumtypen („Kitchen" → „Küche", „Room 6") schon beim Speichern im Konto — je nach Ablauf (Formular-Knopf vs. Live-Karten-
+  Takt) landete Deutsch oder Englisch im Attribut. Jetzt sprachneutral gespeichert, übersetzt bei der Anzeige (`RoboHubText::raum`,
+  auch mit Index „Bedroom 2" und „Room n"): Kachel-Marken, Raumknöpfe, Variable „Raum reinigen", Formular. Alte deutsche Namen bleiben lesbar.
+- **Dreame: eigener Raumname schlägt den Typ** (wie Tasshack `Segment.set_name`) — „Garderobe" erschien als Typname „Abstellraum".
+- **Dreame: gelöschte/deaktivierte Räume ausgeblendet** — seg_inf-Einträge ohne Bildpunkte fallen weg wie bei Tasshack (`is_unmmaped`),
+  ohne Bildinfo bleibt alles. Neu `RoboHubKartenbild::raeumeImBild()`.
+- Prüfstand: 4 neue/angepasste Prüfungen, 2/2 Gegenproben gefangen.
+
 ## 0.37.1 (10.11.2026)
 
 - **robot_activity: nicht erreichbarer Roboter = unbekannt** (Live-Befund 10.11.2026): Der LiDAX ist seit 07.11. offline (Abdeckung offen,

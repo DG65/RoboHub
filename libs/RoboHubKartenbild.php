@@ -46,6 +46,27 @@ final class RoboHubKartenbild
      * $roh aus RoboHubDreame::dekodiereKarteRoh(), $raeume [ID => Name].
      * Rückgabe ['bild' => data-URI|'', 'marken' => [...], 'station' => [...]|null, 'kodierung' => string].
      */
+    /** Raumnummern, die in den Bildpunkten vorkommen (gleiche Kodierungswahl wie sauger()); [] = unbekannt. */
+    public static function raeumeImBild(array $roh): array
+    {
+        $b = (int)($roh['breite'] ?? 0);
+        $h = (int)($roh['hoehe'] ?? 0);
+        $pixel = (string)($roh['pixel'] ?? '');
+        if ($b <= 0 || $h <= 0 || strlen($pixel) < $b * $h) {
+            return [];
+        }
+        $segInf = array_map('intval', array_keys((array)($roh['json']['seg_inf'] ?? [])));
+        $kodierung = self::waehleKodierung($pixel, $roh['json'] ?? [], $segInf);
+        $ids = [];
+        foreach (array_keys(count_chars(substr($pixel, 0, $b * $h), 1)) as $wert) {
+            $k = self::klassifiziere($kodierung, $wert);
+            if ($k >= 100) {
+                $ids[$k - 100] = true;
+            }
+        }
+        return array_keys($ids);
+    }
+
     public static function sauger(array $roh, array $raeume, bool $live = false): array
     {
         $leer = ['bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0, 'kodierung' => ''];

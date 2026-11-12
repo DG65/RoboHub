@@ -1688,7 +1688,7 @@ PEM;
             $this->dbg('Karte', 'Karte nicht dekodierbar (verschlüsselt mit unbekanntem Schlüssel oder anderes Format).');
             return $leer;
         }
-        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
+        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []), RoboHubKartenbild::raeumeImBild($roh));
         $bild = RoboHubKartenbild::sauger($roh, $raeume);
         // Raum-Einstellungen mit dem Stand der App stehen im Kartenobjekt hinter 6.3 (ioBroker
         // mapController _loadCleansetFromObject); die Karte selbst trägt keine.
@@ -2014,21 +2014,29 @@ PEM;
         return ['raumEinstellungen' => $aus, 'raumEinstellungenAn' => $an, 'raumEinstellungenRoh' => $cs];
     }
 
-    public static function raeumeAusSegmenten(array $segmente): array
+    /**
+     * Raumnamen wie Tasshack (types.py Segment.set_name): eigener Name vor Typname (auch bei gesetztem Typ —
+     * Forum power1625 12.11.2026: „Garderobe" erschien als „Abstellraum"), sonst Typ + Index, sonst „Room n".
+     * Typnamen sprachneutral (englisch), übersetzt wird erst bei der Anzeige (RoboHubText::raum).
+     * $imBild: Raumnummern, die in der Karte Bildpunkte haben — Einträge ohne (gelöschte/deaktivierte
+     * Räume, Forum: „Raum 6 und 11 gibt es nicht mehr") fallen weg wie bei Tasshack (map.py is_unmmaped).
+     */
+    public static function raeumeAusSegmenten(array $segmente, ?array $imBild = null): array
     {
         $raeume = [];
         foreach ($segmente as $id => $seg) {
             if (!is_array($seg) || !is_numeric($id)) {
                 continue;
             }
-            $typ = (int)($seg['type'] ?? 0);
-            $name = '';
-            if ($typ === 0 && !empty($seg['name'])) {
-                $name = (string)base64_decode((string)$seg['name'], true);
-            } elseif (isset(self::RAUMTYPEN[$typ])) {
-                $name = RoboHubText::wert(self::RAUMTYPEN[$typ]) . ((int)($seg['index'] ?? 0) > 0 ? ' ' . ((int)$seg['index'] + 1) : '');
+            if ($imBild !== null && $imBild !== [] && !in_array((int)$id, $imBild, true)) {
+                continue;
             }
-            $raeume[(int)$id] = $name !== '' ? $name : RoboHubText::t('Room %s', $id);
+            $typ = (int)($seg['type'] ?? 0);
+            $name = !empty($seg['name']) ? trim((string)base64_decode((string)$seg['name'], true)) : '';
+            if ($name === '' && $typ !== 0 && isset(self::RAUMTYPEN[$typ])) {
+                $name = self::RAUMTYPEN[$typ] . ((int)($seg['index'] ?? 0) > 0 ? ' ' . ((int)$seg['index'] + 1) : '');
+            }
+            $raeume[(int)$id] = $name !== '' ? $name : 'Room ' . (int)$id;
         }
         ksort($raeume);
         return $raeume;
@@ -2067,7 +2075,7 @@ PEM;
             return $this->maehKarte($buendel, $did, true) + ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0];
         }
         $roh = $this->liveRahmen($buendel, $geraet);
-        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []));
+        $raeume = self::raeumeAusSegmenten((array)($roh['json']['seg_inf'] ?? []), RoboHubKartenbild::raeumeImBild($roh));
         return $this->liveKarteAus($roh, $raeume, $geraet);
     }
 

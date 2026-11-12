@@ -697,7 +697,7 @@ class RoboHubGeraet extends IPSModule
     private function raumEinstellungenZeilen(): array
     {
         $re = json_decode((string)$this->ReadAttributeString('RaumEinstellungen'), true) ?: [];
-        $namen = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
+        $namen = $this->raumNamen();
         $zeilen = [];
         $liste = (array)($re['raeume'] ?? []);
         // In Reinigungsreihenfolge (wie die App), Räume ohne Reihenfolge ans Ende.
@@ -745,7 +745,7 @@ class RoboHubGeraet extends IPSModule
     /** Mäh-Plan: „Plan Sommer · Mo, Mi 09:00–12:00 · alles; Sa 10:00–11:00 · Rasen". */
     private function maehplanText(array $t): string
     {
-        $namen = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
+        $namen = $this->raumNamen();
         $gruppen = [];
         foreach ((array)($t['eintraege'] ?? []) as $e) {
             $was = $e['art'] === 'zonen'
@@ -785,7 +785,7 @@ class RoboHubGeraet extends IPSModule
             $wann = $tage === [] ? RoboHubText::t('never') : implode(', ', array_map([RoboHubText::class, 'tag'], $tage));
         }
         $teile = [(string)($t['zeit'] ?? '?'), $wann];
-        $namen = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
+        $namen = $this->raumNamen();
         switch ($t['art'] ?? '') {
             case 'raeume':
                 $teile[] = implode(', ', array_map(function (array $r) use ($namen): string {
@@ -813,6 +813,12 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Kartendaten für die Kachel (ohne Umrechnungsdaten). */
+    /** Raum-/Zonennamen zur Anzeige (gespeichert sprachneutral, siehe RoboHubText::raum). */
+    private function raumNamen(): array
+    {
+        return array_map([RoboHubText::class, 'raum'], json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: []);
+    }
+
     private function kachelKarte(): ?array
     {
         if (!$this->ReadPropertyBoolean('KarteZeigen')) {
@@ -823,6 +829,9 @@ class RoboHubGeraet extends IPSModule
             return null;
         }
         unset($karte['geometrie']);
+        foreach ((array)($karte['marken'] ?? []) as $i => $m) {
+            $karte['marken'][$i]['name'] = RoboHubText::raum((string)($m['name'] ?? ''));
+        }
         return $karte;
     }
 
@@ -1074,7 +1083,7 @@ class RoboHubGeraet extends IPSModule
         $alt = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
         if ($alt != $raeume || !$this->hatVariable('Raum')) {
             $this->WriteAttributeString('Raeume', (string)json_encode($raeume));
-            $this->MaintainVariable('Raum', $this->klasse() === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('Mow zone') : RoboHubText::t('Clean room'), VARIABLETYPE_INTEGER, $this->presEnum($raeume), 6, true);
+            $this->MaintainVariable('Raum', $this->klasse() === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('Mow zone') : RoboHubText::t('Clean room'), VARIABLETYPE_INTEGER, $this->presEnum(array_map([RoboHubText::class, 'raum'], $raeume)), 6, true);
             $this->EnableAction('Raum');
         }
         // Nach den Raum-/Zonennamen, damit die Pläne schon die neuen Namen tragen.
@@ -1356,7 +1365,7 @@ class RoboHubGeraet extends IPSModule
 
         $raeume = [];
         $einst = $this->raumEinstellungenZeilen();
-        foreach (json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [] as $id => $name) {
+        foreach ($this->raumNamen() as $id => $name) {
             $raeume[] = ['id' => (int)$id, 'name' => (string)$name, 'info' => isset($einst[(int)$id]) ? (string)preg_replace('/^(\d+\. )?' . preg_quote((string)$name, '/') . ': /u', '', $einst[(int)$id]) : ''];
         }
         $fehler = (string)($this->wert('Fehler') ?? '');
@@ -1542,7 +1551,7 @@ class RoboHubGeraet extends IPSModule
             $zeile = RoboHubText::t('ℹ️ Not updated yet.');
         }
         $klasse = $this->klasse() === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robotic lawn mower') : RoboHubText::t('robot vacuum/mop');
-        $raeume = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
+        $raeume = $this->raumNamen();
         $raumZeile = count($raeume) === 0
             ? RoboHubText::t('ℹ️ No rooms/zones known yet (they appear after the first update if the robot has a map).')
             : RoboHubText::t('🗺️ Rooms/zones (ID: name): %s', implode(', ', array_map(function ($id, $name) {
@@ -1587,7 +1596,7 @@ class RoboHubGeraet extends IPSModule
         if ($liste === []) {
             return null;
         }
-        $namen = json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: [];
+        $namen = $this->raumNamen();
         uksort($liste, function ($a, $b) use ($liste): int {
             return ((int)($liste[$a]['reihenfolge'] ?? 0) ?: 999) <=> ((int)($liste[$b]['reihenfolge'] ?? 0) ?: 999) ?: ((int)$a <=> (int)$b);
         });

@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.2' => [
+            '• Room names stay in your language: map and room buttons no longer switch to English after a few minutes.',
+            '• Dreame/MOVA: your own room names from the app take precedence (e.g. "Wardrobe" instead of the room type), and deleted or deactivated rooms no longer appear.',
+        ],
         '0.37.1' => [
             '• ROBO_GetActivity: an unreachable robot (e.g. switched off or stored for winter) now reports "unknown" instead of its last state, so other modules no longer rely on a days-old state.',
         ],

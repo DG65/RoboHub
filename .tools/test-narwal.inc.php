@@ -206,7 +206,7 @@ $raum = function (int $id, int $typ, string $name = '', int $nr = 0): string {
 FakeNarwalRoboter::$karte = RoboHubNarwal::pbZahl(1, 42) . RoboHubNarwal::pbZahl(3, 60) . $raum(3, 4, 'Küche') . $raum(5, 3, '', 2) . $raum(0, 15);
 $nwr->RaeumeLaden();
 $nwRaeume = json_decode($nwr->ReadAttributeString('Raeume'), true);
-check('Räume: eigener Name, sonst Typ deutsch + Nummer, Raum 0 ausgelassen', $nwRaeume == [3 => 'Küche', 5 => 'Wohnzimmer 2'], json_encode($nwRaeume, JSON_UNESCAPED_UNICODE));
+check('Räume: eigener Name, sonst Typ (sprachneutral) + Nummer, Raum 0 ausgelassen; Anzeige deutsch', $nwRaeume == [3 => 'Küche', 5 => 'Living room 2'] && RoboHubText::raum($nwRaeume[5]) === 'Wohnzimmer 2', json_encode($nwRaeume, JSON_UNESCAPED_UNICODE));
 
 FakeNarwalRoboter::$wach = false;
 FakeNarwalRoboter::$basis = narwalBasis(10, 90.0);

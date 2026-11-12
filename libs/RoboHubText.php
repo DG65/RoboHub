@@ -55,4 +55,28 @@ final class RoboHubText
     {
         return is_string($wert) && $wert !== '' ? self::t($wert) : $wert;
     }
+
+    /**
+     * Raumname zur Anzeige: Treiber speichern Raumtypen sprachneutral („Kitchen 2", „Room 6") —
+     * übersetzt wird erst hier. Beim Speichern übersetzt hing die Sprache davon ab, in welchem
+     * Ablauf die Karte geholt wurde (Forum power1625 12.11.2026: Namen nach Minuten englisch).
+     * Eigene Namen aus der App bleiben unverändert.
+     */
+    public static function raum(string $name): string
+    {
+        $uebersetzt = (string)self::t($name);
+        if ($uebersetzt !== $name) {
+            return $uebersetzt;
+        }
+        if (preg_match('/^Room (\d+)$/', $name, $m)) {
+            return (string)self::t('Room %s', $m[1]);
+        }
+        if (preg_match('/^(.+) (\d+)$/u', $name, $m)) {
+            $basis = (string)self::t($m[1]);
+            if ($basis !== $m[1]) {
+                return $basis . ' ' . $m[2];
+            }
+        }
+        return $name;
+    }
 }

@@ -516,13 +516,13 @@ class RoboHubEcovacs implements RoboHubTreiber
                     $teil = $this->befehlRoh($buendel, $geraet, 'getMapSubSet', ['mid' => $mid, 'msid' => (string)($set['msid'] ?? ''), 'type' => 'ar', 'mssid' => (string)$id]);
                     $name = trim((string)($teil['name'] ?? ''));
                     if ($name === '') {
-                        $name = RoboHubText::wert(self::RAUMTYPEN[(int)($teil['subtype'] ?? $teil['subType'] ?? 0)] ?? '');
+                        $name = (self::RAUMTYPEN[(int)($teil['subtype'] ?? $teil['subType'] ?? 0)] ?? '');
                     }
                 } catch (RoboHubFehler $e) {
                     $name = '';
                 }
             }
-            $raeume[$id] = $name !== '' ? $name : RoboHubText::t('Room %s', $id);
+            $raeume[$id] = $name !== '' ? $name : 'Room ' . $id;
         }
         ksort($raeume);
         return ['raeume' => $raeume, 'bild' => '', 'marken' => [], 'station' => null];

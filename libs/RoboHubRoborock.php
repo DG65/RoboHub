@@ -521,7 +521,7 @@ PEM;
         }
         $raeume = [];
         foreach (self::raumZuordnung(is_array($zuordnung) ? $zuordnung : []) as $segment => $iot) {
-            $raeume[$segment] = ($namen[$iot] ?? '') !== '' ? $namen[$iot] : RoboHubText::t('Room %s', $segment);
+            $raeume[$segment] = ($namen[$iot] ?? '') !== '' ? $namen[$iot] : 'Room ' . $segment;
         }
         ksort($raeume);
         return ['raeume' => $raeume, 'bild' => '', 'marken' => [], 'station' => null];
