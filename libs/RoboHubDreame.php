@@ -606,9 +606,11 @@ PEM;
         }
         if (isset($p['2.2'])) {
             $code = (int)$p['2.2'];
+            // Sauger führen keine „Letzte Meldung" — die aus 0.37.3 stehengebliebene leeren, auch
+            // wenn der Roboter 68 nicht mehr meldet (Forum power1625 144636/68: „die Meldung bleibt").
+            $w['Meldung'] = '';
             if (isset(self::SAUGER_WARNUNGEN[$code])) {
                 $this->dbg('Fehler', 'Hinweis-Code ' . $code . ' (' . self::SAUGER_WARNUNGEN[$code] . ') — wie in der App nicht angezeigt.');
-                $w['Meldung'] = '';
                 $code = 0;
             }
             $w['Fehler'] = $code === 0 ? RoboHubText::t('no error') : (RoboHubText::wert(self::SAUGER_FEHLER[$code] ?? null) ?? RoboHubText::t('Error code %s', $code)) . ' (' . $code . ')';

@@ -73,7 +73,12 @@ button:disabled{opacity:.45;cursor:default}
 .ort{position:absolute;transform:translate(-50%,-50%);font-size:.72em;padding:.15em .55em;border-radius:1em;border:1px solid var(--rand);background:var(--seite);opacity:.92;color:var(--fg);white-space:nowrap;cursor:default}
 button.ort{cursor:pointer}
 .ort.an{background:var(--blau);color:var(--seite);border-color:var(--blau);opacity:1}
-.dock{position:absolute;transform:translate(-50%,-50%);font-size:.9em;line-height:1}
+.dock{position:absolute;transform:translate(-50%,-50%);font-size:.9em;line-height:1;pointer-events:none}
+/* Größere Tippfläche um die Raumnamen, ohne sie größer zu zeichnen (Forum power1625 144636/68: „oft passiert nichts"). */
+button.ort{touch-action:manipulation}
+button.ort::before{content:'';position:absolute;inset:-.55em -.35em}
+/* Farbschema nicht erkennbar: eigener Hintergrund, damit Text immer lesbar bleibt (Forum 144636/68). */
+body.eigenbg{background:var(--seite);border-radius:12px}
 .weg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .weg polyline{fill:none;stroke:#3a6fd8;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;opacity:.75}
 .robo{position:absolute;width:1.15em;height:1.15em;margin:-.575em 0 0 -.575em;border-radius:50%;background:#1f5fd1;border:.15em solid #fff;box-shadow:0 0 0 .25em rgba(31,95,209,.28);pointer-events:none}
@@ -194,7 +199,7 @@ function zeichnen() {
   if (k && k.bild) {
     var hoch = 14; // em — sehr hohe Karten nicht über die Kachel hinaus wachsen lassen
     kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + (hoch * (k.format || 1)).toFixed(1) + 'em)"><img src="' + esc(k.bild) + '" alt="' + T('Map') + '">';
-    (k.marken || []).forEach(function (m) {
+    (d.kartenNamen === false ? [] : (k.marken || [])).forEach(function (m) {
       var an = gewaehlt.indexOf(m.id) >= 0 ? ' an' : '';
       kt += bedienbar
         ? '<button class="ort' + an + '" style="left:' + m.x + '%;top:' + m.y + '%" onclick="raumWaehlen(' + Number(m.id) + ')">' + esc(m.name) + '</button>'
@@ -288,6 +293,10 @@ function farbschemaSetzen(wahl) {
   var s = wahl === 1 ? 'hell' : (wahl === 2 ? 'dunkel' : hintergrundSchema());
   document.documentElement.classList.toggle('hell', s === 'hell');
   document.documentElement.classList.toggle('dunkel', s === 'dunkel');
+  // Automatisch und Hintergrund nicht lesbar (Symcon-App, manche Browser): die Gerätefarbe muss
+  // nicht zur Visualisierung passen (Forum power1625 144636/68: helles Design + dunkles Gerät →
+  // weiße Schrift auf Weiß). Dann zeichnet die Kachel ihren Hintergrund selbst — immer lesbar.
+  document.body.classList.toggle('eigenbg', wahl !== 1 && wahl !== 2 && s === '' && !(daten && daten.eigen));
 }
 function hintergrundSchema() {
   try {

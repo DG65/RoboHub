@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.5 (13.11.2026)
+
+- **Kachel: eigener Hintergrund, wenn das Farbschema nicht erkennbar ist** (Forum power1625, 144636/68): Symcon nennt der Kachel das
+  Schema der Visualisierung nicht (HTML-SDK-Doku); ist der umgebende Rahmen nicht lesbar (Symcon-App, manche Browser), galt die
+  Geräteeinstellung — bei Stefan helles Design + dunkles Gerät = weiße Schrift auf Weiß, in der App umgekehrt. Jetzt zeichnet die Kachel
+  in diesem Fall `--seite` als Hintergrund (Klasse `eigenbg`), Text bleibt immer lesbar. Festes Hell/Dunkel im Formular unverändert.
+- **Kachel: Raumnamen im Kartenbild abschaltbar** (neue Eigenschaft `KarteNamen`, Standard an) — in der kleinen Karte sehr dominant.
+- **Kachel: Raumnamen besser antippbar**: Stationssymbol `pointer-events:none` (lag bei Stefan über „Küche"), unsichtbar vergrößerte
+  Tippfläche (`::before`), `touch-action:manipulation`. Im Browser nachgeprüft: Klick aufs Stationssymbol und knapp unter den Namen wählt den Raum.
+- **Dreame-Sauger: Meldung aus 0.37.3 wird geleert**, auch wenn der Roboter 68 nicht mehr meldet („Meldung bleibt"). Leere Texte legen
+  keine neue Variable an — Sauger ohne Meldungs-Variable bekommen keine.
+- Prüfstand: 6 neue Prüfungen, 2/2 Gegenproben gefangen.
+
 ## 0.37.4 (12.11.2026)
 
 - **Dreame: Ränder deaktivierter Räume ausgeblendet** (Forum power1625, 144636/66): Rand-/Wandpunkte tragen bei Dreame die Raumnummer

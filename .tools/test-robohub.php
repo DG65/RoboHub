@@ -542,6 +542,13 @@ $geraet->Aktualisieren();
 check('Sauger-Code 68 „Mopp abnehmen" weder Fehler noch Meldung (Forum power1625 144636/64+66, App zeigt nichts)',
     variable(2000, 'Fehler')['value'] === 'kein Fehler' && (variable(2000, 'Meldung')['value'] ?? '') === ''
     && variable(2000, 'Zustand')['value'] === RoboHubModell::ZUSTAND_GELADEN, json_encode([variable(2000, 'Fehler'), variable(2000, 'Meldung')]));
+check('… und legt für Sauger keine leere Variable „Letzte Meldung" an', variable(2000, 'Meldung') === null);
+// Stand aus 0.37.3: Meldung „Mopp abnehmen (68)" steht, der Roboter meldet inzwischen 0 (Forum 144636/68).
+$geraet->MaintainVariable('Meldung', 'Letzte Meldung', 3, '', 0, true);
+$geraet->SetValue('Meldung', 'Mopp abnehmen (68)');
+FakeCloud::$props['2.2'] = 0;
+$geraet->Aktualisieren();
+check('stehengebliebene Meldung aus 0.37.3 wird auch bei Code 0 geleert', variable(2000, 'Meldung')['value'] === '', json_encode(variable(2000, 'Meldung')));
 FakeCloud::$props['2.2'] = 12;
 $geraet->Aktualisieren();
 check('… echter Fehler bleibt Fehler', variable(2000, 'Fehler')['value'] === 'Hauptbürste blockiert (12)', json_encode(variable(2000, 'Fehler')));
@@ -830,6 +837,12 @@ $hk = ['farbschema' => $k['farbschema'] ?? null, 'hauptknopf' => $k['hauptknopf'
 check('Kachel: Farbschema (Standard automatisch) und Hauptknopf passend zum Zustand', $hk['farbschema'] === 0
     && $hk['hauptknopf'] === ($hk['zustand'] === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($hk['zustand'] === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1)), json_encode($hk));
 $html = (string)file_get_contents(dirname(__DIR__) . '/RoboHubGeraet/module.html');
+check('Kachel: Raumnamen im Kartenbild standardmäßig an, abschaltbar (Forum power1625 144636/68)', ($k['kartenNamen'] ?? null) === true
+    && strpos($html, "d.kartenNamen === false ? [] : (k.marken || [])") !== false);
+check('Kachel-HTML: Stationssymbol fängt keine Klicks, Raumnamen mit größerer Tippfläche (Forum 144636/68: „oft passiert nichts")',
+    (bool)preg_match('/\\.dock\\{[^}]*pointer-events:none/', $html) && strpos($html, "button.ort::before{content:''") !== false);
+check('Kachel-HTML: Farbschema nicht erkennbar → eigener Hintergrund (Forum 144636/68: weiß auf weiß)', strpos($html, 'body.eigenbg{background:var(--seite)') !== false
+    && strpos($html, "classList.toggle('eigenbg'") !== false);
 check('Kachel-HTML: festes Hell/Dunkel per Klasse, Automatik schaltet nur ohne „hell" auf dunkel', strpos($html, ':root.dunkel{') !== false && strpos($html, ':root:not(.hell){') !== false
     && strpos($html, "b[0] === d.hauptknopf") !== false);
 check('Kachel-HTML: Befehlsknöpfe gesperrt, solange ein Befehl läuft (Rückmeldung oder 40 s geben sie frei)', strpos($html, "(befehlLaeuft ? ' disabled' : '')") !== false

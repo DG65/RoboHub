@@ -26,6 +26,11 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.5' => [
+            '• Tile: if the colour scheme of the visualization cannot be detected, the tile draws its own background — text stays readable in light and dark designs.',
+            '• Tile: room names in the map image can be switched off (form: "Tile and IPSView"); room names are easier to tap and the station symbol no longer covers them.',
+            '• Dreame/MOVA: a "Remove mop" notice left over from 0.37.3 disappears.',
+        ],
         '0.37.4' => [
             '• Dreame/MOVA: rooms deactivated in the app now disappear from the map completely, including their edges.',
             '• Dreame/MOVA: the notice "Remove mop" (code 68) is no longer shown at all, like in the app.',
