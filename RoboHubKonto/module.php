@@ -776,7 +776,7 @@ class RoboHubKonto extends IPSModule
         if ($eltern !== 0) {
             // Falsche Verbindungsart (z. B. Husqvarna-Konto aus der Zeit vor der WebSocket-Echtzeit) —
             // nur austauschen, wenn RoboHub sie selbst angelegt hat (Name „RoboHub …"), Fremdes nie anfassen.
-            if (IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] === $this->elternModul() || strpos(IPS_GetName($eltern), 'RoboHub ') !== 0) {
+            if (IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] === $this->elternModul() || !$this->elternVonRoboHub($eltern)) {
                 return;
             }
             IPS_DisconnectInstance($this->InstanceID);
@@ -796,6 +796,27 @@ class RoboHubKonto extends IPSModule
         IPS_SetName($id, $this->echtzeitArt() !== ''
             ? 'RoboHub Echtzeit (' . IPS_GetName($this->InstanceID) . ')'
             : self::ohneEchtzeitName(IPS_GetName($this->InstanceID)));
+    }
+
+    /**
+     * Stammt die Verbindungsinstanz von RoboHub? Ja, wenn RoboHub sie benannt hat („RoboHub …") oder wenn sie
+     * Dreames private Wurzel trägt, die nur RoboHub dort einträgt — so legt die Konsole beim Neuanlegen den
+     * Client Socket an, solange noch „Dreame" voreingestellt ist (Forum lugge 13.11.2026: Roborock-Konto hing
+     * an diesem Socket, Dreames Server trennte alle 1–2 min, „Fehler beim Lesen: End of file").
+     * Nie tauschen, wenn noch eine andere Instanz daran hängt.
+     */
+    private function elternVonRoboHub(int $eltern): bool
+    {
+        foreach (IPS_GetInstanceList() as $id) {
+            if ($id !== $this->InstanceID && (int)(IPS_GetInstance($id)['ConnectionID'] ?? 0) === $eltern) {
+                return false;
+            }
+        }
+        if (strpos(IPS_GetName($eltern), 'RoboHub ') === 0) {
+            return true;
+        }
+        $ca = (string)(json_decode((string)IPS_GetConfiguration($eltern), true)['CertificateAuthority'] ?? '');
+        return $ca !== '' && $ca === base64_encode(RoboHubDreame::MQTT_WURZEL);
     }
 
     private function elternBeobachten(): void

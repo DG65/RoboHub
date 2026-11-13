@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.8' => [
+            '• Account: a Client Socket that was still set up for Dreame (created while "Dreame" was preselected) is replaced automatically by the right connection — the error "End of file" every one to two minutes disappears.',
+            '• Roborock: fresh water, dirty water and dust bag no longer show "empty" or "full" by mistake on newer docks (e.g. Saros 20).',
+        ],
         '0.37.7' => [
             '• Real-time: messages are processed much faster — on small systems such as a Raspberry Pi the tile no longer lags minutes behind the robot.',
             '• Tile: room names stay above the driven path and the robot dot.',

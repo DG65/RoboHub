@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.8 (13.11.2026)
+
+- **Konto: von der Konsole angelegten Dreame-Socket austauschen** (Forum lugge, 144636/78, Roborock Saros 20): Client Socket „Client Socket
+  (RoboHub Konto)“ ging alle 1,5–2 min auf Störung („Fehler beim Lesen: End of file“). Er zeigte auf `app.mt.eu.iot.dreame.tech:19973` mit Dreames
+  Wurzel — die Konsole legt ihn beim Neuanlegen an, solange „Dreame“ voreingestellt ist. Roborock hat keine Konto-Echtzeit, also meldete sich niemand
+  per MQTT an, und Dreames Server trennte. Der Tausch gegen das Virtual IO griff nicht, weil er nur Instanzen mit dem Namen „RoboHub …“ anfasste.
+  Jetzt gilt auch eine Verbindungsinstanz mit Dreames privater Wurzel (trägt nur RoboHub ein) als eigene; nie, wenn noch eine andere Instanz daran hängt.
+- **Roborock: Stationsbits (dss) richtig gelesen**: Nur der Wert 1 meldet „leer/voll oder fehlt“, alle anderen gelten als in Ordnung
+  (python-roborock `RoborockDssCodes._missing_` → okay). Saros 20 meldet dss = 2216 (alle drei Felder = 2) bei voller Station.
+- Prüfstand: 5 neue Prüfungen, 4/4 Gegenproben gefangen.
+
 ## 0.37.7 (13.11.2026)
 
 - **Echtzeit-Stau behoben** (Forum power1625, 144636/75, Symcon auf Raspberry Pi): Die Kachel hing 4–5 min hinter dem Roboter. Im Debug-Auszug

@@ -1265,6 +1265,8 @@
             "Stopped – intervention at the mower needed": "Angehalten – Eingriff am Mäher nötig",
             "Storage room": "Abstellraum",
             "Closet": "Garderobe",
+            "• Account: a Client Socket that was still set up for Dreame (created while \"Dreame\" was preselected) is replaced automatically by the right connection — the error \"End of file\" every one to two minutes disappears.": "• Konto: Ein Client Socket, der noch für Dreame eingerichtet war (beim Anlegen war „Dreame“ voreingestellt), wird automatisch gegen die richtige Verbindung getauscht — die Störung „End of file“ alle ein bis zwei Minuten verschwindet.",
+            "• Roborock: fresh water, dirty water and dust bag no longer show \"empty\" or \"full\" by mistake on newer docks (e.g. Saros 20).": "• Roborock: Frischwasser, Schmutzwasser und Staubbeutel melden an neueren Stationen (z. B. Saros 20) nicht mehr fälschlich „leer“ bzw. „voll“.",
             "• Real-time: messages are processed much faster — on small systems such as a Raspberry Pi the tile no longer lags minutes behind the robot.": "• Echtzeit: Meldungen werden deutlich schneller verarbeitet — auf kleinen Systemen wie einem Raspberry Pi hängt die Kachel nicht mehr Minuten hinter dem Roboter her.",
             "• Tile: room names stay above the driven path and the robot dot.": "• Kachel: Raumnamen liegen über dem gefahrenen Weg und dem Roboterpunkt.",
             "• Tile: light or dark now follows the colours that Symcon passes to the tile — in the app and in the browser, independent of the device setting.": "• Kachel: Hell oder Dunkel richtet sich jetzt nach den Farben, die Symcon der Kachel mitgibt — in der App und im Browser, unabhängig von der Geräteeinstellung.",

@@ -471,11 +471,13 @@ PEM;
         }
 
         // Station (dss, Bitfelder wie StatusV2: Frischwasser >>2, Schmutzwasser >>4, Staubbeutel >>6).
+        // Nur 1 meldet ein Problem; jeder andere Wert gilt als in Ordnung (python-roborock RoborockDssCodes._missing_ →
+        // okay). Forum lugge 13.11.2026: neuer Saros 20 meldet dss 2216 (alle drei Felder = 2) bei voller Station.
         if (!empty($p['dss']) && is_numeric($p['dss'])) {
             $dss = (int)$p['dss'];
-            $w['Frischwasser'] = (($dss >> 2) & 3) === 0 ? RoboHubText::t('OK') : RoboHubText::t('Empty or missing');
-            $w['Schmutzwasser'] = (($dss >> 4) & 3) === 0 ? RoboHubText::t('OK') : RoboHubText::t('Full or missing');
-            $w['Staubbeutel'] = (($dss >> 6) & 3) === 0 ? RoboHubText::t('OK') : RoboHubText::t('Full or missing');
+            $w['Frischwasser'] = (($dss >> 2) & 3) === 1 ? RoboHubText::t('Empty or missing') : RoboHubText::t('OK');
+            $w['Schmutzwasser'] = (($dss >> 4) & 3) === 1 ? RoboHubText::t('Full or missing') : RoboHubText::t('OK');
+            $w['Staubbeutel'] = (($dss >> 6) & 3) === 1 ? RoboHubText::t('Full or missing') : RoboHubText::t('OK');
         }
 
         // Gesamtstatistik: Liste [Zeit s, Fläche mm², Anzahl, …] oder Objekt.

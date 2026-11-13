@@ -284,3 +284,37 @@ $rq->ApplyChanges();
 FakeRoborock::$sitzungen = [];
 $t = $rq->Aktualisieren();
 check('Gerät mit Protokoll B01: ehrlich „noch nicht unterstützt", keine Sitzung', strpos($t, 'B01') !== false && FakeRoborock::$sitzungen === [], $t);
+
+// ===========================================================================
+abschnitt('Roborock: Station (dss) und Verbindung (Forum lugge 13.11.2026)');
+$rrt = new RoboHubRoborock();
+$st = $rrt->normalisiere('roborock.vacuum.a307', ['dss' => 2216])['werte'] ?? $rrt->normalisiere('roborock.vacuum.a307', ['dss' => 2216]);
+check('Saros 20 dss 2216 (Felder = 2) → alles OK', ($st['Frischwasser'] ?? '') === RoboHubText::t('OK') && ($st['Schmutzwasser'] ?? '') === RoboHubText::t('OK') && ($st['Staubbeutel'] ?? '') === RoboHubText::t('OK'), json_encode($st, JSON_UNESCAPED_UNICODE));
+$st = $rrt->normalisiere('roborock.vacuum.a307', ['dss' => (1 << 2) | (1 << 4) | (1 << 6) | 2])['werte'] ?? $rrt->normalisiere('roborock.vacuum.a307', ['dss' => (1 << 2) | (1 << 4) | (1 << 6) | 2]);
+check('Wert 1 meldet leer/voll', ($st['Frischwasser'] ?? '') === RoboHubText::t('Empty or missing') && ($st['Schmutzwasser'] ?? '') === RoboHubText::t('Full or missing') && ($st['Staubbeutel'] ?? '') === RoboHubText::t('Full or missing'), json_encode($st, JSON_UNESCAPED_UNICODE));
+
+// Konsole hat beim Neuanlegen (noch „Dreame" voreingestellt) einen Client Socket mit Dreames Wurzel angelegt.
+$alt = new FakeSocket(4900);
+$alt->config = ['Open' => true, 'Host' => 'app.mt.eu.iot.dreame.tech', 'Port' => 19973, 'CertificateAuthority' => base64_encode(RoboHubDreame::MQTT_WURZEL)];
+IPS_SetName(4900, 'Client Socket');
+$rk->parent = $alt;
+$GLOBALS['GELOESCHT'] = [];
+$rk->VerbindungPruefen();
+check('Roborock-Konto: von der Konsole angelegter Dreame-Socket wird gegen Virtual IO getauscht', in_array(4900, $GLOBALS['GELOESCHT'], true)
+    && $rk->parent instanceof FakeSocket && $rk->parent->modul === '{6179ED6A-FC31-413C-BB8E-1204150CF376}', json_encode($GLOBALS['GELOESCHT']));
+$geteilt = new FakeSocket(4901);
+$geteilt->config = $alt->config;
+IPS_SetName(4901, 'Client Socket');
+$nachbar = new FakeSocket(4902);
+$nachbar->parent = $geteilt;
+$rk->parent = $geteilt;
+$GLOBALS['GELOESCHT'] = [];
+$rk->VerbindungPruefen();
+check('Socket, an dem noch eine andere Instanz hängt, bleibt unangetastet', $GLOBALS['GELOESCHT'] === [] && $rk->parent === $geteilt);
+$fremd = new FakeSocket(4903);
+$fremd->config = ['Open' => true, 'Host' => 'mein.server', 'Port' => 1883];
+IPS_SetName(4903, 'Client Socket');
+$rk->parent = $fremd;
+$GLOBALS['GELOESCHT'] = [];
+$rk->VerbindungPruefen();
+check('fremder Client Socket ohne RoboHub-Merkmal bleibt unangetastet', $GLOBALS['GELOESCHT'] === [] && $rk->parent === $fremd);

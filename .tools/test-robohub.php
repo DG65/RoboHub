@@ -54,6 +54,7 @@ function IPS_GetInstanceListByModuleID(string $g): array
     foreach ($GLOBALS['INST'] as $id => $m) { if ($klasse !== '' && get_class($m) === $klasse) { $o[] = $id; } }
     return $o;
 }
+function IPS_GetInstanceList(): array { return array_keys($GLOBALS['INST']); }
 function IPS_ConnectInstance(int $id, int $parent): bool { $GLOBALS['CONNECTS'][] = [$id, $parent]; $GLOBALS['INST'][$id]->parent = $GLOBALS['INST'][$parent]; return true; }
 function IPS_DeleteInstance(int $id): bool { $GLOBALS['GELOESCHT'][] = $id; unset($GLOBALS['INST'][$id]); return true; }
 function IPS_DisconnectInstance(int $id): bool { $GLOBALS['INST'][$id]->parent = null; return true; }
