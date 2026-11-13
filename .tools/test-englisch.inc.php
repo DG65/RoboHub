@@ -76,7 +76,7 @@ $enDeutsch = function (string $s): bool {
     $s = str_replace(['Kärcher', 'Kärcher Home Robots', 'alko-garden.de/iot-api-zugang-anfordern', 'RoboHub Konto', 'Rohdaten', 'Karte'], '', $s);
     return (bool)preg_match('/[äöüÄÖÜß]|\b(und|der|die|das|nicht|bitte|Konto|Gerät|Roboter|anmelden|Jetzt|übernehmen|Übernehmen|Zugang|Passwort)\b/u', $s);
 };
-$GLOBALS['SPRACHE'] = 'en';
+$GLOBALS['SPRACHE'] = 'en'; RoboHubText::merklisteLeeren();
 $enReste = [];
 $enKonto = new RoboHubKonto(19900);
 $enKonto->Create();
@@ -114,7 +114,7 @@ foreach ($enTexte(json_decode($enCfg->GetConfigurationForm(), true)) as $s) {
 check('Formulare auf Englisch ohne deutsche Reste (Konto für jeden Hersteller, Roboter, Konfigurator)', $enReste === [], implode(' | ', array_slice(array_keys($enReste), 0, 10)) . ' (' . count($enReste) . ')');
 check('englisch: Zustandsnamen und Befehle', RoboHubModell::zustandsName(RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::KLASSE_SAUGER) === 'Charging'
     && RoboHubModell::zustandsName(RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::KLASSE_MAEHER) === 'Mowing');
-$GLOBALS['SPRACHE'] = 'de';
+$GLOBALS['SPRACHE'] = 'de'; RoboHubText::merklisteLeeren();
 check('deutsch: dieselben Namen aus locale.json', RoboHubModell::zustandsName(RoboHubModell::ZUSTAND_LAEDT, RoboHubModell::KLASSE_SAUGER) === 'Lädt'
     && RoboHubModell::zustandsName(RoboHubModell::ZUSTAND_REINIGT, RoboHubModell::KLASSE_MAEHER) === 'Mäht');
 
@@ -142,9 +142,9 @@ $enAlle = function () use ($enGesp): string {
     return implode('|', array_map(function ($v) use ($enGesp) { return $enGesp->invoke(null, $v); },
         ['Saugen', 'Vacuum and mop', 'Leise', 'Strong', 'Mittel', 'Feuchte 16', 'Moisture 16', 'Level 7', 'Mode 5', 'Standard']));
 };
-$GLOBALS['SPRACHE'] = 'en';
+$GLOBALS['SPRACHE'] = 'en'; RoboHubText::merklisteLeeren();
 $enAnzeigeEn = $enAlle();
-$GLOBALS['SPRACHE'] = 'de';
+$GLOBALS['SPRACHE'] = 'de'; RoboHubText::merklisteLeeren();
 $enAnzeigeDe = $enAlle();
 check('gespeicherte Werte auf Englisch (auch alte deutsche)', $enAnzeigeEn === 'Vacuum|Vacuum and mop|Quiet|Strong|Medium|Moisture 16|Moisture 16|Level 7|Mode 5|Standard', $enAnzeigeEn);
 check('gespeicherte Werte auf Deutsch (auch neue englische)', $enAnzeigeDe === 'Saugen|Saugen und Wischen|Leise|Stark|Mittel|Feuchte 16|Feuchte 16|Stufe 7|Modus 5|Standard', $enAnzeigeDe);

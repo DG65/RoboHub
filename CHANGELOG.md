@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.7 (13.11.2026)
+
+- **Echtzeit-Stau behoben** (Forum power1625, 144636/75, Symcon auf Raspberry Pi): Die Kachel hing 4–5 min hinter dem Roboter. Im Debug-Auszug
+  kamen die MQTT-Meldungen regelmäßig, aber verspätet an — der Cloud-Abruf meldete um 11:27:47 schon „Mopp trocknen“ (2.1 = 8), die Echtzeit zählte
+  noch bis 11:30:59 die Reinigungszeit hoch und meldete erst 11:31:48 „Zurück zur Station“. Ursache: zu viel Arbeit je Meldung, die Warteschlange
+  wuchs. Je Meldung bisher 133 `Translate()`-Aufrufe (Symcon liest dabei jedes Mal die locale.json, SUITE.md Stolperstein 24), ~40× MaintainVariable,
+  Formularzeile des Kontos zweimal, ganze Kachel samt Texten. Jetzt:
+  - `RoboHubText::t` mit Merkliste (je Text einmal je Aufruf): 133 → 46 Symcon-Anfragen je Meldung (Prüfstand).
+  - Roboter überspringt unveränderte Werte (Merker im Puffer + Wertvergleich mit der Variable): nur noch die geänderten Variablen.
+  - Kachel bei Echtzeit höchstens alle 2 s neu (Timer `Kachel` zieht den neuesten Stand nach), Aktualisierungen ohne Texte (die Kachel behält sie vom Aufbau).
+  - Konto: Formularzeile „Echtzeit“ nur bei Zustandswechsel oder alle 15 s.
+  Live auf einem Raspberry Pi noch nicht gemessen — Bestätigung durch Stefan offen.
+- **Kachel: Raumnamen über Fahrweg und Roboterpunkt** (`.ort{z-index:2}`, Forum 144636/74).
+- Prüfstand: 4 neue Prüfungen, 3/3 Gegenproben gefangen.
+
 ## 0.37.6 (13.11.2026)
 
 - **Kachel: Farbschema aus Symcons CSS-Variablen** (Forum power1625, 144636/70): Rahmen-Messung lag im Web falsch (Flutter-Web), in der App

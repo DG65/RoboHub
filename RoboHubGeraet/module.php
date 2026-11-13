@@ -87,6 +87,8 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterTimer('Abruf', 0, 'ROBO_Aktualisieren($_IPS[\'TARGET\']);');
         $this->RegisterTimer('LiveKarte', 0, 'ROBO_LiveKarteLaden($_IPS[\'TARGET\']);');
         $this->RegisterTimer('Zuordnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'Zuordnen\', 0);');
+        // Kachel nach schnellen Echtzeit-Folgen nachziehen (höchstens alle 2 s neu bauen, Forum 144636/75).
+        $this->RegisterTimer('Kachel', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'KachelNach\', 0);');
     }
 
     public function ApplyChanges()
@@ -160,6 +162,11 @@ class RoboHubGeraet extends IPSModule
                 $this->SetTimerInterval('Zuordnen', 0);
                 $this->ordneKontoZu();
                 return;
+            case 'KachelNach':
+                $this->SetTimerInterval('Kachel', 0);
+                $this->SetBuffer('KachelStand', (string)microtime(true));
+                $this->kachelAktualisieren();
+                return;
             case 'Raum':
                 $this->fuehreAus('raum', ['raeume' => [(int)$Value]]);
                 return;
@@ -226,8 +233,24 @@ class RoboHubGeraet extends IPSModule
             $this->kartenobjektNachladen($d['Daten']['kartenobjekt']);
         }
         $this->liveSteuern();
-        $this->kachelAktualisieren();
+        $this->kachelGedrosselt();
         return '';
+    }
+
+    /**
+     * Kachel bei Echtzeit-Meldungen höchstens alle 2 s neu bauen: Dreame meldet beim Reinigen alle
+     * paar Sekunden (Position, Fläche, Zeit). Liegt der letzte Aufbau < 2 s zurück, zieht der Timer
+     * „Kachel" nach — der neueste Stand kommt also spätestens 2 s später an, nie verschluckt.
+     */
+    private function kachelGedrosselt(): void
+    {
+        $zuletzt = (float)$this->GetBuffer('KachelStand');
+        if (microtime(true) - $zuletzt >= 2.0) {
+            $this->SetBuffer('KachelStand', (string)microtime(true));
+            $this->kachelAktualisieren();
+            return;
+        }
+        $this->SetTimerInterval('Kachel', 2000);
     }
 
     /** ROBO_Aktualisieren($id): string — Zustand sofort abrufen. */
@@ -929,8 +952,20 @@ class RoboHubGeraet extends IPSModule
             $this->SetValue('Zustand', (int)$werte['Zustand']);
         }
 
+        // Unveränderte Werte überspringen: Echtzeit-Meldungen tragen meist nur ein, zwei Änderungen, der
+        // Konto-Stand enthält aber alle Felder — bisher MaintainVariable + Übersetzung für ~40 Variablen je
+        // Meldung (Forum power1625 144636/75: Meldungen stauten sich ~4 min). Merker im Puffer (je Symcon-Start).
+        $vorher = json_decode((string)$this->GetBuffer('Uebernommen'), true) ?: [];
+        $jetzt = [];
         foreach (RoboHubModell::FELDER as $ident => [$name, $typ, $suffix, $stellen, $pos]) {
             if ($ident === 'Zustand' || !array_key_exists($ident, $werte) || $werte[$ident] === null) {
+                continue;
+            }
+            $merker = md5((string)json_encode([$werte[$ident], $optionen[$ident] ?? null, in_array($ident, $schreibbar, true)]));
+            $jetzt[$ident] = $merker;
+            // Nur überspringen, wenn die Variable den Wert auch wirklich trägt (von Hand oder von älteren
+            // Versionen geändert → neu schreiben).
+            if (($vorher[$ident] ?? '') === $merker && $this->hatVariable($ident) && $this->GetValue($ident) === (isset($optionen[$ident]) && is_array($optionen[$ident]) ? (int)$werte[$ident] : $this->typisiere($typ, $werte[$ident]))) {
                 continue;
             }
             // Leerer Text leert nur eine vorhandene Variable, legt aber keine an (Dreame-Sauger leeren
@@ -963,6 +998,7 @@ class RoboHubGeraet extends IPSModule
             $this->MaintainVariable($ident, RoboHubText::wert($name), $typ, $pres, $pos, true);
             $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
         }
+        $this->SetBuffer('Uebernommen', (string)json_encode(array_replace($vorher, $jetzt)));
         $this->WriteAttributeString('Optionen', (string)json_encode($optionen));
 
         if (array_key_exists('zeitplaene', $daten) && is_array($daten['zeitplaene'])) {
@@ -1234,7 +1270,8 @@ class RoboHubGeraet extends IPSModule
 
     private function kachelAktualisieren(string $rueckmeldung = ''): void
     {
-        $this->UpdateVisualizationValue($this->kachelDaten(false, '', $rueckmeldung));
+        // Ohne Texte: die Kachel hat sie aus GetVisualizationTile und behält sie (module.html handleMessage).
+        $this->UpdateVisualizationValue($this->kachelDaten(false, '', $rueckmeldung, false));
     }
 
     /**
@@ -1305,7 +1342,7 @@ class RoboHubGeraet extends IPSModule
     private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names'];
 
     /** Daten für Kachel und eigenständige Seite (JSON). */
-    private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = ''): string
+    private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = '', bool $mitTexten = true): string
     {
         $klasse = $this->klasse();
         $zustand = $this->wert('Zustand');
@@ -1411,7 +1448,7 @@ class RoboHubGeraet extends IPSModule
             'bedienung'   => $eigen && $key !== '',
             'key'         => $key,
             'hook'        => $this->hookPfad(),
-            'texte'       => array_combine(self::KACHEL_TEXTE, array_map([RoboHubText::class, 't'], self::KACHEL_TEXTE)),
+            'texte'       => $mitTexten ? array_combine(self::KACHEL_TEXTE, array_map([RoboHubText::class, 't'], self::KACHEL_TEXTE)) : null,
         ], JSON_UNESCAPED_UNICODE);
     }
 

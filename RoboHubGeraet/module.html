@@ -76,6 +76,8 @@ button.ort{cursor:pointer}
 .dock{position:absolute;transform:translate(-50%,-50%);font-size:.9em;line-height:1;pointer-events:none}
 /* Größere Tippfläche um die Raumnamen, ohne sie größer zu zeichnen (Forum power1625 144636/68: „oft passiert nichts"). */
 button.ort{touch-action:manipulation}
+/* Raumnamen über Fahrweg und Roboterpunkt (Forum 144636/74: „WC“/„Flur“ verdeckt). */
+.ort{z-index:2}
 button.ort::before{content:'';position:absolute;inset:-.55em -.35em}
 /* Farbschema nicht erkennbar: eigener Hintergrund, damit Text immer lesbar bleibt (Forum 144636/68). */
 body.eigenbg{background:var(--seite);border-radius:12px}
@@ -355,6 +357,8 @@ function hintergrundSchema() {
 function handleMessage(raw) {
   var neu = typeof raw === 'string' ? JSON.parse(raw) : raw;
   if (neu.rueck) { rueck = neu.rueck; befehlLaeuft = false; } else if (daten && neu.stand !== daten.stand) { rueck = ''; }
+  // Aktualisierungen kommen ohne Texte (spart Übersetzungen je Echtzeit-Meldung) — die vom Aufbau behalten.
+  if (!neu.texte && daten && daten.texte) { neu.texte = daten.texte; }
   daten = neu;
   document.documentElement.lang = deutsch() ? 'de' : 'en';
   if (daten.eigen) { document.body.className = 'eigen'; }

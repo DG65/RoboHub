@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.7' => [
+            '• Real-time: messages are processed much faster — on small systems such as a Raspberry Pi the tile no longer lags minutes behind the robot.',
+            '• Tile: room names stay above the driven path and the robot dot.',
+        ],
         '0.37.6' => [
             '• Tile: light or dark now follows the colours that Symcon passes to the tile — in the app and in the browser, independent of the device setting.',
             '• Tile: room names in the map can be switched on and off directly below the map; each device remembers its own choice.',

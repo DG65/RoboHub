@@ -1265,6 +1265,8 @@
             "Stopped – intervention at the mower needed": "Angehalten – Eingriff am Mäher nötig",
             "Storage room": "Abstellraum",
             "Closet": "Garderobe",
+            "• Real-time: messages are processed much faster — on small systems such as a Raspberry Pi the tile no longer lags minutes behind the robot.": "• Echtzeit: Meldungen werden deutlich schneller verarbeitet — auf kleinen Systemen wie einem Raspberry Pi hängt die Kachel nicht mehr Minuten hinter dem Roboter her.",
+            "• Tile: room names stay above the driven path and the robot dot.": "• Kachel: Raumnamen liegen über dem gefahrenen Weg und dem Roboterpunkt.",
             "• Tile: light or dark now follows the colours that Symcon passes to the tile — in the app and in the browser, independent of the device setting.": "• Kachel: Hell oder Dunkel richtet sich jetzt nach den Farben, die Symcon der Kachel mitgibt — in der App und im Browser, unabhängig von der Geräteeinstellung.",
             "• Tile: room names in the map can be switched on and off directly below the map; each device remembers its own choice.": "• Kachel: Raumnamen in der Karte lassen sich direkt unter der Karte ein- und ausschalten; jedes Gerät merkt sich seine Wahl.",
             "• Tile: if the colour scheme of the visualization cannot be detected, the tile draws its own background — text stays readable in light and dark designs.": "• Kachel: Ist das Farbschema der Visualisierung nicht erkennbar, zeichnet die Kachel ihren Hintergrund selbst — Text bleibt im hellen und dunklen Design lesbar.",

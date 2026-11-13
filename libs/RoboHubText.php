@@ -16,16 +16,43 @@ final class RoboHubText
 {
     /** @var callable|null fn(string): string */
     private static $uebersetzer = null;
+    /**
+     * Merkliste (SUITE.md Stolperstein 24): Symcons Translate() liest bei jedem Aufruf die locale.json —
+     * jeden Text höchstens einmal je Symcon-Aufruf fragen. Forum power1625 144636/75: eine Echtzeit-
+     * Meldung kostete 133 Translate()-Aufrufe; auf dem Raspberry Pi stauten sich die Meldungen ~4 min.
+     * @var array<string,string>
+     */
+    private static $gemerkt = [];
+    /** @var int wie oft Symcon wirklich gefragt wurde (Prüfstand) */
+    public static $anfragen = 0;
 
     public static function setzen(?callable $uebersetzer): void
     {
         self::$uebersetzer = $uebersetzer;
+        self::$gemerkt = [];
+    }
+
+    /** Merkliste leeren — Symcon beginnt jeden Aufruf leer; der Prüfstand wechselt die Sprache im selben Lauf. */
+    public static function merklisteLeeren(): void
+    {
+        self::$gemerkt = [];
     }
 
     /** Text übersetzen; mit Argumenten wie sprintf (Platzhalter %s, ein Prozentzeichen als %%). */
     public static function t(string $text, ...$args): string
     {
-        $uebersetzt = self::$uebersetzer !== null ? (string)(self::$uebersetzer)($text) : $text;
+        if (self::$uebersetzer === null) {
+            $uebersetzt = $text;
+        } elseif (isset(self::$gemerkt[$text])) {
+            $uebersetzt = self::$gemerkt[$text];
+        } else {
+            self::$anfragen++;
+            try {
+                $uebersetzt = self::$gemerkt[$text] = (string)(self::$uebersetzer)($text);
+            } catch (\Throwable $e) {
+                $uebersetzt = $text;   // z. B. Instanz während des Aufrufs gelöscht: Quelltext, nichts merken
+            }
+        }
         if ($args === []) {
             return $uebersetzt;
         }

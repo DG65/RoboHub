@@ -149,8 +149,9 @@ class IPSModule
     public function SetVisualizationType(int $t): void { $this->visuTyp = $t; }
     public function UpdateVisualizationValue(string $v): void { $this->visu[] = $v; }
     public function SendDataToParent(string $json): string { return $this->parent->ForwardData($json); }
+    public $maintainZaehler = 0;
     public function MaintainVariable(string $ident, string $name, int $type, $pres, int $pos, bool $keep): void
-    {
+    { $this->maintainZaehler++;
         $id = IPS_GetObjectIDByIdent($ident, $this->InstanceID);
         if ($id === false) {
             $id = $GLOBALS['NEXT']++;
@@ -1422,6 +1423,20 @@ check('Verlauf mit Rohwerten in den Rohdaten (gültiges JSON)', is_array($rv) &&
 $rTakt = new ReflectionMethod('RoboHubGeraet', 'taktSekunden');
 check('mit Echtzeit kein 30-s-Schnelltakt, obwohl der Roboter reinigt', $rTakt->invoke($geraet) === 120);
 check('Kachel wurde sofort aktualisiert', strpos((string)end($geraet->visu), '"zustand":1') !== false);
+// Forum power1625 144636/75: Echtzeit-Meldungen stauten sich auf dem Raspberry Pi ~4 min (133 Translate je Meldung).
+RoboHubText::merklisteLeeren(); RoboHubText::$anfragen = 0; $geraet->maintainZaehler = 0; $geraet->visu = []; $geraet->SetBuffer('KachelStand', '0');
+$n2 = json_encode(['id' => 93, 'did' => '-112663880', 'data' => ['id' => 93, 'method' => 'properties_changed', 'params' => [['did' => '-112663880', 'siid' => 3, 'piid' => 1, 'value' => 76]]]]);
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, $n2, 0, 0));
+check('Echtzeit-Meldung: höchstens 50 Übersetzungen (Merkliste, vorher 133) und nur geänderte Variablen gepflegt (Akku)',
+    RoboHubText::$anfragen <= 50 && $geraet->maintainZaehler <= 2 && variable(2000, 'Akku')['value'] === 76, RoboHubText::$anfragen . ' / ' . $geraet->maintainZaehler);
+$n3 = json_encode(['id' => 94, 'did' => '-112663880', 'data' => ['id' => 94, 'method' => 'properties_changed', 'params' => [['did' => '-112663880', 'siid' => 3, 'piid' => 1, 'value' => 75]]]]);
+mqttVomServer($konto, RoboHubMqttTest::publish($topic, $n3, 0, 0));
+check('zweite Meldung binnen 2 s: Kachel nicht sofort neu gebaut, Timer „Kachel" zieht nach', count($geraet->visu) === 1 && ($geraet->timers['Kachel'] ?? 0) === 2000, count($geraet->visu) . ' / ' . json_encode($geraet->timers['Kachel'] ?? null));
+$geraet->RequestAction('KachelNach', 0);
+$kn = json_decode((string)end($geraet->visu), true);
+check('… Nachziehen baut die Kachel mit dem neuesten Stand (Akku 75), ohne Texte (die hat die Kachel vom Aufbau)', count($geraet->visu) === 2 && ($kn['akku'] ?? null) === 75 && array_key_exists('texte', (array)$kn) && $kn['texte'] === null && ($geraet->timers['Kachel'] ?? 1) === 0, count($geraet->visu) . ' ' . json_encode([$kn['akku'] ?? null, $kn['texte'] ?? 'fehlt', $geraet->timers['Kachel'] ?? null]));
+check('Kachel-Aufbau (GetVisualizationTile) trägt die Texte, Kachel behält sie bei Aktualisierungen', strpos($geraet->GetVisualizationTile(), '"texte":{') !== false
+    && strpos((string)file_get_contents(dirname(__DIR__) . '/RoboHubGeraet/module.html'), 'if (!neu.texte && daten && daten.texte) { neu.texte = daten.texte; }') !== false);
 
 // Vollständiger Stand mit Stationsdaten (4.25/27.3), wie ihn ein regulärer Abruf liefert.
 FakeCloud::$props = ['2.1' => 1, '2.2' => 0, '3.1' => 77, '4.4' => 1, '4.23' => (5 << 16) | 2, '4.25' => 0, '27.3' => 0];

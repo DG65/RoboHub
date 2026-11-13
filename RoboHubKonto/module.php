@@ -975,9 +975,17 @@ class RoboHubKonto extends IPSModule
 
     private function mqttStand(array $neu): void
     {
-        $stand = array_replace(json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [], $neu);
+        $alt = json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [];
+        $stand = array_replace($alt, $neu);
         $this->WriteAttributeString('Mqtt', (string)json_encode($stand));
-        $this->UpdateFormField('EchtzeitZeile', 'caption', $this->echtzeitZeile());
+        // Formularzeile (viele übersetzte Texte) nicht bei jeder Meldung — nur bei Zustandswechsel oder
+        // höchstens alle 15 s (Forum power1625 144636/75: Echtzeit-Meldungen stauten sich ~4 min).
+        $wechsel = ($stand['zustand'] ?? '') !== ($alt['zustand'] ?? '') || isset($neu['text']);
+        $zuletzt = (int)$this->GetBuffer('EchtzeitZeileStand');
+        if ($wechsel || time() - $zuletzt >= 15) {
+            $this->SetBuffer('EchtzeitZeileStand', (string)time());
+            $this->UpdateFormField('EchtzeitZeile', 'caption', $this->echtzeitZeile());
+        }
     }
 
     private function echtzeitZeile(): string
