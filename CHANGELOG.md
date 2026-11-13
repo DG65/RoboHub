@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.6 (13.11.2026)
+
+- **Kachel: Farbschema aus Symcons CSS-Variablen** (Forum power1625, 144636/70): Rahmen-Messung lag im Web falsch (Flutter-Web), in der App
+  galt die Gerätefarbe. Symcons `html-sdk.js` setzt aber `--card-color`/`--content-color` u. a. auf `:root` (nicht in der HTML-SDK-Doku,
+  gelesen auf Dietmars 9.x unter `/usr/share/symcon/tile/html-sdk.js`). Reihenfolge jetzt: Kartenfarbe → Textfarbe → Rahmen → Gerät mit
+  eigenem Hintergrund; 8-stellig mit führendem `ff` = AARRGGBB. Feste Hell/Dunkel-Wahl gegen das erkannte Schema → eigener Hintergrund.
+  Im Browser mit nachgestellten Variablen geprüft (Web hell/Gerät dunkel, App dunkel ARGB, fest Hell in dunkler App, nur Textfarbe).
+  SUITE.md Stolperstein 30.
+- **Kachel: Raumnamen-Schalter unter der Karte**, je Gerät im Browser-Speicher gemerkt (Schlüssel je Instanz); Formular-Eigenschaft
+  `KarteNamen` ist die Vorgabe. Symbol `map` (geprüfte Liste) statt ungeprüftem `eye`.
+- Prüfstand: 2 neue/1 angepasste Prüfung.
+
 ## 0.37.5 (13.11.2026)
 
 - **Kachel: eigener Hintergrund, wenn das Farbschema nicht erkennbar ist** (Forum power1625, 144636/68): Symcon nennt der Kachel das

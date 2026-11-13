@@ -83,6 +83,7 @@ body.eigenbg{background:var(--seite);border-radius:12px}
 .weg polyline{fill:none;stroke:#3a6fd8;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;opacity:.75}
 .robo{position:absolute;width:1.15em;height:1.15em;margin:-.575em 0 0 -.575em;border-radius:50%;background:#1f5fd1;border:.15em solid #fff;box-shadow:0 0 0 .25em rgba(31,95,209,.28);pointer-events:none}
 .robo i{position:absolute;left:50%;top:-.45em;width:0;height:0;margin-left:-.25em;border:.25em solid transparent;border-bottom:.32em solid #fff}
+.namen{display:block;margin:.35em auto 0;background:none;border:none;color:var(--fg2);font-size:.72em;padding:.2em .4em}
 .livemarke{font-size:.72em;color:var(--fg2);margin-top:.35em;text-align:center}
 </style>
 </head>
@@ -155,6 +156,19 @@ function senden(ident, wert, text) {
     .catch(function () { befehlLaeuft = false; rueck = '⛔ ' + T('No connection to Symcon'); zeichnen(); });
 }
 
+// Raumnamen im Kartenbild: Vorgabe aus dem Formular, in der Kachel pro Gerät umschaltbar
+// (Forum power1625 144636/70: „Schalter wäre besser in der Kachel aufgehoben"). Gemerkt im Browser
+// des Geräts — so kann das Handy ohne, das Tablet mit Namen zeigen.
+function namenZeigen() {
+  try { var v = localStorage.getItem('robohub-namen-' + (daten && daten.id)); if (v === '0' || v === '1') { return v === '1'; } } catch (e) { /* kein Speicher */ }
+  return !(daten && daten.kartenNamen === false);
+}
+function namenUmschalten() {
+  var neu = !namenZeigen();
+  try { localStorage.setItem('robohub-namen-' + (daten && daten.id), neu ? '1' : '0'); } catch (e) { /* nur bis zum Neuladen */ if (daten) { daten.kartenNamen = neu; } }
+  zeichnen();
+}
+
 function raumWaehlen(id) {
   var i = gewaehlt.indexOf(id);
   if (i >= 0) { gewaehlt.splice(i, 1); } else { gewaehlt.push(id); }
@@ -199,7 +213,7 @@ function zeichnen() {
   if (k && k.bild) {
     var hoch = 14; // em — sehr hohe Karten nicht über die Kachel hinaus wachsen lassen
     kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + (hoch * (k.format || 1)).toFixed(1) + 'em)"><img src="' + esc(k.bild) + '" alt="' + T('Map') + '">';
-    (d.kartenNamen === false ? [] : (k.marken || [])).forEach(function (m) {
+    (namenZeigen() ? (k.marken || []) : []).forEach(function (m) {
       var an = gewaehlt.indexOf(m.id) >= 0 ? ' an' : '';
       kt += bedienbar
         ? '<button class="ort' + an + '" style="left:' + m.x + '%;top:' + m.y + '%" onclick="raumWaehlen(' + Number(m.id) + ')">' + esc(m.name) + '</button>'
@@ -217,6 +231,7 @@ function zeichnen() {
       kt += '<span class="robo" style="left:' + Number(k.roboter.x) + '%;top:' + Number(k.roboter.y) + '%;transform:rotate(' + (90 - Number(k.roboter.winkel || 0)) + 'deg)"><i></i></span>';
     }
     kt += '</div>';
+    if ((k.marken || []).length) { kt += '<button class="namen" title="' + T('Room names in the map') + '" onclick="namenUmschalten()">' + sym('map', '🗺️') + ' ' + T(namenZeigen() ? 'Hide names' : 'Show names') + '</button>'; }
     if (k.live) { kt += '<div class="livemarke">' + sym('satellite-dish', '🛰️') + ' ' + T('Live · %s', new Date(k.live * 1000).toLocaleTimeString(deutsch() ? 'de-DE' : 'en-GB', {hour: '2-digit', minute: '2-digit'})) + '</div>'; }
     kt += '</div>';
   }
@@ -286,17 +301,41 @@ function zeichnen() {
     + (kt ? '<div class="kartenfeld">' + kt + '</div>' : '') + '<div class="rechts">' + r + '</div></div>' + f;
 }
 
-// Symcon nennt der Kachel das Farbschema der Visualisierung nicht. Automatisch:
-// Hintergrund des umgebenden Rahmens messen (wenn der Browser ihn zeigen darf),
-// sonst bleibt es bei prefers-color-scheme. Fest „hell"/„dunkel" aus dem Formular.
+// Farbschema der Visualisierung: Symcons html-sdk.js (/usr/share/symcon/tile, in jede Kachel
+// eingebunden) setzt aus den URL-Parametern der App bzw. des Browsers CSS-Variablen auf :root —
+// u. a. --card-color (Kartenhintergrund) und --content-color (Text). In der HTML-SDK-Doku steht das
+// nicht; gefunden 13.11.2026 (Forum power1625 144636/70: Rahmen-Messung lag im Web und in der App falsch).
+// Reihenfolge: Symcon-Kartenfarbe → Symcon-Textfarbe → Rahmen messen → Gerätefarbe mit eigenem Hintergrund.
+function symconSchema() {
+  try {
+    var cs = getComputedStyle(document.documentElement);
+    var karte = helligkeit(cs.getPropertyValue('--card-color'));
+    if (karte !== null) { return karte < 0.5 ? 'dunkel' : 'hell'; }
+    var text = helligkeit(cs.getPropertyValue('--content-color'));
+    if (text !== null) { return text > 0.5 ? 'dunkel' : 'hell'; }
+  } catch (e) { /* ohne Symcon-Variablen */ }
+  return '';
+}
+// '#rrggbb', '#rgb' oder 8-stellig. Symcon reicht Flutter-Farben weiter; beginnt ein 8-stelliger Wert
+// mit „ff", ist er als AARRGGBB gemeint (deckend), sonst als RRGGBBAA gelesen.
+function helligkeit(wert) {
+  var h = String(wert || '').trim().replace(/^#/, '');
+  if (!/^[0-9a-f]+$/i.test(h)) { return null; }
+  if (h.length === 3) { h = h.replace(/(.)/g, '$1$1'); }
+  if (h.length === 8) { h = /^ff/i.test(h) ? h.slice(2) : h.slice(0, 6); }
+  if (h.length !== 6) { return null; }
+  var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
 function farbschemaSetzen(wahl) {
-  var s = wahl === 1 ? 'hell' : (wahl === 2 ? 'dunkel' : hintergrundSchema());
+  var erkannt = symconSchema() || hintergrundSchema();
+  var s = wahl === 1 ? 'hell' : (wahl === 2 ? 'dunkel' : erkannt);
   document.documentElement.classList.toggle('hell', s === 'hell');
   document.documentElement.classList.toggle('dunkel', s === 'dunkel');
-  // Automatisch und Hintergrund nicht lesbar (Symcon-App, manche Browser): die Gerätefarbe muss
-  // nicht zur Visualisierung passen (Forum power1625 144636/68: helles Design + dunkles Gerät →
-  // weiße Schrift auf Weiß). Dann zeichnet die Kachel ihren Hintergrund selbst — immer lesbar.
-  document.body.classList.toggle('eigenbg', wahl !== 1 && wahl !== 2 && s === '' && !(daten && daten.eigen));
+  // Eigener Hintergrund, wenn die Schrift sonst nicht zum Untergrund passt: Schema unbekannt (Gerätefarbe
+  // muss nicht zur Visualisierung passen, Forum 144636/68) oder festes Hell/Dunkel gegen das erkannte
+  // Schema (Forum 144636/70: „hell" in der dunklen App → dunkle Schrift auf Dunkel). Immer lesbar.
+  document.body.classList.toggle('eigenbg', !(daten && daten.eigen) && (s === '' || (erkannt !== '' && s !== erkannt)));
 }
 function hintergrundSchema() {
   try {

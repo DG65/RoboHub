@@ -837,8 +837,12 @@ $hk = ['farbschema' => $k['farbschema'] ?? null, 'hauptknopf' => $k['hauptknopf'
 check('Kachel: Farbschema (Standard automatisch) und Hauptknopf passend zum Zustand', $hk['farbschema'] === 0
     && $hk['hauptknopf'] === ($hk['zustand'] === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($hk['zustand'] === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1)), json_encode($hk));
 $html = (string)file_get_contents(dirname(__DIR__) . '/RoboHubGeraet/module.html');
-check('Kachel: Raumnamen im Kartenbild standardmäßig an, abschaltbar (Forum power1625 144636/68)', ($k['kartenNamen'] ?? null) === true
-    && strpos($html, "d.kartenNamen === false ? [] : (k.marken || [])") !== false);
+check('Kachel: Raumnamen im Kartenbild standardmäßig an, in der Kachel je Gerät umschaltbar (Forum power1625 144636/68+70)', ($k['kartenNamen'] ?? null) === true
+    && ($k['id'] ?? null) === 2000 && strpos($html, "(namenZeigen() ? (k.marken || []) : [])") !== false && strpos($html, "localStorage.getItem('robohub-namen-'") !== false
+    && strpos($html, 'onclick="namenUmschalten()"') !== false);
+check('Kachel-HTML: Farbschema zuerst aus Symcons --card-color/--content-color (html-sdk.js, Forum 144636/70)',
+    strpos($html, "getPropertyValue('--card-color')") !== false && strpos($html, "getPropertyValue('--content-color')") !== false
+    && strpos($html, 'var erkannt = symconSchema() || hintergrundSchema();') !== false);
 check('Kachel-HTML: Stationssymbol fängt keine Klicks, Raumnamen mit größerer Tippfläche (Forum 144636/68: „oft passiert nichts")',
     (bool)preg_match('/\\.dock\\{[^}]*pointer-events:none/', $html) && strpos($html, "button.ort::before{content:''") !== false);
 check('Kachel-HTML: Farbschema nicht erkennbar → eigener Hintergrund (Forum 144636/68: weiß auf weiß)', strpos($html, 'body.eigenbg{background:var(--seite)') !== false

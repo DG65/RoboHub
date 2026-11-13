@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.6' => [
+            '• Tile: light or dark now follows the colours that Symcon passes to the tile — in the app and in the browser, independent of the device setting.',
+            '• Tile: room names in the map can be switched on and off directly below the map; each device remembers its own choice.',
+        ],
         '0.37.5' => [
             '• Tile: if the colour scheme of the visualization cannot be detected, the tile draws its own background — text stays readable in light and dark designs.',
             '• Tile: room names in the map image can be switched off (form: "Tile and IPSView"); room names are easier to tap and the station symbol no longer covers them.',

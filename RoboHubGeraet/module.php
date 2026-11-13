@@ -1302,7 +1302,7 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Texte der Kachel (module.html schlägt sie per T() nach; Deutsch aus locale.json). */
-    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate'];
+    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names'];
 
     /** Daten für Kachel und eigenständige Seite (JSON). */
     private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = ''): string
@@ -1404,6 +1404,7 @@ class RoboHubGeraet extends IPSModule
             'eigen'       => $eigen,
             'farbschema'  => $this->ReadPropertyInteger('Farbschema'),
             'kartenNamen' => $this->ReadPropertyBoolean('KarteNamen'),
+            'id'          => $this->InstanceID,
             'symbole'     => $this->ReadPropertyInteger('Symbole'),
             // Hervorgehobener Knopf: der, der gerade naheliegt (bei Fehlern keiner).
             'hauptknopf'  => $zustand === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($zustand === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1),
@@ -1506,7 +1507,7 @@ class RoboHubGeraet extends IPSModule
                 ['type' => 'Label', 'caption' => 'Symcon icons come from the Symcon server and look the same on every device. Emojis need an emoji font on the displaying device (missing e.g. on a Raspberry Pi). If the Symcon icons cannot be loaded, the tile shows emojis by itself.'],
                 ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Show the robot\'s settings (suction level, passes, do not disturb …) in the tile overview — the instance\'s variables always stay'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Show map image (rooms or mowing zones to tap)'],
-                ['type' => 'CheckBox', 'name' => 'KarteNamen', 'caption' => 'Show room names in the map image (without them, choose rooms with the buttons next to it)'],
+                ['type' => 'CheckBox', 'name' => 'KarteNamen', 'caption' => 'Show room names in the map image (default — can also be switched per device in the tile)'],
                 ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live map while working (driven path and robot position; vacuums every 30 s, mowers every 60 s)'],
                 ['type' => 'Label', 'caption' => RoboHubText::t('IPSView or browser: create a WebView element in IPSView and enter http://<Symcon-IP>:3777%s as the address. The page refreshes itself every 15 seconds.', $this->hookPfad())],
                 ['type' => 'Label', 'caption' => RoboHubText::t('👁 Display only: %s', $this->hookPfad())],
