@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.38.1' => [
+            '• Dreame/MOVA: the notice "Please clean the mop washboard" (code 114) appears like in the app as a yellow notice instead of a red error.',
+            '• Account: the last real-time message shows its date if it is not from today.',
+        ],
         '0.38.0' => [
             '• New: Roborock robots in the Xiaomi account (app "Mi Home", e.g. S5, S6, S50) — sign in by QR code or password, control locally in your home network.',
         ],

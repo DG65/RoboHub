@@ -554,8 +554,17 @@ check('stehengebliebene Meldung aus 0.37.3 wird auch bei Code 0 geleert', variab
 FakeCloud::$props['2.2'] = 12;
 $geraet->Aktualisieren();
 check('… echter Fehler bleibt Fehler', variable(2000, 'Fehler')['value'] === 'Hauptbürste blockiert (12)', json_encode(variable(2000, 'Fehler')));
+FakeCloud::$props['2.2'] = 114;
+$geraet->Aktualisieren();
+check('Code 114 (Waschbrett reinigen) als Hinweis wie in der App, kein Fehler (Forum power1625 144636/86)',
+    variable(2000, 'Fehler')['value'] === 'kein Fehler' && variable(2000, 'Meldung')['value'] === 'Bitte das Waschbrett des Wischmopps reinigen'
+    && variable(2000, 'Zustand')['value'] !== RoboHubModell::ZUSTAND_FEHLER, json_encode([variable(2000, 'Fehler'), variable(2000, 'Meldung')]));
+$k114 = kachelJson($geraet->GetVisualizationTile());
+check('… Kachel: gelber Hinweis statt roter Fehlerbox', ($k114['fehler'] ?? '') === '' && in_array('ℹ️ Bitte das Waschbrett des Wischmopps reinigen', (array)($k114['hinweise'] ?? []), true),
+    json_encode([$k114['fehler'] ?? null, $k114['hinweise'] ?? null], JSON_UNESCAPED_UNICODE));
 FakeCloud::$props['2.2'] = 0;
 $geraet->Aktualisieren();
+check('… Hinweis verschwindet, sobald der Roboter ihn nicht mehr meldet', variable(2000, 'Meldung')['value'] === '');
 check('Verbrauchsteile angelegt (Hauptbürste 88 %)', variable(2000, 'Hauptbuerste')['value'] === 88);
 check('Filter-% von piid 1', variable(2000, 'Filter')['value'] === 66);
 check('Reststunden Sauger (Haupt/Seite/Filter/Sensoren/Mopp)', variable(2000, 'HauptbuersteRest')['value'] === 169.0 && variable(2000, 'SeitenbuersteRest')['value'] === 69.0 && variable(2000, 'FilterRest')['value'] === 19.0 && variable(2000, 'SensorenRest')['value'] === 0.0 && variable(2000, 'MoppRest')['value'] === 250.0);
@@ -1382,6 +1391,19 @@ mqttVomServer($konto, "\x20\x02\x00\x00");
 $sub = $socket->gesendet[0] ?? '';
 check('CONNACK 0 → SUBSCRIBE je Gerät', $sub !== '' && ord($sub[0]) === 0x82 && strpos($sub, '/status/-112663880/' . $b['uid'] . '/dreame.vacuum.r95475/eu/') !== false, bin2hex(substr($sub, 0, 8)));
 check('Formular: 🔗 verbunden', strpos(json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE), '🔗 Echtzeit verbunden') !== false);
+$mq = json_decode($konto->ReadAttributeString('Mqtt'), true);
+$mqAlt = $mq;
+$mq['letzte'] = mktime(15, 53, 42) - 86400;
+$mq['anzahl'] = 7;
+$konto->WriteAttributeString('Mqtt', json_encode($mq));
+$fz = json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
+check('letzte Meldung von gestern mit Datum (sonst „15:53“ am Vormittag verwirrend)', strpos($fz, date('d.m.Y', time() - 86400) . ' 15:53:42') !== false);
+$mq['letzte'] = time();
+$konto->WriteAttributeString('Mqtt', json_encode($mq));
+$fz = json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
+preg_match('/letzte Meldung ([^(]*)\(/u', $fz, $lm);
+check('… von heute nur mit Uhrzeit', isset($lm[1]) && preg_match('/^\d\d:\d\d:\d\d Uhr $/u', $lm[1]) === 1, $lm[1] ?? substr($fz, (int)strpos($fz, 'Echtzeit verbunden'), 200));
+$konto->WriteAttributeString('Mqtt', json_encode($mqAlt));
 $konto->MessageSink(0, $socket->InstanceID, IM_CHANGESTATUS, [200]);
 check('war schon verbunden → späterer Fehler sperrt NICHT (normales Neuverbinden)', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') === 0 && json_decode($konto->GetConfigurationForParent(), true)['Open'] === true);
 // SUITE.md Stolperstein 27: Socket im Fehlerstatus verbindet sich nicht zuverlässig selbst neu → RoboHub schaltet ihn aus/an.

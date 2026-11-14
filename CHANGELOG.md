@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.38.1 (14.11.2026)
+
+- **Dreame/MOVA: Code 114 als Hinweis statt Fehler** (Forum power1625 144636/86, L10s Pro Ultra Heat): Kachel zeigte rot „Fehlercode 114 (114)“,
+  die App nur den Hinweis „Die Reinigungsaufgabe ist abgeschlossen, bitte reinigen Sie das Waschbrett des Wischmopps.“ Tasshack führt 114
+  als `CLEAN_MOP_PAD` in `WARNING_ERROR_CODE`. Neu `SAUGER_HINWEISE`: Code → „Letzte Meldung“ (gelber Hinweis in der Kachel), kein Fehler,
+  kein Fehlerzustand; verschwindet, sobald der Roboter ihn nicht mehr meldet. 68/70 bleiben stumm (App zeigt sie nicht).
+- **Konto: letzte Echtzeit-Meldung mit Datum**, wenn sie nicht von heute ist (live auf Dietmars MOVA-Konto: „15:53:42“ um 14:48 vom Vortag).
+- Prüfstand: 5 neue Prüfungen, 2/2 Gegenproben gefangen.
+
 ## 0.38.0 (14.11.2026)
 
 - **Neu: Roborock im Xiaomi-Konto (App „Mi Home“)** (Forum kronos, 144636/77 und /82; Dietmars Auftrag: QR-Code zuerst, Passwort als

@@ -592,6 +592,11 @@ PEM;
     // an, auch in der Station), 70 „Mopp abgenommen“. Wie in der App: kein Fehler, keine Meldung
     // (0.37.3 schrieb sie noch in „Letzte Meldung“ — wird geleert). Nur im Debug. Bewusst eng gehalten.
     private const SAUGER_WARNUNGEN = [68 => 'Remove mop', 70 => 'Mop removed'];
+    // Warn-Codes (Tasshack WARNING_ERROR_CODE), die die App als Hinweis in ihrer Meldungsliste zeigt — kein Fehler, kein
+    // Fehlerzustand, sondern „Letzte Meldung“, solange der Roboter den Code meldet. 114 = CLEAN_MOP_PAD, App: „Die
+    // Reinigungsaufgabe ist abgeschlossen, bitte reinigen Sie das Waschbrett des Wischmopps.“ (Forum power1625 144636/86,
+    // L10s Pro Ultra Heat, zeigte bis 0.38.0 „Fehlercode 114“ rot). Nur Codes aufnehmen, die eine App so zeigt.
+    private const SAUGER_HINWEISE = [114 => 'Please clean the mop washboard'];
 
     private function normalisiereSauger(array $p): array
     {
@@ -611,6 +616,10 @@ PEM;
             $w['Meldung'] = '';
             if (isset(self::SAUGER_WARNUNGEN[$code])) {
                 $this->dbg('Fehler', 'Hinweis-Code ' . $code . ' (' . self::SAUGER_WARNUNGEN[$code] . ') — wie in der App nicht angezeigt.');
+                $code = 0;
+            } elseif (isset(self::SAUGER_HINWEISE[$code])) {
+                $this->dbg('Fehler', 'Hinweis-Code ' . $code . ' (' . self::SAUGER_HINWEISE[$code] . ') — als Meldung, nicht als Fehler.');
+                $w['Meldung'] = RoboHubText::wert(self::SAUGER_HINWEISE[$code]);
                 $code = 0;
             }
             $w['Fehler'] = $code === 0 ? RoboHubText::t('no error') : (RoboHubText::wert(self::SAUGER_FEHLER[$code] ?? null) ?? RoboHubText::t('Error code %s', $code)) . ' (' . $code . ')';

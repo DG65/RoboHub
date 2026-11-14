@@ -1100,7 +1100,7 @@ class RoboHubKonto extends IPSModule
         }
         switch ($s['zustand'] ?? '') {
             case 'verbunden':
-                return RoboHubText::t('🔗 Real-time connected to %s since %s, %s device(s) subscribed%s.', ($s['host'] ?? '?'), date('d.m.Y H:i', (int)($s['seit'] ?? time())), (int)($s['topics'] ?? 0), (!empty($s['letzte']) ? RoboHubText::t(', last message %s (%s in total)', date('H:i:s', (int)$s['letzte']), (int)($s['anzahl'] ?? 0)) : RoboHubText::t(', no message yet')));
+                return RoboHubText::t('🔗 Real-time connected to %s since %s, %s device(s) subscribed%s.', ($s['host'] ?? '?'), date('d.m.Y H:i', (int)($s['seit'] ?? time())), (int)($s['topics'] ?? 0), (!empty($s['letzte']) ? RoboHubText::t(', last message %s (%s in total)', date(date('Ymd', (int)$s['letzte']) === date('Ymd') ? 'H:i:s' : 'd.m.Y H:i:s', (int)$s['letzte']), (int)($s['anzahl'] ?? 0)) : RoboHubText::t(', no message yet')));
             case 'verbinde':
                 return RoboHubText::t('⏳ Real-time connecting to %s …', ($s['host'] ?? '?'));
             case 'fehler':
