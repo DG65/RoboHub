@@ -8,6 +8,7 @@ require_once __DIR__ . '/../libs/RoboHubDreame.php';
 require_once __DIR__ . '/../libs/RoboHubMqttSitzung.php';
 require_once __DIR__ . '/../libs/RoboHubTls.php';
 require_once __DIR__ . '/../libs/RoboHubRoborock.php';
+require_once __DIR__ . '/../libs/RoboHubXiaomi.php';
 require_once __DIR__ . '/../libs/RoboHubWorx.php';
 require_once __DIR__ . '/../libs/RoboHubEcovacs.php';
 require_once __DIR__ . '/../libs/RoboHubIrobot.php';
@@ -60,6 +61,7 @@ class RoboHubKonto extends IPSModule
         'dreame'    => ['Dreame (app "Dreamehome")', 'Dreame', false, true],
         'mova'      => ['MOVA (app "MOVAhome")', 'MOVA', false, true],
         'roborock'  => ['Roborock (app "Roborock")', 'Roborock', true, false],
+        'xiaomi'    => ['Roborock in the app "Mi Home" (Xiaomi account, controlled locally in your home network)', 'Xiaomi', false, true],
         'worx'      => ['Worx Landroid (app "Landroid")', 'Worx', false, false],
         'kress'     => ['Kress (app "Kress Mission")', 'Kress', false, false],
         'landxcape' => ['LandXcape (app "LandXcape")', 'LandXcape', false, false],
@@ -143,6 +145,8 @@ class RoboHubKonto extends IPSModule
         // Client Socket erst verzögert selbst anlegen: beim Neuanlegen bietet die Konsole ihn selbst an
         // (Forum 13.10.2026: „hat bereits ein übergeordnetes Objekt", wenn RoboHub schneller war).
         $this->RegisterTimer('Verbindung', 0, 'ROBOHUB_VerbindungPruefen($_IPS[\'TARGET\']);');
+        // Xiaomi: nach „QR-Code anzeigen“ alle 3 s nachfragen, ob in der Mi-Home-App gescannt wurde.
+        $this->RegisterTimer('QrWarten', 0, 'ROBOHUB_QrWarten($_IPS[\'TARGET\']);');
     }
 
     /**
@@ -274,6 +278,12 @@ class RoboHubKonto extends IPSModule
             }
             return $this->melde(RoboHubText::t('⛔ Sign-in failed: %s', $e->getMessage()));
         }
+        return $this->anmeldungAbschliessen($buendel, $treiber);
+    }
+
+    /** Gemeinsames Ende jeder erfolgreichen Anmeldung (Passwort, Code oder QR-Code). */
+    private function anmeldungAbschliessen(array $buendel, RoboHubTreiber $treiber): string
+    {
         $this->WriteAttributeString('AnmeldeVorstufe', '');
         $this->WriteAttributeString('Buendel', (string)json_encode($buendel));
         $this->WriteAttributeString('LetzterFehler', '');
@@ -303,12 +313,71 @@ class RoboHubKonto extends IPSModule
         // nach allen UpdateFormField-Aufrufen).
         $this->UpdateFormField('Ergebnis', 'caption', $text);
         $this->echtzeitKonfigurieren(true);
-        IPS_SetProperty($this->InstanceID, 'Passwort', '');
-        if ($this->ReadPropertyString('ClientSecret') !== '') {
-            IPS_SetProperty($this->InstanceID, 'ClientSecret', '');   // steht jetzt im Bündel (Attribut)
+        if ($this->ReadPropertyString('Passwort') !== '' || $this->ReadPropertyString('ClientSecret') !== '') {
+            IPS_SetProperty($this->InstanceID, 'Passwort', '');
+            if ($this->ReadPropertyString('ClientSecret') !== '') {
+                IPS_SetProperty($this->InstanceID, 'ClientSecret', '');   // steht jetzt im Bündel (Attribut)
+            }
+            IPS_ApplyChanges($this->InstanceID);
         }
-        IPS_ApplyChanges($this->InstanceID);
         return $text;
+    }
+
+    /**
+     * ROBOHUB_QrAnzeigen($id): string — Xiaomi: QR-Code für die Anmeldung holen und im Formular zeigen.
+     * In der Mi-Home-App scannen (Profil → Scannen), dort bestätigen; RoboHub fragt danach selbst nach.
+     */
+    public function QrAnzeigen(): string
+    {
+        $treiber = $this->treiber();
+        if (!method_exists($treiber, 'qrStarten')) {
+            return $this->melde(RoboHubText::t('ℹ️ This vendor does not sign in with a QR code.'));
+        }
+        try {
+            $qr = $treiber->qrStarten();
+        } catch (Throwable $e) {
+            return $this->melde('⛔ ' . $e->getMessage());
+        }
+        $this->SetBuffer('Qr', (string)json_encode(array_diff_key($qr, ['bild' => 1])));
+        $this->SetTimerInterval('QrWarten', 3000);
+        $this->UpdateFormField('QrBild', 'image', $qr['bild']);
+        $this->UpdateFormField('QrBild', 'visible', true);
+        return $this->melde(RoboHubText::t('📱 Scan the QR code with the Mi Home app (profile → scan icon) and confirm the sign-in there. RoboHub notices it by itself — valid until %s.', date('H:i', (int)$qr['ende'])));
+    }
+
+    /** Timer nach QrAnzeigen: nachfragen, ob gescannt wurde. */
+    public function QrWarten(): void
+    {
+        $qr = json_decode((string)$this->GetBuffer('Qr'), true);
+        if (!is_array($qr) || time() > (int)($qr['ende'] ?? 0)) {
+            $this->SetTimerInterval('QrWarten', 0);
+            $this->SetBuffer('Qr', '');
+            if (is_array($qr)) {
+                $this->UpdateFormField('QrBild', 'visible', false);
+                $this->melde(RoboHubText::t('⌛ The QR code has expired — click "📱 Show QR code" again.'));
+            }
+            return;
+        }
+        $treiber = $this->treiber();
+        try {
+            $buendel = $treiber->qrPruefen($qr);
+        } catch (Throwable $e) {
+            $this->SetTimerInterval('QrWarten', 0);
+            $this->SetBuffer('Qr', '');
+            $this->WriteAttributeString('LetzterFehler', $e->getMessage());
+            $this->protokolliere(RoboHubText::t('Sign-in failed: %s', $e->getMessage()), KL_WARNING);
+            $this->melde(RoboHubText::t('⛔ Sign-in failed: %s', $e->getMessage()));
+            return;
+        }
+        if ($buendel === null) {
+            return;
+        }
+        $this->SetTimerInterval('QrWarten', 0);
+        $this->SetBuffer('Qr', '');
+        $buendel['server'] = (string)$this->ReadPropertyString('Region');
+        $this->UpdateFormField('QrBild', 'visible', false);
+        $this->protokolliere(RoboHubText::t('Signed in with the QR code.'));
+        $this->anmeldungAbschliessen($buendel, $treiber);
     }
 
     /** Lokale Roboter (iRobot): unter der IP koppeln, vorhandene Roboter bleiben im Bündel. */
@@ -1076,6 +1145,8 @@ class RoboHubKonto extends IPSModule
         $hersteller = (string)$this->ReadPropertyString('Hersteller');
         if ($hersteller === 'roborock') {
             $treiber = new RoboHubRoborock();
+        } elseif ($hersteller === 'xiaomi') {
+            $treiber = new RoboHubXiaomi();
         } elseif (isset(RoboHubWorx::MARKEN[$hersteller])) {
             $treiber = new RoboHubWorx($hersteller);
         } elseif ($hersteller === 'ecovacs') {
@@ -1329,6 +1400,7 @@ class RoboHubKonto extends IPSModule
     private function kontoPanel(): array
     {
         $roborock = $this->perCode() || $this->ReadAttributeString('AnmeldeVorstufe') !== '';
+        $xiaomi = $this->ReadPropertyString('Hersteller') === 'xiaomi';
         $ecovacs = $this->ReadPropertyString('Hersteller') === 'ecovacs';
         $lokal = in_array($this->ReadPropertyString('Hersteller'), ['irobot', 'narwal'], true);
         $narwal = $this->ReadPropertyString('Hersteller') === 'narwal';
@@ -1366,13 +1438,16 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'Select', 'name' => 'Hersteller', 'caption' => 'Vendor / app', 'options' => $auswahl],
                 ['type' => 'Select', 'name' => 'Region', 'caption' => $ecovacs || $miele ? 'Country of the account (as in the app)' : 'Region of the account',
                     'options' => $miele ? array_map(function ($wert, $text) { return ['caption' => $text, 'value' => $wert]; }, array_keys(RoboHubMiele::LAENDER), RoboHubMiele::LAENDER)
-                        : ($ecovacs ? RoboHubEcovacs::regionen() : ($this->ReadPropertyString('Hersteller') === 'kaercher' ? RoboHubKaercher::regionen() : RoboHubDreame::regionen())), 'visible' => $mitRegion],
+                        : ($ecovacs ? RoboHubEcovacs::regionen() : ($this->ReadPropertyString('Hersteller') === 'kaercher' ? RoboHubKaercher::regionen() : ($xiaomi ? RoboHubXiaomi::regionen() : RoboHubDreame::regionen()))), 'visible' => $mitRegion],
                 ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? 'IP address of the robot' : ($husqvarna ? 'Application key' : 'E-mail of the account')],
                 ['type' => 'Label', 'visible' => $husqvarna, 'caption' => RoboHubText::t('Husqvarna uses the official API: sign in on developer.husqvarnagroup.cloud with your Husqvarna account, "Create application" (any redirect URL, e.g. http://localhost), connect the APIs "Authentication API" and "%s", then enter application key and application secret here. Because of the request limit RoboHub polls %s.', $api, ($api === 'GARDENA smart system API' ? RoboHubText::t('at most every 15 minutes') : RoboHubText::t('at most every 5 minutes')))],
                 ['type' => 'Label', 'visible' => $narwal, 'caption' => 'Narwal runs locally, without cloud and without password: enter the robot\'s IP address (ideally fixed in your router), click "Apply", "🔑 Sign in now". The robot must be switched on. Works with Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge and JX; Freo X Ultra, X Plus, J1/J4 and T10 have no local interface. For another Narwal do the same with its IP.'],
                 ['type' => 'Label', 'visible' => $lokal && !$narwal, 'caption' => 'iRobot runs locally, without cloud: put the robot on its base, enter the IP address, click "Apply". Press "🔑 Sign in now" once (RoboHub searches for the robot). Then hold the HOME button on the robot for about 2 seconds until it plays tones, and immediately press "🔑 Sign in now" again. For another robot do the same with its IP.'],
                 ['type' => 'Label', 'visible' => $roborock && $this->ReadPropertyString('Hersteller') === 'vorwerk', 'caption' => 'Vorwerk signs in without a password: enter the e-mail of the MyKobold account, click "Apply", "📧 Request code", enter the code from the e-mail below, click "Apply", "🔑 Sign in now". Supported are Kobold VR200 and VR300; the VR7 uses a different cloud and does not work (yet). If a robot is added later, simply sign in again.'],
-                ['type' => 'Label', 'visible' => $roborock && $this->ReadPropertyString('Hersteller') !== 'vorwerk', 'caption' => 'Roborock signs in without a password: enter the e-mail, click "Apply", "📧 Request code", enter the code from the e-mail below, click "Apply", "🔑 Sign in now". Roborock finds the region itself.'],
+                ['type' => 'Label', 'visible' => $xiaomi, 'caption' => 'Mi Home: preferably sign in without a password — "📱 Show QR code", scan it with the Mi Home app (profile → scan icon) and confirm there. Alternatively enter e-mail and password below and click "🔑 Sign in now"; if Xiaomi then sends a code by e-mail, enter it into the password field and sign in again. Afterwards only the access keys are stored, never the password.'],
+                ['type' => 'Label', 'visible' => $xiaomi, 'caption' => 'The Xiaomi cloud only provides the device list with each robot\'s key and local IP address. Commands go directly to the robot in your home network (UDP port 54321), so Symcon and robot must be in the same network — best give the robot a fixed IP in the router. Supported are the Roborock models in Mi Home (e.g. S5, S6, S50, Mi Robot Vacuum); Xiaomi\'s own vacuums with the MIoT protocol not yet.'],
+                ['type' => 'Image', 'name' => 'QrBild', 'visible' => false, 'image' => '', 'center' => true],
+                ['type' => 'Label', 'visible' => $roborock && !in_array($this->ReadPropertyString('Hersteller'), ['vorwerk', 'xiaomi'], true), 'caption' => 'Roborock signs in without a password: enter the e-mail, click "Apply", "📧 Request code", enter the code from the e-mail below, click "Apply", "🔑 Sign in now". Roborock finds the region itself.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'Navimow signs in to RoboHub without a password: "🔗 Open sign-in page", sign in there with your Navimow account. The browser then lands on a page that does not load (http://localhost:1/callback?code=…) — that is intended. Copy this address from the address bar, enter it below, click "Apply", "🔑 Sign in now". The code is only valid for a few minutes.'],
                 ['type' => 'Label', 'visible' => $navimow, 'caption' => 'To be clear: Segway does not issue separate access for smart home systems. Like ioBroker, RoboHub therefore uses the smart home ID "homeassistant" published by Segway. That\'s why the sign-in page says "Home Assistant" — it means this interface, not your Home Assistant.'],
                 ['type' => 'Label', 'visible' => $alko, 'caption' => 'AL-KO uses the official API: apply once for access (client ID and client secret) at AL-KO under alko-garden.de/iot-api-zugang-anfordern. Then enter client ID and secret as well as e-mail and password of the inTOUCH app, click "Apply", "🔑 Sign in now". The password is discarded afterwards; client ID and secret stay stored in the account because AL-KO only renews access with them.'],
@@ -1383,10 +1458,11 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $mitClient, 'caption' => RoboHubText::t('Client ID (from %s)', ($miele ? 'Miele' : 'AL-KO'))],
                 ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $mitClient, 'caption' => RoboHubText::t('Client secret (from %s, moved into the account after sign-in)', ($miele ? 'Miele' : 'AL-KO'))],
                 ['type' => 'Label', 'visible' => $indego, 'caption' => 'Indego signs in to RoboHub without a password. Best in Chrome, Edge or Firefox: first open the developer console (F12, on a Mac Option + Command + I), then "🔗 Open sign-in page" and sign in with the Bosch SingleKey ID. Afterwards nothing seems to happen — but the console shows a failed redirect to "com.bosch.indegoconnect://login?…code=…". Enter this address (or the whole console line) below, click "Apply", "🔑 Sign in now". The code is only valid for a few minutes. ioBroker does it the same way.'],
-                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? 'Code or address after sign-in (discarded afterwards)' : ($roborock ? 'Code from the e-mail (discarded after sign-in)' : ($husqvarna ? 'Application secret (stays stored in the account)' : 'Password (only for sign-in, discarded afterwards)'))],
+                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? 'Code or address after sign-in (discarded afterwards)' : ($roborock && !$xiaomi ? 'Code from the e-mail (discarded after sign-in)' : ($xiaomi && $this->ReadAttributeString('AnmeldeVorstufe') !== '' ? 'Code from the Xiaomi e-mail' : ($husqvarna ? 'Application secret (stays stored in the account)' : 'Password (only for sign-in, discarded afterwards)')))],
                 ['type' => 'Label', 'name' => 'Ergebnis', 'caption' => $zeile],
                 ['type' => 'RowLayout', 'items' => [
-                    ['type' => 'Button', 'caption' => '📧 Request code', 'visible' => $roborock, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],
+                    ['type' => 'Button', 'caption' => '📧 Request code', 'visible' => $roborock && !$xiaomi, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],
+                    ['type' => 'Button', 'caption' => '📱 Show QR code', 'visible' => $xiaomi, 'onClick' => 'echo ROBOHUB_QrAnzeigen($id);'],
                     ['type' => 'Button', 'caption' => '🔗 Open sign-in page', 'visible' => $perLink, 'onClick' => 'echo ROBOHUB_Anmeldelink($id);', 'link' => true],
                     ['type' => 'Button', 'caption' => '🔑 Sign in now', 'onClick' => 'echo ROBOHUB_Anmelden($id);'],
                     ['type' => 'Button', 'caption' => '⏏️ Sign out', 'onClick' => 'echo ROBOHUB_Abmelden($id);'],

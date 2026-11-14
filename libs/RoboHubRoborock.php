@@ -765,7 +765,7 @@ PEM;
     // Gerät-RPC über den Roborock-MQTT-Server
     // =================================================================
 
-    private function pruefeProtokoll(array $geraet): void
+    protected function pruefeProtokoll(array $geraet): void
     {
         $pv = (string)($geraet['protokoll'] ?? '1.0');
         if ($pv !== '' && $pv !== '1.0') {
@@ -777,7 +777,7 @@ PEM;
     }
 
     /** Eine Anfrage; Rückgabe: result oder RoboHubFehler. */
-    private function rpc(array $buendel, array $geraet, string $methode, array $params)
+    protected function rpc(array $buendel, array $geraet, string $methode, array $params)
     {
         $r = $this->rpcMehrere($buendel, $geraet, [[$methode, $params]])[0] ?? null;
         if ($r === null) {
@@ -793,7 +793,7 @@ PEM;
      * Mehrere Anfragen in einer MQTT-Sitzung. Rückgabe je Index:
      * ['ergebnis' => …] | ['fehler' => Text] | null (keine Antwort).
      */
-    private function rpcMehrere(array $buendel, array $geraet, array $anfragen): array
+    protected function rpcMehrere(array $buendel, array $geraet, array $anfragen): array
     {
         $r = (array)$buendel['rriot'];
         $schluessel = (string)$geraet['schluessel'];
@@ -1092,7 +1092,7 @@ PEM;
         return [$status, (string)$text];
     }
 
-    private function dbg(string $thema, string $text): void
+    protected function dbg(string $thema, string $text): void
     {
         if (is_callable($this->debug)) {
             ($this->debug)($thema, $text);

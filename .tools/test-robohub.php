@@ -1942,6 +1942,7 @@ $ohneKonto->ApplyChanges();
 check('ohne Konto-Instanz verständliche Meldung', strpos($ohneKonto->Aktualisieren(), 'Keine aktive RoboHub-Konto-Instanz') !== false);
 
 require __DIR__ . '/test-roborock.inc.php';
+require __DIR__ . '/test-xiaomi.inc.php';
 require __DIR__ . '/test-worx.inc.php';
 require __DIR__ . '/test-ecovacs.inc.php';
 require __DIR__ . '/test-irobot.inc.php';

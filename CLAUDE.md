@@ -534,6 +534,27 @@
 - Lebensdauer von user_center_token und Zertifikat unbekannt — erster Tester zeigt es. Offen: Räume (165/170), Karte (166 Stream),
   Station-Befehle (go_dry, collect_dust), Szenen (180), Echtzeit (Abo `cmd/eufy_home/{Modell}/{SN}/res`), Verschleiß zurücksetzen.
 
+## Roborock in Mi Home / Xiaomi-Konto (0.38.0)
+
+- Wunsch kronos (Forum 144636/77+82, 2× S5 + A72 im Mi-Home-Konto), Dietmars Auftrag 14.11.2026: QR-Code zuerst, Passwort als Rückfall.
+- `libs/RoboHubXiaomi.php extends RoboHubRoborock` (Hersteller `xiaomi`): Auswertung und Befehle geerbt, nur Anmeldung, Geräteliste
+  und Transport ersetzt. Dafür in RoboHubRoborock `rpc`/`rpcMehrere`/`pruefeProtokoll`/`dbg` protected.
+- Quellen: Xiaomi-cloud-tokens-extractor (MIT: QR `longPolling/loginUrl` + lp, Passwort serviceLogin/serviceLoginAuth2 mit
+  `hash = MD5(pw).upper`, 2FA identity/authStart → list → sendEmailTicket → verifyEmail → result/check → Auth2/end mit
+  `extension-pragma` ssecurity → STS-Keks serviceToken; RC4-API), micloud (MIT: `/home/device_list` als Formular),
+  hass-xiaomi-miot (Apache-2.0: code 2/3/„auth err“ = Zugang weg, passToken-Erneuern), aholstenson/miio (MIT: miIO-Paket).
+  python-miio ist GPL → nicht verwendet.
+- **Befehle lokal per miIO** (UDP 54321, Hello, AES-128-CBC key md5(token), iv md5(key+token), md5-Prüfsumme). Einen
+  Cloud-RPC-Weg für Befehle habe ich in keiner verwendbaren Quelle belegt gefunden → bewusst nicht gebaut. Folge: Symcon und
+  Roboter im selben Netz. Cloud nur für Geräteliste (Token + localip); serviceToken-Ablauf stört die Steuerung nicht.
+- RC4 selbst geschrieben (OpenSSL 3 hat RC4 nur im Legacy-Provider), 1024 Bytes Schlüsselstrom verworfen.
+- Bündel: userId, cUserId, ssecurity, serviceToken, passToken, agent, geraetId, server, zeit — nie das Passwort. Alle 6 h
+  über passToken erneuert, Fehlschlag behält das alte Bündel. Captcha → Hinweis auf QR (kein Captcha-Feld gebaut).
+- Formular: Image `QrBild` (data-URI, wie MeterHub, gegen SDK-Doku geprüft), Timer `QrWarten` 3 s, Puffer `Qr` ohne Bild.
+- Nur `roborock.vacuum.*`/`rockrobo.vacuum.*` (miIO-1.0); andere `*.vacuum.*` als `protokoll` „miot“ → „noch nicht unterstützt“.
+- Prüfstand `.tools/test-xiaomi.inc.php`: RC4/Signatur gegen eigene Python-Nachbildung, miIO-Paket gegen openssl-CLI;
+  6/6 Gegenproben gefangen. **Noch nie an einem echten Gerät** — Tester kronos.
+
 ## Eufy-Mäher-Treiber (0.34.0)
 
 - Quellen: Thomvanoorschot/ha-eufy-e15 (MIT, Datenpunkte, Schlüsselweg), jasonacox/tinytuya (MIT, Tuya 3.5), Scratchpad `ref/`. keesmod/eufy-robomow-ha ohne Lizenz → nicht

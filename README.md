@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.37.9-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.38.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -10,7 +10,7 @@
 🇬🇧 [English version](README.en.md)
 
 Saug-, Wisch- und Mähroboter in IP-Symcon — herstellerneutral aufgebaut, heute mit
-**Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock"),
+**Dreame** und **MOVA** (Apps „Dreamehome" und „MOVAhome"), **Roborock** (App „Roborock", ältere Modelle auch aus der App „Mi Home"),
 **Ecovacs** Deebot und GOAT (App „Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (App „MyKobold"), **Miele Scout** (offizielle API), **Kärcher** RCV/RCF/RVC (App „Kärcher Home Robots"), **Eufy** RoboVac/Omni (App „Eufy Clean"/„Eufy"), **iRobot** Roomba/Braava und **Narwal** Flow/Freo (beide lokal, ohne Cloud), **Husqvarna Automower** und **GARDENA smart system** (jeweils offizielle API) sowie
 den Mährobotern von **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego**, **STIHL iMOW** und **AL-KO Robolinho** — jeweils über die
 Hersteller-Cloud.
@@ -46,6 +46,12 @@ Skripten oder Visualisierung etwas ändert.
    **Roborock** meldet sich ohne Passwort an: Hersteller „Roborock" wählen, E-Mail eintragen,
    „Übernehmen", „📧 Code anfordern", den Code aus der E-Mail ins Feld eintragen, „Übernehmen",
    „🔑 Jetzt anmelden". Die Region findet Roborock selbst.
+   **Roborock in Mi Home** (Xiaomi-Konto, z. B. S5, S6, S50): Hersteller „Roborock in der App ‚Mi Home'" wählen,
+   „📱 QR-Code anzeigen" und mit der Mi-Home-App scannen (Profil → Scan-Symbol), dort bestätigen. Ersatzweise
+   E-Mail und Passwort eintragen und anmelden; schickt Xiaomi einen Code per E-Mail, diesen ins Passwortfeld
+   eintragen und erneut anmelden. Gespeichert werden nur die Zugangsschlüssel. Die Cloud liefert nur Geräteliste,
+   Geräteschlüssel und lokale IP — gesteuert wird lokal im Heimnetz (UDP 54321), Symcon und Roboter müssen im
+   selben Netz sein.
    **Worx, Kress, LandXcape, Ferrex**: Marke wählen, E-Mail und Passwort der App eintragen,
    „Übernehmen", „🔑 Jetzt anmelden" — gespeichert bleibt nur der Erneuerungsschlüssel.
    **Ecovacs**: Land des Kontos wählen, E-Mail und Passwort eintragen, anmelden. Verlangt Ecovacs eine
@@ -209,9 +215,12 @@ nicht offiziell dokumentiert und kann sich ändern.
   Dreame-/MOVA-Modelle derselben Apps sollten funktionieren, sind aber ungeprüft —
   Rückmeldungen sind willkommen.
 - **Roborock** (seit 0.13.0): nach dem Protokoll von python-roborock gebaut und gegen dessen
-  Testdaten geprüft, aber noch an keinem echten Gerät. Unterstützt sind Geräte mit dem
+  Testdaten geprüft; im Forum an einem Saros 20 bestätigt (November 2026). Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als
   „noch nicht unterstützt". Noch ohne Kartenbild, Echtzeit-Meldungen und Zeitpläne.
+- **Roborock in Mi Home** (seit 0.38.0): Xiaomi-Konto (QR-Code oder Passwort), Steuerung lokal per miIO
+  mit denselben Befehlen wie bei Roborock. Noch an keinem echten Gerät geprüft. Xiaomis eigene Sauger mit dem
+  MIoT-Protokoll meldet RoboHub als „noch nicht unterstützt"; ältere Modelle ohne Raumaufteilung haben keine Räume.
 - **Worx, Kress, LandXcape, Ferrex** (seit 0.14.0): nach ioBroker.worx gebaut. Anmeldung, Zustand,
   Einstellungen und Wochenplan im Forum an einem Worx m500 bestätigt (Oktober 2026), Befehle noch offen.
   Zustand kommt aus dem letzten Status, den der Mäher an die Cloud meldet; Befehle gehen über MQTT
@@ -297,6 +306,10 @@ Die Cloud-Schnittstelle von Dreame/MOVA ist aus drei quelloffenen Projekten (MIT
 [EvotecIT/homeassistant-dreamelawnmower](https://github.com/EvotecIT/homeassistant-dreamelawnmower).
 Der Roborock-Treiber folgt [Python-roborock/python-roborock](https://github.com/Python-roborock/python-roborock)
 (Apache-2.0); dessen Antwortbeispiele liegen unverändert im Prüfstand (`.tools/roborock/`).
+Der Mi-Home-Weg folgt [PiotrMachowski/Xiaomi-cloud-tokens-extractor](https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor) (MIT, Anmeldung und
+verschlüsselte Cloud-Anfragen), [Squachen/micloud](https://github.com/Squachen/micloud) (MIT),
+[al-one/hass-xiaomi-miot](https://github.com/al-one/hass-xiaomi-miot) (Apache-2.0, Fehlercodes, Erneuern) und
+[aholstenson/miio](https://github.com/aholstenson/miio) (MIT, lokales miIO-Protokoll).
 Der Worx-/Kress-/LandXcape-/Ferrex-Treiber folgt
 [iobroker-community-adapters/ioBroker.worx](https://github.com/iobroker-community-adapters/ioBroker.worx) (MIT);
 die Anmeldung am Befehlsserver ist mit [MTrab/pyworxcloud](https://github.com/MTrab/pyworxcloud) abgeglichen

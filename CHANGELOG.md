@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.38.0 (14.11.2026)
+
+- **Neu: Roborock im Xiaomi-Konto (App „Mi Home“)** (Forum kronos, 144636/77 und /82; Dietmars Auftrag: QR-Code zuerst, Passwort als
+  Rückfall). Neuer Hersteller `xiaomi`, Treiber `RoboHubXiaomi` erbt Auswertung und Befehle von Roborock.
+  - Anmeldung per QR-Code (Mi-Home-App scannt, Konto fragt alle 3 s nach) oder per Passwort, bei Bedarf mit E-Mail-Code;
+    bei Captcha Verweis auf den QR-Code. Gespeichert werden nur userId/ssecurity/serviceToken/passToken, Erneuern alle 6 h
+    über den passToken.
+  - Cloud (RC4-verschlüsselt, Server wählbar oder automatisch) nur für Geräteliste mit Token und lokaler IP; Befehle und Abfragen
+    lokal per miIO (UDP 54321). Nur Roborock-Altgeräte (`roborock.vacuum.*`, `rockrobo.vacuum.*`); MIoT-Sauger „noch nicht unterstützt“.
+  - Quellen: Xiaomi-cloud-tokens-extractor, micloud, aholstenson/miio (alle MIT), hass-xiaomi-miot (Apache-2.0). Live ungeprüft.
+- Konto: gemeinsames Ende jeder Anmeldung (`anmeldungAbschliessen`), Passwortfeld wird nur geleert, wenn etwas drinsteht.
+- Prüfstand: 40 neue Prüfungen (Referenzwerte aus Python bzw. openssl), 6/6 Gegenproben gefangen.
+
 ## 0.37.9 (14.11.2026)
 
 - **Konto: `GetCompatibleParents()`** (SUITE.md Stolperstein 28, Forum lugge 144636/81): Nach dem Tausch auf das Virtual IO (0.37.8) meldete die
