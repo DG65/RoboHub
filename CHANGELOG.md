@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.37.9 (14.11.2026)
+
+- **Konto: `GetCompatibleParents()`** (SUITE.md Stolperstein 28, Forum lugge 144636/81): Nach dem Tausch auf das Virtual IO (0.37.8) meldete die
+  Konsole am Roborock-Konto „inkompatible übergeordnete Instanz – Schnittstelle ändern“, weil `RequireParent()` fest den Client Socket nennt.
+  Das Konto nennt der Konsole jetzt je Hersteller die passende Verbindungsart (Client Socket, WebSocket Client oder Virtual IO).
+- **Roborock: Wasserfluss-Regler** (python-roborock `clean_modes.py`, „water slide“): Saros 20 meldet `water_box_mode` = 220 + Reglerstellung 1–30;
+  lugges App zeigte bei 235 „Mittel“, Regler 15. Anzeige mit den App-Bereichen (≤3 Sehr niedrig, ≤7 Niedrig, ≤12 Sanft, ≤17 Mittel, ≤22 Erhöht,
+  ≤27 Hoch, ≤30 Extrem), Auswahl Aus + je Bereich ein Wert (221/225/…/250), Schreiben wie bisher über `set_water_box_custom_mode`.
+  Die deutschen Bereichsnamen außer „Mittel“ sind nicht gegen die App geprüft.
+- Prüfstand: 6 neue Prüfungen, 3/3 Gegenproben gefangen.
+
 ## 0.37.8 (13.11.2026)
 
 - **Konto: von der Konsole angelegten Dreame-Socket austauschen** (Forum lugge, 144636/78, Roborock Saros 20): Client Socket „Client Socket

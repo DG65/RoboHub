@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.37.9' => [
+            '• Account: the console no longer reports an "incompatible parent instance" for accounts without real-time (e.g. Roborock).',
+            '• Roborock: water flow of newer models with a slider (e.g. Saros 20) is shown with the names from the app (e.g. "Medium" instead of "Level 235") and can be set.',
+        ],
         '0.37.8' => [
             '• Account: a Client Socket that was still set up for Dreame (created while "Dreame" was preselected) is replaced automatically by the right connection — the error "End of file" every one to two minutes disappears.',
             '• Roborock: fresh water, dirty water and dust bag no longer show "empty" or "full" by mistake on newer docks (e.g. Saros 20).',

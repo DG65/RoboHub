@@ -318,3 +318,22 @@ $rk->parent = $fremd;
 $GLOBALS['GELOESCHT'] = [];
 $rk->VerbindungPruefen();
 check('fremder Client Socket ohne RoboHub-Merkmal bleibt unangetastet', $GLOBALS['GELOESCHT'] === [] && $rk->parent === $fremd);
+
+// Saros 20 (Forum lugge 14.11.2026): Wasserfluss-Regler 220 + Stellung, App „Mittel 15“ = 235.
+$n = $rrt->normalisiere('roborock.vacuum.a307', ['water_box_mode' => 235]);
+$opt = $n['optionen']['Wassermenge'] ?? [];
+check('Wasserfluss-Regler 235 = „Medium“, Auswahl der App-Bereiche', ($n['werte']['Wassermenge'] ?? null) === 235 && ($opt[235] ?? '') === 'Medium'
+    && ($opt[200] ?? '') === 'Off' && ($opt[250] ?? '') === 'Extreme' && !isset($opt[201]), json_encode($n['optionen'] ?? null));
+$n = $rrt->normalisiere('roborock.vacuum.a307', ['water_box_mode' => 233]);
+check('Zwischenstellung 13 bekommt den Bereichsnamen', (($n['optionen']['Wassermenge'] ?? [])[233] ?? '') === 'Medium');
+check('Bereichsgrenzen wie python-roborock (3/7/12/17/22/27/30)', RoboHubRoborock::wasserreglerName(223) === 'Slight' && RoboHubRoborock::wasserreglerName(224) === 'Low'
+    && RoboHubRoborock::wasserreglerName(237) === 'Medium' && RoboHubRoborock::wasserreglerName(238) === 'Moderate' && RoboHubRoborock::wasserreglerName(250) === 'Extreme'
+    && RoboHubRoborock::wasserreglerName(251) === null && RoboHubRoborock::wasserreglerName(220) === null);
+$n = $rrt->normalisiere('roborock.vacuum.a27', ['water_box_mode' => 202]);
+check('alte Wasserstufen unverändert', (($n['optionen']['Wassermenge'] ?? [])[202] ?? '') === 'Medium' && isset($n['optionen']['Wassermenge'][201]));
+
+// Konsole: passende Verbindungsart je Hersteller (SUITE.md Stolperstein 28), sonst „inkompatible übergeordnete Instanz“.
+check('Roborock-Konto nennt der Konsole das Virtual IO als passende Verbindung', json_decode($rk->GetCompatibleParents(), true) === ['type' => 'require', 'moduleIDs' => ['{6179ED6A-FC31-413C-BB8E-1204150CF376}']]);
+$dk = new RoboHubKonto(4950);
+$dk->Create();
+check('Dreame-Konto nennt den Client Socket', json_decode($dk->GetCompatibleParents(), true)['moduleIDs'] === ['{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}']);

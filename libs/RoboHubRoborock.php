@@ -149,6 +149,25 @@ PEM;
     private const SAUGSTUFEN_NEU = [105 => 'Gentle', 101 => 'Quiet', 102 => 'Balanced', 103 => 'Turbo', 104 => 'Max', 108 => 'Max+', 106 => 'Custom'];
     private const SAUGSTUFEN_ALT = [38 => 'Quiet', 60 => 'Standard', 75 => 'Medium', 100 => 'Turbo'];
     private const WASSERMENGEN = [200 => 'Off', 201 => 'Low', 202 => 'Medium', 203 => 'High', 204 => 'Custom', 207 => 'Custom'];
+    // Wasserfluss-Regler (python-roborock clean_modes.py, „water slide“, z. B. Saros 20): Gerät meldet 220 + Reglerstellung
+    // 1–30, die App fasst Bereiche zu Namen zusammen (letzte Stellung => Name). Forum lugge 14.11.2026: 235 = App „Mittel“, Regler 15.
+    private const WASSERREGLER = [3 => 'Slight', 7 => 'Low', 12 => 'Gentle', 17 => 'Medium', 22 => 'Moderate', 27 => 'High', 30 => 'Extreme'];
+    private const WASSERREGLER_WAHL = [200 => 'Off', 221 => 'Slight', 225 => 'Low', 230 => 'Gentle', 235 => 'Medium', 240 => 'Moderate', 245 => 'High', 250 => 'Extreme'];
+
+    /** Name des App-Bereichs für einen Reglerwert (221–250), sonst null. */
+    public static function wasserreglerName(int $wert): ?string
+    {
+        $stellung = $wert - 220;
+        if ($stellung < 1 || $stellung > 30) {
+            return null;
+        }
+        foreach (self::WASSERREGLER as $bis => $name) {
+            if ($stellung <= $bis) {
+                return $name;
+            }
+        }
+        return null;
+    }
 
     // =================================================================
     // Anmeldung
@@ -453,9 +472,14 @@ PEM;
         }
         if (isset($p['water_box_mode']) && (int)$p['water_box_mode'] >= 200) {
             $menge = (int)$p['water_box_mode'];
-            $liste = self::WASSERMENGEN;
-            unset($liste[$menge === 207 ? 204 : 207]);
-            if (!isset($liste[$menge])) {
+            $regler = self::wasserreglerName($menge);
+            $liste = $regler !== null ? self::WASSERREGLER_WAHL : self::WASSERMENGEN;
+            if ($regler === null) {
+                unset($liste[$menge === 207 ? 204 : 207]);
+            }
+            if (!isset($liste[$menge]) && $regler !== null) {
+                $liste[$menge] = $regler;
+            } elseif (!isset($liste[$menge])) {
                 $liste[$menge] = RoboHubText::t('Level %s', $menge);
             }
             $w['Wassermenge'] = $menge;
@@ -632,7 +656,7 @@ PEM;
             return RoboHubText::t('Suction level set.');
         }
         if ($feld === 'Wassermenge') {
-            if (!isset(self::WASSERMENGEN[$wert])) {
+            if (!isset(self::WASSERMENGEN[$wert]) && self::wasserreglerName((int)$wert) === null) {
                 throw new RoboHubFehler(RoboHubText::t('Unknown water level %s.', $wert));
             }
             $this->rpc($buendel, $geraet, 'set_water_box_custom_mode', [$wert]);

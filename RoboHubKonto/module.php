@@ -145,6 +145,16 @@ class RoboHubKonto extends IPSModule
         $this->RegisterTimer('Verbindung', 0, 'ROBOHUB_VerbindungPruefen($_IPS[\'TARGET\']);');
     }
 
+    /**
+     * Passende Verbindungsinstanz für die Konsole (ab Symcon 8.2, SUITE.md Stolperstein 28): je nach Hersteller Client
+     * Socket, WebSocket Client oder Virtual IO. Ohne diese Angabe meldete die Konsole das Virtual IO eines Roborock-Kontos
+     * als „inkompatible übergeordnete Instanz“ (Forum lugge 14.11.2026), weil RequireParent fest den Client Socket nennt.
+     */
+    public function GetCompatibleParents()
+    {
+        return (string)json_encode(['type' => 'require', 'moduleIDs' => [$this->elternModul()]]);
+    }
+
     public function ApplyChanges()
     {
         parent::ApplyChanges();
