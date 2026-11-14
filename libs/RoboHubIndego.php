@@ -25,7 +25,7 @@ declare(strict_types=1);
 // Nicht gebaut: Kartenbild (SVG), Kalender, SmartMowing, Meldungen.
 // ===========================================================================
 
-class RoboHubIndego implements RoboHubTreiber
+class RoboHubIndego implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -280,6 +280,12 @@ class RoboHubIndego implements RoboHubTreiber
     // =================================================================
     // Befehle
     // =================================================================
+
+    /** Die Bosch-Cloud kennt weder „Stopp“ noch „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'pause', 'station'];
+    }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {

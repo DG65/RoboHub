@@ -235,6 +235,12 @@ class RoboHubGardena extends RoboHubHusqvarna
         return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
     }
 
+    /** Die GARDENA-API kennt weder „Pause“ noch „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'stopp', 'station'];
+    }
+
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {
         $pausiert = strtoupper((string)($geraet['stand']['mower']['activity'] ?? '')) === 'PAUSED';

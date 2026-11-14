@@ -73,6 +73,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('EchtzeitVerlauf', '[]');
         $this->RegisterAttributeInteger('RaeumeStand', 0);
         $this->RegisterAttributeString('Optionen', '{}');
+        $this->RegisterAttributeString('Befehle', '');   // Befehlswerte, die das Gerät kennt ('' = alle)
         $this->RegisterAttributeBoolean('EinstellungenFreigegeben', false);
         $this->RegisterAttributeString('Zeitplaene', '[]');
         $this->RegisterAttributeString('ZeitplanRoh', '');
@@ -945,6 +946,9 @@ class RoboHubGeraet extends IPSModule
         $this->WriteAttributeString('Schreibbar', (string)json_encode($schreibbar));
 
         $this->SetValue('Erreichbar', (bool)($daten['online'] ?? true));
+        if (is_array($daten['befehle'] ?? null)) {
+            $this->befehleUebernehmen($daten['befehle']);
+        }
         if (isset($daten['bild']) && (string)$daten['bild'] !== $this->ReadAttributeString('Bild')) {
             $this->WriteAttributeString('Bild', (string)$daten['bild']);
         }
@@ -1177,26 +1181,46 @@ class RoboHubGeraet extends IPSModule
 
     private function befehlsOptionen(string $klasse): array
     {
+        $bekannt = $this->bekannteBefehle();
         $map = [];
         foreach (RoboHubModell::BEFEHLE as $wert => [$name]) {
-            $map[$wert] = $name;
+            if (in_array($wert, $bekannt, true)) {
+                $map[$wert] = $name;
+            }
         }
         return $map;
     }
 
+    /** Befehlswerte, die das Gerät laut Treiber kennt (vor dem ersten Abruf: alle). */
+    private function bekannteBefehle(): array
+    {
+        $liste = json_decode($this->ReadAttributeString('Befehle'), true);
+        return is_array($liste) && $liste !== [] ? array_map('intval', $liste) : array_keys(RoboHubModell::BEFEHLE);
+    }
+
+    /** Übernimmt den Befehlsumfang des Treibers und passt die Befehl-Variable an, wenn er sich ändert. */
+    private function befehleUebernehmen(array $namen): void
+    {
+        $werte = [];
+        foreach (RoboHubModell::BEFEHLSNAMEN as $wert => $name) {
+            if (in_array($name, $namen, true)) {
+                $werte[] = $wert;
+            }
+        }
+        if ($werte === [] || $werte === $this->bekannteBefehle()) {
+            return;
+        }
+        $this->WriteAttributeString('Befehle', (string)json_encode($werte));
+        $this->MaintainVariable('Befehl', RoboHubText::t('Command'), VARIABLETYPE_INTEGER, $this->presEnum($this->befehlsOptionen($this->klasse())), 5, true);
+        $this->EnableAction('Befehl');
+    }
+
     private function befehlsName(int $wert): string
     {
-        $namen = [
-            RoboHubModell::BEFEHL_START   => 'start',
-            RoboHubModell::BEFEHL_PAUSE   => 'pause',
-            RoboHubModell::BEFEHL_STOPP   => 'stopp',
-            RoboHubModell::BEFEHL_STATION => 'station',
-            RoboHubModell::BEFEHL_ORTEN   => 'orten',
-        ];
-        if (!isset($namen[$wert])) {
+        if (!isset(RoboHubModell::BEFEHLSNAMEN[$wert])) {
             throw new Exception(RoboHubText::t('Unknown command: %s', $wert));
         }
-        return $namen[$wert];
+        return RoboHubModell::BEFEHLSNAMEN[$wert];
     }
 
     /** Wertanzeige mit Beschriftung je Wert (Optionen-Schlüssel laut Symcon-Doku: ColorActive/ColorValue statt Color). */
@@ -1444,6 +1468,7 @@ class RoboHubGeraet extends IPSModule
             'id'          => $this->InstanceID,
             'symbole'     => $this->ReadPropertyInteger('Symbole'),
             // Hervorgehobener Knopf: der, der gerade naheliegt (bei Fehlern keiner).
+            'befehle'     => $this->bekannteBefehle(),
             'hauptknopf'  => $zustand === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($zustand === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1),
             'bedienung'   => $eigen && $key !== '',
             'key'         => $key,

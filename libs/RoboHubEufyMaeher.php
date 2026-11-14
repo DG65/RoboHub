@@ -28,7 +28,7 @@ declare(strict_types=1);
 // E18/C15 nutzen vermutlich dasselbe Protokoll, belegt ist das nicht.
 // ===========================================================================
 
-class RoboHubEufyMaeher implements RoboHubTreiber
+class RoboHubEufyMaeher implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -559,6 +559,12 @@ class RoboHubEufyMaeher implements RoboHubTreiber
     // =================================================================
     // Befehle
     // =================================================================
+
+    /** Der E15 kann im Heimnetz weder „Stopp“ noch „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'pause', 'station'];
+    }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {

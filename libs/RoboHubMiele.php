@@ -24,7 +24,7 @@ declare(strict_types=1);
 // — in ioBroker auskommentiert, Format unbelegt).
 // ===========================================================================
 
-class RoboHubMiele implements RoboHubTreiber
+class RoboHubMiele implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -222,6 +222,12 @@ class RoboHubMiele implements RoboHubTreiber
     // =================================================================
     // Befehle
     // =================================================================
+
+    /** Die Miele-API kennt weder „Zur Station“ noch „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'pause', 'stopp'];
+    }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {

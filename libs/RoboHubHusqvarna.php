@@ -28,7 +28,7 @@ declare(strict_types=1);
 // Noch nicht gebaut: Zeitpläne (Kalender), Messerzeit zurücksetzen.
 // ===========================================================================
 
-class RoboHubHusqvarna implements RoboHubTreiber
+class RoboHubHusqvarna implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -295,6 +295,12 @@ class RoboHubHusqvarna implements RoboHubTreiber
     public function liveKarte(array $buendel, array $geraet): array
     {
         return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+    }
+
+    /** Husqvarna bietet (noch) kein „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'pause', 'stopp', 'station'];
     }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string

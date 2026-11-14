@@ -24,7 +24,7 @@ declare(strict_types=1);
 // MQTT). Einstellungen bietet die Schnittstelle nicht.
 // ===========================================================================
 
-class RoboHubNavimow implements RoboHubTreiber
+class RoboHubNavimow implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -209,6 +209,12 @@ class RoboHubNavimow implements RoboHubTreiber
     // =================================================================
     // Befehle
     // =================================================================
+
+    /** Segways Smart-Home-Schnittstelle bietet kein „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'pause', 'stopp', 'station'];
+    }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {

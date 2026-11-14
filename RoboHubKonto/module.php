@@ -1249,7 +1249,10 @@ class RoboHubKonto extends IPSModule
                 $geraet['ueberspringen'][] = (int)$block;
             }
         }
-        $daten = $this->treiber()->zustand($buendel, $geraet);
+        $treiber = $this->treiber();
+        $daten = $treiber->zustand($buendel, $geraet);
+        // Welche Grundbefehle das Gerät kennt (Befehl-Variable und Kachel zeigen nur diese).
+        $daten['befehle'] = $treiber instanceof RoboHubBefehlsumfang ? array_values($treiber->befehlsumfang($buendel, $geraet)) : array_values(RoboHubModell::BEFEHLSNAMEN);
         $this->schnappschussMerken($did, (string)($geraet['modell'] ?? ''), (array)($daten['roh']['properties'] ?? []));
 
         $ok = (array)($daten['bloecke']['ok'] ?? []);

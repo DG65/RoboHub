@@ -81,6 +81,15 @@ final class RoboHubModell
         self::BEFEHL_ORTEN   => ['Locate', 'location-dot'],
     ];
 
+    /** Befehlswert → Befehlsname, wie ihn die Treiber in befehl() erwarten. */
+    public const BEFEHLSNAMEN = [
+        self::BEFEHL_START   => 'start',
+        self::BEFEHL_PAUSE   => 'pause',
+        self::BEFEHL_STOPP   => 'stopp',
+        self::BEFEHL_STATION => 'station',
+        self::BEFEHL_ORTEN   => 'orten',
+    ];
+
     /**
      * Felder, die ein Treiber in zustand() liefern darf (alle optional —
      * angelegt wird eine Variable erst, wenn der Treiber einen Wert liefert,
@@ -220,6 +229,17 @@ interface RoboHubTreiber
 
     /** Führt einen Befehl aus; Rückgabe: Klartext („gesendet …"). */
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string;
+}
+
+/**
+ * Optional für Treiber, deren Geräte nicht alle fünf Grundbefehle kennen
+ * (z. B. Mäher ohne „Stopp" oder ohne „Orten"). Die Befehl-Variable und
+ * die Kachel bieten dann nur diese an; ohne die Schnittstelle gelten alle.
+ */
+interface RoboHubBefehlsumfang
+{
+    /** Befehlsnamen aus RoboHubModell::BEFEHLSNAMEN, die dieses Gerät kennt. */
+    public function befehlsumfang(array $buendel, array $geraet): array;
 }
 
 final class RoboHubFehler extends Exception

@@ -319,6 +319,11 @@ $GLOBALS['GELOESCHT'] = [];
 $rk->VerbindungPruefen();
 check('fremder Client Socket ohne RoboHub-Merkmal bleibt unangetastet', $GLOBALS['GELOESCHT'] === [] && $rk->parent === $fremd);
 
+// Forum baraka 144636/89: Qrevo meldet charge_status 1 auch beim Putzen — „lädt“ nur im Zustand 8.
+check('Reinigt (5) mit charge_status 1 = lädt nicht', ($rrt->normalisiere('roborock.vacuum.a75', ['state' => 5, 'charge_status' => 1])['werte']['Laedt'] ?? null) === false);
+check('Lädt (8) = lädt, Geladen (100) = lädt nicht', ($rrt->normalisiere('roborock.vacuum.a75', ['state' => 8])['werte']['Laedt'] ?? null) === true
+    && ($rrt->normalisiere('roborock.vacuum.a75', ['state' => 100, 'charge_status' => 1])['werte']['Laedt'] ?? null) === false);
+
 // Saros 20 (Forum lugge 14.11.2026): Wasserfluss-Regler 220 + Stellung, App „Mittel 15“ = 235.
 $n = $rrt->normalisiere('roborock.vacuum.a307', ['water_box_mode' => 235]);
 $opt = $n['optionen']['Wassermenge'] ?? [];

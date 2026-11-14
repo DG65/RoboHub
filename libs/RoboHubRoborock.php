@@ -451,7 +451,9 @@ PEM;
             $text = RoboHubText::wert($text);
             $w['Zustand'] = $zustand;
             $w['ZustandRoh'] = $text . ' (' . $roh . ')';
-            $w['Laedt'] = in_array($roh, [8], true) || (isset($p['charge_status']) && (int)$p['charge_status'] === 1);
+            // Lädt nur im Zustand 8 (HA binary_sensor/python-roborock get_dock_state). charge_status = 1 meldet
+            // der Qrevo auch beim Putzen (Forum baraka 144636/89), sagt also allein nichts übers Laden.
+            $w['Laedt'] = $roh === 8;
         }
         if (isset($p['error_code'])) {
             $code = (int)$p['error_code'];

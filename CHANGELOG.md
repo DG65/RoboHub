@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.38.2 (14.11.2026)
+
+- **Befehle je Gerät statt pauschal alle fünf** (Forum baraka 144636/89: Worx zeigt „Pause“ und „Stopp“, beide pausieren — die App
+  kennt nur Pause). Neue optionale Schnittstelle `RoboHubBefehlsumfang::befehlsumfang()`; das Konto schickt bei jedem Abruf `befehle`
+  mit (ohne Schnittstelle alle fünf), das Gerät merkt sie im Attribut `Befehle` und zieht die Befehl-Variable und die Kachelknöpfe nach.
+  Eingeschränkt: Worx/Kress/Landxcape (Start, Pause, Station), AL-KO, Bosch Indego, STIHL iMOW (ältere Generation nur Start/Station),
+  Eufy E15 (je ohne Stopp/Orten), Husqvarna, Segway Navimow (ohne Orten), GARDENA (ohne Pause/Orten), Miele (ohne Station/Orten).
+  Per Skript bleibt alles wie bisher (unbekannte Befehle → klare Absage, Worx-Stopp = Pause).
+- **Roborock/Mi Home: „Lädt“ nur noch im Zustand 8** (Forum baraka 144636/89, Qrevo: „Reinigt (5)“ und „Lädt: An“ zugleich).
+  `charge_status = 1` kommt auch beim Putzen; HA und python-roborock werten nur den Zustand aus.
+- Prüfstand: 4 neue Prüfungen.
+
 ## 0.38.1 (14.11.2026)
 
 - **Dreame/MOVA: Code 114 als Hinweis statt Fehler** (Forum power1625 144636/86, L10s Pro Ultra Heat): Kachel zeigte rot „Fehlercode 114 (114)“,

@@ -23,7 +23,7 @@ declare(strict_types=1);
 // Wertebereiche unbelegt), Mähen mit Dauer/Startpunkt, Randmähen, Firmware-Modus.
 // ===========================================================================
 
-class RoboHubAlko implements RoboHubTreiber
+class RoboHubAlko implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -249,6 +249,12 @@ class RoboHubAlko implements RoboHubTreiber
     // =================================================================
     // Befehle
     // =================================================================
+
+    /** AL-KO kennt weder „Stopp“ noch „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'pause', 'station'];
+    }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {

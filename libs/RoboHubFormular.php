@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.38.2' => [
+            '• Robots: the "Command" variable and the tile only offer commands the robot really knows (e.g. Worx, Bosch, STIHL, AL-KO without a separate "Stop", mowers without "Locate").',
+            '• Roborock: "Charging" is no longer shown while the robot is cleaning (e.g. Qrevo).',
+        ],
         '0.38.1' => [
             '• Dreame/MOVA: the notice "Please clean the mop washboard" (code 114) appears like in the app as a yellow notice instead of a red error.',
             '• Account: the last real-time message shows its date if it is not from today.',

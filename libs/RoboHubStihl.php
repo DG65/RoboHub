@@ -25,7 +25,7 @@ declare(strict_types=1);
 // RMI-Startpunkte/Kantenschnitt.
 // ===========================================================================
 
-class RoboHubStihl implements RoboHubTreiber
+class RoboHubStihl implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -527,6 +527,12 @@ class RoboHubStihl implements RoboHubTreiber
     public function liveKarte(array $buendel, array $geraet): array
     {
         return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+    }
+
+    /** Ältere iMOW-Generation (rmi) nur Start und Heimfahrt, sonst ohne „Stopp“ und „Orten“. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ($buendel['gen'] ?? '') === 'rmi' ? ['start', 'station'] : ['start', 'pause', 'station'];
     }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string

@@ -31,7 +31,7 @@ declare(strict_types=1);
 // Konto-Verbindung, Messer-Rücksetzen.
 // ===========================================================================
 
-class RoboHubWorx implements RoboHubTreiber
+class RoboHubWorx implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -348,6 +348,12 @@ PEM;
     public function liveKarte(array $buendel, array $geraet): array
     {
         return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+    }
+
+    /** Die Mäher kennen nur Start, Pause und Heimfahrt — „Stopp“ wäre dieselbe Pause (Forum baraka 144636/89). */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        return ['start', 'pause', 'station'];
     }
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string

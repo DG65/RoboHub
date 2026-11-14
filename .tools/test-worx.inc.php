@@ -174,6 +174,10 @@ $wm->ApplyChanges();
 $t = $wm->Aktualisieren();
 check('zu Hause + lädt = Lädt', variable(5100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_LAEDT && variable(5100, 'ZustandRoh')['value'] === 'Zu Hause (1)', $t);
 check('Akku 88, lädt, kein Fehler, kein Regen', variable(5100, 'Akku')['value'] === 88 && variable(5100, 'Laedt')['value'] === true && variable(5100, 'Fehler')['value'] === 'kein Fehler' && variable(5100, 'Regensensor')['value'] === false);
+// Forum baraka 144636/89: Worx kennt kein eigenes „Stopp“ (wäre nur Pause) und kein „Orten“.
+$bo = array_column(json_decode((string)variable(5100, 'Befehl')['pres']['OPTIONS'], true), 'Value');
+check('Befehl-Variable nur mit Start, Pause, Zur Station', $bo === [RoboHubModell::BEFEHL_START, RoboHubModell::BEFEHL_PAUSE, RoboHubModell::BEFEHL_STATION], json_encode($bo));
+check('Kachel bekommt dieselbe Befehlsliste', kachelJson($wm->GetVisualizationTile())['befehle'] === [1, 2, 4]);
 check('Mähzeit gesamt in Stunden', variable(5100, 'GesamtDauer')['value'] === 91);
 check('Werte wie das frühere MQTTworx (Adams m500): 901,0 km, Messer 909,6 h, 6,6 °C, 18,8 V, 937 Zyklen, −68 dBm, Firmware',
     variable(5100, 'GesamtStrecke')['value'] === 901.0 && variable(5100, 'Messerlaufzeit')['value'] === 909.6 && variable(5100, 'AkkuTemperatur')['value'] === 6.6
