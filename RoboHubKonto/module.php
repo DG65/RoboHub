@@ -545,6 +545,7 @@ class RoboHubKonto extends IPSModule
                 'fehler'   => $e->getMessage(),
                 'warteBis' => $this->ReadAttributeInteger('WarteBis'),
                 'anmeldungNoetig' => ($e instanceof RoboHubFehler) && $e->anmeldungNoetig,
+                'offline'  => ($e instanceof RoboHubFehler) && $e->geraetOffline,
             ]);
         }
     }
@@ -595,6 +596,12 @@ class RoboHubKonto extends IPSModule
                 return $this->treiber()->befehl($buendel, $geraet, (string)($anfrage['Befehl'] ?? ''), (array)($anfrage['Parameter'] ?? []));
             }
         } catch (RoboHubFehler $e) {
+            if ($aktion === 'zustand' && $e->geraetOffline) {
+                // Schlafender/ausgeschalteter Roboter beim Abruf: kein Kontofehler, keine Warnung — der Roboter
+                // zeigt „nicht erreichbar" und meldet sich selbst, wenn das lange so bleibt.
+                $this->SendDebug('Abruf', $e->getMessage(), 0);
+                throw $e;
+            }
             $this->verarbeiteFehler($e);
             throw $e;
         }

@@ -82,6 +82,8 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('Schreibbar', '[]');
         $this->RegisterAttributeInteger('LetzterAbruf', 0);
         $this->RegisterAttributeString('LetzterFehler', '');
+        $this->RegisterAttributeInteger('OfflineSeit', 0);          // erster Abruf ohne Antwort des Roboters (0 = antwortet)
+        $this->RegisterAttributeBoolean('OfflineGemeldet', false);  // Warnung „seit 24 h nicht erreichbar" schon geschrieben
         $this->RegisterAttributeString('LetzteRohdaten', '');
         $this->registerFormAttributes();
 
@@ -267,6 +269,13 @@ class RoboHubGeraet extends IPSModule
         if (!$antwort['ok']) {
             $this->SetValue('Erreichbar', false);
             $this->WriteAttributeString('LetzterFehler', (string)$antwort['fehler']);
+            if (!empty($antwort['offline'])) {
+                // Roboter schläft oder ist aus: Instanz bleibt in Ordnung, Warnung erst nach 24 h am Stück.
+                $this->offlineMerken();
+                $this->SetStatus(102);
+                $this->kachelAktualisieren();
+                return '💤 ' . $antwort['fehler'];
+            }
             $this->SetStatus(empty($antwort['anmeldungNoetig']) ? 202 : 201);
             return '⛔ ' . $antwort['fehler'];
         }
@@ -946,6 +955,9 @@ class RoboHubGeraet extends IPSModule
         $this->WriteAttributeString('Schreibbar', (string)json_encode($schreibbar));
 
         $this->SetValue('Erreichbar', (bool)($daten['online'] ?? true));
+        if ((bool)($daten['online'] ?? true)) {
+            $this->wiederErreichbar();   // auch per Echtzeit-Meldung
+        }
         if (is_array($daten['befehle'] ?? null)) {
             $this->befehleUebernehmen($daten['befehle']);
         }
@@ -1259,6 +1271,34 @@ class RoboHubGeraet extends IPSModule
     private function protokolliere(string $text, int $stufe = KL_MESSAGE): void
     {
         $this->LogMessage($text, $stufe);
+    }
+
+    /** Ab hier gilt ein dauerhaft schweigender Roboter als Störung (eine Warnung, keine je Abruf). */
+    private const OFFLINE_WARNUNG_S = 86400;
+
+    private function offlineMerken(): void
+    {
+        $seit = $this->ReadAttributeInteger('OfflineSeit');
+        if ($seit === 0) {
+            $this->WriteAttributeInteger('OfflineSeit', time());
+            return;
+        }
+        if (!$this->ReadAttributeBoolean('OfflineGemeldet') && time() - $seit >= self::OFFLINE_WARNUNG_S) {
+            $this->WriteAttributeBoolean('OfflineGemeldet', true);
+            $this->protokolliere(RoboHubText::t('The robot has not responded since %s — switched on and in Wi-Fi?', date('d.m.Y H:i', $seit)), KL_WARNING);
+        }
+    }
+
+    private function wiederErreichbar(): void
+    {
+        if ($this->ReadAttributeInteger('OfflineSeit') === 0) {
+            return;
+        }
+        if ($this->ReadAttributeBoolean('OfflineGemeldet')) {
+            $this->protokolliere(RoboHubText::t('The robot responds again.'));
+        }
+        $this->WriteAttributeInteger('OfflineSeit', 0);
+        $this->WriteAttributeBoolean('OfflineGemeldet', false);
     }
 
     // -----------------------------------------------------------------

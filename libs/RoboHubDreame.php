@@ -2282,9 +2282,10 @@ PEM;
         }
         if ((int)($json['code'] ?? -1) !== 0) {
             $code = (int)($json['code'] ?? -1);
-            throw new RoboHubFehler(in_array($code, [-8, 80001], true)
-                ? RoboHubText::t('Robot does not respond (offline or sleeping).')
-                : RoboHubText::t('Vendor cloud reports error %s%s.', $code, ((string)($json['msg'] ?? '') !== '' ? ': ' . $json['msg'] : '')));
+            if (in_array($code, [-8, 80001], true)) {
+                throw RoboHubFehler::offline(RoboHubText::t('Robot does not respond (offline or sleeping).'));
+            }
+            throw new RoboHubFehler(RoboHubText::t('Vendor cloud reports error %s%s.', $code, ((string)($json['msg'] ?? '') !== '' ? ': ' . $json['msg'] : '')));
         }
         return $json;
     }

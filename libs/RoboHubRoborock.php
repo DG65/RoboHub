@@ -429,7 +429,7 @@ PEM;
             }
         }
         if (count($ok) === 0) {
-            throw new RoboHubFehler(RoboHubText::t('The Roborock does not respond (offline or sleeping?).'));
+            throw RoboHubFehler::offline(RoboHubText::t('The Roborock does not respond (offline or sleeping?).'));
         }
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
         $daten['online'] = true;

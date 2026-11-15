@@ -246,6 +246,19 @@ final class RoboHubFehler extends Exception
 {
     /** Sekunden, die der Treiber laut Gegenstelle warten soll (0 = unbekannt). */
     public $warteSekunden = 0;
+    /**
+     * true = der Roboter selbst antwortet nicht (schläft, aus, kein WLAN) — Cloud und Anmeldung sind in Ordnung.
+     * Beim Abruf keine Warnung, der Roboter gilt nur als „nicht erreichbar" (Forum lugge 144636/92).
+     */
+    public $geraetOffline = false;
+
+    /** Fehler „Roboter antwortet nicht" (siehe $geraetOffline). */
+    public static function offline(string $text, int $code = 0): self
+    {
+        $f = new self($text, $code);
+        $f->geraetOffline = true;
+        return $f;
+    }
     /** true = Zugangsschlüssel ungültig, neue Anmeldung nötig. */
     public $anmeldungNoetig = false;
     /**

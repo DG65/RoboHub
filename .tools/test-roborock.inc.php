@@ -224,9 +224,22 @@ $rr->Aktualisieren();
 check('ein Block ohne Antwort: Rest trotzdem übernommen', variable(4100, 'Akku')['value'] === 100);
 $alle = FakeRoborock::$antworten;
 FakeRoborock::$antworten = array_fill_keys(array_keys($alle), '__still');
+$logVorher = count($GLOBALS['LOG']);
 $t = $rr->Aktualisieren();
 check('Roboter antwortet gar nicht → klare Meldung', strpos($t, 'antwortet nicht') !== false, $t);
+// Forum lugge 144636/92: Saros schläft nachts → eine Warnung je Abruf. Jetzt: nur „nicht erreichbar", Instanz bleibt ok.
+check('schlafender Roboter: keine Warnung im Protokoll, Instanz bleibt 102, Konto unberührt', count($GLOBALS['LOG']) === $logVorher && $rr->status === 102
+    && variable(4100, 'Erreichbar')['value'] === false && $rk->status === 102 && $rk->ReadAttributeString('LetzterFehler') === '', implode(' | ', array_slice($GLOBALS['LOG'], $logVorher)));
+$rr->WriteAttributeInteger('OfflineSeit', time() - 86400);
+$rr->Aktualisieren();
+$rr->Aktualisieren();
+$neu = array_slice($GLOBALS['LOG'], $logVorher);
+check('nach 24 h am Stück genau eine Warnung', count($neu) === 1 && strpos($neu[0], 'antwortet seit') !== false && end($GLOBALS['LOGSTUFE']) === KL_WARNING, implode(' | ', $neu));
 FakeRoborock::$antworten = $alle;
+$rr->Aktualisieren();
+$neu = array_slice($GLOBALS['LOG'], $logVorher);
+check('wieder da: eine Meldung, Merker zurückgesetzt', count($neu) === 2 && strpos($neu[1], 'antwortet wieder') !== false && $rr->ReadAttributeInteger('OfflineSeit') === 0
+    && variable(4100, 'Erreichbar')['value'] === true, implode(' | ', $neu));
 
 // ===========================================================================
 abschnitt('Roborock: Räume und Befehle');

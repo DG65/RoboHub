@@ -428,7 +428,7 @@ class RoboHubVorwerk implements RoboHubTreiber
             throw $e;
         }
         if ($status === 404) {
-            throw new RoboHubFehler(RoboHubText::t('The Kobold is not connected to the cloud right now (offline?).'));
+            throw RoboHubFehler::offline(RoboHubText::t('The Kobold is not connected to the cloud right now (offline?).'));
         }
         if ($status === 429) {
             $e = new RoboHubFehler(RoboHubText::t('Vorwerk is throttling the requests — RoboHub is waiting.'));

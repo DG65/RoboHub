@@ -2,8 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
-## Nächste Version (noch nicht veröffentlicht)
+## 0.38.3 (15.11.2026)
 
+- **Schlafender Roboter ohne Warnflut** (Forum lugge 144636/92, Saros 20: nachts „Der Roborock antwortet nicht (offline oder im
+  Ruhezustand?)" als Warnung, danach wieder normal). Neu `RoboHubFehler::offline()` / `$geraetOffline` für „der Roboter selbst
+  antwortet nicht" (Roborock/Mi Home ohne jede Antwort, Dreame/MOVA -8/80001, Ecovacs ohne Antwort/4200, Vorwerk 404). Beim Abruf:
+  Konto schreibt nur Debug (kein Kontofehler), Roboter „Erreichbar" aus, Instanz bleibt 102, Kachel zeigt „nicht erreichbar".
+  Eine Warnung erst nach 24 h am Stück (`OfflineSeit`/`OfflineGemeldet`), „antwortet wieder" als Meldung; auch per Echtzeit
+  zurückgesetzt. Befehle an einen schlafenden Roboter melden weiter als Warnung (Nutzer hat geklickt).
+  Prüfstand: 3 neue Prüfungen, 2/2 Gegenproben gefangen.
 - **Roboter: WebHook beim Löschen austragen** (Verbundhinweis EMS/MeterHub, Forum dallard): `Destroy()` entfernt `/hook/robohub<ID>`
   aus dem WebHook-Control, aber nur wenn die Instanz wirklich gelöscht ist (`!IPS_InstanceExists`) — beim Entladen des Moduls
   bleibt alles. Hilfsfunktion `hookAustragen()`, bewusst nicht `UnregisterHook` (Kernfunktion ab Symcon 8.2). 3 neue Prüfungen.

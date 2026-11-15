@@ -376,7 +376,7 @@ class RoboHubEcovacs implements RoboHubTreiber
             $i++;
         }
         if (count($ok) === 0) {
-            throw new RoboHubFehler(RoboHubText::t('The Ecovacs robot does not respond (offline?).'));
+            throw RoboHubFehler::offline(RoboHubText::t('The Ecovacs robot does not respond (offline?).'));
         }
         if (isset($p['life2']) && is_array($p['life2'])) {
             $p['life'] = array_merge((array)($p['life'] ?? []), $p['life2']);
@@ -697,7 +697,7 @@ class RoboHubEcovacs implements RoboHubTreiber
         if (($r['ret'] ?? '') !== 'ok') {
             $errno = (int)($r['errno'] ?? 0);
             if ($errno === 4200) {
-                throw new RoboHubFehler(RoboHubText::t('The Ecovacs robot is offline.'), 4200);
+                throw RoboHubFehler::offline(RoboHubText::t('The Ecovacs robot is offline.'), 4200);
             }
             if ($errno === 3 || in_array((string)($r['error'] ?? ''), ['auth error', 'token error'], true)) {
                 $e = new RoboHubFehler(RoboHubText::t('Ecovacs access rejected — please sign in again.'));

@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.38.3' => [
+            '• Robots: a robot that sleeps or is switched off no longer writes a warning on every poll — it shows "not reachable"; a warning comes only after 24 hours without a response.',
+            '• Robots: deleting a robot also removes its entry from the WebHook control.',
+        ],
         '0.38.2' => [
             '• Robots: the "Command" variable and the tile only offer commands the robot really knows (e.g. Worx, Bosch, STIHL, AL-KO without a separate "Stop", mowers without "Locate").',
             '• Roborock: "Charging" is no longer shown while the robot is cleaning (e.g. Qrevo).',
