@@ -49,7 +49,7 @@ function IPS_SetProperty(int $id, string $n, $v): bool { $GLOBALS['INST'][$id]->
 function IPS_ApplyChanges(int $id): bool { $GLOBALS['INST'][$id]->ApplyChanges(); return true; }
 function IPS_GetInstanceListByModuleID(string $g): array
 {
-    $klasse = ['{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}' => 'RoboHubKonto', '{631DA85B-5985-4C25-B222-E47FDD49E302}' => 'RoboHubGeraet', '{5AA59E01-AFBF-4669-8899-57F5E2C24C33}' => 'RoboHubKonfigurator'][$g] ?? '';
+    $klasse = ['{015A6EB8-D6E5-4B93-B496-0D3F77AE9FE1}' => 'FakeWebHook', '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}' => 'RoboHubKonto', '{631DA85B-5985-4C25-B222-E47FDD49E302}' => 'RoboHubGeraet', '{5AA59E01-AFBF-4669-8899-57F5E2C24C33}' => 'RoboHubKonfigurator'][$g] ?? '';
     $o = [];
     foreach ($GLOBALS['INST'] as $id => $m) { if ($klasse !== '' && get_class($m) === $klasse) { $o[] = $id; } }
     return $o;
@@ -94,13 +94,16 @@ function mqttVomServer($konto, string $bytes): void
 }
 function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
 function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time(), 'VariableUpdated' => $GLOBALS['OBJ'][$id]['updated'] ?? ($GLOBALS['OBJ'][$id]['changed'] ?? time())]; }
+function IPS_InstanceExists(int $id): bool { return isset($GLOBALS['INST'][$id]); }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return $GLOBALS['OBJ'][$id]['name'] ?? $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }
 function IPS_GetInstance(int $id): array { $m = $GLOBALS['INST'][$id] ?? null; return ['ConnectionID' => ($m && $m->parent) ? $m->parent->InstanceID : 0, 'InstanceStatus' => ($m && isset($m->status)) ? $m->status : 102,
     'ModuleInfo' => ['ModuleID' => $m instanceof FakeSocket ? $m->modul : ($m instanceof RoboHubKonto ? '{DB269BEC-0CA6-4E6A-83B8-78FF8CFB2DB0}' : '')]]; }
 
+class FakeWebHook { public $props = []; public $angewendet = 0; public function ApplyChanges(): void { $this->angewendet++; } }
 class IPSModule
 {
+    public function Destroy() {}
     public $InstanceID;
     public $props = [];
     public $attrs = [];
@@ -2055,6 +2058,19 @@ check('kein Modell-Feld heißt wie eine Sonder-Aktion des Roboters (sonst schluc
 check('Darstellungen nur mit Parametern der Symcon-Doku (OPTIONS je Darstellung: Aufzählung mit Color, Wertanzeige mit ColorActive/ColorValue; DIGITS nur bei Zahlen)', empty($GLOBALS['OPTIONS_FEHLER']), implode(', ', array_unique($GLOBALS['OPTIONS_FEHLER'] ?? [])));
 check('kein IPS_LogMessage in den Modulen', strpos($quellen, 'IPS_LogMessage') === false);
 check('Fehler als Warnung, Erfolge als Meldung protokolliert', in_array(KL_WARNING, $GLOBALS['LOGSTUFE'] ?? [], true) && in_array(KL_MESSAGE, $GLOBALS['LOGSTUFE'] ?? [], true));
+
+// Verbundhinweis EMS/MeterHub (Forum dallard): gelöschte Roboter tragen ihren WebHook wieder aus.
+$wh = new FakeWebHook();
+$wh->props['Hooks'] = json_encode([['Hook' => '/hook/robohub2100', 'TargetID' => 2100], ['Hook' => '/hook/fremd', 'TargetID' => 4711]]);
+$GLOBALS['INST'][9900] = $wh;
+$g2100 = $GLOBALS['INST'][2100];
+$g2100->Destroy();
+check('Destroy beim Entladen (Instanz existiert noch): WebHook bleibt', count(json_decode($wh->props['Hooks'], true)) === 2 && $wh->angewendet === 0);
+unset($GLOBALS['INST'][2100]);
+$g2100->Destroy();
+check('Destroy nach dem Löschen: eigener WebHook ausgetragen, fremder bleibt', json_decode($wh->props['Hooks'], true) === [['Hook' => '/hook/fremd', 'TargetID' => 4711]] && $wh->angewendet === 1);
+check('keine eigene Funktion „UnregisterHook“ (Kernfunktion ab Symcon 8.2)', !preg_match('/function\s+UnregisterHook\b/i', $quellen));
+unset($GLOBALS['INST'][9900]);
 
 echo "\n" . ($fails === 0 ? '✅ Alle Prüfungen bestanden.' : "❌ $fails Prüfung(en) fehlgeschlagen.") . "\n";
 exit($fails === 0 ? 0 : 1);

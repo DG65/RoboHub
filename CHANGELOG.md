@@ -2,6 +2,12 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## Nächste Version (noch nicht veröffentlicht)
+
+- **Roboter: WebHook beim Löschen austragen** (Verbundhinweis EMS/MeterHub, Forum dallard): `Destroy()` entfernt `/hook/robohub<ID>`
+  aus dem WebHook-Control, aber nur wenn die Instanz wirklich gelöscht ist (`!IPS_InstanceExists`) — beim Entladen des Moduls
+  bleibt alles. Hilfsfunktion `hookAustragen()`, bewusst nicht `UnregisterHook` (Kernfunktion ab Symcon 8.2). 3 neue Prüfungen.
+
 ## 0.38.2 (14.11.2026)
 
 - **Befehle je Gerät statt pauschal alle fünf** (Forum baraka 144636/89: Worx zeigt „Pause“ und „Stopp“, beide pausieren — die App

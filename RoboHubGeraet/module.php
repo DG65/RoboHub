@@ -1509,6 +1509,43 @@ class RoboHubGeraet extends IPSModule
         return (string)RoboHubText::wert($optionen[$ident][(int)$wert] ?? $optionen[$ident][(string)(int)$wert] ?? $wert);
     }
 
+    /**
+     * Beim Löschen den eigenen WebHook-Eintrag wieder austragen (Verbundhinweis EMS/MeterHub, Forum dallard).
+     * Destroy läuft auch beim Entladen des Moduls — dann existiert die Instanz noch und nichts wird angefasst.
+     */
+    public function Destroy()
+    {
+        if (!IPS_InstanceExists($this->InstanceID)) {
+            $this->hookAustragen();
+        }
+        parent::Destroy();
+    }
+
+    /** Entfernt nur den Eintrag, der auf diese Instanz zeigt (nicht „UnregisterHook“ — Kernfunktion ab Symcon 8.2). */
+    private function hookAustragen(): void
+    {
+        $ids = IPS_GetInstanceListByModuleID(self::WEBHOOK_GUID);
+        if (count($ids) === 0) {
+            return;
+        }
+        $hooks = json_decode((string)IPS_GetProperty($ids[0], 'Hooks'), true);
+        if (!is_array($hooks)) {
+            return;
+        }
+        $behalten = [];
+        foreach ($hooks as $hook) {
+            if (($hook['Hook'] ?? '') === $this->hookPfad() && (int)($hook['TargetID'] ?? 0) === $this->InstanceID) {
+                continue;
+            }
+            $behalten[] = $hook;
+        }
+        if (count($behalten) === count($hooks)) {
+            return;
+        }
+        IPS_SetProperty($ids[0], 'Hooks', json_encode($behalten));
+        IPS_ApplyChanges($ids[0]);
+    }
+
     /** WebHook beim WebHook-Control eintragen (Verbund-Muster, z. B. NRGDashboard). */
     private function registriereHook(): void
     {
