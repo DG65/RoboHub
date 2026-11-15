@@ -334,6 +334,9 @@ class RoboHubXiaomi extends RoboHubRoborock
     }
 
     /** Roborock-Altgeräte sprechen die miIO-Befehle der Roborock-App; Xiaomi-eigene Sauger (MIoT) noch nicht. */
+    /** get_map_v1 antwortet anfangs oft „retry" (Map Extractor: bis zu 10 Versuche); 3 genügen, sonst nächster Abruf. */
+    private const KARTE_VERSUCHE = 3;
+
     public static function miioV1(string $modell): bool
     {
         return strpos($modell, 'roborock.vacuum.') === 0 || strpos($modell, 'rockrobo.vacuum.') === 0;
@@ -454,7 +457,55 @@ class RoboHubXiaomi extends RoboHubRoborock
             $this->dbg('Xiaomi', 'Keine Räume: ' . $e->getMessage());   // ältere Modelle (S5) kennen keine Räume
         }
         ksort($raeume);
-        return ['raeume' => $raeume, 'bild' => '', 'marken' => [], 'station' => null];
+        return ['raeume' => $raeume] + $this->kartenBild($buendel, $geraet, $raeume, false);
+    }
+
+    /**
+     * Karte über Mi Home (Xiaomi-Cloud-Map-Extractor, MIT): Kartenname lokal per miIO get_map_v1
+     * (bei „retry" kurz warten und neu fragen), dann /home/getmapfileurl {"obj_name"} → result.url →
+     * Datei (gzip) → „rr"-Format wie beim Roborock-Konto.
+     */
+    protected function karteAbrufen(array $buendel, array $geraet): ?string
+    {
+        $name = '';
+        for ($versuch = 1; $versuch <= self::KARTE_VERSUCHE; $versuch++) {
+            $a = $this->rpc($buendel, $geraet, 'get_map_v1', []);
+            $name = is_array($a) ? ($a[0] ?? '') : $a;
+            $name = is_string($name) ? $name : '';   // Antwort ist eine Liste mit dem Kartennamen (oder „retry")
+            if ($name !== '' && $name !== 'retry') {
+                break;
+            }
+            if ($versuch < self::KARTE_VERSUCHE) {
+                $this->warten($versuch);
+            }
+        }
+        if ($name === '' || $name === 'retry') {
+            $this->dbg('Karte', 'Roboter nennt keinen Kartennamen (get_map_v1: „' . $name . '").');
+            return null;
+        }
+        $server = (string)($geraet['server'] ?? $buendel['server'] ?? '');
+        if (!in_array($server, self::SERVER, true)) {
+            $server = 'de';
+        }
+        $url = (string)($this->api($buendel, $server, '/home/getmapfileurl', ['obj_name' => $name])['result']['url'] ?? '');
+        if ($url === '' || strpos($url, 'https://') !== 0) {
+            $this->dbg('Karte', 'Xiaomi liefert keine Adresse für die Karte „' . $name . '".');
+            return null;
+        }
+        [$status, , $inhalt] = $this->httpVoll('GET', $url, ['Accept: */*'], null, [], 20);
+        if ($status !== 200 || $inhalt === '') {
+            $this->dbg('Karte', 'Kartendatei nicht ladbar (HTTP ' . $status . ').');
+            return null;
+        }
+        $rr = RoboHubRoborockKarte::entpacken($inhalt);
+        $this->dbg('Karte', 'Karte „' . $name . '": ' . strlen($inhalt) . ' Byte geladen' . ($rr === null ? ', nicht entpackbar.' : ', entpackt ' . strlen($rr) . ' Byte.'));
+        return $rr;
+    }
+
+    /** Wartezeit vor dem nächsten get_map_v1-Versuch (eigene Methode, damit der Prüfstand nicht wartet). */
+    protected function warten(int $sekunden): void
+    {
+        usleep($sekunden * 1000000);
     }
 
     // =================================================================

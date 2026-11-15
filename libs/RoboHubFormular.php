@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.39.0' => [
+            '• New: Roborock map on the tile — rooms, dock and, while cleaning, the path and the robot. Works with the Roborock account and with Roborock robots in Mi Home.',
+        ],
         '0.38.3' => [
             '• Robots: a robot that sleeps or is switched off no longer writes a warning on every poll — it shows "not reachable"; a warning comes only after 24 hours without a response.',
             '• Robots: deleting a robot also removes its entry from the WebHook control.',

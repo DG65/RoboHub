@@ -90,7 +90,26 @@ class FakeXiaomi extends RoboHubXiaomi
                 'result' => ['list' => $server === 'de' ? self::$geraete : []]];
             return [200, [], base64_encode(self::rc4($signiert, (string)json_encode($antwort)))];
         }
+        if (preg_match('~^https://(?:(\w+)\.)?api\.io\.mi\.com/app/home/getmapfileurl$~', $url, $m)) {
+            parse_str((string)$body, $f);
+            $signiert = self::signierterNonce((string)$f['ssecurity'], (string)$f['_nonce']);
+            $daten = json_decode(self::rc4($signiert, (string)base64_decode((string)$f['data'])), true);
+            self::$kartenAnfragen[] = [$m[1], $daten['obj_name'] ?? null];
+            $antwort = ['code' => 0, 'message' => 'ok', 'result' => ['url' => 'https://awsde0.fds.api.xiaomi.com/robomap/x.gz?sig=1']];
+            return [200, [], base64_encode(self::rc4($signiert, (string)json_encode($antwort)))];
+        }
+        if (strpos($url, 'https://awsde0.fds.api.xiaomi.com/robomap/') === 0) {
+            return [200, [], gzencode(roborockTestKarte())];
+        }
         return [404, [], ''];
+    }
+
+    public static $kartenAnfragen = [];
+    public static $gewartet = [];
+
+    protected function warten(int $sekunden): void
+    {
+        self::$gewartet[] = $sekunden;
     }
 
     protected function udpAustausch(string $ip, string $paket, float $frist): ?string
@@ -232,6 +251,20 @@ $xm->ApplyChanges();
 FakeXiaomi::$rpc = [];
 $t = $xm->Aktualisieren();
 check('MIoT-Gerät: ehrlich „noch nicht unterstützt“, kein Paket gesendet', strpos($t, 'MIoT') !== false && FakeXiaomi::$rpc === [], $t);
+// Karte (Map Extractor): erst „retry", dann Kartenname; Download über die Xiaomi-Cloud des Geräteservers.
+FakeXiaomi::$antworten['get_room_mapping'] = [[16, '1'], [17, '2']];
+FakeXiaomi::$antworten['get_map_v1'] = ['retry'];
+FakeXiaomi::$gewartet = [];
+$xRetry = (new FakeXiaomi())->karte(json_decode($xk->ReadAttributeString('Buendel'), true), ['protokoll' => '1.0', 'schluessel' => FakeXiaomi::TOKEN, 'ip' => '192.168.1.50', 'server' => 'de']);
+check('Karte: Roboter sagt nur „retry" → 3 Versuche, kein Bild, Räume trotzdem', FakeXiaomi::$gewartet === [1, 2] && $xRetry['bild'] === '' && $xRetry['raeume'] === [16 => 'Room 16', 17 => 'Room 17'], json_encode([FakeXiaomi::$gewartet, $xRetry]));
+FakeXiaomi::$antworten['get_map_v1'] = ['robomap%2F123456789%2F1'];
+$xKarte = (new FakeXiaomi())->karte(json_decode($xk->ReadAttributeString('Buendel'), true), ['protokoll' => '1.0', 'schluessel' => FakeXiaomi::TOKEN, 'ip' => '192.168.1.50', 'server' => 'de']);
+check('Karte über Mi Home: Kartenname → getmapfileurl (Server de) → gzip → Bild mit Räumen', FakeXiaomi::$kartenAnfragen === [['de', 'robomap%2F123456789%2F1']]
+    && strpos($xKarte['bild'], 'data:image/png;base64,') === 0 && array_column($xKarte['marken'], 'name') === ['Room 16', 'Room 17'], json_encode(FakeXiaomi::$kartenAnfragen));
+$xLive = (new FakeXiaomi())->liveKarte(json_decode($xk->ReadAttributeString('Buendel'), true), ['protokoll' => '1.0', 'schluessel' => FakeXiaomi::TOKEN, 'ip' => '192.168.1.50', 'server' => 'de', 'raeume' => [16 => 'Küche']]);
+check('Live-Karte über Mi Home: Weg und Roboter', count($xLive['weg'] ?? []) === 1 && isset($xLive['roboter']) && array_column($xLive['marken'], 'name') === ['Küche']);
+FakeXiaomi::$antworten['get_room_mapping'] = ['__fehler' => 'unknown_method'];
+unset(FakeXiaomi::$antworten['get_map_v1']);
 $xd = new FakeXiaomi();
 check('Räume: Altgerät ohne Raumzuordnung → leere Liste statt Fehler', $xd->karte([], ['protokoll' => '1.0', 'schluessel' => FakeXiaomi::TOKEN, 'ip' => '192.168.1.50'])['raeume'] === []);
 try {

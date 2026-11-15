@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.38.3-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.39.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -217,9 +217,11 @@ nicht offiziell dokumentiert und kann sich ändern.
 - **Roborock** (seit 0.13.0): nach dem Protokoll von python-roborock gebaut und gegen dessen
   Testdaten geprüft; im Forum an einem Saros 20 bestätigt (November 2026). Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als
-  „noch nicht unterstützt". Noch ohne Kartenbild, Echtzeit-Meldungen und Zeitpläne.
+  „noch nicht unterstützt". Kartenbild mit Räumen, Station und während der Reinigung mit Weg und Roboter
+  seit 0.39.0 (noch an keinem echten Gerät geprüft). Noch ohne Echtzeit-Meldungen und Zeitpläne.
 - **Roborock in Mi Home** (seit 0.38.0): Xiaomi-Konto (QR-Code oder Passwort), Steuerung lokal per miIO
-  mit denselben Befehlen wie bei Roborock. Noch an keinem echten Gerät geprüft. Xiaomis eigene Sauger mit dem
+  mit denselben Befehlen wie bei Roborock, im Forum an einem Qrevo bestätigt (November 2026). Kartenbild seit 0.39.0
+  über die Xiaomi-Cloud (Kartenname vom Roboter, Datei aus der Cloud). Xiaomis eigene Sauger mit dem
   MIoT-Protokoll meldet RoboHub als „noch nicht unterstützt"; ältere Modelle ohne Raumaufteilung haben keine Räume.
 - **Worx, Kress, LandXcape, Ferrex** (seit 0.14.0): nach ioBroker.worx gebaut. Anmeldung, Zustand,
   Einstellungen und Wochenplan im Forum an einem Worx m500 bestätigt (Oktober 2026), Befehle noch offen.
@@ -305,7 +307,9 @@ Die Cloud-Schnittstelle von Dreame/MOVA ist aus drei quelloffenen Projekten (MIT
 [Tasshack/dreame-vacuum](https://github.com/Tasshack/dreame-vacuum) und
 [EvotecIT/homeassistant-dreamelawnmower](https://github.com/EvotecIT/homeassistant-dreamelawnmower).
 Der Roborock-Treiber folgt [Python-roborock/python-roborock](https://github.com/Python-roborock/python-roborock)
-(Apache-2.0); dessen Antwortbeispiele liegen unverändert im Prüfstand (`.tools/roborock/`).
+(Apache-2.0); dessen Antwortbeispiele liegen unverändert im Prüfstand (`.tools/roborock/`). Das Kartenformat folgt
+[PiotrMachowski/Python-package-vacuum-map-parser-roborock](https://github.com/PiotrMachowski/Python-package-vacuum-map-parser-roborock)
+(Apache-2.0), der Kartenabruf über Mi Home [PiotrMachowski/Home-Assistant-custom-components-Xiaomi-Cloud-Map-Extractor](https://github.com/PiotrMachowski/Home-Assistant-custom-components-Xiaomi-Cloud-Map-Extractor) (MIT).
 Der Mi-Home-Weg folgt [PiotrMachowski/Xiaomi-cloud-tokens-extractor](https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor) (MIT, Anmeldung und
 verschlüsselte Cloud-Anfragen), [Squachen/micloud](https://github.com/Squachen/micloud) (MIT),
 [al-one/hass-xiaomi-miot](https://github.com/al-one/hass-xiaomi-miot) (Apache-2.0, Fehlercodes, Erneuern) und

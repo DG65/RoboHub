@@ -19,6 +19,14 @@ class FakeRoborock extends RoboHubRoborock
     public static $antworten = [];    // methode => result (oder ['__fehler' => …], oder '__still')
     public static $geraete = [];
     public static $raeume = [];
+    public static $karte = null;      // „rr"-Datei für get_map_v1 (null = keine Antwort)
+    public static $karteTeile = 1;    // in so vielen Teilen schicken
+
+    public static function kartenNutzlast(string $endpunkt, string $nonce, int $id, string $rr): string
+    {
+        return str_pad($endpunkt, 8, "\0") . str_repeat("\0", 8) . pack('v', $id) . str_repeat("\0", 6)
+            . openssl_encrypt(gzencode($rr), 'aes-128-cbc', $nonce, OPENSSL_RAW_DATA, str_repeat("\0", 16));
+    }
     public const RRIOT = ['u' => 'user123', 's' => 'pass123', 'h' => 'unknown123', 'k' => 'qiCNieZa',
         'r' => ['r' => 'EU', 'a' => 'https://api-eu.roborock.com', 'm' => 'ssl://mqtt-eu-3.roborock.com:8883', 'l' => 'https://wood-eu.roborock.com']];
 
@@ -88,6 +96,23 @@ class FakeRoborock extends RoboHubRoborock
                 $j = json_decode($n['nutzlast'], true);
                 $a = json_decode((string)$j['dps']['101'], true);
                 self::$rpc[] = [$a['method'], $a['params'], $a['security'] ?? null];
+                if ($a['method'] === 'get_map_v1' && self::$karte !== null) {
+                    // Kartenantwort wie python-roborock testing/v1_simulator.py: 301 (bzw. Teile 300…301),
+                    // Kopf Endpunkt + 8 × 0 + ID (LE) + 6 × 0, Körper AES-128-CBC(gzip) mit der Rohnonce.
+                    $nutzlast = self::kartenNutzlast($a['security']['endpoint'], hex2bin($a['security']['nonce']), (int)$a['id'], self::$karte);
+                    $teile = str_split($nutzlast, (int)ceil(strlen($nutzlast) / max(1, self::$karteTeile)));
+                    $folge = array_keys($teile);
+                    if (self::$karteTeile > 1) {
+                        $folge = array_reverse($folge);   // Teile in falscher Reihenfolge (python-roborock: kann vorkommen)
+                    }
+                    foreach ($folge as $i) {
+                        $protokoll = $i === count($teile) - 1 ? 301 : 300;
+                        if ($verarbeite(RoboHubRoborock::rahmenBauen($teile[$i], 'key123key123key1', 700 + $i, 4242, time(), $protokoll))) {
+                            return;
+                        }
+                    }
+                    continue;
+                }
                 $antwort = self::$antworten[$a['method']] ?? 'ok';
                 if ($antwort === '__still') {
                     continue;
@@ -107,6 +132,60 @@ class FakeRoborock extends RoboHubRoborock
         }
     }
 }
+
+/**
+ * Kleine „rr"-Karte nach vacuum-map-parser-roborock (map_data_parser.py): Dateikopf 20 Byte, Blöcke
+ * Station (1), Bild (2, Kopf 28 mit 0/top/left/height/width), Weg (3, Kopf 20), Roboter (8).
+ * Bild 6×4, Zeile 0 = unten: Wandzeile, darüber Raum 16 links / Raum 17 rechts, oben Boden ohne Raum.
+ */
+function roborockTestKarte(): string
+{
+    $r16 = chr((16 << 3) | 7);
+    $r17 = chr((17 << 3) | 7);
+    $pixel = str_repeat("\x01", 6)                         // Zeile 0 (unten): Wand
+        . $r16 . $r16 . $r16 . $r17 . $r17 . $r17
+        . $r16 . $r16 . $r16 . $r17 . $r17 . $r17
+        . "\x00\xff\xff\xff\xff\x00";                     // Zeile 3 (oben): außen/Boden
+    $block = function (int $typ, string $kopfRest, string $daten): string {
+        return pack('vvV', $typ, 8 + strlen($kopfRest), strlen($daten)) . $kopfRest . $daten;
+    };
+    $weg = pack('v*', 24600, 25100, 24700, 25150, 24800, 25100);
+    $bloecke = $block(1, '', pack('VVV', 24550, 25050, 0))
+        . $block(2, pack('VVVVV', 0, 500, 490, 4, 6), $pixel)
+        . $block(3, pack('VVV', 3, 4, 0), $weg)
+        . $block(8, '', pack('VVV', 24800, 25100, 90));
+    return 'rr' . pack('vVvvVV', 20, strlen($bloecke), 1, 0, 1, 7) . $bloecke;
+}
+
+// ===========================================================================
+abschnitt('Roborock: Karte („rr"-Datei, Antwort 301)');
+$rrKarte = roborockTestKarte();
+$rk0 = RoboHubRoborockKarte::lesen($rrKarte);
+check('Kartendatei gelesen: 6×4 Punkte, Räume 16/17, 50 mm je Punkt, Ursprung links 490/oben 500 Punkte', is_array($rk0) && $rk0['breite'] === 6 && $rk0['hoehe'] === 4
+    && $rk0['raeume'] === [16, 17] && $rk0['raster'] === 50 && $rk0['links'] === 24500 && $rk0['oben'] === 25000, json_encode($rk0 === null ? null : array_diff_key($rk0, ['pixel' => 1])));
+check('Station, Roboter mit Winkel und Weg in mm', $rk0['station'] === [24550, 25050, 0] && $rk0['roboter'] === [24800, 25100, 90] && $rk0['weg'] === [[[24600, 25100], [24700, 25150], [24800, 25100]]]);
+check('Bildpunkte übersetzt: Raum n → n<<2, Wand 252, Boden 248, außen 0', $rk0['pixel'] === str_repeat(chr(252), 6) . str_repeat(chr(64), 3) . str_repeat(chr(68), 3) . str_repeat(chr(64), 3) . str_repeat(chr(68), 3) . "\0" . str_repeat(chr(248), 4) . "\0");
+$rkBild = RoboHubRoborockKarte::bild($rk0, [16 => 'Küche', 17 => 'Flur'], true);
+check('Kartenbild: PNG, Raumnamen, Station, Weg und Roboter', strpos($rkBild['bild'], 'data:image/png;base64,') === 0 && array_column($rkBild['marken'], 'name') === ['Küche', 'Flur']
+    && $rkBild['station'] !== null && count($rkBild['weg'] ?? []) === 1 && ($rkBild['roboter']['winkel'] ?? null) === 90 && !isset($rkBild['kodierung']), json_encode(array_diff_key($rkBild, ['bild' => 1])));
+check('ohne Live: kein Weg, kein Roboter', !isset(RoboHubRoborockKarte::bild($rk0, [], false)['weg']));
+$roh301 = FakeRoborock::kartenNutzlast('87ItGWdb', str_repeat("\x11", 16), 12345, $rrKarte);
+$a301 = RoboHubRoborockKarte::kartenAntwort($roh301, '87ItGWdb', str_repeat("\x11", 16));
+check('Antwort 301: Kopf, ID (LE), AES-CBC mit Rohnonce, gzip', $a301 !== null && $a301['id'] === 12345 && $a301['rr'] === $rrKarte);
+check('fremder Endpunkt / falsche Nonce → verworfen', RoboHubRoborockKarte::kartenAntwort($roh301, 'andersXX', str_repeat("\x11", 16)) === null
+    && RoboHubRoborockKarte::kartenAntwort($roh301, '87ItGWdb', str_repeat("\x22", 16)) === null);
+$t3 = str_split($roh301, 40);
+$teile = [12 => [false, $t3[0]], 14 => [false, $t3[2] ?? ''], 13 => [false, $t3[1]]];
+check('Teile: unvollständig → null', RoboHubRoborockKarte::teileZusammen($teile, '87ItGWdb') === null);
+$teileGanz = [];
+foreach ($t3 as $i => $t) {
+    $teileGanz[20 + $i] = [$i === count($t3) - 1, $t];
+}
+check('Teile: lückenlos mit 301 am Ende → zusammengesetzt', RoboHubRoborockKarte::teileZusammen(array_reverse($teileGanz, true), '87ItGWdb') === $roh301);
+unset($teileGanz[21]);
+check('Teile: Lücke → null', RoboHubRoborockKarte::teileZusammen($teileGanz, '87ItGWdb') === null);
+check('kaputte Datei → null (kein Absturz)', RoboHubRoborockKarte::lesen('rr' . str_repeat("\xff", 40)) === null && RoboHubRoborockKarte::lesen('xx') === null
+    && RoboHubRoborockKarte::entpacken("\x1f\x8bkaputt") === null);
 
 // ===========================================================================
 abschnitt('Roborock: Protokoll gegen Referenzwerte');
@@ -200,13 +279,17 @@ $rr->parent = $rk;
 $rr->ApplyChanges();
 FakeRoborock::$rpc = [];
 FakeRoborock::$sitzungen = [];
+FakeRoborock::$karte = roborockTestKarte();
+FakeRoborock::$karteTeile = 3;
 $t = $rr->Aktualisieren();
-check('Zustand in einer MQTT-Sitzung mit 5 Anfragen, Räume beim ersten Abruf mitgeladen', count(FakeRoborock::$sitzungen) === 2
-    && array_column(FakeRoborock::$rpc, 0) === ['get_status', 'get_consumable', 'get_clean_summary', 'get_dnd_timer', 'get_sound_volume', 'get_room_mapping'], $t);
+check('Zustand in einer MQTT-Sitzung mit 5 Anfragen, Räume und Karte beim ersten Abruf mitgeladen', count(FakeRoborock::$sitzungen) === 3
+    && array_column(FakeRoborock::$rpc, 0) === ['get_status', 'get_consumable', 'get_clean_summary', 'get_dnd_timer', 'get_sound_volume', 'get_room_mapping', 'get_map_v1'], $t);
+$rrKachel = kachelJson($rr->GetVisualizationTile());
+check('Roborock-Karte (in 3 Teilen, falsche Reihenfolge) auf der Kachel', strpos((string)($rrKachel['karte']['bild'] ?? ''), 'data:image/png;base64,') === 0, json_encode(array_keys((array)($rrKachel['karte'] ?? []))));
 [$host, $port, $nutzer, $pw, $abo, $ziel] = FakeRoborock::$sitzungen[0];
 check('MQTT-Zugang = Referenz (md5-Ableitung)', $nutzer === '19648f94' && $pw === '234678ea854f199e' && $host === 'mqtt-eu-3.roborock.com' && $port === 8883);
 check('Topics rr/m/o bzw. rr/m/i mit duid', $abo === 'rr/m/o/user123/19648f94/abc123' && $ziel === 'rr/m/i/user123/19648f94/abc123');
-check('jede Anfrage trägt Endpunkt „87ItGWdb" und 32-stellige Nonce', count(array_filter(FakeRoborock::$rpc, function ($r) { return ($r[2]['endpoint'] ?? '') === '87ItGWdb' && strlen((string)($r[2]['nonce'] ?? '')) === 32; })) === 6);
+check('jede Anfrage trägt Endpunkt „87ItGWdb" und 32-stellige Nonce', count(array_filter(FakeRoborock::$rpc, function ($r) { return ($r[2]['endpoint'] ?? '') === '87ItGWdb' && strlen((string)($r[2]['nonce'] ?? '')) === 32; })) === 7);
 check('Zustand 8 = Lädt', variable(4100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_LAEDT && variable(4100, 'ZustandRoh')['value'] === 'Lädt (8)');
 check('Akku 100, kein Fehler', variable(4100, 'Akku')['value'] === 100 && variable(4100, 'Fehler')['value'] === 'kein Fehler');
 check('Saugstufe 106 mit Auswahl der neuen Stufen', variable(4100, 'Saugstufe')['value'] === 106 && variable(4100, 'Saugstufe')['action']);

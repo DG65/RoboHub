@@ -2,6 +2,22 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.39.0 (15.11.2026)
+
+- **Neu: Roborock-Karte** (Forum kronos 144636/93, Dietmars Auftrag „für beide Wege"). `libs/RoboHubRoborockKarte.php` liest die
+  „rr"-Kartendatei (vacuum-map-parser-roborock, Apache-2.0: Blöcke Station/Bild/Weg/Roboter, Bildkopf vom Ende her, Raum = p >> 3
+  bei p & 7 = 7, 50 mm je Punkt, Zeile 0 unten) und übersetzt die Bildpunkte in die Kodierung „rahmen" von `RoboHubKartenbild`
+  (Raumfarben, Trennlinien, Namen wie bei Dreame). `RoboHubKartenbild::sauger()` nimmt dafür einen fertig gelesenen Weg (`$roh['weg']`).
+  - Roborock-Konto: `get_map_v1` über MQTT, Antwort Protokoll 301 (große Karten als Teile 300…301, auch in falscher Reihenfolge),
+    24-Byte-Kopf mit Endpunkt und Anfrage-ID (LE), Körper AES-128-CBC mit den Rohbytes der Nonce, IV 0, dann gzip
+    (python-roborock `create_map_response_decoder`, Apache-2.0). `rahmenLesen` liefert dafür auch `zufall`.
+  - Mi Home: Kartenname lokal per miIO `get_map_v1` (bei „retry" bis 3 Versuche), dann `/home/getmapfileurl {"obj_name"}` beim
+    Server des Geräts → `result.url` → gzip (Xiaomi-Cloud-Map-Extractor, MIT).
+  - `karte()` liefert das Bild mit Räumen und Station, `liveKarte()` zusätzlich Weg und Roboter (Live-Takt während der Reinigung).
+  - Ohne Karte bleibt alles wie bisher (Räume ohne Bild, Debug „Karte").
+  - Prüfstand: 15 neue Prüfungen (eigene rr-Datei, 301 in 3 Teilen, Mi-Home-Download), 5/5 Gegenproben gefangen.
+  **Noch an keinem echten Gerät** — Tester kronos (S5), baraka (Qrevo), lugge (Saros 20).
+
 ## 0.38.3 (15.11.2026)
 
 - **Schlafender Roboter ohne Warnflut** (Forum lugge 144636/92, Saros 20: nachts „Der Roborock antwortet nicht (offline oder im

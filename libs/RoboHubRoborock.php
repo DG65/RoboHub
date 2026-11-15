@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/RoboHubRoborockKarte.php';
+
 // ===========================================================================
 // RoboHub-Treiber für Roborock (App „Roborock") — Saug-/Wischroboter mit
 // dem Gerätprotokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen).
@@ -41,6 +43,9 @@ class RoboHubRoborock implements RoboHubTreiber
     private const SALZ = 'TXdfu$jyZ#TZHsg4';
     private const PROTOKOLL_ANFRAGE = 101;
     private const PROTOKOLL_ANTWORT = 102;
+    // Kartenantwort (roborock_message.py MAP_RESPONSE 301, MAP_RESPONSE_PART 300)
+    private const PROTOKOLL_KARTE = 301;
+    private const PROTOKOLL_KARTE_TEIL = 300;
     // App-Kennung wie python-roborock code_login_v4.
     private const APP_VERSION = '4.54.02';
 
@@ -552,7 +557,7 @@ PEM;
             $raeume[$segment] = ($namen[$iot] ?? '') !== '' ? $namen[$iot] : 'Room ' . $segment;
         }
         ksort($raeume);
-        return ['raeume' => $raeume, 'bild' => '', 'marken' => [], 'station' => null];
+        return ['raeume' => $raeume] + $this->kartenBild($buendel, $geraet, $raeume, false);
     }
 
     /** get_room_mapping: [[Segment, IoT-Raum-ID, …], …] oder ein einzelnes Paar. */
@@ -572,7 +577,95 @@ PEM;
 
     public function liveKarte(array $buendel, array $geraet): array
     {
-        return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+        $this->pruefeProtokoll($geraet);
+        $raeume = [];
+        foreach ((array)($geraet['raeume'] ?? []) as $id => $name) {
+            $raeume[(int)$id] = (string)$name;
+        }
+        return ['raeume' => []] + $this->kartenBild($buendel, $geraet, $raeume, true);
+    }
+
+    // =================================================================
+    // Kartenbild (RoboHubRoborockKarte)
+    // =================================================================
+
+    /** Karte holen und zeichnen; ohne Karte leeres Bild (die Raumliste bleibt nutzbar). */
+    protected function kartenBild(array $buendel, array $geraet, array $raeume, bool $live): array
+    {
+        $leer = ['bild' => '', 'marken' => [], 'station' => null];
+        try {
+            $rr = $this->karteAbrufen($buendel, $geraet);
+        } catch (RoboHubFehler $e) {
+            if ($e->anmeldungNoetig) {
+                throw $e;
+            }
+            $this->dbg('Karte', 'Karte nicht abrufbar: ' . $e->getMessage());
+            return $leer;
+        }
+        $roh = $rr === null ? null : RoboHubRoborockKarte::lesen($rr);
+        if ($roh === null) {
+            $this->dbg('Karte', $rr === null ? 'Keine Kartendatei erhalten.' : 'Kartendatei ohne lesbares Bild (' . strlen($rr) . ' Byte, Anfang ' . bin2hex(substr($rr, 0, 24)) . ').');
+            return $leer;
+        }
+        $bild = RoboHubRoborockKarte::bild($roh, $raeume, $live);
+        $this->dbg('Karte', $roh['breite'] . '×' . $roh['hoehe'] . ' Punkte, Räume im Bild ' . json_encode($roh['raeume']) . ', Station ' . json_encode($roh['station'])
+            . ', Roboter ' . json_encode($roh['roboter']) . ', Weg ' . count($roh['weg'][0] ?? []) . ' Punkte.');
+        return $bild;
+    }
+
+    /**
+     * get_map_v1 über MQTT; die Karte kommt als eigene Nachricht mit Protokoll 301 (große Karten als
+     * Teile 300…301), verschlüsselt mit der Nonce dieser Anfrage (python-roborock v1_protocol.py
+     * create_map_response_decoder). Rückgabe: „rr"-Datei oder null.
+     */
+    protected function karteAbrufen(array $buendel, array $geraet): ?string
+    {
+        $r = (array)$buendel['rriot'];
+        $schluessel = (string)$geraet['schluessel'];
+        [$host, $port] = self::mqttServer($r);
+        $benutzer = substr(md5($r['u'] . ':' . $r['k']), 2, 8);
+        $passwort = substr(md5($r['s'] . ':' . $r['k']), 16);
+        $duid = (string)$geraet['id'];
+        $endpunkt = base64_encode(substr(md5((string)$r['k'], true), 8, 6));
+        $nonce = random_bytes(16);
+        $id = random_int(10000, 32767);
+        $zeit = time();
+        $rahmen = [self::rahmenBauen(self::anfrageNutzlast($id, 'get_map_v1', [], $zeit, $endpunkt, bin2hex($nonce)),
+            $schluessel, random_int(100000, 999999), random_int(10000, 99999), $zeit, self::PROTOKOLL_ANFRAGE)];
+        $rr = null;
+        $gruppen = [];
+        $verarbeite = function (string $daten) use ($schluessel, $endpunkt, $nonce, $id, &$rr, &$gruppen): bool {
+            foreach (self::rahmenLesen($daten, $schluessel) as $m) {
+                $p = (int)$m['protokoll'];
+                if ($p !== self::PROTOKOLL_KARTE && $p !== self::PROTOKOLL_KARTE_TEIL) {
+                    continue;
+                }
+                $gruppe = $m['zufall'] . '/' . $m['zeit'];
+                $letzter = $p === self::PROTOKOLL_KARTE;
+                if (!$letzter || isset($gruppen[$gruppe]) || strpos($m['nutzlast'], $endpunkt) !== 0) {
+                    $gruppen[$gruppe][(int)$m['seq']] = [$letzter, $m['nutzlast']];
+                    $ganz = RoboHubRoborockKarte::teileZusammen($gruppen[$gruppe], $endpunkt);
+                    if ($ganz === null) {
+                        continue;
+                    }
+                    unset($gruppen[$gruppe]);
+                } else {
+                    $ganz = $m['nutzlast'];
+                }
+                $a = RoboHubRoborockKarte::kartenAntwort($ganz, $endpunkt, $nonce);
+                if ($a !== null && $a['id'] === $id) {
+                    $rr = $a['rr'];
+                    return true;
+                }
+            }
+            return false;
+        };
+        $this->mqttAustausch($host, $port, $benutzer, $passwort,
+            'rr/m/o/' . $r['u'] . '/' . $benutzer . '/' . $duid,
+            'rr/m/i/' . $r['u'] . '/' . $benutzer . '/' . $duid,
+            $rahmen, $verarbeite, 15.0);
+        $this->dbg('Karte', $rr === null ? 'Keine Kartenantwort (get_map_v1).' : 'Kartendatei ' . strlen($rr) . ' Byte.');
+        return $rr;
     }
 
     // =================================================================
@@ -953,7 +1046,7 @@ PEM;
                     continue;
                 }
             }
-            $aus[] = ['seq' => $k['seq'], 'zeit' => $k['zeit'], 'protokoll' => $k['protokoll'], 'nutzlast' => (string)$inhalt];
+            $aus[] = ['seq' => $k['seq'], 'zufall' => $k['zufall'], 'zeit' => $k['zeit'], 'protokoll' => $k['protokoll'], 'nutzlast' => (string)$inhalt];
             $pos = $ende + 4;
         }
         return $aus;

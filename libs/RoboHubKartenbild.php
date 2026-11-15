@@ -209,7 +209,9 @@ final class RoboHubKartenbild
         // Nur in einer Live-Karte sind Roboterposition und Weg aktuell; die
         // gespeicherte Karte trägt den Stand von irgendwann.
         if ($live && $geometrie !== null) {
-            $ergebnis['weg'] = self::wegNachProzent(self::saugerWeg((string)($roh['json']['tr'] ?? '')), $geometrie);
+            // Weg als Text „tr" (Dreame) oder schon gelesen in mm (Roborock: $roh['weg']).
+            $stuecke = is_array($roh['weg'] ?? null) ? $roh['weg'] : self::saugerWeg((string)($roh['json']['tr'] ?? ''));
+            $ergebnis['weg'] = self::wegNachProzent($stuecke, $geometrie);
             $r = $roh['roboter'] ?? null;
             if (is_array($r) && !self::ungueltig($r[0], $r[1]) && empty($roh['json']['nr'])) {
                 $ergebnis['roboter'] = self::prozentPunkt($geometrie, (float)$r[0], (float)$r[1]) + ['winkel' => (int)($r[2] ?? 0)];

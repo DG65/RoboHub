@@ -555,6 +555,15 @@
 - Prüfstand `.tools/test-xiaomi.inc.php`: RC4/Signatur gegen eigene Python-Nachbildung, miIO-Paket gegen openssl-CLI;
   6/6 Gegenproben gefangen. **Noch nie an einem echten Gerät** — Tester kronos.
 
+## Roborock-Karte (0.39.0)
+
+- `libs/RoboHubRoborockKarte.php` für beide Wege (Roborock-Konto + Mi Home), Bild über `RoboHubKartenbild::sauger()` mit Kodierung
+  „rahmen" (Raum n → n << 2, Wand 63 << 2, Boden 62 << 2). Quellen: python-roborock (Apache-2.0, 301-Dekoder), vacuum-map-parser-roborock
+  (Apache-2.0, rr-Format), Xiaomi-Cloud-Map-Extractor (MIT, getmapfileurl). python-miio (GPL) nur Wissen.
+- Unbelegt/offen: Bytes 8–15/18–23 des 301-Kopfs, echte Bildkopflängen (darum Felder vom Kopfende), Format des Mi-Home-Kartennamens,
+  ob Saros/Qrevo immer pv 1.0 melden. B01 (Q7/Q10) hat ein anderes Kartenformat — nicht gebaut. Sperrzonen/virtuelle Wände (Blöcke 9/10)
+  und Teppich (17) nicht gezeichnet. Live-Karte = ein MQTT- bzw. miIO+Cloud-Abruf je Live-Takt.
+
 ## Eufy-Mäher-Treiber (0.34.0)
 
 - Quellen: Thomvanoorschot/ha-eufy-e15 (MIT, Datenpunkte, Schlüsselweg), jasonacox/tinytuya (MIT, Tuya 3.5), Scratchpad `ref/`. keesmod/eufy-robomow-ha ohne Lizenz → nicht
