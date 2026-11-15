@@ -153,6 +153,22 @@ PEM;
     // (RoborockFanSpeedV1/V2/V3/E2) — welche gilt, zeigt der gemeldete Wert.
     private const SAUGSTUFEN_NEU = [105 => 'Gentle', 101 => 'Quiet', 102 => 'Balanced', 103 => 'Turbo', 104 => 'Max', 108 => 'Max+', 106 => 'Custom'];
     private const SAUGSTUFEN_ALT = [38 => 'Quiet', 60 => 'Standard', 75 => 'Medium', 100 => 'Turbo'];
+    // Reinigungsmodus wie bei Dreame (0 Saugen, 1 Wischen, 2 Saugen und Wischen) — python-roborock
+    // v1_clean_modes.py CleaningMode; Anpassen/SmartPlan nur Anzeige (in der App eingestellt).
+    private const MODUS_SAUGEN = 0;
+    private const MODUS_WISCHEN = 1;
+    private const MODUS_BEIDES = 2;
+    private const MODUS_ANGEPASST = 4;
+    private const MODUS_SMART = 5;
+    private const SAUG_AUS = 105;        // CleanModeZero: bei Geräten mit reinem Wischen „Saugen aus" (sonst „Sanft")
+    private const WASSER_AUS = 200;
+
+    // Kurzmodelle ohne reines Wischen (python-roborock device_features.py PRODUCTS_WITHOUT_PURE_CLEAN_MOP,
+    // Kurzmodelle aus data/code_mappings.py RoborockProductNickname). Neuere, dort noch nicht geführte Modelle
+    // (z. B. Saros 20 a307) können es nach allem, was bekannt ist — sie bekommen „Wischen" angeboten.
+    private const OHNE_NUR_WISCHEN = ['t6', 's6', 't7', 'a11', 't7p', 'a09', 'a10', 'a37', 'a38', 'a33', 'a34', 'a39', 'a40',
+        'a73', 'a85', 'a72', 'a84', 't4', 's4', 'p6', 's5e', 'a05', 'p5', 'a08', 'a19'];
+
     private const WASSERMENGEN = [200 => 'Off', 201 => 'Low', 202 => 'Medium', 203 => 'High', 204 => 'Custom', 207 => 'Custom'];
     // Wasserfluss-Regler (python-roborock clean_modes.py, „water slide“, z. B. Saros 20): Gerät meldet 220 + Reglerstellung
     // 1–30, die App fasst Bereiche zu Namen zusammen (letzte Stellung => Name). Forum lugge 14.11.2026: 235 = App „Mittel“, Regler 15.
@@ -474,8 +490,32 @@ PEM;
             if (!isset($liste[$stufe])) {
                 $liste[$stufe] = RoboHubText::t('Level %s', $stufe);
             }
+            if ($stufe > 100 && self::kannNurWischen($modell)) {
+                $liste[self::SAUG_AUS] = 'Off';   // 105 = Saugen aus (reines Wischen), nicht „Sanft"
+            }
             $w['Saugstufe'] = $stufe;
             $optionen['Saugstufe'] = $liste;
+        }
+        // Reinigungsmodus aus Saugstufe, Wasser und Route (python-roborock get_current_cleaning_mode); nur bei Geräten mit Wischmodul.
+        if (isset($p['water_box_mode'], $p['fan_power']) && (int)$p['water_box_mode'] >= 200) {
+            $fan = (int)$p['fan_power'];
+            $wasser = (int)$p['water_box_mode'];
+            $route = isset($p['mop_mode']) ? (int)$p['mop_mode'] : null;
+            $nurWischen = self::kannNurWischen($modell);
+            $liste = [self::MODUS_SAUGEN => 'Vacuum'] + ($nurWischen ? [self::MODUS_WISCHEN => 'Mop'] : []) + [self::MODUS_BEIDES => RoboHubText::t('Vacuum and mop')];
+            if ($fan === 110 || $wasser === 209 || $route === 306) {
+                $modus = self::MODUS_SMART;
+                $liste[$modus] = RoboHubText::t('SmartPlan (set in the app)');
+            } elseif ($fan === 106 || $wasser === 204 || $route === 302) {
+                $modus = self::MODUS_ANGEPASST;
+                $liste[$modus] = RoboHubText::t('Custom (set in the app)');
+            } elseif ($wasser !== self::WASSER_AUS && $nurWischen && $fan === self::SAUG_AUS) {
+                $modus = self::MODUS_WISCHEN;
+            } else {
+                $modus = $wasser === self::WASSER_AUS ? self::MODUS_SAUGEN : self::MODUS_BEIDES;
+            }
+            $w['Reinigungsmodus'] = $modus;
+            $optionen['Reinigungsmodus'] = $liste;
         }
         if (isset($p['water_box_mode']) && (int)$p['water_box_mode'] >= 200) {
             $menge = (int)$p['water_box_mode'];
@@ -720,15 +760,17 @@ PEM;
         if ($durchgaenge > 3 || $durchgaenge === 0) {
             throw new RoboHubFehler(RoboHubText::t('Passes 1 to 3.'));
         }
+        // Erst der Modus (setzt Saugstufe, Wasser und Route zusammen), dann eine ausdrücklich gewählte Saugstufe.
+        $modus = (int)($parameter['modus'] ?? -1);
+        if ($modus >= 0) {
+            $this->motorModusSetzen($buendel, $geraet, $modus);
+        }
         $saug = (int)($parameter['saugstufe'] ?? -1);
-        if ($saug >= 0) {
+        if ($saug >= 0 && $modus !== self::MODUS_WISCHEN) {
             if (!isset(self::SAUGSTUFEN_NEU[$saug]) && !isset(self::SAUGSTUFEN_ALT[$saug])) {
                 throw new RoboHubFehler(RoboHubText::t('Unknown Roborock suction level %s.', $saug));
             }
             $this->rpc($buendel, $geraet, 'set_custom_mode', [$saug]);
-        }
-        if ((int)($parameter['modus'] ?? -1) >= 0) {
-            $this->dbg('Befehl', 'Reinigungsmodus je Start wird bei Roborock noch nicht unterstützt — ignoriert.');
         }
         $wiederholung = $durchgaenge >= 1 ? $durchgaenge : 1;
         try {
@@ -741,6 +783,71 @@ PEM;
         return RoboHubText::t('Cleaning %s sent.', (count($raeume) === 1 ? RoboHubText::t('of one room') : RoboHubText::t('of %s rooms', count($raeume))));
     }
 
+    /** Modelle mit reinem Wischen (Saugstufe 105 = aus); siehe OHNE_NUR_WISCHEN. */
+    public static function kannNurWischen(string $modell): bool
+    {
+        $kurz = strtolower((string)substr((string)strrchr('.' . $modell, '.'), 1));
+        return $kurz !== '' && !in_array($kurz, self::OHNE_NUR_WISCHEN, true);
+    }
+
+    /**
+     * Parameter für set_clean_motor_mode (python-roborock get_cleaning_mode_parameters): Saugstufe, Wasser und —
+     * wenn das Gerät eine Route meldet — Route. Die eingestellten Werte bleiben, soweit sie zum Modus passen;
+     * sonst die Vorgaben der Bibliothek (Ausgewogen, Wasser Standard bzw. Regler-Mitte 235, Route Standard).
+     */
+    /**
+     * Setzt den Modus. War das Wasser aus, ist unbekannt, ob das Gerät einen Wasser-Schieberegler hat (dann gilt
+     * 202 nicht, python-roborock _get_default_mopping_water_mode) — lehnt es 202 ab, einmal mit der Regler-Mitte 235.
+     */
+    private function motorModusSetzen(array $buendel, array $geraet, int $modus): void
+    {
+        $p = $this->motorModus($geraet, $modus);
+        try {
+            $this->rpc($buendel, $geraet, 'set_clean_motor_mode', $p);
+        } catch (RoboHubFehler $e) {
+            if (($p[0]['water_box_mode'] ?? 0) !== 202 || (int)(($geraet['stand'] ?? [])['water_box_mode'] ?? 0) === 202) {
+                throw $e;
+            }
+            $this->dbg('Befehl', 'Wasser 202 abgelehnt (' . $e->getMessage() . ') — Gerät mit Wasser-Regler? Neuer Versuch mit 235.');
+            $p[0]['water_box_mode'] = 235;
+            $this->rpc($buendel, $geraet, 'set_clean_motor_mode', $p);
+        }
+    }
+
+    private function motorModus(array $geraet, int $modus): array
+    {
+        $stand = (array)($geraet['stand'] ?? []);
+        $modell = (string)($geraet['modell'] ?? '');
+        if (!in_array($modus, [self::MODUS_SAUGEN, self::MODUS_WISCHEN, self::MODUS_BEIDES], true)) {
+            throw new RoboHubFehler(RoboHubText::t('This cleaning mode can only be chosen in the Roborock app.'));
+        }
+        if (!isset($stand['water_box_mode'])) {
+            throw new RoboHubFehler(RoboHubText::t('This robot has no mop — the cleaning mode cannot be chosen.'));
+        }
+        if ($modus === self::MODUS_WISCHEN && !self::kannNurWischen($modell)) {
+            throw new RoboHubFehler(RoboHubText::t('This robot cannot mop without vacuuming.'));
+        }
+        $fan = (int)($stand['fan_power'] ?? 102);
+        if (in_array($fan, [self::SAUG_AUS, 106, 110], true) || $fan < 101) {
+            $fan = 102;
+        }
+        $wasser = (int)$stand['water_box_mode'];
+        $regler = self::wasserreglerName($wasser) !== null && $wasser !== self::WASSER_AUS;
+        if (in_array($wasser, [self::WASSER_AUS, 204, 209, 210], true)) {
+            $wasser = ($regler || $wasser === 210) ? 235 : 202;
+        }
+        $p = [
+            'fan_power'      => $modus === self::MODUS_WISCHEN ? self::SAUG_AUS : $fan,
+            'water_box_mode' => $modus === self::MODUS_SAUGEN ? self::WASSER_AUS : $wasser,
+        ];
+        if (isset($stand['mop_mode'])) {
+            $route = (int)$stand['mop_mode'];
+            $p['mop_mode'] = in_array($route, [302, 306], true) ? 300 : $route;
+        }
+        $this->dbg('Befehl', 'Reinigungsmodus ' . $modus . ' → set_clean_motor_mode ' . json_encode($p));
+        return [$p];
+    }
+
     private function setze(array $buendel, array $geraet, string $feld, int $wert): string
     {
         if ($feld === 'Saugstufe') {
@@ -749,6 +856,10 @@ PEM;
             }
             $this->rpc($buendel, $geraet, 'set_custom_mode', [$wert]);
             return RoboHubText::t('Suction level set.');
+        }
+        if ($feld === 'Reinigungsmodus') {
+            $this->motorModusSetzen($buendel, $geraet, $wert);
+            return RoboHubText::t('Cleaning mode set.');
         }
         if ($feld === 'Wassermenge') {
             if (!isset(self::WASSERMENGEN[$wert]) && self::wasserreglerName((int)$wert) === null) {

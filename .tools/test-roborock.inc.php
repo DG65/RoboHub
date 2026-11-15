@@ -114,6 +114,9 @@ class FakeRoborock extends RoboHubRoborock
                     continue;
                 }
                 $antwort = self::$antworten[$a['method']] ?? 'ok';
+                if (is_array($antwort) && isset($antwort['__folge'])) {   // je Aufruf die nächste Antwort
+                    $antwort = array_shift(self::$antworten[$a['method']]['__folge']) ?? 'ok';
+                }
                 if ($antwort === '__still') {
                     continue;
                 }
@@ -300,7 +303,7 @@ check('Gesamtstatistik aus der Liste', variable(4100, 'GesamtDauer')['value'] ==
 check('Nicht stören 22:00–08:00 an, schaltbar', variable(4100, 'NichtStoeren')['value'] === true && variable(4100, 'NichtStoerenVon')['value'] === '22:00' && variable(4100, 'NichtStoerenBis')['value'] === '08:00' && variable(4100, 'NichtStoeren')['action']);
 check('Lautstärke 90, schaltbar', variable(4100, 'Lautstaerke')['value'] === 90 && variable(4100, 'Lautstaerke')['action']);
 $kd = kachelJson($rr->GetVisualizationTile());
-check('Kachel: Saugstufen-Auswahl aus dem Treiber, kein Modus', in_array([102, 'Ausgewogen'], $kd['startWahl']['saug'] ?? [], true) && ($kd['startWahl']['modus'] ?? null) === []);
+check('Kachel: Saugstufen-Auswahl aus dem Treiber, dazu der Reinigungsmodus (Wischmodul)', in_array([102, 'Ausgewogen'], $kd['startWahl']['saug'] ?? [], true) && in_array([0, 'Saugen'], $kd['startWahl']['modus'] ?? [], true));
 
 FakeRoborock::$antworten['get_sound_volume'] = '__still';
 $rr->Aktualisieren();
@@ -334,6 +337,48 @@ FakeRoborock::$rpc = [];
 $rr->RaeumeReinigenMit('16,17', -1, 102, 2);
 $m = array_column(FakeRoborock::$rpc, 0);
 check('Start mit Wahl: Saugstufe, dann Räume mit Wiederholung', $m === ['set_custom_mode', 'app_segment_clean'] && FakeRoborock::$rpc[0][1] === [102] && FakeRoborock::$rpc[1][1] === [['segments' => [16, 17], 'repeat' => 2]]);
+
+// Forum lugge 144636/98: Reinigungsmodus wie in der App (python-roborock CleaningMode, set_clean_motor_mode).
+$rm = variable(4100, 'Reinigungsmodus');
+$rmOpt = $rm === null ? [] : array_column(json_decode($rm['pres']['OPTIONS'], true), 'Caption', 'Value');
+check('Modus aus den Abrufwerten: Saugstufe 106/Wasser 204 = „Benutzerdefiniert", Auswahl Saugen/Wischen/Saugen und Wischen', $rm !== null && $rm['value'] === 4
+    && $rmOpt[0] === 'Saugen' && $rmOpt[1] === 'Wischen' && $rmOpt[2] === 'Saugen und Wischen' && strpos($rmOpt[4], 'Benutzerdefiniert') === 0 && $rm['action'], json_encode($rmOpt));
+check('Kachel: Modus-Auswahl beim Raumstart', array_column(kachelJson($rr->GetVisualizationTile())['startWahl']['modus'] ?? [], 0) === [0, 1, 2, 4]);
+$rrM = new FakeRoborock();
+$nm = function (string $modell, array $p) use ($rrM) { $n = $rrM->normalisiere($modell, $p); return [$n['werte']['Reinigungsmodus'] ?? null, array_keys($n['optionen']['Reinigungsmodus'] ?? []), $n['optionen']['Saugstufe'][105] ?? null]; };
+check('Wasser aus = Saugen, Saugstufe 105 + Wasser = Wischen (105 heißt „Aus")', $nm('roborock.vacuum.a307', ['fan_power' => 102, 'water_box_mode' => 200])[0] === 0
+    && $nm('roborock.vacuum.a307', ['fan_power' => 105, 'water_box_mode' => 235]) === [1, [0, 1, 2], 'Off'] && $nm('roborock.vacuum.a75', ['fan_power' => 103, 'water_box_mode' => 202])[0] === 2);
+check('Modell ohne reines Wischen (S6 = Tanos): kein „Wischen", 105 bleibt „Sanft"', $nm('roborock.vacuum.s6', ['fan_power' => 105, 'water_box_mode' => 202]) === [2, [0, 2], 'Gentle']);
+check('ohne Wischmodul (kein water_box_mode): kein Modus', $nm('roborock.vacuum.s5', ['fan_power' => 102])[0] === null);
+check('SmartPlan (110/209/306) nur als Anzeige', $nm('roborock.vacuum.a307', ['fan_power' => 110, 'water_box_mode' => 209, 'mop_mode' => 306])[0] === 5);
+FakeRoborock::$rpc = [];
+$rr->RaeumeReinigenMit('16', 1, 104, 1);
+check('Raumstart „Wischen": erst set_clean_motor_mode (Saugen aus, Wasser Standard), keine Saugstufe, dann Raum', array_column(FakeRoborock::$rpc, 0) === ['set_clean_motor_mode', 'app_segment_clean']
+    && FakeRoborock::$rpc[0][1] === [['fan_power' => 105, 'water_box_mode' => 202]], json_encode(FakeRoborock::$rpc));
+FakeRoborock::$rpc = [];
+$rr->RequestAction('Reinigungsmodus', 0);
+check('Variable auf „Saugen": Wasser aus, Saugstufe Ausgewogen statt Benutzerdefiniert', array_column(FakeRoborock::$rpc, 0) === ['set_clean_motor_mode']
+    && FakeRoborock::$rpc[0][1] === [['fan_power' => 102, 'water_box_mode' => 200]], json_encode(FakeRoborock::$rpc));
+$gr = ['id' => 'abc123', 'schluessel' => 'key123key123key1', 'modell' => 'roborock.vacuum.a307', 'protokoll' => '1.0',
+    'stand' => ['fan_power' => 103, 'water_box_mode' => 200, 'mop_mode' => 301]];
+FakeRoborock::$rpc = [];
+FakeRoborock::$antworten['set_clean_motor_mode'] = ['__folge' => [['__fehler' => 'invalid param'], 'ok']];
+try {
+    $t = $rrM->befehl(json_decode($rk->ReadAttributeString('Buendel'), true), $gr, 'setze', ['feld' => 'Reinigungsmodus', 'wert' => 2]);
+} catch (RoboHubFehler $e) {
+    $t = '⛔ ' . $e->getMessage();
+}
+check('aus „Saugen" zu „Saugen und Wischen": Wasser 202, abgelehnt → einmal 235 (Wasser-Regler), Saugstufe und Route bleiben', array_column(FakeRoborock::$rpc, 1) === [
+    [['fan_power' => 103, 'water_box_mode' => 202, 'mop_mode' => 301]], [['fan_power' => 103, 'water_box_mode' => 235, 'mop_mode' => 301]]], json_encode(FakeRoborock::$rpc) . ' ' . $t);
+unset(FakeRoborock::$antworten['set_clean_motor_mode']);
+$gr['modell'] = 'roborock.vacuum.s6';
+$fehler = '';
+try {
+    $rrM->befehl(json_decode($rk->ReadAttributeString('Buendel'), true), $gr, 'setze', ['feld' => 'Reinigungsmodus', 'wert' => 1]);
+} catch (RoboHubFehler $e) {
+    $fehler = $e->getMessage();
+}
+check('„Wischen" bei Modell ohne reines Wischen → klare Absage', stripos($fehler, 'wischen') !== false, $fehler);
 FakeRoborock::$rpc = [];
 FakeRoborock::$antworten['app_segment_clean'] = ['__fehler' => 'invalid params'];
 $t = $rr->RaeumeReinigen('16');

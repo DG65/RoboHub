@@ -564,6 +564,13 @@
   ob Saros/Qrevo immer pv 1.0 melden. B01 (Q7/Q10) hat ein anderes Kartenformat — nicht gebaut. Sperrzonen/virtuelle Wände (Blöcke 9/10)
   und Teppich (17) nicht gezeichnet. Live-Karte = ein MQTT- bzw. miIO+Cloud-Abruf je Live-Takt.
 
+## Roborock-Reinigungsmodus (0.40.0)
+
+- `set_clean_motor_mode` nach python-roborock `v1_clean_modes.py`. Fähigkeitsbits (`DeviceFeatures`) liest RoboHub nicht; „Wischen“
+  über die Kurzmodell-Liste `OHNE_NUR_WISCHEN` (aus `PRODUCTS_WITHOUT_PURE_CLEAN_MOP`), unbekannte Modelle gelten als fähig.
+  Ob das Gerät einen Wasser-Regler hat, ist bei Wasser aus unbekannt → 202, sonst 235. Offen: „Saugen, dann Wischen“
+  (`set_customize_clean_mode` mit `seq_type`, ganze Raumtabelle schreiben), Route wählen.
+
 ## Eufy-Mäher-Treiber (0.34.0)
 
 - Quellen: Thomvanoorschot/ha-eufy-e15 (MIT, Datenpunkte, Schlüsselweg), jasonacox/tinytuya (MIT, Tuya 3.5), Scratchpad `ref/`. keesmod/eufy-robomow-ha ohne Lizenz → nicht

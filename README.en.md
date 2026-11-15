@@ -3,7 +3,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module Version](https://img.shields.io/badge/Module-0.39.0-informational)
+![Module Version](https://img.shields.io/badge/Module-0.40.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -220,7 +220,8 @@ not officially documented and may change.
   test data; confirmed in the forum on a Saros 20 (November 2026). Supported are devices with the
   protocol "1.0" (S, Q, Qrevo, Saros series); RoboHub reports newer devices with "A01"/"B01" as
   "not supported yet". Map image with rooms, dock and, while cleaning, path and robot since 0.39.0 (not yet
-  checked on a real device). No real-time messages or schedules yet.
+  checked on a real device). Cleaning mode (vacuum, mop, vacuum and mop) since 0.40.0 as a variable and when starting
+  a room; "vacuum, then mop" not yet. No real-time messages or schedules yet.
 - **Roborock in Mi Home** (since 0.38.0): Xiaomi account (QR code or password), control locally via miIO
   with the same commands as Roborock, confirmed in the forum on a Qrevo (November 2026). Map image since 0.39.0
   via the Xiaomi cloud (map name from the robot, file from the cloud). Xiaomi's own vacuums with the MIoT

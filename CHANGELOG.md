@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.40.0 (15.11.2026)
+
+- **Neu: Roborock-Reinigungsmodus** (Forum lugge 144636/98, Dietmars Auftrag): Saugen / Wischen / Saugen und Wischen wie in der App,
+  als Variable „Reinigungsmodus“ (wie bei Dreame: 0 Saugen, 1 Wischen, 2 Saugen und Wischen; Anzeige 4 Benutzerdefiniert, 5 SmartPlan)
+  und in der Kachel beim Raumstart. Nach python-roborock (Apache-2.0) `v1_clean_modes.py`: Erkennung wie `get_current_cleaning_mode`,
+  Setzen per `set_clean_motor_mode [{fan_power, water_box_mode, mop_mode}]`. Eingestellte Saugstufe, Wassermenge und Route bleiben,
+  wo sie passen; Wasser aus → 202, lehnt das Gerät ab (Wasser-Regler), einmal 235.
+  - „Wischen“ nur für Modelle mit reinem Wischen: `PRODUCTS_WITHOUT_PURE_CLEAN_MOP` (Kurzmodelle) bekommen es nicht, unbekannte
+    neuere (Saros 20 a307) schon. Dort heißt Saugstufe 105 „Aus“ statt „Sanft“.
+  - Nur bei Geräten mit Wischmodul (`water_box_mode` im Status). „Saugen, dann Wischen“ (Raumtabelle `seq_type`) noch nicht.
+  - Prüfstand: 10 neue Prüfungen, 4/4 Gegenproben gefangen. Nicht an einem echten Gerät — Tester lugge (Saros 20).
+
 ## 0.39.0 (15.11.2026)
 
 - **Neu: Roborock-Karte** (Forum kronos 144636/93, Dietmars Auftrag „für beide Wege"). `libs/RoboHubRoborockKarte.php` liest die

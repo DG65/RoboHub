@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.40.0' => [
+            '• Roborock: choose the cleaning mode like in the app — vacuum, mop or vacuum and mop — as a variable and when starting a room from the tile; suction level 105 is called "Off" on robots that can mop only.',
+        ],
         '0.39.0' => [
             '• New: Roborock map on the tile — rooms, dock and, while cleaning, the path and the robot. Works with the Roborock account and with Roborock robots in Mi Home.',
         ],
