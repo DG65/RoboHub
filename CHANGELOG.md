@@ -2,6 +2,14 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.41.0 (15.11.2026)
+
+- **Kachel: Karte vergrößern** (Forum kronos 144636/101, Dietmars Auftrag „für alle Karten"): Antippen der Karte zeigt sie über
+  die ganze Kachel, so hoch wie die Kachel es zulässt — mit Raumnamen (weiter antippbar zur Raumauswahl), Station, Weg und Roboter.
+  Zurück mit erneutem Antippen, „✕ Schließen" oder Esc. Gilt für jede Karte (Dreame/MOVA, Roborock, Mi Home, Ecovacs, Mäher …),
+  da sie alle dieselbe Kachel nutzen. Neue Kacheltexte „Enlarge map", „Shrink map", „Close".
+  - Roborock-Karte jetzt an echten Geräten bestätigt: Saros 20 (lugge 144636/100), S5 (kronos 144636/101).
+
 ## 0.40.0 (15.11.2026)
 
 - **Neu: Roborock-Reinigungsmodus** (Forum lugge 144636/98, Dietmars Auftrag): Saugen / Wischen / Saugen und Wischen wie in der App,

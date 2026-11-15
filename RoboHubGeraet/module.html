@@ -87,6 +87,12 @@ body.eigenbg{background:var(--seite);border-radius:12px}
 .robo i{position:absolute;left:50%;top:-.45em;width:0;height:0;margin-left:-.25em;border:.25em solid transparent;border-bottom:.32em solid #fff}
 .namen{display:block;margin:.35em auto 0;background:none;border:none;color:var(--fg2);font-size:.72em;padding:.2em .4em}
 .livemarke{font-size:.72em;color:var(--fg2);margin-top:.35em;text-align:center}
+.flaeche img.zoom{cursor:zoom-in}
+.grosskopf{display:flex;justify-content:space-between;align-items:center;gap:.6em;margin:.2em 0 .5em}
+.grosskopf b{font-size:.95em}
+.gross .karte{padding:.7em}
+.gross .flaeche img{cursor:zoom-out}
+.gross .ort{font-size:.85em}
 </style>
 </head>
 <body>
@@ -125,6 +131,8 @@ var TEIL_ROT = 5, TEIL_GELB = 35;
 // Befehle: [Wert, Symcon-Symbol, Emoji, Text]
 var BEFEHLE = [[1, 'play', '▶️', 'Start'], [2, 'pause', '⏸️', 'Pause'], [4, 'house', '🏠', 'Station'], [5, 'location-dot', '📍', 'Locate']];
 var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '';
+// Karte groß: antippen vergrößert sie auf die ganze Kachel (Forum kronos 144636/101).
+var grossKarte = false;
 // Läuft ein Befehl, sind die Befehlsknöpfe gesperrt: der Roboter nimmt (z. B. iRobot) nur eine
 // Verbindung an, ein zweiter Klick lief sonst in einen Fehler (Forum Thilo 24.10.2026).
 var befehlLaeuft = false, befehlUhr = null;
@@ -171,6 +179,9 @@ function namenUmschalten() {
   zeichnen();
 }
 
+function karteGross(an) { grossKarte = an; zeichnen(); }
+document.addEventListener('keydown', function (e) { if (grossKarte && e.key === 'Escape') { karteGross(false); } });
+
 function raumWaehlen(id) {
   var i = gewaehlt.indexOf(id);
   if (i >= 0) { gewaehlt.splice(i, 1); } else { gewaehlt.push(id); }
@@ -215,7 +226,12 @@ function zeichnen() {
   var k = d.karte, kt = '';
   if (k && k.bild) {
     var hoch = 14; // em — sehr hohe Karten nicht über die Kachel hinaus wachsen lassen
-    kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + (hoch * (k.format || 1)).toFixed(1) + 'em)"><img src="' + esc(k.bild) + '" alt="' + T('Map') + '">';
+    // Groß: so hoch wie die Kachel abzüglich Rand oben (Symcon-Ebene), Kopfzeile und Namen-Knopf.
+    var breite = grossKarte
+      ? 'calc((100vh - 56px - 7em) * ' + Number(k.format || 1).toFixed(3) + ')'
+      : (hoch * (k.format || 1)).toFixed(1) + 'em';
+    kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + breite + ')"><img src="' + esc(k.bild) + '" alt="' + T('Map') + '"'
+      + ' class="zoom" title="' + T(grossKarte ? 'Shrink map' : 'Enlarge map') + '" onclick="karteGross(' + (grossKarte ? 'false' : 'true') + ')">';
     (namenZeigen() ? (k.marken || []) : []).forEach(function (m) {
       var an = gewaehlt.indexOf(m.id) >= 0 ? ' an' : '';
       kt += bedienbar
@@ -300,6 +316,12 @@ function zeichnen() {
     r += '</div>';
   }
   var f = d.stand ? '<div class="fuss">' + T('As of %s', esc(d.stand)) + '</div>' : '';
+  if (grossKarte && kt) {
+    document.getElementById('app').innerHTML = '<div class="gross"><div class="grosskopf"><b>' + T('Map') + '</b>'
+      + '<button class="mini" onclick="karteGross(false)">' + sym('circle-xmark', '✕') + ' ' + T('Close') + '</button></div>' + kt + '</div>';
+    return;
+  }
+  grossKarte = false;   // Karte verschwunden (z. B. Gerät ohne Karte) → normale Ansicht
   document.getElementById('app').innerHTML = '<div class="layout' + (kt ? ' mitkarte' : '') + '"><div class="links">' + l + '</div>'
     + (kt ? '<div class="kartenfeld">' + kt + '</div>' : '') + '<div class="rechts">' + r + '</div></div>' + f;
 }

@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.40.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.41.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -112,7 +112,7 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
   Seitenbürste, Filter, Mopp/Walze, Sensoren, beim Mäher Messer), Station, Frisch-/
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
-- **Kartenbild** auf Kachel und IPSView-Seite: Räume bzw. Mähzonen mit Namen zum Antippen.
+- **Kartenbild** auf Kachel und IPSView-Seite: Räume bzw. Mähzonen mit Namen zum Antippen; Antippen der Karte vergrößert sie auf die ganze Kachel (seit 0.41.0).
 - **Raum reinigen mit Wahl** wie das „benutzerdefiniert"-Fenster der App: Modus, Saugstufe und
   Durchgänge nur für diesen Start.
 - **Zeitpläne** (Saug- und Mähroboter) aus der Hersteller-App anzeigen und ein-/ausschalten.
@@ -218,7 +218,7 @@ nicht offiziell dokumentiert und kann sich ändern.
   Testdaten geprüft; im Forum an einem Saros 20 bestätigt (November 2026). Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als
   „noch nicht unterstützt". Kartenbild mit Räumen, Station und während der Reinigung mit Weg und Roboter
-  seit 0.39.0 (noch an keinem echten Gerät geprüft). Reinigungsmodus (Saugen, Wischen, Saugen und Wischen) seit 0.40.0
+  seit 0.39.0, im Forum an einem Saros 20 und einem S5 bestätigt (November 2026). Reinigungsmodus (Saugen, Wischen, Saugen und Wischen) seit 0.40.0
   als Variable und beim Raumstart; „Saugen, dann Wischen“ noch nicht. Noch ohne Echtzeit-Meldungen und Zeitpläne.
 - **Roborock in Mi Home** (seit 0.38.0): Xiaomi-Konto (QR-Code oder Passwort), Steuerung lokal per miIO
   mit denselben Befehlen wie bei Roborock, im Forum an einem Qrevo bestätigt (November 2026). Kartenbild seit 0.39.0

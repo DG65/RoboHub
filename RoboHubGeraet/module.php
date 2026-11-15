@@ -1403,7 +1403,7 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Texte der Kachel (module.html schlägt sie per T() nach; Deutsch aus locale.json). */
-    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names'];
+    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close'];
 
     /** Daten für Kachel und eigenständige Seite (JSON). */
     private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = '', bool $mitTexten = true): string

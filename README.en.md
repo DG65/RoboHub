@@ -3,7 +3,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module Version](https://img.shields.io/badge/Module-0.40.0-informational)
+![Module Version](https://img.shields.io/badge/Module-0.41.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -114,7 +114,7 @@ A variable is only created once your model actually delivers the value.
   side brush, filter, mop/roller, sensors, blades on mowers), station, clean/
   dirty water, dust bag, detergent, total statistics.
 - Suction level, water level, cleaning mode: directly switchable.
-- **Map image** on the tile and the IPSView page: rooms or mowing zones with names to tap.
+- **Map image** on the tile and the IPSView page: rooms or mowing zones with names to tap; tapping the map enlarges it to the whole tile (since 0.41.0).
 - **Clean room with options** like the "custom" window of the app: mode, suction level and
   passes for this start only.
 - **Schedules** (robot vacuums and robot mowers) from the vendor app: show them and switch them on/off.
@@ -219,8 +219,8 @@ not officially documented and may change.
 - **Roborock** (since 0.13.0): built following the protocol of python-roborock and checked against its
   test data; confirmed in the forum on a Saros 20 (November 2026). Supported are devices with the
   protocol "1.0" (S, Q, Qrevo, Saros series); RoboHub reports newer devices with "A01"/"B01" as
-  "not supported yet". Map image with rooms, dock and, while cleaning, path and robot since 0.39.0 (not yet
-  checked on a real device). Cleaning mode (vacuum, mop, vacuum and mop) since 0.40.0 as a variable and when starting
+  "not supported yet". Map image with rooms, dock and, while cleaning, path and robot since 0.39.0, confirmed in the forum
+  on a Saros 20 and an S5 (November 2026). Cleaning mode (vacuum, mop, vacuum and mop) since 0.40.0 as a variable and when starting
   a room; "vacuum, then mop" not yet. No real-time messages or schedules yet.
 - **Roborock in Mi Home** (since 0.38.0): Xiaomi account (QR code or password), control locally via miIO
   with the same commands as Roborock, confirmed in the forum on a Qrevo (November 2026). Map image since 0.39.0
