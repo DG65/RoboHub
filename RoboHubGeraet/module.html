@@ -93,6 +93,7 @@ body.eigenbg{background:var(--seite);border-radius:12px}
 .gross .karte{padding:.7em}
 .gross .flaeche img{cursor:zoom-out}
 .gross .ort{font-size:.85em}
+.grossstart{margin-top:.6em}
 </style>
 </head>
 <body>
@@ -228,7 +229,7 @@ function zeichnen() {
     var hoch = 14; // em — sehr hohe Karten nicht über die Kachel hinaus wachsen lassen
     // Groß: so hoch wie die Kachel abzüglich Rand oben (Symcon-Ebene), Kopfzeile und Namen-Knopf.
     var breite = grossKarte
-      ? 'calc((100vh - 56px - 7em) * ' + Number(k.format || 1).toFixed(3) + ')'
+      ? 'calc((100vh - 56px - ' + (gewaehlt.length && bedienbar ? 13 : 8) + 'em) * ' + Number(k.format || 1).toFixed(3) + ')'
       : (hoch * (k.format || 1)).toFixed(1) + 'em';
     kt = '<div class="karte"><div class="flaeche" style="width:min(100%,' + breite + ')"><img src="' + esc(k.bild) + '" alt="' + T('Map') + '"'
       + ' class="zoom" title="' + T(grossKarte ? 'Shrink map' : 'Enlarge map') + '" onclick="karteGross(' + (grossKarte ? 'false' : 'true') + ')">';
@@ -255,7 +256,7 @@ function zeichnen() {
     kt += '</div>';
   }
 
-  var r = '';
+  var r = '', startTeil = '';
   if (bedienbar && (d.raeume || []).length) {
     r += '<div class="block"><p class="abschnitt">' + T(d.klasse === 'maeher' ? 'Mow zone' : 'Clean room') + '</p><div class="chips">';
     d.raeume.forEach(function (x) { r += '<button class="chip' + (gewaehlt.indexOf(x.id) >= 0 ? ' an' : '') + '"' + (x.info ? ' title="' + esc(x.info) + '"' : '') + ' onclick="raumWaehlen(' + x.id + ')">' + esc(x.name) + '</button>'; });
@@ -269,13 +270,14 @@ function zeichnen() {
       var wert = gewaehlt.join(',');
       if (d.klasse !== 'maeher') {
         var wahl = d.startWahl || {};
-        r += '<div class="startzeile">'
+        startTeil += '<div class="startzeile">'
           + ((wahl.modus || []).length ? auswahl('startModus', startModus, [[-1, T('Mode as set')]].concat(wahl.modus)) : '')
           + ((wahl.saug || []).length ? auswahl('startSaug', startSaug, [[-1, T('Suction level as set')]].concat(wahl.saug)) : '')
           + auswahl('startDurch', startDurch, [[-1, '1×'], [2, '2×'], [3, '3×']]) + '</div>';
         wert += '|' + startModus + '|' + startSaug + '|' + startDurch;
       }
-      r += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + T(d.klasse === 'maeher' ? 'Mowing %s' : 'Cleaning %s', esc(namen).replace(/'/g, '')) + '\');gewaehlt=[];">' + sym('play', '▶️') + ' ' + T(d.klasse === 'maeher' ? 'Mow %s' : 'Clean %s', esc(namen)) + '</button>';
+      startTeil += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + T(d.klasse === 'maeher' ? 'Mowing %s' : 'Cleaning %s', esc(namen).replace(/'/g, '')) + '\');gewaehlt=[];">' + sym('play', '▶️') + ' ' + T(d.klasse === 'maeher' ? 'Mow %s' : 'Clean %s', esc(namen)) + '</button>';
+      r += startTeil;
     }
     r += '</div>';
   }
@@ -318,7 +320,10 @@ function zeichnen() {
   var f = d.stand ? '<div class="fuss">' + T('As of %s', esc(d.stand)) + '</div>' : '';
   if (grossKarte && kt) {
     document.getElementById('app').innerHTML = '<div class="gross"><div class="grosskopf"><b>' + T('Map') + '</b>'
-      + '<button class="mini" onclick="karteGross(false)">' + sym('circle-xmark', '✕') + ' ' + T('Close') + '</button></div>' + kt + '</div>';
+      + '<button class="mini" onclick="karteGross(false)">' + sym('circle-xmark', '✕') + ' ' + T('Close') + '</button></div>' + kt
+      // Räume in der großen Karte gewählt → gleich hier starten, ohne erst zu schließen.
+      + (startTeil ? '<div class="grossstart">' + startTeil + '</div>' : '')
+      + '<div class="meldung">' + textSym(rueck) + '</div></div>';
     return;
   }
   grossKarte = false;   // Karte verschwunden (z. B. Gerät ohne Karte) → normale Ansicht

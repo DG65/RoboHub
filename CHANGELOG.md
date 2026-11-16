@@ -2,6 +2,12 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.41.1 (16.11.2026)
+
+- **Kachel: Raumstart in der großen Karte**: Wer in der vergrößerten Karte Räume antippt, bekommt darunter gleich Modus,
+  Saugstufe, Durchgänge und den Startknopf sowie die Rückmeldung — vorher musste man erst schließen (Stolperstein wie
+  Forum power1625 144636/68). Die Karte wird dafür etwas niedriger.
+
 ## 0.41.0 (15.11.2026)
 
 - **Kachel: Karte vergrößern** (Forum kronos 144636/101, Dietmars Auftrag „für alle Karten"): Antippen der Karte zeigt sie über
