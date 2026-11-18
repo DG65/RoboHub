@@ -571,6 +571,13 @@
   Ob das Gerät einen Wasser-Regler hat, ist bei Wasser aus unbekannt → 202, sonst 235. Offen: „Saugen, dann Wischen“
   (`set_customize_clean_mode` mit `seq_type`, ganze Raumtabelle schreiben), Route wählen.
 
+## Karte als Medienobjekt (0.42.0)
+
+- Wunsch alsk1 (Forum 144636/105, IPSView ohne WebView). `KarteMedium` → Medienobjekt Ident `KarteBild` unter dem Roboter,
+  `RoboHubKartenMedium::bild()` zeichnet mit GD (Kachel-Overlays ins Bild). Ob Symcons PHP GD mitbringt, live noch nicht geprüft
+  (Privat/Paul am 18.11. nicht erreichbar) — ohne GD nur das Kartenbild. Schrift: eingebaute GD-Schriften (ISO-8859-2), keine
+  Schriftdatei (Store: Dateizugriff). Live offen: Darstellung in IPSView, Größe der Schrift.
+
 ## Eufy-Mäher-Treiber (0.34.0)
 
 - Quellen: Thomvanoorschot/ha-eufy-e15 (MIT, Datenpunkte, Schlüsselweg), jasonacox/tinytuya (MIT, Tuya 3.5), Scratchpad `ref/`. keesmod/eufy-robomow-ha ohne Lizenz → nicht

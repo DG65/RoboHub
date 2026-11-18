@@ -3,7 +3,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module Version](https://img.shields.io/badge/Module-0.41.1-informational)
+![Module Version](https://img.shields.io/badge/Module-0.42.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -115,6 +115,7 @@ A variable is only created once your model actually delivers the value.
   dirty water, dust bag, detergent, total statistics.
 - Suction level, water level, cleaning mode: directly switchable.
 - **Map image** on the tile and the IPSView page: rooms or mowing zones with names to tap; tapping the map enlarges it to the whole tile (since 0.41.0), selected rooms can be started right there (since 0.41.1).
+- **Map as an image** (since 0.42.0): optionally also as the media object "Map" (PNG with rooms, dock, path, robot and room names, transparent outside), e.g. for IPSView without WebView. Switch on under "Tile and IPSView". Needs PHP's GD extension, otherwise rooms only.
 - **Clean room with options** like the "custom" window of the app: mode, suction level and
   passes for this start only.
 - **Schedules** (robot vacuums and robot mowers) from the vendor app: show them and switch them on/off.

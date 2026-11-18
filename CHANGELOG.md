@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.42.0 (18.11.2026)
+
+- **Neu: Karte als Bild (Medienobjekt)** (Forum alsk1 144636/105: IPSView ohne WebView). Eigenschaft `KarteMedium` (Standard aus)
+  legt unter dem Roboter das Medienobjekt „Karte“ an (Ident `KarteBild`, gecacht, PNG über `IPS_SetMediaContent`).
+  `libs/RoboHubKartenMedium.php` zeichnet mit GD auf das hochskalierte Kartenbild (ganzzahlig, bis 900 px): Weg, Station,
+  Roboter mit Blickrichtung (wie Kachel: 0° rechts, gegen den Uhrzeigersinn), Raumnamen (GD-Schrift, ISO-8859-2, folgt
+  `KarteNamen`); außerhalb durchsichtig. Ohne GD das unveränderte Kartenbild. Neu gezeichnet gesammelt nach 3 s (Timer
+  `KarteBild`) nach jeder Kartenänderung (Räume laden, Live-Karte, Echtzeit-Position). Ausschalten löscht das eigene Objekt.
+  - Prüfstand: 9 neue Prüfungen, 3/4 Gegenproben gefangen (4. gleichwertig: GD überträgt die Durchsichtigkeit auch ohne
+    `imagepalettetotruecolor`).
+
 ## 0.41.1 (16.11.2026)
 
 - **Kachel: Raumstart in der großen Karte**: Wer in der vergrößerten Karte Räume antippt, bekommt darunter gleich Modus,

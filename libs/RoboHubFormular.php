@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.42.0' => [
+            '• Map as an image: optionally also as the media object "Map" below the robot — rooms, dock, path, robot and room names, transparent outside the map. For example for IPSView without WebView (switch on under "Tile and IPSView").',
+        ],
         '0.41.1' => [
             '• Enlarged map: rooms selected there can be started right away — with mode and suction level, without closing the map first.',
         ],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/RoboHubModell.php';
 require_once __DIR__ . '/../libs/RoboHubFormular.php';
 require_once __DIR__ . '/../libs/RoboHubKartenbild.php';
+require_once __DIR__ . '/../libs/RoboHubKartenMedium.php';
 
 // ===========================================================================
 // RoboHub Roboter — eine Instanz je Saug-/Wisch- oder Mähroboter.
@@ -61,6 +62,8 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterPropertyBoolean('KarteZeigen', true);
         // Raumnamen über dem Kartenbild (Forum power1625 144636/68: in der kleinen Karte sehr dominant).
         $this->RegisterPropertyBoolean('KarteNamen', true);
+        // Karte zusätzlich als Medienobjekt (PNG) — für IPSView-Bildelemente ohne WebView (Forum alsk1 144636/105).
+        $this->RegisterPropertyBoolean('KarteMedium', false);
         $this->RegisterPropertyInteger('Farbschema', 0);   // 0 automatisch, 1 hell, 2 dunkel
         $this->RegisterPropertyInteger('Symbole', 0);      // 0 Symcon-Symbole (icons.js), 1 Emojis (Forum Thilo 26.10.2026)
         $this->RegisterPropertyBoolean('EinstellungenZeigen', true);
@@ -92,6 +95,8 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterTimer('Zuordnen', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'Zuordnen\', 0);');
         // Kachel nach schnellen Echtzeit-Folgen nachziehen (höchstens alle 2 s neu bauen, Forum 144636/75).
         $this->RegisterTimer('Kachel', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'KachelNach\', 0);');
+        // Kartenbild gesammelt neu zeichnen (Echtzeit-Positionen kommen im Sekundentakt).
+        $this->RegisterTimer('KarteBild', 0, 'IPS_RequestAction($_IPS[\'TARGET\'], \'KarteBild\', 0);');
     }
 
     public function ApplyChanges()
@@ -143,6 +148,7 @@ class RoboHubGeraet extends IPSModule
         // Text der Raum-Einstellungen in der aktuellen Sprache neu aufbauen (Update, Sprachwechsel) —
         // sonst bliebe er bis zum nächsten Live-Rahmen des Roboters im alten Wortlaut stehen.
         $this->raumEinstellungenVariable();
+        $this->kartenBildPlanen();
         $this->SetStatus(102);
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
     }
@@ -164,6 +170,10 @@ class RoboHubGeraet extends IPSModule
             case 'Zuordnen':
                 $this->SetTimerInterval('Zuordnen', 0);
                 $this->ordneKontoZu();
+                return;
+            case 'KarteBild':
+                $this->SetTimerInterval('KarteBild', 0);
+                $this->kartenBildSchreiben();
                 return;
             case 'KachelNach':
                 $this->SetTimerInterval('Kachel', 0);
@@ -854,6 +864,56 @@ class RoboHubGeraet extends IPSModule
         return array_map([RoboHubText::class, 'raum'], json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: []);
     }
 
+    /** Medienobjekt der Karte: in 3 s neu zeichnen (sammelt schnelle Folgen); ausgeschaltet → eigenes Objekt entfernen. */
+    private function kartenBildPlanen(): void
+    {
+        if (!$this->ReadPropertyBoolean('KarteMedium')) {
+            $this->SetTimerInterval('KarteBild', 0);
+            $mid = @IPS_GetObjectIDByIdent('KarteBild', $this->InstanceID);
+            if ($mid !== false && IPS_MediaExists((int)$mid)) {
+                IPS_DeleteMedia((int)$mid, true);
+            }
+            return;
+        }
+        if ($this->GetTimerInterval('KarteBild') === 0) {
+            $this->SetTimerInterval('KarteBild', 3000);
+        }
+    }
+
+    /** Karte als PNG ins eigene Medienobjekt „Karte" (Ident KarteBild) schreiben. */
+    private function kartenBildSchreiben(): void
+    {
+        if (!$this->ReadPropertyBoolean('KarteMedium')) {
+            return;
+        }
+        $karte = json_decode((string)$this->ReadAttributeString('Karte'), true);
+        if (!is_array($karte)) {
+            return;
+        }
+        foreach ((array)($karte['marken'] ?? []) as $i => $m) {
+            $karte['marken'][$i]['name'] = RoboHubText::raum((string)($m['name'] ?? ''));
+        }
+        $png = RoboHubKartenMedium::bild($karte, $this->ReadPropertyBoolean('KarteNamen'));
+        if ($png === null) {
+            return;
+        }
+        $mid = @IPS_GetObjectIDByIdent('KarteBild', $this->InstanceID);
+        if ($mid === false || !IPS_MediaExists((int)$mid)) {
+            $mid = IPS_CreateMedia(MEDIATYPE_IMAGE);
+            IPS_SetParent($mid, $this->InstanceID);
+            IPS_SetIdent($mid, 'KarteBild');
+            IPS_SetName($mid, RoboHubText::t('Map'));
+            IPS_SetPosition($mid, 90);
+            IPS_SetMediaCached($mid, true);
+            IPS_SetMediaFile($mid, 'media/robohub-karte-' . $this->InstanceID . '.png', false);
+            $this->SendDebug('Karte', 'Medienobjekt ' . $mid . ' angelegt', 0);
+        }
+        IPS_SetMediaContent((int)$mid, base64_encode($png));
+        if (!function_exists('imagecreatefromstring')) {
+            $this->SendDebug('Karte', 'PHP ohne GD: Medienobjekt zeigt das Kartenbild ohne Weg, Station, Roboter und Namen', 0);
+        }
+    }
+
     private function kachelKarte(): ?array
     {
         if (!$this->ReadPropertyBoolean('KarteZeigen')) {
@@ -1062,6 +1122,7 @@ class RoboHubGeraet extends IPSModule
             'geometrie' => $d['geometrie'] ?? null, 'weg' => $weg,
             'roboter' => $d['roboter'] ?? null, 'live' => time(),
         ]));
+        $this->kartenBildPlanen();
         $this->kachelAktualisieren();
         $punkte = 0;
         foreach ((array)($d['weg'] ?? []) as $s) {
@@ -1096,6 +1157,7 @@ class RoboHubGeraet extends IPSModule
         }
         $karte['roboter'] = RoboHubKartenbild::prozentPunkt($karte['geometrie'], (float)$pos[0], (float)$pos[1]) + ['winkel' => (int)($pos[2] ?? 0)];
         $this->WriteAttributeString('Karte', (string)json_encode($karte));
+        $this->kartenBildPlanen();
     }
 
     /** ROBO_RaeumeLaden($id): string — Raum-/Zonenliste aus der Karte neu holen. */
@@ -1132,6 +1194,7 @@ class RoboHubGeraet extends IPSModule
                 'station' => $daten['station'] ?? null, 'format' => (float)($daten['format'] ?? 1.0),
                 'geometrie' => $daten['geometrie'] ?? null,
             ]));
+            $this->kartenBildPlanen();
         }
         if (count($raeume) === 0) {
             if (isset($daten['zeitplaene']) && is_array($daten['zeitplaene'])) {
@@ -1648,6 +1711,8 @@ class RoboHubGeraet extends IPSModule
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Show map image (rooms or mowing zones to tap)'],
                 ['type' => 'CheckBox', 'name' => 'KarteNamen', 'caption' => 'Show room names in the map image (default — can also be switched per device in the tile)'],
                 ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live map while working (driven path and robot position; vacuums every 30 s, mowers every 60 s)'],
+                ['type' => 'CheckBox', 'name' => 'KarteMedium', 'caption' => 'Also provide the map as an image (media object)'],
+                ['type' => 'Label', 'name' => 'KarteMediumHint', 'caption' => 'Creates the media object "Map" below this robot: rooms, dock, driven path, robot and – if switched on above – room names, transparent outside the map. Use it e.g. as an image in IPSView. Updated at most every 3 seconds; switching off removes it again.'],
                 ['type' => 'Label', 'caption' => RoboHubText::t('IPSView or browser: create a WebView element in IPSView and enter http://<Symcon-IP>:3777%s as the address. The page refreshes itself every 15 seconds.', $this->hookPfad())],
                 ['type' => 'Label', 'caption' => RoboHubText::t('👁 Display only: %s', $this->hookPfad())],
                 ['type' => 'CheckBox', 'name' => 'WebBedienung', 'caption' => 'Allow control via the standalone page (only with key in the address)'],

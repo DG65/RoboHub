@@ -41,6 +41,17 @@ function IPS_GetObjectIDByIdent(string $ident, int $parent) {
     return false;
 }
 function IPS_SemaphoreEnter(string $n, int $ms): bool { return true; }
+// Medienobjekte (Kartenbild als PNG, 0.42.0)
+const MEDIATYPE_IMAGE = 1;
+function IPS_CreateMedia(int $typ): int { $id = $GLOBALS['NEXT']++; $GLOBALS['OBJ'][$id] = ['ident' => '', 'parent' => 0, 'media' => $typ, 'name' => '', 'inhalt' => null]; return $id; }
+function IPS_MediaExists(int $id): bool { return isset($GLOBALS['OBJ'][$id]['media']); }
+function IPS_DeleteMedia(int $id, bool $datei): bool { unset($GLOBALS['OBJ'][$id]); return true; }
+function IPS_SetParent(int $id, int $p): bool { $GLOBALS['OBJ'][$id]['parent'] = $p; return true; }
+function IPS_SetIdent(int $id, string $i): bool { $GLOBALS['OBJ'][$id]['ident'] = $i; return true; }
+function IPS_SetPosition(int $id, int $p): bool { $GLOBALS['OBJ'][$id]['pos'] = $p; return true; }
+function IPS_SetMediaCached(int $id, bool $c): bool { $GLOBALS['OBJ'][$id]['cached'] = $c; return true; }
+function IPS_SetMediaFile(int $id, string $f, bool $muss): bool { $GLOBALS['OBJ'][$id]['datei'] = $f; return true; }
+function IPS_SetMediaContent(int $id, string $b64): bool { $GLOBALS['OBJ'][$id]['inhalt'] = $b64; return true; }
 function IPS_SemaphoreLeave(string $n): bool { return true; }
 const KL_MESSAGE = 10201;
 const KL_WARNING = 10204;
@@ -134,6 +145,7 @@ class IPSModule
     public function SetStatus(int $s): void { $this->status = $s; }
     public function RegisterTimer(string $n, int $ms, string $s): void { $this->timers[$n] = $ms; }
     public function SetTimerInterval(string $n, int $ms): void { $this->timers[$n] = $ms; }
+    public function GetTimerInterval(string $n): int { return (int)($this->timers[$n] ?? 0); }
     public function RegisterMessage(int $s, int $m): void {}
     public function SendDebug(string $a, string $b, int $c): void { $this->debug[] = "$a: $b"; }
     public function LogMessage(string $m, int $t): void { $GLOBALS['LOG'][] = $m; $GLOBALS['LOGSTUFE'][] = $t; }
@@ -1616,6 +1628,36 @@ $namenLive = array_map(function ($m) { return $m['name']; }, $k['karte']['marken
 sort($namenLive);
 check('Live-Rahmen ohne seg_inf: Namen aus der gespeicherten Karte', $namenLive === ['Bad', 'Küche'], json_encode($namenLive, JSON_UNESCAPED_UNICODE));
 check('… Räume farbig (Palette mit Raumfarben)', strlen(pngLesen($k['karte']['bild'])['plte'] ?? '') >= 3 * 6);
+// Karte als Medienobjekt (Forum alsk1 144636/105)
+$medium = function () use ($geraet) { $id = IPS_GetObjectIDByIdent('KarteBild', $geraet->InstanceID); return $id === false ? null : $GLOBALS['OBJ'][$id]; };
+check('Kartenbild als Medium: standardmäßig aus, kein Objekt, kein Takt', $medium() === null && ($geraet->timers['KarteBild'] ?? 0) === 0);
+$geraet->props['KarteMedium'] = true;
+FakeCloud::$liveOut = [['piid' => 1, 'value' => strtr(base64_encode(gzcompress($lKopf . $pix . json_encode(['tr' => 'M75,25L100,0']))), '+/', '-_')]];
+$geraet->LiveKarteLaden();
+check('… eingeschaltet: neue Karte plant das Bild (3 s gesammelt), noch kein Objekt', ($geraet->timers['KarteBild'] ?? 0) === 3000 && $medium() === null);
+$geraet->RequestAction('KarteBild', 0);
+$m = $medium();
+$mPng = $m ? base64_decode((string)$m['inhalt']) : '';
+$mGr = $mPng !== '' ? @getimagesizefromstring($mPng) : false;
+$kGr = @getimagesizefromstring(base64_decode(substr($k['karte']['bild'], 22)));
+check('… Takt danach aus, eigenes Bildobjekt unter dem Roboter mit gültigem PNG', ($geraet->timers['KarteBild'] ?? -1) === 0 && $m !== null && $m['media'] === MEDIATYPE_IMAGE && $m['parent'] === $geraet->InstanceID && $mGr !== false && $mGr[2] === IMAGETYPE_PNG);
+check('… hochskaliert (scharfe Bildpunkte) im Seitenverhältnis der Karte', $mGr && $kGr && $mGr[0] > $kGr[0] && $mGr[0] % $kGr[0] === 0 && $mGr[0] * $kGr[1] === $mGr[1] * $kGr[0]);
+$bildMit = RoboHubKartenMedium::bild($k['karte'], true);
+$bildOhne = RoboHubKartenMedium::bild($k['karte'], false);
+$bildLeer = RoboHubKartenMedium::bild(['bild' => $k['karte']['bild']], false);
+check('… Raumnamen und Weg werden ins Bild gezeichnet', $bildMit !== $bildOhne && $bildOhne !== $bildLeer);
+$miniZ = '';
+for ($y = 0; $y < 10; $y++) { $miniZ .= "\0"; for ($x = 0; $x < 10; $x++) { $miniZ .= ($x > 2 && $x < 7 && $y > 2 && $y < 7) ? "\1" : "\0"; } }
+$miniPng = (new ReflectionMethod('RoboHubKartenbild', 'png'))->invoke(null, 10, 10, [[0, 0, 0], [200, 50, 50]], $miniZ);
+$gd = imagecreatefromstring((string)RoboHubKartenMedium::bild(['bild' => 'data:image/png;base64,' . base64_encode($miniPng)], false));
+check('… außerhalb der Karte durchsichtig, Räume deckend', (imagecolorat($gd, 0, 0) >> 24) === 127 && (imagecolorat($gd, intdiv(imagesx($gd), 2), intdiv(imagesy($gd), 2)) >> 24) === 0);
+check('… ohne Kartenbild kein Bild', RoboHubKartenMedium::bild(['bild' => 'https://fremd/x.png'], true) === null && RoboHubKartenMedium::bild([], true) === null);
+$mid = IPS_GetObjectIDByIdent('KarteBild', $geraet->InstanceID);
+$geraet->RequestAction('KarteBild', 0);
+check('… zweites Zeichnen nutzt dasselbe Objekt', IPS_GetObjectIDByIdent('KarteBild', $geraet->InstanceID) === $mid);
+$geraet->props['KarteMedium'] = false;
+$geraet->ApplyChanges();
+check('… ausgeschaltet: eigenes Bildobjekt wieder entfernt', $medium() === null);
 $ohneNamen = RoboHubKartenbild::sauger(['json' => []] + $rohKarte, []);
 check('Räume ganz ohne Namen bekommen trotzdem eigene Farben', ($pz = pngLesen($ohneNamen['bild'])) && $pz['zeilen'][2 * intdiv($pz['b'], 4)][0] >= 4 && $ohneNamen['marken'] === []);
 FakeCloud::$liveOut = [];
