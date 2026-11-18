@@ -574,8 +574,8 @@
 ## Karte als Medienobjekt (0.42.0)
 
 - Wunsch alsk1 (Forum 144636/105, IPSView ohne WebView). `KarteMedium` → Medienobjekt Ident `KarteBild` unter dem Roboter,
-  `RoboHubKartenMedium::bild()` zeichnet mit GD (Kachel-Overlays ins Bild). Ob Symcons PHP GD mitbringt, live noch nicht geprüft
-  (Privat/Paul am 18.11. nicht erreichbar) — ohne GD nur das Kartenbild. Schrift: eingebaute GD-Schriften (ISO-8859-2), keine
+  `RoboHubKartenMedium::bild()` zeichnet mit GD (Kachel-Overlays ins Bild). Symcons PHP bringt GD mit (Privat 18.11.2026: PHP 8.5.12,
+  GD + imagepalettetotruecolor + mbstring vorhanden) — ohne GD nur das Kartenbild. Schrift: eingebaute GD-Schriften (ISO-8859-2), keine
   Schriftdatei (Store: Dateizugriff). Live offen: Darstellung in IPSView, Größe der Schrift.
 
 ## Eufy-Mäher-Treiber (0.34.0)
