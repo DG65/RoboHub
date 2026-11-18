@@ -562,7 +562,13 @@
   (Apache-2.0, rr-Format), Xiaomi-Cloud-Map-Extractor (MIT, getmapfileurl). python-miio (GPL) nur Wissen.
 - Unbelegt/offen: Bytes 8–15/18–23 des 301-Kopfs, echte Bildkopflängen (darum Felder vom Kopfende), Format des Mi-Home-Kartennamens,
   ob Saros/Qrevo immer pv 1.0 melden. B01 (Q7/Q10) hat ein anderes Kartenformat — nicht gebaut. Sperrzonen/virtuelle Wände (Blöcke 9/10)
-  und Teppich (17) nicht gezeichnet. Live-Karte = ein MQTT- bzw. miIO+Cloud-Abruf je Live-Takt.
+  nicht gezeichnet. Live-Karte = ein MQTT- bzw. miIO+Cloud-Abruf je Live-Takt.
+- 0.43.0: Block 17 = Unterkarte (ein Byte je Bildpunkt, gleicher Index wie Block 2): Bit 1 Teppich, Bit 8/16 in der App
+  ausgeblendet (vacuum-map-parser-roborock `_parse_submap`, image_parser `removed_map` → außen). `unterkarteAnwenden()` per
+  strtr + String-AND (schnell auch bei 1 Mio. Punkten). Teppich nur mit Eigenschaft `KarteTeppich`, Option reist als
+  `Teppich` in der Kontoanfrage. **Noch nie an echter Karte gesehen** — Debug „Karte" zeigt „ausgeblendet n Punkte, Teppich n Punkte".
+- Stationsteile `strainer_work_times`/`cleaning_brush_work_times` sind Zähler (150/300), keine Sekunden → nur Prozent.
+  `TEILE` im Gerätemodul: Position = Wert der Variable „Verbrauchsteil zurücksetzen“ → nur hinten anfügen.
 
 ## Roborock-Reinigungsmodus (0.40.0)
 

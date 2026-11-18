@@ -2,6 +2,22 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.43.0 (18.11.2026)
+
+- **Roborock: ausgeblendete Bereiche** (Forum alsk1 144636/115): Block 17 der „rr“-Karte (Unterkarte, ein Byte je Bildpunkt,
+  vacuum-map-parser-roborock `RoborockSubmapType`) wird gelesen. Bits 8/16 (REMOVED_BORDER/REMOVED_AREA) = in der App
+  ausgeblendet → als „außen“ gezeichnet; das Bild schrumpft auf den sichtbaren Teil.
+- **Teppiche** (Bit 1): neue Eigenschaft `KarteTeppich` (Standard aus) zeichnet sie als Karomuster (eigene Paletten-
+  farbe, Raumfarben bleiben). Die Option geht mit den Anfragen `raeume`/`livekarte` ans Konto (`$geraet['teppich']`);
+  Ändern lädt die Karte beim nächsten Abruf neu. `RoboHubKartenbild::sauger()` nimmt die Maske `$roh['teppich']`
+  herstellerneutral.
+- **Roborock: Stationsteile** (Forum alsk1 144636/116): `strainer_work_times` (150) → „Waschwanne (Sieb der Station)“,
+  `cleaning_brush_work_times` (300) → „Reinigungsbürste“, nur Prozent (Zähler, keine Sekunden); zurücksetzbar
+  (python-roborock `ConsumableAttribute`).
+- **Variable „Verbrauchsteil zurücksetzen“** (Eigenschaft `TeilVariable`, Standard aus): Aufzählung der vorhandenen Teile,
+  Wert = Position in `TEILE` (neue Teile nur hinten anfügen). Ausschalten löscht die Variable.
+  - Prüfstand: 14 neue Prüfungen.
+
 ## 0.42.0 (18.11.2026)
 
 - **Neu: Karte als Bild (Medienobjekt)** (Forum alsk1 144636/105: IPSView ohne WebView). Eigenschaft `KarteMedium` (Standard aus)

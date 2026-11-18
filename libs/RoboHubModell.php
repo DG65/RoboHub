@@ -144,6 +144,7 @@ final class RoboHubModell
         'Sensoren'           => ['Sensors', 1, ' %', 0, 54],
         'Abwasserfilter'     => ['Waste water outlet filter', 1, ' %', 0, 58],
         'Schmutzwasserbehaelter' => ['Dirty water tank (robot)', 1, ' %', 0, 59],
+        'Waschwanne'         => ['Wash tray (dock strainer)', 1, ' %', 0, 66],
         'Station'            => ['Station', 3, '', 0, 60],
         'Frischwasser'       => ['Clean water', 3, '', 0, 61],
         'Schmutzwasser'      => ['Dirty water', 3, '', 0, 62],

@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.42.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.43.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -109,11 +109,13 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
 - **Raum reinigen** (Sauger) bzw. **Zone mähen** (Mäher): Auswahl der Räume bzw. Mähzonen aus der
   gespeicherten Karte, auch mehrere auf einmal.
 - Fehler, Akku, Lädt, gereinigte Fläche, Reinigungsdauer, Verbrauchsteile (Hauptbürste,
-  Seitenbürste, Filter, Mopp/Walze, Sensoren, beim Mäher Messer), Station, Frisch-/
+  Seitenbürste, Filter, Mopp/Walze, Sensoren, bei Roborock mit Station Waschwanne und
+  Reinigungsbürste, beim Mäher Messer), Station, Frisch-/
   Schmutzwasser, Staubbeutel, Reinigungsmittel, Gesamtstatistik.
 - Saugstufe, Wassermenge, Reinigungsmodus: direkt schaltbar.
 - **Kartenbild** auf Kachel und IPSView-Seite: Räume bzw. Mähzonen mit Namen zum Antippen; Antippen der Karte vergrößert sie auf die ganze Kachel (seit 0.41.0), gewählte Räume lassen sich dort direkt starten (seit 0.41.1).
 - **Karte als Bild** (seit 0.42.0): auf Wunsch zusätzlich als Medienobjekt „Karte“ (PNG mit Räumen, Station, Weg, Roboter und Raumnamen, außen durchsichtig), z. B. für IPSView ohne WebView. Einschalten unter „Kachel und IPSView“. Braucht die GD-Erweiterung von PHP, sonst nur die Räume.
+- **Roborock-Karte wie in der App** (seit 0.43.0): in der App ausgeblendete Bereiche fehlen auch in RoboHub; Teppiche auf Wunsch als Karomuster („Teppiche in der Karte zeigen“).
 - **Raum reinigen mit Wahl** wie das „benutzerdefiniert"-Fenster der App: Modus, Saugstufe und
   Durchgänge nur für diesen Start.
 - **Zeitpläne** (Saug- und Mähroboter) aus der Hersteller-App anzeigen und ein-/ausschalten.
@@ -121,7 +123,8 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
 - **Nicht stören** (an/aus, Beginn, Ende) und **Lautstärke**: direkt schaltbar, bei Saug- und
   Mährobotern.
 - **Verbrauchsteile zurücksetzen** nach Wechsel oder Reinigung — im Formular (mit
-  Sicherheitsabfrage) und auf der Kachel (↺, dann bestätigen). Jede Rücksetzung steht im
+  Sicherheitsabfrage) und auf der Kachel (↺, dann bestätigen), auf Wunsch auch über die Variable
+  „Verbrauchsteil zurücksetzen“ (seit 0.43.0, z. B. für IPSView). Jede Rücksetzung steht im
   Symcon-Protokoll.
 
 ## Echtzeit-Meldungen

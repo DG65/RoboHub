@@ -169,6 +169,12 @@ class IPSModule
     public function MaintainVariable(string $ident, string $name, int $type, $pres, int $pos, bool $keep): void
     { $this->maintainZaehler++;
         $id = IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        if (!$keep) {                           // wie Symcon: $Keep = false löscht die Variable
+            if ($id !== false) {
+                unset($GLOBALS['OBJ'][$id]);
+            }
+            return;
+        }
         if ($id === false) {
             $id = $GLOBALS['NEXT']++;
             $def = [false, 0, 0.0, ''][$type];

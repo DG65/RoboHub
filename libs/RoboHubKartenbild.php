@@ -33,6 +33,8 @@ final class RoboHubKartenbild
     // Trennlinie zwischen zwei Räumen: weiß wie die Raumfugen der Dreamehome-App.
     private const TRENNLINIE = [255, 255, 255];
     private const TRENN = 3;
+    // Teppich: Schachbrett aus dieser Farbe und der Raumfarbe (wie vacuum-map-parser-roborock: (x + y) % 2).
+    private const TEPPICH = [118, 126, 138];
 
     // Klassen im Zwischenraster: 0 außen, 1 Wand, 2 Boden ohne Raum, 100+n Raum n.
     private const AUSSEN = 0;
@@ -70,8 +72,10 @@ final class RoboHubKartenbild
     /**
      * $versteckt: in der App deaktivierte Räume (Kartenfeld „delsr“) — ihre Bildpunkte
      * werden nicht gezeichnet, wie bei Tasshack (map.py hidden_segments).
+     * $teppich: Teppichflächen aus $roh['teppich'] (Maske „\1" je Punkt, gleicher Aufbau wie 'pixel')
+     * gemustert zeigen — bisher liefert nur Roborock die Maske.
      */
-    public static function sauger(array $roh, array $raeume, bool $live = false, array $versteckt = []): array
+    public static function sauger(array $roh, array $raeume, bool $live = false, array $versteckt = [], bool $teppich = false): array
     {
         $leer = ['bild' => '', 'marken' => [], 'station' => null, 'format' => 1.0, 'kodierung' => ''];
         $b = (int)($roh['breite'] ?? 0);
@@ -97,6 +101,11 @@ final class RoboHubKartenbild
         $zaehler = count_chars($pixel, 1);
         $tabelle = [];
         $verstecktMenge = array_fill_keys(array_map('intval', $versteckt), true);
+        $teppichMaske = $teppich ? (string)($roh['teppich'] ?? '') : '';
+        if (strlen($teppichMaske) < $b * $h) {
+            $teppichMaske = '';
+        }
+        $aufTeppich = [];
         foreach (array_keys($zaehler) as $wert) {
             $k = self::klassifiziere($kodierung, $wert);
             $seg = self::raumVonPunkt($kodierung, $wert);
@@ -111,6 +120,9 @@ final class RoboHubKartenbild
                     continue;
                 }
                 $klasse[$y][$x] = $k;
+                if ($teppichMaske !== '' && $k !== self::WANDPUNKT && $teppichMaske[$basis + $x] !== "\0") {
+                    $aufTeppich[$y][$x] = true;
+                }
                 $minX = min($minX, $x);
                 $maxX = max($maxX, $x);
                 $minY = min($minY, $y);
@@ -135,6 +147,10 @@ final class RoboHubKartenbild
         sort($ids);
         $index = [];
         $palette = [[255, 255, 255], self::WAND, self::BODEN, self::TRENNLINIE];
+        $teppichIndex = $aufTeppich === [] ? -1 : 4;
+        if ($teppichIndex > 0) {
+            $palette[] = self::TEPPICH;
+        }
         foreach ($ids as $i => $id) {
             if (count($palette) >= 256) {
                 break;
@@ -166,6 +182,9 @@ final class RoboHubKartenbild
                     unset($s);
                 } else {
                     $p = $k;
+                }
+                if ($teppichIndex > 0 && isset($aufTeppich[$y][$x]) && (($x + $y) & 1)) {
+                    $p = $teppichIndex;
                 }
                 $rechts = $andererRaum($k, $klasse[$y][$x + 1] ?? self::AUSSEN);
                 $teil = str_repeat(chr($p), $f - 1) . chr($rechts ? self::TRENN : $p);

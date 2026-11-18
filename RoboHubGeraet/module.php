@@ -64,6 +64,11 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterPropertyBoolean('KarteNamen', true);
         // Karte zusätzlich als Medienobjekt (PNG) — für IPSView-Bildelemente ohne WebView (Forum alsk1 144636/105).
         $this->RegisterPropertyBoolean('KarteMedium', false);
+        // Teppichflächen gemustert in der Karte (Forum alsk1 144636/115; liefert bisher nur Roborock).
+        $this->RegisterPropertyBoolean('KarteTeppich', false);
+        $this->RegisterAttributeBoolean('TeppichGeladen', false);
+        // Verbrauchsteile über eine Variable zurücksetzen, z. B. aus IPSView (Forum alsk1 144636/116).
+        $this->RegisterPropertyBoolean('TeilVariable', false);
         $this->RegisterPropertyInteger('Farbschema', 0);   // 0 automatisch, 1 hell, 2 dunkel
         $this->RegisterPropertyInteger('Symbole', 0);      // 0 Symcon-Symbole (icons.js), 1 Emojis (Forum Thilo 26.10.2026)
         $this->RegisterPropertyBoolean('EinstellungenZeigen', true);
@@ -149,6 +154,11 @@ class RoboHubGeraet extends IPSModule
         // sonst bliebe er bis zum nächsten Live-Rahmen des Roboters im alten Wortlaut stehen.
         $this->raumEinstellungenVariable();
         $this->kartenBildPlanen();
+        $this->teilVariable();
+        // Teppich-Option geändert → Karte beim nächsten Abruf neu holen (das Bild entsteht im Konto).
+        if ($this->ReadPropertyBoolean('KarteTeppich') !== $this->ReadAttributeBoolean('TeppichGeladen')) {
+            $this->WriteAttributeInteger('RaeumeStand', 0);
+        }
         $this->SetStatus(102);
         $this->SetTimerInterval('Abruf', $this->taktSekunden() * 1000);
     }
@@ -185,6 +195,11 @@ class RoboHubGeraet extends IPSModule
                 return;
             case 'Zuruecksetzen':
                 $this->kachelAktualisieren($this->VerbrauchsteilZuruecksetzen((string)$Value));
+                return;
+            case 'TeilZuruecksetzen':
+                // Variable „Verbrauchsteil zurücksetzen": Wert = Position in TEILE (ab 1), bleibt nicht stehen.
+                $teil = self::TEILE[(int)$Value - 1][0] ?? '';
+                $this->kachelAktualisieren($this->VerbrauchsteilZuruecksetzen($teil));
                 return;
             case 'Zeitplan':
                 // Aus der Kachel: „ID:1" bzw. „ID:0".
@@ -1075,6 +1090,7 @@ class RoboHubGeraet extends IPSModule
             $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
         }
         $this->SetBuffer('Uebernommen', (string)json_encode(array_replace($vorher, $jetzt)));
+        $this->teilVariable();
         $this->WriteAttributeString('Optionen', (string)json_encode($optionen));
 
         if (array_key_exists('zeitplaene', $daten) && is_array($daten['zeitplaene'])) {
@@ -1098,7 +1114,7 @@ class RoboHubGeraet extends IPSModule
      */
     public function LiveKarteLaden(): string
     {
-        $antwort = $this->frageKonto(['Aktion' => 'livekarte', 'Geraet' => $this->ReadPropertyString('GeraetID'),
+        $antwort = $this->frageKonto(['Aktion' => 'livekarte', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Teppich' => $this->ReadPropertyBoolean('KarteTeppich'),
             'Raeume' => json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: []]);
         if (!$antwort['ok']) {
             $this->SendDebug('Live-Karte', (string)$antwort['fehler'], 0);
@@ -1169,7 +1185,8 @@ class RoboHubGeraet extends IPSModule
     private function ladeRaeume(): string
     {
         $this->WriteAttributeInteger('RaeumeStand', time());
-        $antwort = $this->frageKonto(['Aktion' => 'raeume', 'Geraet' => $this->ReadPropertyString('GeraetID')]);
+        $this->WriteAttributeBoolean('TeppichGeladen', $this->ReadPropertyBoolean('KarteTeppich'));
+        $antwort = $this->frageKonto(['Aktion' => 'raeume', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Teppich' => $this->ReadPropertyBoolean('KarteTeppich')]);
         if (!$antwort['ok']) {
             $this->SendDebug('Räume', (string)$antwort['fehler'], 0);
             return '⛔ ' . $antwort['fehler'];
@@ -1382,6 +1399,8 @@ class RoboHubGeraet extends IPSModule
         ['Messer', 'MesserRest', 'Cutting blades'],
         ['Reinigungsbuerste', 'ReinigungsbuersteRest', 'Cleaning brush'],
         ['Wartung', 'WartungRest', 'Robot maintenance'],
+        // Neue Teile nur hinten anfügen: die Position ist der Wert der Variable „Verbrauchsteil zurücksetzen".
+        ['Waschwanne', 'WaschwanneRest', 'Wash tray (dock strainer)'],
     ];
 
     private function hookPfad(): string
@@ -1710,6 +1729,8 @@ class RoboHubGeraet extends IPSModule
                 ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Show the robot\'s settings (suction level, passes, do not disturb …) in the tile overview — the instance\'s variables always stay'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Show map image (rooms or mowing zones to tap)'],
                 ['type' => 'CheckBox', 'name' => 'KarteNamen', 'caption' => 'Show room names in the map image (default — can also be switched per device in the tile)'],
+                ['type' => 'CheckBox', 'name' => 'KarteTeppich', 'caption' => 'Show carpets in the map'],
+                ['type' => 'Label', 'name' => 'KarteTeppichHint', 'caption' => 'Carpets marked in the app appear as a checkered pattern in the tile and in the map image. So far only Roborock provides them.'],
                 ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live map while working (driven path and robot position; vacuums every 30 s, mowers every 60 s)'],
                 ['type' => 'CheckBox', 'name' => 'KarteMedium', 'caption' => 'Also provide the map as an image (media object)'],
                 ['type' => 'Label', 'name' => 'KarteMediumHint', 'caption' => 'Creates the media object "Map" below this robot: rooms, dock, driven path, robot and – if switched on above – room names, transparent outside the map. Use it e.g. as an image in IPSView. Updated at most every 3 seconds; switching off removes it again.'],
@@ -1842,6 +1863,35 @@ class RoboHubGeraet extends IPSModule
         return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => RoboHubText::t('🗓️  Schedules (%s)', count($termine)), 'items' => $items];
     }
 
+    /**
+     * Variable „Verbrauchsteil zurücksetzen" (Option TeilVariable): Auswahl der Teile, die das Gerät
+     * meldet; Wählen setzt den Zähler zurück wie der Knopf im Formular. Nur neu anlegen, wenn sich
+     * die Auswahl ändert (Aufruf nach jedem Abruf).
+     */
+    private function teilVariable(): void
+    {
+        if (!$this->ReadPropertyBoolean('TeilVariable')) {
+            if ($this->hatVariable('TeilZuruecksetzen')) {
+                $this->MaintainVariable('TeilZuruecksetzen', '', VARIABLETYPE_INTEGER, '', 0, false);
+            }
+            $this->SetBuffer('TeilAuswahl', '');
+            return;
+        }
+        $auswahl = [];
+        foreach (self::TEILE as $i => [$pIdent, , $name]) {
+            if ($this->wert($pIdent) !== null) {
+                $auswahl[$i + 1] = $name;
+            }
+        }
+        $merker = md5((string)json_encode([$auswahl, RoboHubText::wert('Main brush')]));
+        if ($auswahl === [] || ($this->GetBuffer('TeilAuswahl') === $merker && $this->hatVariable('TeilZuruecksetzen'))) {
+            return;
+        }
+        $this->MaintainVariable('TeilZuruecksetzen', RoboHubText::t('Reset consumable'), VARIABLETYPE_INTEGER, $this->presEnum($auswahl), 99, true);
+        $this->EnableAction('TeilZuruecksetzen');
+        $this->SetBuffer('TeilAuswahl', $merker);
+    }
+
     private function verbrauchPanel(): ?array
     {
         $items = [['type' => 'Label', 'caption' => 'After replacing or cleaning a part, reset its counter here — as in the vendor app. Every reset is recorded in the Symcon log.']];
@@ -1858,6 +1908,8 @@ class RoboHubGeraet extends IPSModule
         if (count($items) === 1) {
             return null;
         }
+        $items[] = ['type' => 'CheckBox', 'name' => 'TeilVariable', 'caption' => 'Reset also via a variable'];
+        $items[] = ['type' => 'Label', 'name' => 'TeilVariableHint', 'caption' => 'Creates the variable "Reset consumable" below this robot, e.g. for IPSView. Choosing a part there resets its counter right away — without a confirmation prompt.'];
         return ['type' => 'ExpansionPanel', 'expanded' => false, 'caption' => '🔧  Reset consumables', 'items' => $items];
     }
 

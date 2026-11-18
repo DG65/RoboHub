@@ -32,6 +32,13 @@ final class RoboHubRoborockKarte
     private const BLOCK_BILD = 2;
     private const BLOCK_WEG = 3;
     private const BLOCK_ROBOTER = 8;
+    private const BLOCK_UNTERKARTE = 17;
+
+    // Unterkarte (Block 17): ein Byte je Bildpunkt, Bits nach map_data_parser.py RoborockSubmapType.
+    // Entfernte Bereiche = in der App ausgeblendete Flächen (Blick durch die Tür in den Garten,
+    // ins Treppenhaus …) — die App und vacuum-map-parser-roborock zeichnen sie als „außen".
+    private const UNTER_TEPPICH = 1;
+    private const UNTER_ENTFERNT = 8 | 16;          // REMOVED_BORDER | REMOVED_AREA
 
     // Bildpunkte (image_parser.py)
     private const PUNKT_AUSSEN = 0x00;
@@ -104,7 +111,8 @@ final class RoboHubRoborockKarte
     /**
      * „rr"-Datei → Rohkarte für RoboHubKartenbild::sauger():
      * ['breite', 'hoehe', 'pixel' (Kodierung „rahmen"), 'json' => ['fsm' => 1], 'raster', 'links', 'oben',
-     *  'station' => [x, y] | null, 'roboter' => [x, y, Winkel] | null, 'weg' => [[[x, y], …]], 'raeume' => [IDs]]
+     *  'station' => [x, y] | null, 'roboter' => [x, y, Winkel] | null, 'weg' => [[[x, y], …]], 'raeume' => [IDs],
+     *  'teppich' => Maske („\1" je Teppichpunkt, wie 'pixel') | '' , 'entfernt' => Zahl ausgeblendeter Punkte]
      * oder null, wenn die Datei kein Bild trägt.
      */
     public static function lesen(string $rr): ?array
@@ -116,6 +124,7 @@ final class RoboHubRoborockKarte
         $pos = unpack('v', substr($rr, 2, 2))[1];
         $roh = ['station' => null, 'roboter' => null, 'weg' => []];
         $bild = null;
+        $unterkarte = '';
         while ($pos + 8 <= $n) {
             $k = unpack('vtyp/vkopf/Vlaenge', substr($rr, $pos, 8));
             $kopf = (int)$k['kopf'];
@@ -140,6 +149,9 @@ final class RoboHubRoborockKarte
                             'hoehe' => self::int32($kopfDaten, $kopf - 8), 'breite' => self::int32($kopfDaten, $kopf - 4), 'pixel' => $daten];
                     }
                     break;
+                case self::BLOCK_UNTERKARTE:
+                    $unterkarte = $daten;
+                    break;
                 case self::BLOCK_WEG:
                     // Punkte je 4 Byte (x, y als u16 in mm) ab Kopfende (map_data_parser.py _parse_path).
                     $punkte = [];
@@ -157,7 +169,9 @@ final class RoboHubRoborockKarte
         if ($bild === null || $bild['breite'] <= 0 || $bild['hoehe'] <= 0 || strlen($bild['pixel']) < $bild['breite'] * $bild['hoehe']) {
             return null;
         }
-        [$pixel, $raeume] = self::uebersetzen(substr($bild['pixel'], 0, $bild['breite'] * $bild['hoehe']));
+        $flaeche = $bild['breite'] * $bild['hoehe'];
+        [$roherPunkte, $teppich, $entfernt] = self::unterkarteAnwenden(substr($bild['pixel'], 0, $flaeche), $unterkarte);
+        [$pixel, $raeume] = self::uebersetzen($roherPunkte);
         return $roh + [
             'breite' => $bild['breite'], 'hoehe' => $bild['hoehe'], 'pixel' => $pixel,
             'json'   => ['fsm' => 1],
@@ -165,7 +179,39 @@ final class RoboHubRoborockKarte
             'links'  => $bild['links'] * self::RASTER,
             'oben'   => $bild['oben'] * self::RASTER,
             'raeume' => $raeume,
+            'teppich' => $teppich,
+            'entfernt' => $entfernt,
         ];
+    }
+
+    /**
+     * Unterkarte auf die Bildpunkte anwenden (image_parser.py parse: removed_map → MAP_OUTSIDE,
+     * carpet_map → Teppich). Gleicher Index wie das Bild. Rückgabe [Bildpunkte mit entfernten Flächen
+     * als 0x00, Teppichmaske („\1"/„\0", leer ohne Teppich), Zahl entfernter Punkte].
+     */
+    public static function unterkarteAnwenden(string $pixel, string $unterkarte): array
+    {
+        $n = strlen($pixel);
+        if ($unterkarte === '') {
+            return [$pixel, '', 0];
+        }
+        // Kürzere Unterkarte: Rest bleibt unverändert; längere: abschneiden.
+        $unterkarte = str_pad(substr($unterkarte, 0, $n), $n, "\0");
+        static $behalten = null, $teppichTab = null;
+        if ($behalten === null) {
+            $von = $nachB = $nachT = '';
+            for ($v = 0; $v < 256; $v++) {
+                $von .= chr($v);
+                $nachB .= ($v & self::UNTER_ENTFERNT) ? "\0" : "\xff";
+                $nachT .= (($v & self::UNTER_TEPPICH) && !($v & self::UNTER_ENTFERNT)) ? "\1" : "\0";
+            }
+            $behalten = [$von, $nachB];
+            $teppichTab = [$von, $nachT];
+        }
+        $maske = strtr($unterkarte, $behalten[0], $behalten[1]);
+        $entfernt = substr_count($maske, "\0");
+        $teppich = strtr($unterkarte, $teppichTab[0], $teppichTab[1]);
+        return [$entfernt > 0 ? ($pixel & $maske) : $pixel, strpos($teppich, "\1") === false ? '' : $teppich, $entfernt];
     }
 
     /** Bildpunkte Roborock → Kodierung „rahmen"; Rückgabe [Pixel, Raumnummern im Bild]. */
@@ -219,12 +265,13 @@ final class RoboHubRoborockKarte
     }
 
     /**
-     * Rohkarte + Raumnamen → Kachel-Karte (wie Dreame). $live = Weg und Roboter mitzeichnen.
+     * Rohkarte + Raumnamen → Kachel-Karte (wie Dreame). $live = Weg und Roboter mitzeichnen,
+     * $teppich = Teppichflächen gemustert zeigen (Option „Teppiche in der Karte zeigen").
      * Räume ohne Namen bekommen „Room n" nicht — sie bleiben farbig ohne Beschriftung.
      */
-    public static function bild(array $roh, array $raeume, bool $live): array
+    public static function bild(array $roh, array $raeume, bool $live, bool $teppich = false): array
     {
-        $bild = RoboHubKartenbild::sauger($roh, $raeume, $live);
+        $bild = RoboHubKartenbild::sauger($roh, $raeume, $live, [], $teppich);
         unset($bild['kodierung']);
         return $bild;
     }

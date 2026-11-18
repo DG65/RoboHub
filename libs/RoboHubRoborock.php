@@ -139,14 +139,17 @@ PEM;
         49 => 'Water drain disturbed', 51 => 'Temperature protection', 56 => 'Speaker error',
     ];
 
-    // Verbrauchsteile: Feld in get_consumable → [RoboHub-Ident, Lebensdauer in Sekunden]
-    // (roborock/const.py *_REPLACE_TIME).
+    // Verbrauchsteile: Feld in get_consumable → [RoboHub-Ident, Lebensdauer, Sekunden?]
+    // (roborock/const.py *_REPLACE_TIME). Die Stationsteile zählen keine Sekunden (STRAINER 150,
+    // CLEANING_BRUSH 300) — dort nur Prozent, keine Reststunden. Nur Geräte mit Station melden sie.
     private const TEILE = [
-        'main_brush_work_time' => ['Hauptbuerste', 1080000],
-        'side_brush_work_time' => ['Seitenbuerste', 720000],
-        'filter_work_time'     => ['Filter', 540000],
-        'sensor_dirty_time'    => ['Sensoren', 108000],
-        'moproller_work_time'  => ['Mopp', 1080000],
+        'main_brush_work_time'      => ['Hauptbuerste', 1080000, true],
+        'side_brush_work_time'      => ['Seitenbuerste', 720000, true],
+        'filter_work_time'          => ['Filter', 540000, true],
+        'sensor_dirty_time'         => ['Sensoren', 108000, true],
+        'moproller_work_time'       => ['Mopp', 1080000, true],
+        'strainer_work_times'       => ['Waschwanne', 150, false],
+        'cleaning_brush_work_times' => ['Reinigungsbuerste', 300, false],
     ];
 
     // Saugstufen. Neuere Geräte nutzen 101–108, ältere 38–100
@@ -533,11 +536,13 @@ PEM;
             $optionen['Wassermenge'] = $liste;
         }
 
-        foreach (self::TEILE as $feld => [$ident, $max]) {
+        foreach (self::TEILE as $feld => [$ident, $max, $sekunden]) {
             if (isset($p[$feld]) && is_numeric($p[$feld])) {
                 $rest = max(0, $max - (int)$p[$feld]);
                 $w[$ident] = (int)max(0, min(100, round($rest * 100 / $max)));
-                $w[$ident . 'Rest'] = (float)round($rest / 3600);
+                if ($sekunden) {
+                    $w[$ident . 'Rest'] = (float)round($rest / 3600);
+                }
             }
         }
 
@@ -647,9 +652,10 @@ PEM;
             $this->dbg('Karte', $rr === null ? 'Keine Kartendatei erhalten.' : 'Kartendatei ohne lesbares Bild (' . strlen($rr) . ' Byte, Anfang ' . bin2hex(substr($rr, 0, 24)) . ').');
             return $leer;
         }
-        $bild = RoboHubRoborockKarte::bild($roh, $raeume, $live);
+        $bild = RoboHubRoborockKarte::bild($roh, $raeume, $live, !empty($geraet['teppich']));
         $this->dbg('Karte', $roh['breite'] . '×' . $roh['hoehe'] . ' Punkte, Räume im Bild ' . json_encode($roh['raeume']) . ', Station ' . json_encode($roh['station'])
-            . ', Roboter ' . json_encode($roh['roboter']) . ', Weg ' . count($roh['weg'][0] ?? []) . ' Punkte.');
+            . ', Roboter ' . json_encode($roh['roboter']) . ', Weg ' . count($roh['weg'][0] ?? []) . ' Punkte, ausgeblendet ' . $roh['entfernt']
+            . ' Punkte, Teppich ' . ($roh['teppich'] === '' ? 'keiner' : substr_count($roh['teppich'], "\1") . ' Punkte') . '.');
         return $bild;
     }
 
@@ -922,10 +928,11 @@ PEM;
         return RoboHubText::t('Time for "Do not disturb" set.');
     }
 
-    // reset_consumable mit dem Feldnamen (consumeable.py).
+    // reset_consumable mit dem Feldnamen (consumeable.py ConsumableAttribute).
     private const RUECKSETZEN = [
         'Hauptbuerste' => 'main_brush_work_time', 'Seitenbuerste' => 'side_brush_work_time',
         'Filter' => 'filter_work_time', 'Sensoren' => 'sensor_dirty_time', 'Mopp' => 'moproller_work_time',
+        'Waschwanne' => 'strainer_work_times', 'Reinigungsbuerste' => 'cleaning_brush_work_times',
     ];
 
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string

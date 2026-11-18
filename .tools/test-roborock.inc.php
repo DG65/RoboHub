@@ -187,6 +187,27 @@ foreach ($t3 as $i => $t) {
 check('Teile: lückenlos mit 301 am Ende → zusammengesetzt', RoboHubRoborockKarte::teileZusammen(array_reverse($teileGanz, true), '87ItGWdb') === $roh301);
 unset($teileGanz[21]);
 check('Teile: Lücke → null', RoboHubRoborockKarte::teileZusammen($teileGanz, '87ItGWdb') === null);
+// Unterkarte (Block 17): ein Byte je Bildpunkt; 16 = in der App ausgeblendet, 8 = ausgeblendeter Rand, 1 = Teppich.
+$rrUnter = function (string $unter): string {
+    $rr = roborockTestKarte();
+    $block = pack('vvV', 17, 8, strlen($unter)) . $unter;
+    return substr($rr, 0, 4) . pack('V', unpack('V', substr($rr, 4, 4))[1] + strlen($block)) . substr($rr, 8) . $block;
+};
+// Zeile 1 (unten über der Wand): rechte drei Punkte (Raum 17) ausgeblendet; Zeile 2: Raum 16 mit Teppich.
+$rkU = RoboHubRoborockKarte::lesen($rrUnter(str_repeat("\0", 6) . "\0\0\0\x10\x08\x18" . "\x01\x01\x01\0\0\0" . str_repeat("\0", 6)));
+check('ausgeblendete Bereiche (Block 17, Bit 8/16) → außen, Rest unverändert', is_array($rkU) && $rkU['entfernt'] === 3
+    && $rkU['pixel'] === str_repeat(chr(252), 6) . str_repeat(chr(64), 3) . "\0\0\0" . str_repeat(chr(64), 3) . str_repeat(chr(68), 3) . "\0" . str_repeat(chr(248), 4) . "\0", json_encode($rkU === null ? null : bin2hex($rkU['pixel'])));
+check('Teppichmaske aus Bit 1, ausgeblendet hat Vorrang', ($rkU['teppich'] ?? '') === str_repeat("\0", 12) . "\1\1\1" . str_repeat("\0", 9));
+check('ohne Block 17: keine Maske, nichts ausgeblendet', $rk0['teppich'] === '' && $rk0['entfernt'] === 0);
+$nurRaum16 = RoboHubRoborockKarte::lesen($rrUnter(str_repeat("\0\0\0\x10\x10\x10", 4)));   // rechte Hälfte ganz ausgeblendet
+$bildU = RoboHubRoborockKarte::bild($nurRaum16, [16 => 'Küche', 17 => 'Flur'], false);
+check('ganz ausgeblendeter Raum: keine Beschriftung, Bild schmaler (Platz gespart)', array_column($bildU['marken'], 'name') === ['Küche'] && $bildU['format'] < $rkBild['format'], json_encode([$bildU['format'], $rkBild['format']]));
+$mitT = RoboHubRoborockKarte::bild($rkU, [16 => 'Küche'], false, true);
+$ohneT = RoboHubRoborockKarte::bild($rkU, [16 => 'Küche'], false, false);
+$plte = function (string $uri): string { $png = base64_decode(substr($uri, 22)); $i = strpos($png, 'PLTE'); return substr($png, $i + 4, unpack('N', substr($png, $i - 4, 4))[1]); };
+check('Teppich nur auf Wunsch: eigene Farbe in der Palette, sonst Bild wie bisher', strpos($plte($mitT['bild']), "\x76\x7e\x8a") !== false
+    && strpos($plte($ohneT['bild']), "\x76\x7e\x8a") === false && $mitT['bild'] !== $ohneT['bild']);
+check('Teppich ändert keine Raumfarbe', substr($plte($mitT['bild']), 15) === substr($plte($ohneT['bild']), 12));
 check('kaputte Datei → null (kein Absturz)', RoboHubRoborockKarte::lesen('rr' . str_repeat("\xff", 40)) === null && RoboHubRoborockKarte::lesen('xx') === null
     && RoboHubRoborockKarte::entpacken("\x1f\x8bkaputt") === null);
 
@@ -412,6 +433,41 @@ FakeRoborock::$antworten['get_dnd_timer'] = $alle['get_dnd_timer'];
 FakeRoborock::$rpc = [];
 $t = $rr->VerbrauchsteilZuruecksetzen('Hauptbuerste');
 check('Hauptbürste zurücksetzen = reset_consumable main_brush_work_time', FakeRoborock::$rpc[0][0] === 'reset_consumable' && FakeRoborock::$rpc[0][1] === ['main_brush_work_time'], $t);
+FakeRoborock::$rpc = [];
+$t = $rr->VerbrauchsteilZuruecksetzen('Waschwanne');
+check('Waschwanne ohne Meldung des Geräts → nicht zurücksetzbar, nichts gesendet', FakeRoborock::$rpc === [] && strpos($t, '⛔') === 0, $t);
+check('ohne Option keine Rücksetz-Variable', variable(4100, 'TeilZuruecksetzen') === null);
+FakeRoborock::$antworten['get_consumable'][0] += ['strainer_work_times' => 75, 'cleaning_brush_work_times' => 30];
+$rr->Aktualisieren();
+check('Stationsteile: Waschwanne 50 % (150), Reinigungsbürste 90 % (300), keine Reststunden', variable(4100, 'Waschwanne')['value'] === 50
+    && variable(4100, 'Reinigungsbuerste')['value'] === 90 && variable(4100, 'WaschwanneRest') === null && variable(4100, 'ReinigungsbuersteRest') === null);
+$rr->props['TeilVariable'] = true;
+$rr->ApplyChanges();
+$tv = variable(4100, 'TeilZuruecksetzen');
+$tvOpt = array_column((array)json_decode((string)($tv['pres']['OPTIONS'] ?? ''), true), 'Caption', 'Value');
+check('Option an: Variable „Verbrauchsteil zurücksetzen" mit den Teilen des Geräts, schaltbar', $tv !== null && $tv['action'] && $tv['name'] === 'Verbrauchsteil zurücksetzen'
+    && ($tvOpt[11] ?? '') === 'Waschwanne (Sieb der Station)' && ($tvOpt[1] ?? '') === 'Hauptbürste' && !isset($tvOpt[8]), json_encode($tvOpt, JSON_UNESCAPED_UNICODE));
+FakeRoborock::$rpc = [];
+$rr->RequestAction('TeilZuruecksetzen', 11);
+check('Waschwanne über die Variable = reset_consumable strainer_work_times', (FakeRoborock::$rpc[0][0] ?? '') === 'reset_consumable' && FakeRoborock::$rpc[0][1] === ['strainer_work_times']);
+FakeRoborock::$rpc = [];
+$rr->RequestAction('TeilZuruecksetzen', 9);
+check('Reinigungsbürste = reset_consumable cleaning_brush_work_times', (FakeRoborock::$rpc[0][1] ?? null) === ['cleaning_brush_work_times']);
+$rr->Aktualisieren();
+check('Rücksetz-Variable nicht bei jedem Abruf neu angelegt', count(array_filter($GLOBALS['OBJ'], function ($o) { return ($o['ident'] ?? '') === 'TeilZuruecksetzen' && ($o['parent'] ?? 0) === 4100; })) === 1);
+$rr->props['TeilVariable'] = false;
+$rr->ApplyChanges();
+check('Option aus: Variable entfernt', variable(4100, 'TeilZuruecksetzen') === null);
+FakeRoborock::$antworten['get_consumable'] = $alle['get_consumable'] ?? $fx('get_consumeables');
+FakeRoborock::$rpc = [];
+$rr->props['KarteTeppich'] = true;
+$rr->ApplyChanges();
+$rr->Aktualisieren();
+check('Teppich-Option geändert → Karte beim nächsten Abruf neu geholt', in_array('get_map_v1', array_column(FakeRoborock::$rpc, 0), true));
+FakeRoborock::$rpc = [];
+$rr->ApplyChanges();
+$rr->Aktualisieren();
+check('… danach nicht bei jedem Übernehmen erneut', !in_array('get_map_v1', array_column(FakeRoborock::$rpc, 0), true));
 FakeRoborock::$antworten['app_charge'] = ['__fehler' => 'invalid status'];
 $t = $rr->ZurStation();
 check('Ablehnung des Roboters wird gemeldet', strpos($t, 'invalid status') !== false, $t);
