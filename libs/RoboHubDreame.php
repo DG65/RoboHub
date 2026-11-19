@@ -1573,7 +1573,7 @@ PEM;
      * Raumreinigung wie das Startfenster der App („benutzerdefiniert"): optional Modus,
      * Saugstufe, Durchgänge nur für diesen Start (−1 = wie eingestellt). Der Modus wird —
      * wie in der App — vorher als Reinigungsmodus gesetzt (4.23, Read-Modify-Write),
-     * Saugstufe und Durchgänge stehen im Startbefehl (selects [Raum, Durchgänge, Saugstufe, Wasser, 1]).
+     * Saugstufe und Durchgänge stehen im Startbefehl (selects [Raum, Durchgänge, Saugstufe, Wasser, Reihenfolge bzw. 1]).
      */
     private function raumReinigung(array $buendel, string $did, array $raeume, int $modus = -1, int $saugstufe = -1, int $durchgaenge = -1): string
     {
@@ -1586,16 +1586,21 @@ PEM;
         if ($modus >= 0) {
             $this->setze($buendel, $did, 'Reinigungsmodus', $modus);
         }
-        // Sonst aktuelle Saugstufe/Wassermenge übernehmen (wie ioBroker).
-        $p = $this->leseProperties($buendel, $did, [[4, 4], [4, 5]]);
+        // Sonst aktuelle Saugstufe/Wassermenge übernehmen (wie ioBroker). 4.26 nur als Fähigkeitsprobe.
+        $p = $this->leseProperties($buendel, $did, [[4, 4], [4, 5], [4, 26]]);
         $saug = $saugstufe >= 0 ? $saugstufe : (isset($p['4.4']) ? (int)$p['4.4'] : 1);
         $wasser = isset($p['4.5']) ? (int)$p['4.5'] : 2;
         $wiederholungen = $durchgaenge >= 1 ? $durchgaenge : 1;
+        // Fünftes Feld = Reihenfolge, außer bei Geräten mit „customized cleaning" (4.26 beantwortet): dort fest 1,
+        // sonst bricht Gen 5 nach dem ersten Raum ab. Tasshack device.py clean_segment:
+        // `1 if self.capability.customized_cleaning else index` (Fähigkeit = 4.26 vorhanden, types.py).
+        // Bis 0.44.0 immer 1 — Forum power1625 144636/126: zweiter Durchgang nur im letzten Raum.
+        $mitReihenfolge = !array_key_exists('4.26', $p);
         $selects = [];
-        foreach ($raeume as $seg) {
-            // Fünftes Feld fest 1 — sonst bricht Gen-5 nach dem ersten Raum ab (beide Referenzen).
-            $selects[] = [$seg, $wiederholungen, $saug, $wasser, 1];
+        foreach (array_values($raeume) as $i => $seg) {
+            $selects[] = [$seg, $wiederholungen, $saug, $wasser, $mitReihenfolge ? $i + 1 : 1];
         }
+        $this->dbg('Befehl', 'Raumreinigung selects ' . json_encode($selects) . ' (4.26 ' . ($mitReihenfolge ? 'nicht beantwortet → Reihenfolge' : 'beantwortet → fest 1') . ')');
         $this->aktion($buendel, $did, 4, 1, [['piid' => 1, 'value' => 18], ['piid' => 10, 'value' => json_encode(['selects' => $selects])]]);
         return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));
     }

@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.45.0 (19.11.2026)
+
+- **Roborock: MQTT-Anmeldung abgewiesen (CONNACK 4/5) = Drosselung** (Forum alsk1 144636/125: „Zugangsschlüssel ungültig“ nach
+  einer Reinigung mit Live-Karte, Konto abgemeldet). Bisher `anmeldungNoetig` → Bündel gelöscht, neue Anmeldung per E-Mail-Code
+  nötig. Jetzt `RoboHubRoborock::connackFehler()`: 15 min Pause (`WarteBis`), keine Abmeldung — wie python-roborock
+  (roborock_session.py „unauthorized/rate-limit error“ → nur Wartezeit). Ungültiger Zugang fällt weiter über HTTP 401 auf.
+- **Dreame: 5. Feld der selects** (Forum power1625 144636/126: 3 Räume, 2 Durchgänge → zweiter Durchgang nur im letzten Raum):
+  wie Tasshack `clean_segment` — fest 1 nur bei Geräten mit „customized cleaning“ (4.26 beantwortet), sonst Reihenfolge 1…n.
+  4.26 wird in derselben Abfrage wie 4.4/4.5 mitgelesen; Debug „Befehl“ zeigt die gesendete Liste. Ob das den Befund behebt,
+  ist offen (Modell L10s Pro Ultra Heat, 4.26 unbekannt).
+- **Karte als Bild:** Station-/Roboterradius und Wegdicke nach der längeren Bildseite (vorher kürzere) — gleich groß bei
+  flachen und quadratischen Karten (Forum alsk1 144636/125).
+
 ## 0.44.0 (19.11.2026)
 
 - **Kachel: Einstellungen auswählbar** (Forum hbraun 144636/121, Worx): Einstellungen mit Auswahlliste und Aktion (`KACHEL_EINSTELLUNGEN`,

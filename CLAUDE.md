@@ -563,6 +563,8 @@
 - Unbelegt/offen: Bytes 8–15/18–23 des 301-Kopfs, echte Bildkopflängen (darum Felder vom Kopfende), Format des Mi-Home-Kartennamens,
   ob Saros/Qrevo immer pv 1.0 melden. B01 (Q7/Q10) hat ein anderes Kartenformat — nicht gebaut. Sperrzonen/virtuelle Wände (Blöcke 9/10)
   nicht gezeichnet. Live-Karte = ein MQTT- bzw. miIO+Cloud-Abruf je Live-Takt.
+- **CONNACK 4/5 nie als Abmeldung werten** (0.45.0, `connackFehler`): Roborock drosselt so (python-roborock). Viele kurze
+  MQTT-Sitzungen (Abruf + Live-Takt je Roboter) lösen das aus — eine dauerhafte Konto-Sitzung wäre die bessere Lösung (offen).
 - 0.43.0: Block 17 = Unterkarte (ein Byte je Bildpunkt, gleicher Index wie Block 2): Bit 1 Teppich, Bit 8/16 in der App
   ausgeblendet (vacuum-map-parser-roborock `_parse_submap`, image_parser `removed_map` → außen). `unterkarteAnwenden()` per
   strtr + String-AND (schnell auch bei 1 Mio. Punkten). Teppich nur mit Eigenschaft `KarteTeppich`, Option reist als
@@ -614,6 +616,11 @@
 - Haupttabelle ist `libs/locale.json` (direkt bearbeiten, dann `php .tools/locale-bauen.php`).
 - Debug-Ausgaben (`SendDebug`) bleiben deutsch. Englischer Prüflauf: `ROBOHUB_SPRACHE=en php .tools/test-robohub.php`
   (deutsche Prüftexte schlagen dort erwartungsgemäß fehl; zum Durchsuchen nach deutschen Resten gedacht).
+
+## Dreame-Raumstart: 5. Feld (0.45.0)
+
+- Tasshack `clean_segment`: `1 if capability.customized_cleaning else index`, Fähigkeit = 4.26 beantwortet. Bis 0.44.0 fest 1
+  (Forum power1625 144636/126, L10s Pro Ultra Heat: 2 Durchgänge, zweiter nur im letzten Raum). Ob Barny 4.26 liefert: Debug „Befehl".
 
 ## Kachel: Einstellungen und Details (0.44.0)
 

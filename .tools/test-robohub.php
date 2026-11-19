@@ -637,7 +637,14 @@ $befehle = FakeCloud::befehle();
 $raum = end($befehle);
 $sel = json_decode($raum['params']['in'][1]['value'], true)['selects'] ?? [];
 check('Raumreinigung = action 4.1 mit piid1=18', $raum['params']['siid'] === 4 && $raum['params']['aiid'] === 1 && $raum['params']['in'][0] === ['piid' => 1, 'value' => 18]);
-check('selects: Reihenfolge, Saugstufe/Wasser übernommen, 5. Feld = 1', $sel === [[3, 1, 1, 2, 1], [5, 1, 1, 2, 1]], json_encode($sel));
+check('selects ohne 4.26: Saugstufe/Wasser übernommen, 5. Feld = Reihenfolge (Tasshack)', $sel === [[3, 1, 1, 2, 1], [5, 1, 1, 2, 2]], json_encode($sel));
+FakeCloud::$props['4.26'] = 0;
+FakeCloud::$anfragen = [];
+$geraet->RaeumeReinigen('3,5,7');
+$befehle = FakeCloud::befehle();
+$sel = json_decode(end($befehle)['params']['in'][1]['value'], true)['selects'] ?? [];
+check('selects mit 4.26 („customized cleaning", Gen 5): 5. Feld fest 1', $sel === [[3, 1, 1, 2, 1], [5, 1, 1, 2, 1], [7, 1, 1, 2, 1]], json_encode($sel));
+unset(FakeCloud::$props['4.26']);
 check('ohne Raum-ID klare Meldung', strpos($geraet->RaeumeReinigen(''), '⛔') === 0);
 
 FakeCloud::$anfragen = [];
@@ -918,7 +925,7 @@ FakeCloud::$anfragen = [];
 $geraet->RequestAction('Raeume', '3,5');
 $befehle = FakeCloud::befehle();
 $raum = end($befehle);
-check('Kachel-Raumauswahl „3,5" startet beide Räume', json_decode($raum['params']['in'][1]['value'], true)['selects'] === [[3, 1, 1, 2, 1], [5, 1, 1, 2, 1]]);
+check('Kachel-Raumauswahl „3,5" startet beide Räume', json_decode($raum['params']['in'][1]['value'], true)['selects'] === [[3, 1, 1, 2, 1], [5, 1, 1, 2, 2]]);
 $letzte = json_decode((string)end($geraet->visu), true);
 check('Kachel bekommt Rückmeldung „gesendet"', strpos((string)($letzte['rueck'] ?? ''), 'gesendet') !== false);
 
@@ -1927,7 +1934,7 @@ function startSelects(): ?array
 FakeCloud::$props['4.23'] = (5 << 16) | 0;
 FakeCloud::$anfragen = [];
 $t = $geraet->RaeumeReinigenMit('3,5', 0, 3, 2);
-check('Start mit Wahl: Saugstufe Turbo, 2 Durchgänge in den selects', startSelects() === [[3, 2, 3, 2, 1], [5, 2, 3, 2, 1]] && strpos($t, '📤') === 0, json_encode(startSelects()) . ' ' . $t);
+check('Start mit Wahl: Saugstufe Turbo, 2 Durchgänge in den selects', startSelects() === [[3, 2, 3, 2, 1], [5, 2, 3, 2, 2]] && strpos($t, '📤') === 0, json_encode(startSelects()) . ' ' . $t);
 check('… Modus „Saugen" vorher gesetzt (4.23, mit Mopp-Tausch → Bits 0–1 = 2)', ((gesetzt()['4.23'] ?? 0) & 3) === 2 && ((gesetzt()['4.23'] ?? 0) >> 16) === 5, (string)(gesetzt()['4.23'] ?? 'nichts'));
 FakeCloud::$anfragen = [];
 $geraet->RaeumeReinigenMit('3', -1, -1, -1);

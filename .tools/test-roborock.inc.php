@@ -211,6 +211,13 @@ check('Teppich ändert keine Raumfarbe', substr($plte($mitT['bild']), 15) === su
 check('kaputte Datei → null (kein Absturz)', RoboHubRoborockKarte::lesen('rr' . str_repeat("\xff", 40)) === null && RoboHubRoborockKarte::lesen('xx') === null
     && RoboHubRoborockKarte::entpacken("\x1f\x8bkaputt") === null);
 
+$c4 = RoboHubRoborock::connackFehler(4);
+$c5 = RoboHubRoborock::connackFehler(5);
+$c3 = RoboHubRoborock::connackFehler(3);
+check('MQTT abgewiesen (4/5) = Drosselung: 15 min Pause, KEINE Abmeldung (Forum alsk1 144636/125)', !$c4->anmeldungNoetig && !$c5->anmeldungNoetig
+    && $c4->warteSekunden === 900 && $c5->warteSekunden === 900 && strpos($c4->getMessage(), 'keine neue Anmeldung') === false && strpos($c4->getMessage(), 'nicht nötig') !== false, $c4->getMessage());
+check('andere Codes: weder Pause noch Abmeldung', !$c3->anmeldungNoetig && $c3->warteSekunden === 0);
+
 // ===========================================================================
 abschnitt('Roborock: Protokoll gegen Referenzwerte');
 check('Zeitstempel-Kodierung (encode_timestamp)', RoboHubRoborock::zeitKodiert(1737374400) === 'ace07863');

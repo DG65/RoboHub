@@ -139,6 +139,25 @@ PEM;
         49 => 'Water drain disturbed', 51 => 'Temperature protection', 56 => 'Speaker error',
     ];
 
+    /** Pause nach abgewiesener MQTT-Anmeldung (Drosselung), statt abzumelden. */
+    private const MQTT_DROSSEL_S = 900;
+
+    /**
+     * Abgewiesene MQTT-Anmeldung → Fehler. 4/5 („Benutzer/Zugangsschlüssel ungültig", „nicht berechtigt")
+     * meldet Roborock auch, wenn es drosselt — python-roborock roborock_session.py: „unauthorized/rate-limit
+     * error", dort nur lange Wartezeit, keine Abmeldung. Ein wirklich ungültiger Zugang fällt über HTTP 401 auf
+     * (Geräteliste). Forum alsk1 144636/125: nach einer Reinigung mit Live-Karte abgemeldet.
+     */
+    public static function connackFehler(int $code): RoboHubFehler
+    {
+        if (in_array($code, [4, 5], true)) {
+            $e = new RoboHubFehler(RoboHubText::t('Roborock server refuses the connection right now (%s) — usually too many connections in a short time. RoboHub pauses for 15 minutes, no new sign-in needed.', RoboHubMqtt::connackText($code)));
+            $e->warteSekunden = self::MQTT_DROSSEL_S;
+            return $e;
+        }
+        return new RoboHubFehler(RoboHubText::t('Roborock server rejects the sign-in: %s.', RoboHubMqtt::connackText($code)));
+    }
+
     // Verbrauchsteile: Feld in get_consumable → [RoboHub-Ident, Lebensdauer, Sekunden?]
     // (roborock/const.py *_REPLACE_TIME). Die Stationsteile zählen keine Sekunden (STRAINER 150,
     // CLEANING_BRUSH 300) — dort nur Prozent, keine Reststunden. Nur Geräte mit Station melden sie.
@@ -1192,9 +1211,7 @@ PEM;
             }
             $code = RoboHubMqtt::connackCode($p['body']);
             if ($code !== 0) {
-                $e = new RoboHubFehler(RoboHubText::t('Roborock server rejects the sign-in: %s.', RoboHubMqtt::connackText($code)));
-                $e->anmeldungNoetig = in_array($code, [4, 5], true);
-                throw $e;
+                throw self::connackFehler($code);
             }
             $sitzung->senden(RoboHubMqtt::subscribe(1, [$abo], 0));
             if ($sitzung->warte(RoboHubMqtt::SUBACK, null, $ende) === null) {

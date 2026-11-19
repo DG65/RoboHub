@@ -26,6 +26,11 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.45.0' => [
+            '• Roborock: if the Roborock server refuses the connection (usually after many connections, e.g. live map with several robots), RoboHub pauses for 15 minutes instead of signing out.',
+            '• Dreame: when starting several rooms, the room order is sent along on robots that expect it — with 2 passes, the second pass sometimes covered only one room.',
+            '• Map as an image: dock, robot and path have the same size on every map shape.',
+        ],
         '0.44.0' => [
             '• Tile: the robot\'s settings (e.g. mowing times, rain delay, suction level) can be changed right there in the section "Settings"; on the standalone page only with control enabled.',
             '• Tile: new folding section "Details" with battery temperature and voltage, charge cycles, WLAN signal, totals and firmware.',

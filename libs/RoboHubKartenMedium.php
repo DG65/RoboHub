@@ -56,7 +56,10 @@ final class RoboHubKartenMedium
 
         $px = static fn ($p): int => (int)round((float)$p / 100 * $w);
         $py = static fn ($p): int => (int)round((float)$p / 100 * $h);
-        $dicke = max(2, intdiv(min($w, $h), 300));
+        // Größen nach der LÄNGEREN Seite: IPSView skaliert das Bild auf seine Breite — nach der kürzeren Seite
+        // wären Station/Roboter bei flachen Karten kleiner als bei quadratischen (Forum alsk1 144636/125).
+        $lang = max($w, $h);
+        $dicke = max(2, intdiv($lang, 450));
 
         // Gefahrener Weg (wie in der Kachel #3a6fd8, leicht durchscheinend)
         imagesetthickness($bild, $dicke);
@@ -77,7 +80,7 @@ final class RoboHubKartenMedium
         imagesetthickness($bild, 1);
 
         $weiss = imagecolorallocate($bild, 255, 255, 255);
-        $r = max(6, intdiv(min($w, $h), 70));
+        $r = max(6, intdiv($lang, 90));
 
         // Station: grüner Punkt mit weißem Rand
         if (isset($karte['station']['x'], $karte['station']['y'])) {
