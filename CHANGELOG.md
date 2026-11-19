@@ -2,6 +2,14 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.47.0 (19.11.2026)
+
+- **Karte als Bild im festen Maßstab** (Forum alsk1 144636/132: Stationspunkte zweier Geschosse weiter verschieden groß; IPSView
+  kann zwei Bilder nicht maßstabsgleich ziehen). Mit Geometrie (Raster) zeichnet `RoboHubKartenMedium` jetzt 80 px je Meter
+  (`PX_JE_MM` 0,08, längste Seite höchstens 2400 px), Station/Roboter mit Radius 175 mm, Weg 30 mm. Bildgröße folgt der echten
+  Fläche — in IPSView mit Originalgröße passen Geschosse zusammen. Ohne Geometrie wie bisher (ganzzahlig auf ~900 px).
+  - Prüfstand: fester Maßstab + zwei Geschosse mit gleich großer Station; Gegenprobe (alte Regel) gefangen.
+
 ## 0.46.0 (19.11.2026)
 
 - **Kachel/eigene Seite: keine `<select>` mehr** (Forum hbraun 144636/127: in IPSViews WebView passierte bei Mähzeiten/

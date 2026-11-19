@@ -3,7 +3,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module Version](https://img.shields.io/badge/Module-0.46.0-informational)
+![Module Version](https://img.shields.io/badge/Module-0.47.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -116,7 +116,7 @@ A variable is only created once your model actually delivers the value.
   dirty water, dust bag, detergent, total statistics.
 - Suction level, water level, cleaning mode: directly switchable — since 0.44.0 also on the tile (section "Settings", e.g. mowing times and rain delay on Worx); plus the folding section "Details" with battery values, WLAN, totals and firmware.
 - **Map image** on the tile and the IPSView page: rooms or mowing zones with names to tap; tapping the map enlarges it to the whole tile (since 0.41.0), selected rooms can be started right there (since 0.41.1).
-- **Map as an image** (since 0.42.0): optionally also as the media object "Map" (PNG with rooms, dock, path, robot and room names, transparent outside), e.g. for IPSView without WebView. Switch on under "Tile and IPSView". Needs PHP's GD extension, otherwise rooms only.
+- **Map as an image** (since 0.42.0): optionally also as the media object "Map" (PNG with rooms, dock, path, robot and room names, transparent outside, since 0.47.0 at a fixed scale of 80 pixels per metre), e.g. for IPSView without WebView. Switch on under "Tile and IPSView". Needs PHP's GD extension, otherwise rooms only.
 - **Roborock map like in the app** (since 0.43.0): areas hidden in the app are left out in RoboHub too; carpets optionally as a checkered pattern ("Show carpets in the map").
 - **Clean room with options** like the "custom" window of the app: mode, suction level and
   passes for this start only.

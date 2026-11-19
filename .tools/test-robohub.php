@@ -1659,7 +1659,35 @@ $mPng = $m ? base64_decode((string)$m['inhalt']) : '';
 $mGr = $mPng !== '' ? @getimagesizefromstring($mPng) : false;
 $kGr = @getimagesizefromstring(base64_decode(substr($k['karte']['bild'], 22)));
 check('… Takt danach aus, eigenes Bildobjekt unter dem Roboter mit gültigem PNG', ($geraet->timers['KarteBild'] ?? -1) === 0 && $m !== null && $m['media'] === MEDIATYPE_IMAGE && $m['parent'] === $geraet->InstanceID && $mGr !== false && $mGr[2] === IMAGETYPE_PNG);
-check('… hochskaliert (scharfe Bildpunkte) im Seitenverhältnis der Karte', $mGr && $kGr && $mGr[0] > $kGr[0] && $mGr[0] % $kGr[0] === 0 && $mGr[0] * $kGr[1] === $mGr[1] * $kGr[0]);
+$kAttr = json_decode($geraet->ReadAttributeString('Karte'), true);
+$gm = $kAttr['geometrie'] ?? [];
+check('… fester Maßstab 80 px je Meter aus der Geometrie (Forum alsk1 144636/132)', $mGr && ($gm['art'] ?? '') === 'raster'
+    && $mGr[0] === (int)round($gm['b'] * $gm['raster'] * 0.08) && $mGr[1] === (int)round($gm['h'] * $gm['raster'] * 0.08), json_encode([$mGr[0] ?? null, $mGr[1] ?? null, $gm]));
+// Zwei „Geschosse" verschiedener Ausdehnung: gleicher Maßstab, gleich große Station.
+$stationsRadius = function (string $png): int {
+    $gd = imagecreatefromstring($png);
+    $best = 0;
+    for ($y = 0; $y < imagesy($gd); $y++) {
+        $lauf = 0;
+        for ($x = 0; $x < imagesx($gd); $x++) {
+            $c = imagecolorat($gd, $x, $y);
+            $lauf = ((($c >> 16) & 255) === 0x2e && (($c >> 8) & 255) === 0x9b && ($c & 255) === 0x57) ? $lauf + 1 : 0;
+            $best = max($best, $lauf);
+        }
+    }
+    return $best;
+};
+$einPunkt = 'data:image/png;base64,' . base64_encode((new ReflectionMethod('RoboHubKartenbild', 'png'))->invoke(null, 4, 4, [[0, 0, 0], [200, 200, 200]], str_repeat("\0" . str_repeat("\1", 4), 4)));
+$geschoss = function (int $b, int $h) use ($einPunkt): string {
+    return (string)RoboHubKartenMedium::bild(['bild' => $einPunkt, 'station' => ['x' => 50, 'y' => 50],
+        'geometrie' => ['art' => 'raster', 'raster' => 50, 'b' => $b, 'h' => $h, 'links' => 0, 'oben' => 0, 'hoehe' => $h, 'minX' => 0, 'minY' => 0]], false);
+};
+$gA = $geschoss(240, 90);    // 12 × 4,5 m, flach
+$gB = $geschoss(160, 150);   // 8 × 7,5 m, fast quadratisch
+$grA = getimagesizefromstring($gA);
+$grB = getimagesizefromstring($gB);
+check('zwei Geschosse: Bildgröße folgt der echten Fläche (960×360 / 640×600), Station gleich groß', $grA[0] === 960 && $grA[1] === 360 && $grB[0] === 640 && $grB[1] === 600
+    && $stationsRadius($gA) === $stationsRadius($gB) && $stationsRadius($gA) >= 20, json_encode([$grA[0], $grA[1], $grB[0], $grB[1], $stationsRadius($gA), $stationsRadius($gB)]));
 $bildMit = RoboHubKartenMedium::bild($k['karte'], true);
 $bildOhne = RoboHubKartenMedium::bild($k['karte'], false);
 $bildLeer = RoboHubKartenMedium::bild(['bild' => $k['karte']['bild']], false);

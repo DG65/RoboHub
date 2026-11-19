@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.47.0' => [
+            '• Map as an image: fixed scale of 80 pixels per metre, dock and robot in real size — several maps (e.g. floors) now match in IPSView at original size.',
+        ],
         '0.46.0' => [
             '• Tile and IPSView page: selections (settings, mode, suction level and passes when starting a room) are now lists of buttons — IPSView\'s WebView did not open the previous drop-down lists.',
         ],

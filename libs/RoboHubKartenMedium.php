@@ -17,8 +17,17 @@ declare(strict_types=1);
 
 final class RoboHubKartenMedium
 {
-    /** Zielgröße der längeren Seite in Bildpunkten (ganzzahlig hochskaliert, höchstens 8×). */
+    /** Zielgröße der längeren Seite in Bildpunkten (ganzzahlig hochskaliert, höchstens 8×) — nur ohne Geometrie. */
     private const ZIEL = 900;
+
+    /**
+     * Fester Maßstab, wenn die Karte ihre Geometrie mitbringt (Raster in mm): 80 Bildpunkte je Meter.
+     * So haben alle Karten — z. B. zwei Geschosse — denselben Maßstab, in IPSView mit Originalgröße
+     * maßstabsgleich (Forum alsk1 144636/132). Station und Roboter in echter Größe.
+     */
+    private const PX_JE_MM = 0.08;
+    private const MAX_SEITE = 2400;
+    private const STATION_MM = 175;     // Radius ≈ halbe Breite einer Station/eines Roboters
 
     /**
      * $karte wie im Attribut „Karte" (bild als data-URI, marken/station/roboter/weg in Prozent),
@@ -39,9 +48,22 @@ final class RoboHubKartenMedium
         }
         $w0 = imagesx($quelle);
         $h0 = imagesy($quelle);
-        $f = max(1, min(8, intdiv(self::ZIEL, max($w0, $h0, 1))));
-        $w = $w0 * $f;
-        $h = $h0 * $f;
+        $g = (array)($karte['geometrie'] ?? []);
+        $pxJeMm = 0.0;
+        if (($g['art'] ?? '') === 'raster' && (int)($g['raster'] ?? 0) > 0 && (int)($g['b'] ?? 0) > 0 && (int)($g['h'] ?? 0) > 0) {
+            $pxJeMm = self::PX_JE_MM;
+            $breiteMm = (int)$g['b'] * (int)$g['raster'];
+            $hoeheMm = (int)$g['h'] * (int)$g['raster'];
+            if (max($breiteMm, $hoeheMm) * $pxJeMm > self::MAX_SEITE) {
+                $pxJeMm = self::MAX_SEITE / max($breiteMm, $hoeheMm);   // sehr große Fläche: kleiner, Maßstab im Debug
+            }
+            $w = max(1, (int)round($breiteMm * $pxJeMm));
+            $h = max(1, (int)round($hoeheMm * $pxJeMm));
+        } else {
+            $f = max(1, min(8, intdiv(self::ZIEL, max($w0, $h0, 1))));
+            $w = $w0 * $f;
+            $h = $h0 * $f;
+        }
 
         $bild = imagecreatetruecolor($w, $h);
         imagealphablending($bild, false);
@@ -59,7 +81,7 @@ final class RoboHubKartenMedium
         // Größen nach der LÄNGEREN Seite: IPSView skaliert das Bild auf seine Breite — nach der kürzeren Seite
         // wären Station/Roboter bei flachen Karten kleiner als bei quadratischen (Forum alsk1 144636/125).
         $lang = max($w, $h);
-        $dicke = max(2, intdiv($lang, 450));
+        $dicke = $pxJeMm > 0 ? max(2, (int)round(30 * $pxJeMm)) : max(2, intdiv($lang, 450));
 
         // Gefahrener Weg (wie in der Kachel #3a6fd8, leicht durchscheinend)
         imagesetthickness($bild, $dicke);
@@ -80,7 +102,7 @@ final class RoboHubKartenMedium
         imagesetthickness($bild, 1);
 
         $weiss = imagecolorallocate($bild, 255, 255, 255);
-        $r = max(6, intdiv($lang, 90));
+        $r = $pxJeMm > 0 ? max(5, (int)round(self::STATION_MM * $pxJeMm)) : max(6, intdiv($lang, 90));
 
         // Station: grüner Punkt mit weißem Rand
         if (isset($karte['station']['x'], $karte['station']['y'])) {
@@ -106,7 +128,7 @@ final class RoboHubKartenMedium
 
         // Raumnamen: weiße Schrift auf dunklem Schild, mittig auf dem Raum.
         if ($namen) {
-            $schrift = $w >= 600 ? 4 : 3;
+            $schrift = ($pxJeMm > 0 || $w >= 600) ? 4 : 3;
             $sw = imagefontwidth($schrift);
             $sh = imagefontheight($schrift);
             $schild = imagecolorallocatealpha($bild, 0x1c, 0x1c, 0x1e, 30);
