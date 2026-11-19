@@ -2080,6 +2080,7 @@ require __DIR__ . '/test-gardena.inc.php';
 require __DIR__ . '/test-navimow.inc.php';
 require __DIR__ . '/test-indego.inc.php';
 require __DIR__ . '/test-narwal.inc.php';
+require __DIR__ . '/test-valetudo.inc.php';
 require __DIR__ . '/test-stihl.inc.php';
 require __DIR__ . '/test-alko.inc.php';
 require __DIR__ . '/test-vorwerk.inc.php';

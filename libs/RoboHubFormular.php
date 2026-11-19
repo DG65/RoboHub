@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.49.0' => [
+            '• New vendor Valetudo: robot vacuums with the free firmware Valetudo, locally in your home network without cloud and without MQTT broker — state, settings, consumables, rooms, map with live path.',
+        ],
         '0.48.0' => [
             '• Robot position as variables (optional, "Tile and IPSView"): "Position X/Y" in metres from the top left corner of the map image and "Heading" — e.g. to move an icon across your own floor plan in IPSView.',
         ],

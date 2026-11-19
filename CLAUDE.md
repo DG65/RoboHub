@@ -476,6 +476,19 @@
 - Prüfstand: parallele Läufe teilen Temp-Dateien → nie zwei `test-robohub.php` gleichzeitig (auch nicht Mutationsproben
   neben einem Einzellauf).
 
+## Valetudo-Treiber (0.49.0)
+
+- Quelle: Hypfer/Valetudo (Apache-2.0), Scratchpad `ref/valetudo` — `backend/lib/webserver/doc/*.openapi.json`, `capabilityRouters/*`,
+  `entities/*` (Datenklassen), Frontend für die Kartenzeichnung (Winkel: `RobotPositionMapStructure` dreht im Uhrzeigersinn, 0° = Nord).
+- Weg: HTTP direkt zum Roboter (kein MQTT, kein Broker). Bewusst keine Bonjour-Suche (Symcon-Module können das nicht).
+- **Basic-Auth = Dietmars Ausnahme (19.11.2026):** Benutzer (Feld `ClientId`) + Passwort (Feld `Passwort`) im Bündel je Roboter;
+  `koppeln()` im Konto nimmt das Passwort danach aus der Eigenschaft. Ohne Schutz leer.
+- Presets → feste Zahlen (`STUFEN` off…custom 0–7, `MODI` 0–3), Auswahl nur der vom Roboter gemeldeten Presets.
+- Verbrauchsteile: Prozent bei `unit=percent`, sonst Restminuten / `maxValue` aus `ConsumableMonitoringCapability/properties`.
+- Karte: Segment-IDs 1–60 farbig (Kodierung „rahmen" = id << 2), andere als Boden. **Nie an einem echten Gerät** — erste Tester im Forum
+  (tommy86, McKevin, tobitobsen nutzen Valetudo).
+- Offen: Echtzeit (SSE `/robot/state/attributes/sse`), Zonen, Nicht stören, Stationsaufgaben, Teppich (Material je Segment).
+
 ## STIHL-iMOW-Treiber (0.27.0)
 
 - Quellen: simontims/ha-imow-v2 (MIT, Gen 5+), ChrisHaPunkt/stihl-imow-webapi + ha-stihl-imow (MIT, RMI), TA2k/ioBroker.imow (MIT,

@@ -3,7 +3,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module Version](https://img.shields.io/badge/Module-0.48.0-informational)
+![Module Version](https://img.shields.io/badge/Module-0.49.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -14,7 +14,7 @@ Instance names and variable idents stay German in both languages.
 
 Robot vacuums, mopping robots and robot mowers in Symcon — built vendor-neutral, currently with
 **Dreame** and **MOVA** (apps "Dreamehome" and "MOVAhome"), **Roborock** (app "Roborock", older models also from the app "Mi Home"),
-**Ecovacs** Deebot and GOAT (app "Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (app "MyKobold"), **Miele Scout** (official API), **Kärcher** RCV/RCF/RVC (app "Kärcher Home Robots"), **Eufy** RoboVac/Omni (app "Eufy Clean"/"Eufy"), **iRobot** Roomba/Braava and **Narwal** Flow/Freo (both local, without cloud), **Husqvarna Automower** and **GARDENA smart system** (each via the official API), as well as
+**Ecovacs** Deebot and GOAT (app "Ecovacs Home"), **Vorwerk Kobold** VR200/VR300 (app "MyKobold"), **Miele Scout** (official API), **Kärcher** RCV/RCF/RVC (app "Kärcher Home Robots"), **Eufy** RoboVac/Omni (app "Eufy Clean"/"Eufy"), **iRobot** Roomba/Braava, **Narwal** Flow/Freo and robot vacuums running **Valetudo** (all local, without cloud), **Husqvarna Automower** and **GARDENA smart system** (each via the official API), as well as
 the robot mowers from **Worx** (Landroid), **Kress**, **LandXcape**, **Ferrex**, **Segway Navimow**, **Bosch Indego**, **STIHL iMOW** and **AL-KO Robolinho** — each via the
 vendor cloud.
 
@@ -85,6 +85,9 @@ scripts or visualization.
    "🔑 Sign in now" (the code is only valid for a few minutes).
    **Narwal** (local): choose vendor "Narwal", enter the IP address of the robot (ideally fixed in your
    router), "Apply", "🔑 Sign in now". No account, no password. For further Narwal robots do the same with their IP.
+   **Valetudo** (local): choose vendor "Valetudo", enter the IP address of the robot, "Apply", "🔑 Sign in now". No MQTT
+   broker needed. Only if access protection is switched on in Valetudo, also enter user name and password — RoboHub then
+   has to keep them in the account because Valetudo requires them with every request.
    **STIHL iMOW**: choose vendor "STIHL iMOW", e-mail and password as in the iMOW app, sign in. RoboHub
    detects by itself whether it is a new (iMOW 5/6/7) or an older mower (RMI series).
    **AL-KO Robolinho**: First apply for API access with AL-KO
@@ -296,6 +299,10 @@ not officially documented and may change.
   device. Works with Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge and JX; Freo X Ultra, X Plus, J1/J4
   and T10 have no local interface, the Freo Z Ultra needs a cloud device ID (not supported yet).
   A robot in the station is not woken up for polling; if it is asleep, RoboHub shows "Sleeping" with the current battery level.
+- **Valetudo** (since 0.49.0): free firmware for robot vacuums (Dreame, Roborock, Viomi …), locally via Valetudo's HTTP
+  interface. State, battery, dock, errors, suction level/water/mode, consumables (percent from the lifetime Valetudo
+  reports), statistics, rooms with options, locate, map with live path and robot. RoboHub asks Valetudo what a device
+  can do. Not tested on a real device. No real-time, zones or do-not-disturb yet.
   "Start" cleans all rooms of the map with vacuuming and mopping (app default) and only works from the station; from a pause
   it resumes. No map image, vacuum/mop settings, station tasks or consumables.
 - **Bosch Indego** (since 0.23.0): built following pyIndego and the Home Assistant integration, not tested on a real mower
@@ -347,7 +354,8 @@ the Kärcher driver [lafriks/python-karcher](https://github.com/lafriks/python-k
 [jeppesens/eufy-clean](https://github.com/jeppesens/eufy-clean) and [martijnpoppen/eufy-clean](https://github.com/martijnpoppen/eufy-clean),
 the Indego driver
 [sander1988/pyIndego](https://github.com/sander1988/pyIndego) (MIT) and [sander1988/Indego](https://github.com/sander1988/Indego)
-(Apache-2.0), the Narwal driver [sjmotew/NarwalIntegration](https://github.com/sjmotew/NarwalIntegration) (MIT);
+(Apache-2.0), the Narwal driver [sjmotew/NarwalIntegration](https://github.com/sjmotew/NarwalIntegration) (MIT), the Valetudo driver
+[Hypfer/Valetudo](https://github.com/Hypfer/Valetudo) (Apache-2.0, REST interface and map format);
 the instructions using the developer console come from
 [ioBroker.boschindego](https://github.com/iobroker-community-adapters/ioBroker.boschindego) (MIT).
 

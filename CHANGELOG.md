@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.49.0 (20.11.2026)
+
+- **Neu: Valetudo-Treiber** (`libs/RoboHubValetudo.php`, Dietmars Auftrag 19.11.2026; Forum: Valetudo-Nutzer bisher nur mit
+  MQTT-Skripten). Lokal über die REST-Schnittstelle des Roboters (`/api/v2/…`), Quelle Hypfer/Valetudo (Apache-2.0).
+  Koppeln wie Narwal (IP im Konto), Geräte-ID = Valetudo-`systemId`. Fähigkeiten aus `/robot/capabilities`.
+  Zustand aus `state/attributes` (Status/Akku/Station/Presets), Verbrauchsteile mit Prozent aus `properties.maxValue`,
+  Statistik, Presets als Auswahl (feste Zahlen je Stufe/Modus), Räume (`MapSegmentationCapability`, Reihenfolge, 1–3
+  Durchgänge, Modus/Saugstufe vorher), Orten, Zurücksetzen. Karte aus der ValetudoMap (RLE-Ebenen → Kodierung „rahmen",
+  y gespiegelt, Winkel 0° Nord/Uhrzeigersinn → 90° − Winkel).
+- **Zugangsschutz** (HTTP-Basic-Auth, optional): Benutzer + Passwort im Bündel — Dietmars Ausnahme 19.11.2026; Passwort nach
+  dem Koppeln aus der Eigenschaft genommen, nie in Formular/Protokoll/Debug. 401 → Hinweis, neu koppeln.
+  - Prüfstand: 31 Prüfungen (`test-valetudo.inc.php`), Gegenproben Winkel und Basic-Auth gefangen. **An keinem echten Gerät.**
+
 ## 0.48.0 (19.11.2026)
 
 - **Roboterposition als Variablen** (Forum alsk1 144636/134: Roboter-Symbol über dem eigenen, maßstabsgetreuen Grundriss in

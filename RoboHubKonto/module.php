@@ -17,6 +17,7 @@ require_once __DIR__ . '/../libs/RoboHubGardena.php';
 require_once __DIR__ . '/../libs/RoboHubNavimow.php';
 require_once __DIR__ . '/../libs/RoboHubIndego.php';
 require_once __DIR__ . '/../libs/RoboHubNarwal.php';
+require_once __DIR__ . '/../libs/RoboHubValetudo.php';
 require_once __DIR__ . '/../libs/RoboHubStihl.php';
 require_once __DIR__ . '/../libs/RoboHubAlko.php';
 require_once __DIR__ . '/../libs/RoboHubVorwerk.php';
@@ -80,6 +81,7 @@ class RoboHubKonto extends IPSModule
         'eufy'      => ['Eufy RoboVac/Omni, robot vacuums only (app "Eufy Clean" or "Eufy")', 'Eufy', false, false],
         'eufymaeher' => ['Eufy robot mower E15 (locally in your home network, device key fetched once via the Eufy account)', 'Eufy mower', false, false],
         'narwal'    => ['Narwal Flow/Freo (locally in your home network, no cloud)', 'Narwal', false, false],
+        'valetudo'  => ['Valetudo (robot vacuums with free firmware, locally in your home network)', 'Valetudo', false, false],
     ];
 
     private const DATA_ZUM_KONTO = '{CFA82D8B-B9F1-4CAF-BFB7-E898E3690581}';
@@ -383,6 +385,10 @@ class RoboHubKonto extends IPSModule
     /** Lokale Roboter (iRobot): unter der IP koppeln, vorhandene Roboter bleiben im Bündel. */
     private function koppeln($treiber, string $ip): string
     {
+        if (property_exists($treiber, 'zugang')) {
+            // Valetudo mit Zugangsschutz: Benutzer + Passwort gehen ins Bündel (Dietmars Ausnahme 19.11.2026).
+            $treiber->zugang = ['benutzer' => trim((string)$this->ReadPropertyString('ClientId')), 'passwort' => (string)$this->ReadPropertyString('Passwort')];
+        }
         try {
             $buendel = $treiber->koppeln($ip, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: []);
         } catch (Throwable $e) {
@@ -400,7 +406,13 @@ class RoboHubKonto extends IPSModule
             $text .= "\n⚠️ " . $e->getMessage();
         }
         $this->aktualisiereStatus();
-        return $this->melde($text);
+        $this->melde($text);
+        // Passwort steht jetzt im Bündel (Attribut) — aus der Eigenschaft nehmen (SetProperty+ApplyChanges am Ende).
+        if ($this->ReadPropertyString('Passwort') !== '') {
+            IPS_SetProperty($this->InstanceID, 'Passwort', '');
+            IPS_ApplyChanges($this->InstanceID);
+        }
+        return $text;
     }
 
     /**
@@ -1172,6 +1184,8 @@ class RoboHubKonto extends IPSModule
             $treiber = new RoboHubIndego();
         } elseif ($hersteller === 'narwal') {
             $treiber = new RoboHubNarwal();
+        } elseif ($hersteller === 'valetudo') {
+            $treiber = new RoboHubValetudo();
         } elseif ($hersteller === 'stihl') {
             $treiber = new RoboHubStihl();
         } elseif ($hersteller === 'alko') {
@@ -1391,7 +1405,7 @@ class RoboHubKonto extends IPSModule
     protected function robohubPurposeLines(): array
     {
         return [
-            'This instance connects Symcon with your vendor account for robot vacuums, mops and lawn mowers (currently Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, Eufy, Eufy mower E15, iRobot, Narwal as well as Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW and AL-KO Robolinho). You sign in once — after that RoboHub fetches state, battery and consumables of your robots and can start, stop or send them back to base.',
+            'This instance connects Symcon with your vendor account for robot vacuums, mops and lawn mowers (currently Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, Eufy, Eufy mower E15, iRobot, Narwal, Valetudo as well as Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW and AL-KO Robolinho). You sign in once — after that RoboHub fetches state, battery and consumables of your robots and can start, stop or send them back to base.',
             'The benefit: robots become part of your automations, e.g. "vacuum when nobody is home" or "stop mowing when it rains" — without the vendor app. You then create the individual robots with the RoboHub configurator.',
         ];
     }
@@ -1414,8 +1428,9 @@ class RoboHubKonto extends IPSModule
         $roborock = $this->perCode() || $this->ReadAttributeString('AnmeldeVorstufe') !== '';
         $xiaomi = $this->ReadPropertyString('Hersteller') === 'xiaomi';
         $ecovacs = $this->ReadPropertyString('Hersteller') === 'ecovacs';
-        $lokal = in_array($this->ReadPropertyString('Hersteller'), ['irobot', 'narwal'], true);
+        $lokal = in_array($this->ReadPropertyString('Hersteller'), ['irobot', 'narwal', 'valetudo'], true);
         $narwal = $this->ReadPropertyString('Hersteller') === 'narwal';
+        $valetudo = $this->ReadPropertyString('Hersteller') === 'valetudo';
         $husqvarna = in_array($this->ReadPropertyString('Hersteller'), ['husqvarna', 'gardena'], true);
         $navimow = $this->ReadPropertyString('Hersteller') === 'navimow';
         $alko = $this->ReadPropertyString('Hersteller') === 'alko';
@@ -1454,7 +1469,9 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'ValidationTextBox', 'name' => 'Konto', 'visible' => !$perLink, 'caption' => $lokal ? 'IP address of the robot' : ($husqvarna ? 'Application key' : 'E-mail of the account')],
                 ['type' => 'Label', 'visible' => $husqvarna, 'caption' => RoboHubText::t('Husqvarna uses the official API: sign in on developer.husqvarnagroup.cloud with your Husqvarna account, "Create application" (any redirect URL, e.g. http://localhost), connect the APIs "Authentication API" and "%s", then enter application key and application secret here. Because of the request limit RoboHub polls %s.', $api, ($api === 'GARDENA smart system API' ? RoboHubText::t('at most every 15 minutes') : RoboHubText::t('at most every 5 minutes')))],
                 ['type' => 'Label', 'visible' => $narwal, 'caption' => 'Narwal runs locally, without cloud and without password: enter the robot\'s IP address (ideally fixed in your router), click "Apply", "🔑 Sign in now". The robot must be switched on. Works with Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge and JX; Freo X Ultra, X Plus, J1/J4 and T10 have no local interface. For another Narwal do the same with its IP.'],
-                ['type' => 'Label', 'visible' => $lokal && !$narwal, 'caption' => 'iRobot runs locally, without cloud: put the robot on its base, enter the IP address, click "Apply". Press "🔑 Sign in now" once (RoboHub searches for the robot). Then hold the HOME button on the robot for about 2 seconds until it plays tones, and immediately press "🔑 Sign in now" again. For another robot do the same with its IP.'],
+                ['type' => 'Label', 'visible' => $valetudo, 'caption' => 'Valetudo runs locally, without cloud: enter the robot\'s IP address (ideally fixed in your router), click "Apply", "🔑 Sign in now". RoboHub talks directly to the robot\'s Valetudo interface — no MQTT broker needed. For another robot do the same with its IP.'],
+                ['type' => 'Label', 'visible' => $valetudo, 'caption' => 'Only if you switched on access protection (HTTP basic auth) in Valetudo: also enter its user name and password. Valetudo requires them with every request, so RoboHub has to keep both — stored in the account, never shown in the form, log or debug. Without access protection leave both fields empty.'],
+                ['type' => 'Label', 'visible' => $lokal && !$narwal && !$valetudo, 'caption' => 'iRobot runs locally, without cloud: put the robot on its base, enter the IP address, click "Apply". Press "🔑 Sign in now" once (RoboHub searches for the robot). Then hold the HOME button on the robot for about 2 seconds until it plays tones, and immediately press "🔑 Sign in now" again. For another robot do the same with its IP.'],
                 ['type' => 'Label', 'visible' => $roborock && $this->ReadPropertyString('Hersteller') === 'vorwerk', 'caption' => 'Vorwerk signs in without a password: enter the e-mail of the MyKobold account, click "Apply", "📧 Request code", enter the code from the e-mail below, click "Apply", "🔑 Sign in now". Supported are Kobold VR200 and VR300; the VR7 uses a different cloud and does not work (yet). If a robot is added later, simply sign in again.'],
                 ['type' => 'Label', 'visible' => $xiaomi, 'caption' => 'Mi Home: preferably sign in without a password — "📱 Show QR code", scan it with the Mi Home app (profile → scan icon) and confirm there. Alternatively enter e-mail and password below and click "🔑 Sign in now"; if Xiaomi then sends a code by e-mail, enter it into the password field and sign in again. Afterwards only the access keys are stored, never the password.'],
                 ['type' => 'Label', 'visible' => $xiaomi, 'caption' => 'The Xiaomi cloud only provides the device list with each robot\'s key and local IP address. Commands go directly to the robot in your home network (UDP port 54321), so Symcon and robot must be in the same network — best give the robot a fixed IP in the router. Supported are the Roborock models in Mi Home (e.g. S5, S6, S50, Mi Robot Vacuum); Xiaomi\'s own vacuums with the MIoT protocol not yet.'],
@@ -1467,10 +1484,10 @@ class RoboHubKonto extends IPSModule
                 ['type' => 'ValidationTextBox', 'name' => 'MaeherIP', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufymaeher', 'caption' => 'IP address of the mower'],
                 ['type' => 'Label', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufymaeher', 'caption' => 'Eufy mower E15: runs locally in your home network. Enter the mower\'s IP address (fixed in your router), plus e-mail and password of the Eufy account, click "Apply", "🔑 Sign in now". The account is only needed this one time to fetch the device key; the password is discarded afterwards. The mower allows only one local connection, so do not run a second integration in parallel. If it is paired again, the key changes: then sign in again. Map, zones and stopping in place are not available locally. E18 and C15 are not tested.'],
                 ['type' => 'Label', 'visible' => $this->ReadPropertyString('Hersteller') === 'eufy', 'caption' => 'Eufy: enter e-mail and password of the app "Eufy Clean" or "Eufy", click "Apply", "🔑 Sign in now". The password is discarded afterwards. Supported are robots with Eufy\'s new cloud connection (including X8/X9/X10, L60, C10/C20, G50, Omni S1 Pro); older models with the pure Tuya protocol (e.g. RoboVac 11S, 30C, G30) not yet.'],
-                ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $mitClient, 'caption' => RoboHubText::t('Client ID (from %s)', ($miele ? 'Miele' : 'AL-KO'))],
+                ['type' => 'ValidationTextBox', 'name' => 'ClientId', 'visible' => $mitClient || $valetudo, 'caption' => $valetudo ? 'User name (only with access protection)' : RoboHubText::t('Client ID (from %s)', ($miele ? 'Miele' : 'AL-KO'))],
                 ['type' => 'PasswordTextBox', 'name' => 'ClientSecret', 'visible' => $mitClient, 'caption' => RoboHubText::t('Client secret (from %s, moved into the account after sign-in)', ($miele ? 'Miele' : 'AL-KO'))],
                 ['type' => 'Label', 'visible' => $indego, 'caption' => 'Indego signs in to RoboHub without a password. Best in Chrome, Edge or Firefox: first open the developer console (F12, on a Mac Option + Command + I), then "🔗 Open sign-in page" and sign in with the Bosch SingleKey ID. Afterwards nothing seems to happen — but the console shows a failed redirect to "com.bosch.indegoconnect://login?…code=…". Enter this address (or the whole console line) below, click "Apply", "🔑 Sign in now". The code is only valid for a few minutes. ioBroker does it the same way.'],
-                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal, 'caption' => $perLink ? 'Code or address after sign-in (discarded afterwards)' : ($roborock && !$xiaomi ? 'Code from the e-mail (discarded after sign-in)' : ($xiaomi && $this->ReadAttributeString('AnmeldeVorstufe') !== '' ? 'Code from the Xiaomi e-mail' : ($husqvarna ? 'Application secret (stays stored in the account)' : 'Password (only for sign-in, discarded afterwards)')))],
+                ['type' => 'PasswordTextBox', 'name' => 'Passwort', 'visible' => !$lokal || $valetudo, 'caption' => $valetudo ? 'Password (only with access protection, stored in the account)' : ($perLink ? 'Code or address after sign-in (discarded afterwards)' : ($roborock && !$xiaomi ? 'Code from the e-mail (discarded after sign-in)' : ($xiaomi && $this->ReadAttributeString('AnmeldeVorstufe') !== '' ? 'Code from the Xiaomi e-mail' : ($husqvarna ? 'Application secret (stays stored in the account)' : 'Password (only for sign-in, discarded afterwards)'))))],
                 ['type' => 'Label', 'name' => 'Ergebnis', 'caption' => $zeile],
                 ['type' => 'RowLayout', 'items' => [
                     ['type' => 'Button', 'caption' => '📧 Request code', 'visible' => $roborock && !$xiaomi, 'onClick' => 'echo ROBOHUB_CodeAnfordern($id);'],
