@@ -66,6 +66,8 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterPropertyBoolean('KarteMedium', false);
         // Teppichflächen gemustert in der Karte (Forum alsk1 144636/115; liefert bisher nur Roborock).
         $this->RegisterPropertyBoolean('KarteTeppich', false);
+        // Roboterposition als Variablen, z. B. für ein Symbol über dem eigenen Grundriss in IPSView (Forum alsk1 144636/134).
+        $this->RegisterPropertyBoolean('PositionVariablen', false);
         $this->RegisterAttributeBoolean('TeppichGeladen', false);
         // Verbrauchsteile über eine Variable zurücksetzen, z. B. aus IPSView (Forum alsk1 144636/116).
         $this->RegisterPropertyBoolean('TeilVariable', false);
@@ -884,6 +886,7 @@ class RoboHubGeraet extends IPSModule
     /** Medienobjekt der Karte: in 3 s neu zeichnen (sammelt schnelle Folgen); ausgeschaltet → eigenes Objekt entfernen. */
     private function kartenBildPlanen(): void
     {
+        $this->positionVariablen();
         if (!$this->ReadPropertyBoolean('KarteMedium')) {
             $this->SetTimerInterval('KarteBild', 0);
             $mid = @IPS_GetObjectIDByIdent('KarteBild', $this->InstanceID);
@@ -894,6 +897,47 @@ class RoboHubGeraet extends IPSModule
         }
         if ($this->GetTimerInterval('KarteBild') === 0) {
             $this->SetTimerInterval('KarteBild', 3000);
+        }
+    }
+
+    /**
+     * Option PositionVariablen: „Position X/Y" in Metern ab der oberen linken Ecke des Kartenbilds (dieselbe Ecke wie
+     * im Medienobjekt; × 80 = Bildpunkt bei dessen festem Maßstab) und „Blickrichtung" (0° = rechts, gegen den
+     * Uhrzeigersinn, wie in der Kachel). Nur Rasterkarten (Sauger); Werte nur, wenn die Karte einen Roboter trägt.
+     */
+    private function positionVariablen(): void
+    {
+        $idents = ['PositionX', 'PositionY', 'Blickrichtung'];
+        if (!$this->ReadPropertyBoolean('PositionVariablen')) {
+            foreach ($idents as $ident) {
+                if ($this->hatVariable($ident)) {
+                    $this->MaintainVariable($ident, '', VARIABLETYPE_FLOAT, '', 0, false);
+                }
+            }
+            return;
+        }
+        $karte = json_decode((string)$this->ReadAttributeString('Karte'), true) ?: [];
+        $g = $karte['geometrie'] ?? null;
+        $rob = $karte['roboter'] ?? null;
+        if (!is_array($g) || ($g['art'] ?? '') !== 'raster' || (int)($g['raster'] ?? 0) <= 0 || !is_array($rob) || !isset($rob['x'], $rob['y'])) {
+            return;
+        }
+        $werte = [
+            'PositionX'     => round((float)$rob['x'] / 100 * (int)$g['b'] * (int)$g['raster'] / 1000, 2),
+            'PositionY'     => round((float)$rob['y'] / 100 * (int)$g['h'] * (int)$g['raster'] / 1000, 2),
+            'Blickrichtung' => (((int)($rob['winkel'] ?? 0)) % 360 + 360) % 360,
+        ];
+        foreach ($werte as $ident => $wert) {
+            if (!$this->hatVariable($ident)) {
+                $int = $ident === 'Blickrichtung';
+                $this->MaintainVariable($ident, RoboHubText::t(['PositionX' => 'Position X', 'PositionY' => 'Position Y', 'Blickrichtung' => 'Heading'][$ident]),
+                    $int ? VARIABLETYPE_INTEGER : VARIABLETYPE_FLOAT,
+                    ['PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'SUFFIX' => $int ? '°' : ' m', 'DIGITS' => $int ? 0 : 2],
+                    ['PositionX' => 43, 'PositionY' => 44, 'Blickrichtung' => 45][$ident], true);
+            }
+            if ($this->GetValue($ident) !== $wert) {
+                $this->SetValue($ident, $wert);
+            }
         }
     }
 
@@ -1797,6 +1841,8 @@ class RoboHubGeraet extends IPSModule
                 ['type' => 'CheckBox', 'name' => 'LiveKarte', 'caption' => 'Live map while working (driven path and robot position; vacuums every 30 s, mowers every 60 s)'],
                 ['type' => 'CheckBox', 'name' => 'KarteMedium', 'caption' => 'Also provide the map as an image (media object)'],
                 ['type' => 'Label', 'name' => 'KarteMediumHint', 'caption' => 'Creates the media object "Map" below this robot: rooms, dock, driven path, robot and – if switched on above – room names, transparent outside the map. Fixed scale of 80 pixels per metre, so several maps (e.g. floors) match in IPSView at original size. Updated at most every 3 seconds; switching off removes it again.'],
+                ['type' => 'CheckBox', 'name' => 'PositionVariablen', 'caption' => 'Provide the robot position as variables'],
+                ['type' => 'Label', 'name' => 'PositionVariablenHint', 'caption' => 'Creates "Position X" and "Position Y" in metres from the top left corner of the map image (the same corner as in the media object "Map"; × 80 = its pixel) and "Heading" (0° = right, counter-clockwise). While working they follow the robot — e.g. to move an icon across your own floor plan in IPSView.'],
                 ['type' => 'Label', 'caption' => RoboHubText::t('IPSView or browser: create a WebView element in IPSView and enter http://<Symcon-IP>:3777%s as the address. The page refreshes itself every 15 seconds.', $this->hookPfad())],
                 ['type' => 'Label', 'caption' => RoboHubText::t('👁 Display only: %s', $this->hookPfad())],
                 ['type' => 'CheckBox', 'name' => 'WebBedienung', 'caption' => 'Allow control via the standalone page (only with key in the address)'],

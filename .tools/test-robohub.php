@@ -1704,6 +1704,22 @@ check('… zweites Zeichnen nutzt dasselbe Objekt', IPS_GetObjectIDByIdent('Kart
 $geraet->props['KarteMedium'] = false;
 $geraet->ApplyChanges();
 check('… ausgeschaltet: eigenes Bildobjekt wieder entfernt', $medium() === null);
+// Forum alsk1 144636/134: Roboterposition als Variablen (Meter ab der oberen linken Bildecke, Blickrichtung).
+$kAlt = $geraet->ReadAttributeString('Karte');
+$geraet->WriteAttributeString('Karte', json_encode(['bild' => 'x', 'roboter' => ['x' => 25.0, 'y' => 50.0, 'winkel' => -90],
+    'geometrie' => ['art' => 'raster', 'raster' => 50, 'b' => 240, 'h' => 90, 'links' => 0, 'oben' => 0, 'hoehe' => 90, 'minX' => 0, 'minY' => 0]]));
+$planen = new ReflectionMethod('RoboHubGeraet', 'kartenBildPlanen');
+$planen->invoke($geraet);
+check('Position ohne Option: keine Variablen', variable($geraet->InstanceID, 'PositionX') === null);
+$geraet->props['PositionVariablen'] = true;
+$planen->invoke($geraet);
+check('Position: 25 % von 12 m = 3,00 m, 50 % von 4,5 m = 2,25 m, −90° → 270°', (variable($geraet->InstanceID, 'PositionX')['value'] ?? null) === 3.0
+    && (variable($geraet->InstanceID, 'PositionY')['value'] ?? null) === 2.25 && (variable($geraet->InstanceID, 'Blickrichtung')['value'] ?? null) === 270
+    && (variable($geraet->InstanceID, 'PositionX')['pres']['SUFFIX'] ?? '') === ' m', json_encode([variable($geraet->InstanceID, 'PositionX'), variable($geraet->InstanceID, 'PositionY')]));
+$geraet->props['PositionVariablen'] = false;
+$planen->invoke($geraet);
+check('Position: Option aus → Variablen entfernt', variable($geraet->InstanceID, 'PositionX') === null && variable($geraet->InstanceID, 'Blickrichtung') === null);
+$geraet->WriteAttributeString('Karte', $kAlt);
 $ohneNamen = RoboHubKartenbild::sauger(['json' => []] + $rohKarte, []);
 check('Räume ganz ohne Namen bekommen trotzdem eigene Farben', ($pz = pngLesen($ohneNamen['bild'])) && $pz['zeilen'][2 * intdiv($pz['b'], 4)][0] >= 4 && $ohneNamen['marken'] === []);
 FakeCloud::$liveOut = [];

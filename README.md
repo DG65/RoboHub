@@ -1,7 +1,7 @@
 # RoboHub
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul-0.47.0-informational)
+![Modul Version](https://img.shields.io/badge/Modul-0.48.0-informational)
 ![Symcon Version](https://img.shields.io/badge/Symcon-9.0%2B-informational)
 ![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial%201.0.0-orange)
 [![Check Style](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/RoboHub/actions/workflows/check-style.yml)
@@ -116,6 +116,7 @@ Eine Variable entsteht erst, wenn dein Modell den Wert tatsächlich liefert.
 - **Kartenbild** auf Kachel und IPSView-Seite: Räume bzw. Mähzonen mit Namen zum Antippen; Antippen der Karte vergrößert sie auf die ganze Kachel (seit 0.41.0), gewählte Räume lassen sich dort direkt starten (seit 0.41.1).
 - **Karte als Bild** (seit 0.42.0): auf Wunsch zusätzlich als Medienobjekt „Karte“ (PNG mit Räumen, Station, Weg, Roboter und Raumnamen, außen durchsichtig, seit 0.47.0 im festen Maßstab von 80 Bildpunkten je Meter), z. B. für IPSView ohne WebView. Einschalten unter „Kachel und IPSView“. Braucht die GD-Erweiterung von PHP, sonst nur die Räume.
 - **Roborock-Karte wie in der App** (seit 0.43.0): in der App ausgeblendete Bereiche fehlen auch in RoboHub; Teppiche auf Wunsch als Karomuster („Teppiche in der Karte zeigen“).
+- **Roboterposition als Variablen** (seit 0.48.0, einschaltbar): „Position X/Y“ in Metern ab der oberen linken Ecke des Kartenbilds und „Blickrichtung“, z. B. für ein Symbol über dem eigenen Grundriss in IPSView.
 - **Raum reinigen mit Wahl** wie das „benutzerdefiniert"-Fenster der App: Modus, Saugstufe und
   Durchgänge nur für diesen Start.
 - **Zeitpläne** (Saug- und Mähroboter) aus der Hersteller-App anzeigen und ein-/ausschalten.

@@ -585,6 +585,7 @@
   `RoboHubKartenMedium::bild()` zeichnet mit GD (Kachel-Overlays ins Bild). Symcons PHP bringt GD mit (Privat 18.11.2026: PHP 8.5.12,
   GD + imagepalettetotruecolor + mbstring vorhanden) — ohne GD nur das Kartenbild. Schrift: eingebaute GD-Schriften (ISO-8859-2), keine
   Schriftdatei (Store: Dateizugriff). Live offen: Darstellung in IPSView, Größe der Schrift.
+- 0.48.0: `PositionVariablen` → Position X/Y (m ab oberer linker Bildecke) + Blickrichtung, aus `Karte.roboter` (Prozent) × Geometrie.
 - 0.47.0: mit Geometrie fester Maßstab 80 px/m (alsk1 #132: Geschosse in IPSView nicht maßstabsgleich zu bekommen), Marker in echter Größe.
 
 ## Eufy-Mäher-Treiber (0.34.0)

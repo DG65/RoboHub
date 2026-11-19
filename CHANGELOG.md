@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.48.0 (19.11.2026)
+
+- **Roboterposition als Variablen** (Forum alsk1 144636/134: Roboter-Symbol über dem eigenen, maßstabsgetreuen Grundriss in
+  IPSView per Fernsteuerungs-Variablen). Eigenschaft `PositionVariablen` (Standard aus) → `positionVariablen()` bei jeder
+  Kartenänderung (`kartenBildPlanen`): „Position X/Y“ (Float, m ab der oberen linken Ecke des Kartenbilds = Ecke des
+  Medienbilds, × 80 = dessen Bildpunkt) und „Blickrichtung“ (0–359°, 0° = rechts, gegen den Uhrzeigersinn). Nur Rasterkarten
+  mit Roboter (Live-Karte, Echtzeit-Position). Ausschalten entfernt die Variablen.
+  - Prüfstand: Umrechnung, Option an/aus.
+
 ## 0.47.0 (19.11.2026)
 
 - **Karte als Bild im festen Maßstab** (Forum alsk1 144636/132: Stationspunkte zweier Geschosse weiter verschieden groß; IPSView

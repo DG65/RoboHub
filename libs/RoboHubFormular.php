@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.48.0' => [
+            '• Robot position as variables (optional, "Tile and IPSView"): "Position X/Y" in metres from the top left corner of the map image and "Heading" — e.g. to move an icon across your own floor plan in IPSView.',
+        ],
         '0.47.0' => [
             '• Map as an image: fixed scale of 80 pixels per metre, dock and robot in real size — several maps (e.g. floors) now match in IPSView at original size.',
         ],
