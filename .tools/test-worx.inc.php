@@ -189,6 +189,34 @@ $ro = array_column(json_decode((string)variable(5100, 'Regenverzoegerung')['pres
 check('Regenverzögerung in 30-min-Schritten bis 12 h', ($ro[0] ?? '') === 'Aus' && ($ro[30] ?? '') === '30 min' && ($ro[90] ?? '') === '1,5 h' && ($ro[720] ?? '') === '12 h' && count($ro) === 25, json_encode($ro, JSON_UNESCAPED_UNICODE));
 check('Wochenplan (Sonntag zuerst wie ioBroker) als Anzeige, inkl. zweiter Mähzeit', variable(5100, 'Zeitplaene')['value']
     === "✅ Mo 10:00 · 60 min · mit Kantenschnitt\n✅ Mo 18:00 · 30 min\n✅ Mi 14:30 · 90 min\n✅ Fr 10:00 · 60 min", variable(5100, 'Zeitplaene')['value']);
+// Forum hbraun 144636/121: Einstellungen in der Kachel auswählbar, Messwerte unter „Details".
+$wk5 = kachelJson($wm->GetVisualizationTile());
+$we = array_column($wk5['einstellungen'] ?? [], null, 'id');
+check('Kachel: Mähzeiten, Regenverzögerung, Zeitzuschlag als Auswahlfeld (Name, Wert, Liste), nicht mehr als Text', array_keys($we) === ['Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag']
+    && $we['Regenverzoegerung']['name'] === 'Regenverzögerung' && $we['Regenverzoegerung']['wert'] === 60 && in_array([720, '12 h'], $we['Regenverzoegerung']['optionen'], true)
+    && preg_grep('/Regenverzögerung/u', $wk5['info'] ?? []) === [], json_encode([$wk5['einstellungen'] ?? null, $wk5['info'] ?? null], JSON_UNESCAPED_UNICODE));
+$wd = array_column($wk5['details'] ?? [], null, 'name');
+check('Kachel-Details: Akku, Zyklen, WLAN, Strecke, Messer, Firmware; beim Mäher „Mähdauer gesamt"', ($wd['Akkutemperatur']['wert'] ?? null) === 6.6 && ($wd['Akkutemperatur']['suffix'] ?? '') === '°C'
+    && (int)($wd['Ladezyklen']['wert'] ?? 0) === 937 && ($wd['WLAN-Signal']['suffix'] ?? '') === 'dBm' && (int)($wd['Mähdauer gesamt']['wert'] ?? 0) === 91
+    && ($wd['Firmware']['wert'] ?? null) === '3.36.0+1' && !isset($wd['Reinigungsdauer gesamt']), json_encode($wk5['details'] ?? null, JSON_UNESCAPED_UNICODE));
+$wm->props['EinstellungenZeigen'] = false;
+check('„Einstellungen zeigen" aus → keine Auswahlfelder in der Kachel', (kachelJson($wm->GetVisualizationTile())['einstellungen'] ?? null) === []);
+$wm->props['EinstellungenZeigen'] = true;
+$wm->props['WebBedienung'] = true;
+$wkey = $wm->ReadAttributeString('WebSchluessel');
+FakeWorx::$gesendet = [];
+$h1 = json_decode(hook($wm, ['cmd' => 'Einstellung', 'wert' => 'Regenverzoegerung:90', 'key' => $wkey]), true);
+$h2 = json_decode(hook($wm, ['cmd' => 'Einstellung', 'wert' => 'Akku:5', 'key' => $wkey]), true);
+$h3 = json_decode(hook($wm, ['cmd' => 'Einstellung', 'wert' => 'Regenverzoegerung:30', 'key' => 'falsch']), true);
+check('eigene Seite: Einstellung mit Schlüssel gesetzt; fremdes Feld und falscher Schlüssel abgelehnt', ($h1['ok'] ?? false) && variable(5100, 'Regenverzoegerung')['value'] === 90
+    && count(FakeWorx::$gesendet) === 1 && !($h2['ok'] ?? true) && !($h3['ok'] ?? true), json_encode([$h1, $h2, $h3], JSON_UNESCAPED_UNICODE));
+$wm->props['EinstellungenZeigen'] = false;
+FakeWorx::$gesendet = [];
+$h4 = json_decode(hook($wm, ['cmd' => 'Einstellung', 'wert' => 'Regenverzoegerung:30', 'key' => $wkey]), true);
+check('eigene Seite: nur, was die Kachel als Auswahl zeigt („Einstellungen zeigen" aus → abgelehnt)', !($h4['ok'] ?? true) && FakeWorx::$gesendet === [] && variable(5100, 'Regenverzoegerung')['value'] === 90);
+$wm->props['EinstellungenZeigen'] = true;
+$wm->props['WebBedienung'] = false;
+$_GET = [];
 FakeWorx::$gesendet = [];
 $wm->RequestAction('Regenverzoegerung', 120);
 $wm->RequestAction('Maehzeiten', 0);

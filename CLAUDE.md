@@ -615,6 +615,14 @@
 - Debug-Ausgaben (`SendDebug`) bleiben deutsch. Englischer Prüflauf: `ROBOHUB_SPRACHE=en php .tools/test-robohub.php`
   (deutsche Prüftexte schlagen dort erwartungsgemäß fehl; zum Durchsuchen nach deutschen Resten gedacht).
 
+## Kachel: Einstellungen und Details (0.44.0)
+
+- Wunsch hbraun (Forum 144636/121, Worx). `KACHEL_EINSTELLUNGEN` mit Auswahlliste (Attribut `Optionen`) UND Aktion → Auswahlfeld;
+  `hatAktion()` liest `VariableAction` (live = Instanz-ID). Eigene Seite: Befehl `Einstellung` nur für Felder aus `einstellungen`
+  der aktuellen Kachel-Daten (Positivliste — Gegenprobe im Worx-Test). Nach `setze`/`einstellung` erneut `kachelAktualisieren()`,
+  sonst springt das Auswahlfeld bis zum nächsten Abruf zurück.
+- `KACHEL_DETAILS` nur Anzeige; Mäher-Namen über `MAEHER_NAMEN` (Variablennamen nicht umbenennen — Name gehört dem Nutzer).
+
 ## Vertrag robot_activity (0.37.0)
 
 - `ROBO_GetActivity` für FrigateHub (Konzept `Nextcloud/Claude/FrigateHub-Roboter-Konzept.md`): Unterdrückung von Fehlalarmen,

@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.44.0' => [
+            '• Tile: the robot\'s settings (e.g. mowing times, rain delay, suction level) can be changed right there in the section "Settings"; on the standalone page only with control enabled.',
+            '• Tile: new folding section "Details" with battery temperature and voltage, charge cycles, WLAN signal, totals and firmware.',
+        ],
         '0.43.0' => [
             '• Roborock: areas hidden in the app (e.g. the view through a door into the garden) are left out of the map now; carpets can be shown as a checkered pattern (switch on under "Tile and IPSView").',
             '• Roborock: wash tray (dock strainer) and dock cleaning brush as consumables. All consumables can also be reset via the variable "Reset consumable", e.g. from IPSView (switch on under "Reset consumables").',

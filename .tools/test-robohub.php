@@ -104,7 +104,9 @@ function mqttVomServer($konto, string $bytes): void
     $konto->ReceiveData(json_encode(['DataID' => '{018EF6B5-AB94-40C6-AA53-46943E824ACF}', 'Buffer' => mb_convert_encoding($bytes, 'UTF-8', 'ISO-8859-1')]));
 }
 function GetValue(int $id) { return $GLOBALS['OBJ'][$id]['value']; }
-function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time(), 'VariableUpdated' => $GLOBALS['OBJ'][$id]['updated'] ?? ($GLOBALS['OBJ'][$id]['changed'] ?? time())]; }
+function IPS_GetVariable(int $id): array { return ['VariableChanged' => $GLOBALS['OBJ'][$id]['changed'] ?? time(), 'VariableUpdated' => $GLOBALS['OBJ'][$id]['updated'] ?? ($GLOBALS['OBJ'][$id]['changed'] ?? time()),
+    // Wie Symcon (live 18.11.2026): VariableAction = ID der Instanz, deren RequestAction greift, sonst 0.
+    'VariableAction' => !empty($GLOBALS['OBJ'][$id]['action']) ? (int)$GLOBALS['OBJ'][$id]['parent'] : 0]; }
 function IPS_InstanceExists(int $id): bool { return isset($GLOBALS['INST'][$id]); }
 function IPS_GetProperty(int $id, string $n) { return $GLOBALS['INST'][$id]->props[$n]; }
 function IPS_GetName(int $id): string { return $GLOBALS['OBJ'][$id]['name'] ?? $GLOBALS['NAMEN'][$id] ?? ('Instanz ' . $id); }

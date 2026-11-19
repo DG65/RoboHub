@@ -131,7 +131,7 @@ function textSym(t) {
 var TEIL_ROT = 5, TEIL_GELB = 35;
 // Befehle: [Wert, Symcon-Symbol, Emoji, Text]
 var BEFEHLE = [[1, 'play', '▶️', 'Start'], [2, 'pause', '⏸️', 'Pause'], [4, 'house', '🏠', 'Station'], [5, 'location-dot', '📍', 'Locate']];
-var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '';
+var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '', detailsOffen = false;
 // Karte groß: antippen vergrößert sie auf die ganze Kachel (Forum kronos 144636/101).
 var grossKarte = false;
 // Läuft ein Befehl, sind die Befehlsknöpfe gesperrt: der Roboter nimmt (z. B. iRobot) nur eine
@@ -165,6 +165,18 @@ function senden(ident, wert, text) {
     .then(function (r) { return r.json(); })
     .then(function (j) { befehlLaeuft = false; rueck = j.text || (j.ok ? '📤 ' + T('sent') : '⛔ ' + T('rejected')); zeichnen(); })
     .catch(function () { befehlLaeuft = false; rueck = '⛔ ' + T('No connection to Symcon'); zeichnen(); });
+}
+
+// Einstellung aus der Kachel (Auswahlfeld): Kachel direkt per requestAction, eigene Seite über den WebHook.
+function einstellen(id, wert, name) {
+  if (daten.eigen) { senden('Einstellung', id + ':' + wert, name); } else { senden(id, wert, name); }
+}
+
+// Messwert für „Details": Zahl mit den Nachkommastellen der Variable, deutsches Komma.
+function detailWert(x) {
+  var w = typeof x.wert === 'number' ? x.wert.toFixed(x.stellen || 0) : String(x.wert);
+  if (typeof x.wert === 'number' && deutsch()) { w = w.replace('.', ','); }
+  return w + (x.suffix ? ' ' + x.suffix : '');
 }
 
 // Raumnamen im Kartenbild: Vorgabe aus dem Formular, in der Kachel pro Gerät umschaltbar
@@ -291,6 +303,22 @@ function zeichnen() {
     });
     r += '</div>';
   }
+  var einst = d.einstellungen || [];
+  if (einst.length) {
+    // Schaltbare Einstellungen (Forum hbraun 144636/121): mit Bedienung als Auswahlfeld, sonst als Text.
+    r += '<div class="block"><p class="abschnitt">' + T('Settings') + '</p>';
+    if (bedienbar) {
+      einst.forEach(function (e) {
+        r += '<div class="teil ok"><span>' + esc(e.name) + '</span><span><select class="startwahl"' + (befehlLaeuft ? ' disabled' : '')
+          + ' onchange="einstellen(\'' + esc(e.id) + '\',Number(this.value),\'' + esc(e.name).replace(/'/g, '') + '\')">'
+          + (e.optionen || []).map(function (o) { return '<option value="' + Number(o[0]) + '"' + (o[0] === e.wert ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('')
+          + '</select></span></div>';
+      });
+    } else {
+      r += '<div class="info">' + einst.map(function (e) { return '<span>' + esc(e.name) + ': ' + esc(e.text) + '</span>'; }).join('') + '</div>';
+    }
+    r += '</div>';
+  }
   if ((d.info || []).length) {
     r += '<div class="block"><p class="abschnitt">' + T('Overview') + '</p><div class="info">' + d.info.map(function (t) { return '<span>' + textSym(t) + '</span>'; }).join('') + '</div></div>';
   }
@@ -315,6 +343,15 @@ function zeichnen() {
     var rest = teile.length - kritisch.length;
     if (!offen && rest > 0) { r += '<button class="mehr" onclick="alleTeile=true;zeichnen()">' + T(kritisch.length ? '%s more OK' : 'All %s OK', rest) + ' ›</button>'; }
     if (alleTeile && teile.length > 4) { r += '<button class="mehr" onclick="alleTeile=false;zeichnen()">‹ ' + T('less') + '</button>'; }
+    r += '</div>';
+  }
+  var det = d.details || [];
+  if (det.length) {
+    // Messwerte und Statistik, eingeklappt (die Kachel bleibt kurz).
+    r += '<div class="block"><button class="mehr" onclick="detailsOffen=!detailsOffen;zeichnen()">' + T('Details') + (detailsOffen ? ' ‹' : ' ›') + '</button>';
+    if (detailsOffen) {
+      det.forEach(function (x) { r += '<div class="teil ok"><span>' + esc(x.name) + '</span><span>' + esc(detailWert(x)) + '</span></div>'; });
+    }
     r += '</div>';
   }
   var f = d.stand ? '<div class="fuss">' + T('As of %s', esc(d.stand)) + '</div>' : '';

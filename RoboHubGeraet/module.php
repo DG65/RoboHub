@@ -215,6 +215,7 @@ class RoboHubGeraet extends IPSModule
                     $wert = $this->einstellungPruefen($Ident, $Value);
                     if ($wert !== null && $this->fuehreAus('einstellung', ['feld' => $Ident, 'wert' => $wert])) {
                         $this->SetValue($Ident, $wert);
+                        $this->kachelAktualisieren();   // neuen Wert gleich in der Kachel (Auswahlfeld)
                     }
                     return;
                 }
@@ -222,6 +223,7 @@ class RoboHubGeraet extends IPSModule
                 if (isset($optionen[$Ident])) {
                     if ($this->fuehreAus('setze', ['feld' => $Ident, 'wert' => (int)$Value])) {
                         $this->SetValue($Ident, (int)$Value);
+                        $this->kachelAktualisieren();
                     }
                     return;
                 }
@@ -1343,6 +1345,40 @@ class RoboHubGeraet extends IPSModule
         return ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($options)];
     }
 
+    /** Einstellungen, die die Kachel zeigt (Reihenfolge = Anzeige); schaltbar nur mit Auswahlliste + Aktion. */
+    private const KACHEL_EINSTELLUNGEN = ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll',
+        'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag'];
+
+    /** Messwerte und Statistik für den aufklappbaren Kachel-Abschnitt „Details" (Forum hbraun 144636/121). */
+    private const KACHEL_DETAILS = ['AkkuTemperatur', 'AkkuSpannung', 'Ladezyklen', 'WlanSignal', 'GesamtFlaeche', 'GesamtDauer',
+        'GesamtAnzahl', 'GesamtStrecke', 'Messerlaufzeit', 'Firmware'];
+
+    /** Beim Mäher heißen die Gesamtwerte nach dem Mähen (Variablennamen bleiben, wie sie sind). */
+    private const MAEHER_NAMEN = ['GesamtFlaeche' => 'Mowed area total', 'GesamtDauer' => 'Mowing time total', 'GesamtAnzahl' => 'Mowing runs total'];
+
+    private function kachelDetails(string $klasse): array
+    {
+        $aus = [];
+        foreach (self::KACHEL_DETAILS as $ident) {
+            $w = $this->wert($ident);
+            if ($w === null || $w === '') {
+                continue;
+            }
+            [$name, $typ, $suffix, $stellen] = RoboHubModell::FELDER[$ident];
+            if ($klasse === RoboHubModell::KLASSE_MAEHER && isset(self::MAEHER_NAMEN[$ident])) {
+                $name = self::MAEHER_NAMEN[$ident];
+            }
+            $aus[] = ['name' => RoboHubText::wert($name), 'wert' => is_string($w) ? $w : (float)$w, 'suffix' => trim($suffix), 'stellen' => (int)$stellen];
+        }
+        return $aus;
+    }
+
+    private function hatAktion(string $ident): bool
+    {
+        $id = @IPS_GetObjectIDByIdent($ident, $this->InstanceID);
+        return $id !== false && (int)(IPS_GetVariable($id)['VariableAction'] ?? 0) > 0;
+    }
+
     private function hatVariable(string $ident): bool
     {
         return @IPS_GetObjectIDByIdent($ident, $this->InstanceID) !== false;
@@ -1441,7 +1477,7 @@ class RoboHubGeraet extends IPSModule
             }
             $cmd = (string)$_GET['cmd'];
             $wert = (string)($_GET['wert'] ?? '');
-            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen', 'Zeitplan'], true)) {
+            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen', 'Zeitplan', 'Einstellung'], true)) {
                 echo json_encode(['ok' => false, 'text' => RoboHubText::t('⛔ Unknown command.')]);
                 return;
             }
@@ -1453,6 +1489,17 @@ class RoboHubGeraet extends IPSModule
                 } elseif ($cmd === 'Zeitplan') {
                     [$tid, $an] = array_pad(explode(':', $wert, 2), 2, '0');
                     $text = $this->ZeitplanSchalten((int)$tid, $an === '1');
+                } elseif ($cmd === 'Einstellung') {
+                    // Nur Einstellungen, die die Kachel als Auswahlfeld zeigt („Ident:Wert").
+                    [$feld, $neu] = array_pad(explode(':', $wert, 2), 2, '');
+                    $erlaubt = array_column((array)(json_decode($this->kachelDaten(false, ''), true)['einstellungen'] ?? []), 'id');
+                    if (!in_array($feld, $erlaubt, true) || !is_numeric($neu)) {
+                        $text = RoboHubText::t('⛔ Unknown command.');
+                    } else {
+                        $this->RequestAction($feld, (int)$neu);
+                        $name = RoboHubText::wert(RoboHubModell::FELDER[$feld][0]);
+                        $text = (int)$this->wert($feld) === (int)$neu ? RoboHubText::t('✅ %s set.', $name) : RoboHubText::t('⛔ %s was not changed.', $name);
+                    }
                 } else {
                     $start = self::raumStart($wert);
                     $text = $start['raeume'] === [] ? RoboHubText::t('⛔ No room ID given.') : $this->befehlText('raum', $start);
@@ -1485,7 +1532,7 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Texte der Kachel (module.html schlägt sie per T() nach; Deutsch aus locale.json). */
-    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close'];
+    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close', 'Settings', 'Details'];
 
     /** Daten für Kachel und eigenständige Seite (JSON). */
     private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = '', bool $mitTexten = true): string
@@ -1529,12 +1576,26 @@ class RoboHubGeraet extends IPSModule
 
         $info = [];
         $einst = $this->ReadPropertyBoolean('EinstellungenZeigen');
-        foreach ($einst ? ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll', 'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag'] : [] as $ident) {
+        // Einstellungen mit Auswahlliste: in der Kachel als Auswahlfeld (Forum hbraun 144636/121), die Kachel
+        // zeigt sie ohne Bedienung als Text. Ohne Auswahlliste (nur Text) wie bisher im Überblick.
+        $optionenAlle = json_decode((string)$this->ReadAttributeString('Optionen'), true) ?: [];
+        $einstellungen = [];
+        foreach ($einst ? self::KACHEL_EINSTELLUNGEN : [] as $ident) {
             $t = $this->auswahlText($ident);
-            if ($t !== null) {
-                // Mit Namen davor — „Hoch" oder „An" allein sagt in der Kachel nichts (Forum Thilo 24.10.2026).
-                $info[] = $ident === 'Reinigungsmodus' ? $t : RoboHubText::wert(RoboHubModell::FELDER[$ident][0]) . ': ' . $t;
+            if ($t === null) {
+                continue;
             }
+            $name = RoboHubText::wert(RoboHubModell::FELDER[$ident][0]);
+            if (is_array($optionenAlle[$ident] ?? null) && $this->hatAktion($ident)) {
+                $liste = [];
+                foreach ($optionenAlle[$ident] as $wert => $caption) {
+                    $liste[] = [(int)$wert, (string)RoboHubText::wert((string)$caption)];
+                }
+                $einstellungen[] = ['id' => $ident, 'name' => $name, 'wert' => (int)$this->wert($ident), 'text' => $t, 'optionen' => $liste];
+                continue;
+            }
+            // Mit Namen davor — „Hoch" oder „An" allein sagt in der Kachel nichts (Forum Thilo 24.10.2026).
+            $info[] = $ident === 'Reinigungsmodus' ? $t : $name . ': ' . $t;
         }
         if ($einst && $this->wert('NichtStoeren') !== null) {
             $info[] = $this->wert('NichtStoeren')
@@ -1573,6 +1634,8 @@ class RoboHubGeraet extends IPSModule
             'fehler'      => ($fehler === '' || $fehler === 'kein Fehler' || $fehler === RoboHubText::t('no error')) ? '' : $fehler,
             'hinweise'    => $hinweise,
             'info'        => $info,
+            'einstellungen' => $einstellungen,
+            'details'     => $this->kachelDetails($klasse),
             'raeume'      => $raeume,
             'karte'       => $this->kachelKarte(),
             // Auswahl für „Raum reinigen mit Wahl" aus den Treiber-Optionen (herstellerneutral).
@@ -1726,7 +1789,7 @@ class RoboHubGeraet extends IPSModule
                     ['caption' => 'Emojis (colourful characters of the device)', 'value' => 1],
                 ]],
                 ['type' => 'Label', 'caption' => 'Symcon icons come from the Symcon server and look the same on every device. Emojis need an emoji font on the displaying device (missing e.g. on a Raspberry Pi). If the Symcon icons cannot be loaded, the tile shows emojis by itself.'],
-                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Show the robot\'s settings (suction level, passes, do not disturb …) in the tile overview — the instance\'s variables always stay'],
+                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Show the robot\'s settings in the tile (suction level, rain delay, do not disturb …) — selectable there; the instance\'s variables always stay'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Show map image (rooms or mowing zones to tap)'],
                 ['type' => 'CheckBox', 'name' => 'KarteNamen', 'caption' => 'Show room names in the map image (default — can also be switched per device in the tile)'],
                 ['type' => 'CheckBox', 'name' => 'KarteTeppich', 'caption' => 'Show carpets in the map'],

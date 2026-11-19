@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.44.0 (19.11.2026)
+
+- **Kachel: Einstellungen auswählbar** (Forum hbraun 144636/121, Worx): Einstellungen mit Auswahlliste und Aktion (`KACHEL_EINSTELLUNGEN`,
+  z. B. Mähzeiten, Regenverzögerung, Zeitzuschlag, Saugstufe, Durchgänge) kommen als `einstellungen` in die Kachel-Daten und
+  erscheinen im Abschnitt „Einstellungen“ als Auswahlfeld (Kachel: `requestAction`, eigene Seite: WebHook-Befehl `Einstellung`
+  „Ident:Wert“ — nur mit Freigabe + Schlüssel und nur für Felder, die die Kachel gerade als Auswahl zeigt). Ohne Bedienung als Text.
+  Nach dem Setzen wird die Kachel gleich mit dem neuen Wert aktualisiert. Text-Einstellungen bleiben im Überblick.
+- **Kachel: „Details“** (eingeklappt): Akkutemperatur/-spannung, Ladezyklen, WLAN, Gesamtwerte, Messerlaufzeit, Firmware; beim
+  Mäher „Gemähte Fläche/Mähdauer/Mähvorgänge gesamt“ (nur in der Kachel, Variablennamen bleiben).
+  - Prüfstand: 5 neue Prüfungen am Worx; Gegenprobe Positivliste der eigenen Seite gefangen.
+
 ## 0.43.0 (18.11.2026)
 
 - **Roborock: ausgeblendete Bereiche** (Forum alsk1 144636/115): Block 17 der „rr“-Karte (Unterkarte, ein Byte je Bildpunkt,

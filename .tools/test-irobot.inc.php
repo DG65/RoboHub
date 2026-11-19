@@ -232,7 +232,10 @@ check('Saugstufe „Hoch" = carpetBoost aus, vacHigh an', strpos((string)file_ge
 $ar->Aktualisieren();
 check('Roboter meldet die neuen Werte zurück → Variablen bleiben', variable(7300, 'Durchgaenge')['value'] === 2 && variable(7300, 'Saugstufe')['value'] === 2);
 $k = kachelJson($ar->GetVisualizationTile());
-check('Kachel-Überblick zeigt die Einstellungen mit Namen', in_array('Reinigungsdurchgänge: Zweifach-Reinigung', $k['info'] ?? [], true), json_encode($k['info'] ?? null, JSON_UNESCAPED_UNICODE));
+$einstK = array_column($k['einstellungen'] ?? [], null, 'id');
+check('Kachel: schaltbare Einstellung als Auswahlfeld mit Namen, Wert und Liste (statt Text im Überblick)', ($einstK['Durchgaenge']['name'] ?? '') === 'Reinigungsdurchgänge'
+    && ($einstK['Durchgaenge']['text'] ?? '') === 'Zweifach-Reinigung' && ($einstK['Durchgaenge']['wert'] ?? null) === 2 && in_array([2, 'Zweifach-Reinigung'], $einstK['Durchgaenge']['optionen'] ?? [], true)
+    && !in_array('Reinigungsdurchgänge: Zweifach-Reinigung', $k['info'] ?? [], true), json_encode($k['einstellungen'] ?? null, JSON_UNESCAPED_UNICODE));
 $ar->props['EinstellungenZeigen'] = false;
 $ar->ApplyChanges();
 $k = kachelJson($ar->GetVisualizationTile());
@@ -250,7 +253,8 @@ check('… danach respektiert RoboHub selbst versteckte Variablen', IPS_GetObjec
 IPS_SetHidden($vid, false);
 $ar->props['EinstellungenZeigen'] = true;
 $ar->ApplyChanges();
-check('Kachel-Überblick: Saugstufe mit Namen („Hoch" allein sagt nichts)', in_array('Saugstufe: Hoch', kachelJson($ar->GetVisualizationTile())['info'] ?? [], true));
+$einstK = array_column(kachelJson($ar->GetVisualizationTile())['einstellungen'] ?? [], null, 'id');
+check('Kachel: Saugstufe mit Namen („Hoch" allein sagt nichts)', ($einstK['Saugstufe']['name'] ?? '') === 'Saugstufe' && ($einstK['Saugstufe']['text'] ?? '') === 'Hoch');
 // Einzelnen Roboter deaktivieren (Forum Thilo 25.10.2026)
 $vorLog = strlen((string)file_get_contents($n3[5]));
 $ar->props['Deaktiviert'] = true;
