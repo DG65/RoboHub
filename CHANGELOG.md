@@ -2,6 +2,14 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.46.0 (19.11.2026)
+
+- **Kachel/eigene Seite: keine `<select>` mehr** (Forum hbraun 144636/127: in IPSViews WebView passierte bei Mähzeiten/
+  Regenverzögerung gar nichts, Knöpfe gingen). Native Aufklapplisten öffnen sich in eingebetteten Browsern nicht immer →
+  `wahlKnopf()` (Knopf mit aktuellem Wert ▾) + `wahlListe()` (Werte als Knöpfe darunter), `waehle()`; gilt für Einstellungen
+  und den Raumstart (Modus/Saugstufe/Durchgänge). Offene Liste überlebt das 15-s-Nachladen. Im Browser geprüft (Kachel:
+  requestAction, eigene Seite: WebHook `Einstellung`). Prüfstand: Kachel enthält kein `<select>`.
+
 ## 0.45.0 (19.11.2026)
 
 - **Roborock: MQTT-Anmeldung abgewiesen (CONNACK 4/5) = Drosselung** (Forum alsk1 144636/125: „Zugangsschlüssel ungültig“ nach

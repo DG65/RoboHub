@@ -628,6 +628,8 @@
   `hatAktion()` liest `VariableAction` (live = Instanz-ID). Eigene Seite: Befehl `Einstellung` nur für Felder aus `einstellungen`
   der aktuellen Kachel-Daten (Positivliste — Gegenprobe im Worx-Test). Nach `setze`/`einstellung` erneut `kachelAktualisieren()`,
   sonst springt das Auswahlfeld bis zum nächsten Abruf zurück.
+- **Kein `<select>` in module.html** (0.46.0): IPSViews WebView öffnet native Aufklapplisten nicht (Forum hbraun 144636/127) →
+  `wahlKnopf`/`wahlListe`. Prüfstand wacht darüber.
 - `KACHEL_DETAILS` nur Anzeige; Mäher-Namen über `MAEHER_NAMEN` (Variablennamen nicht umbenennen — Name gehört dem Nutzer).
 
 ## Vertrag robot_activity (0.37.0)

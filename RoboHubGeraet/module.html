@@ -55,7 +55,9 @@ button:disabled{opacity:.45;cursor:default}
 .los{margin-top:.6em;width:100%}
 .raumeinst{font-size:.8em;color:var(--fg2);margin-top:.35em}
 .startzeile{display:flex;flex-wrap:wrap;gap:.4em;margin-top:.6em}
-.startwahl{font:inherit;font-size:.85em;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:.7em;padding:.35em .5em;max-width:100%}
+.wahl{font:inherit;font-size:.85em;color:var(--fg);background:var(--fl);border:1px solid var(--rand);border-radius:.7em;padding:.3em .6em;max-width:100%}
+.wahl.offen{border-color:var(--blau);color:var(--blau)}
+.wahlliste{margin:.45em 0 .55em}
 .info{display:flex;flex-wrap:wrap;gap:.45em}.info span{font-size:.85em;padding:.3em .8em;border-radius:2em;background:var(--graubg)}
 .teil{display:flex;justify-content:space-between;gap:.6em;font-size:.92em;padding:.28em 0;border-bottom:1px solid var(--rand)}
 .teil:last-of-type{border-bottom:none}
@@ -139,10 +141,29 @@ var grossKarte = false;
 var befehlLaeuft = false, befehlUhr = null;
 // Startwerte wie das „benutzerdefiniert"-Fenster der App, −1 = wie eingestellt.
 var startModus = -1, startSaug = -1, startDurch = -1;
+// Auswahl ohne select-Element: IPSViews WebView öffnet native Aufklapplisten nicht — dort passierte beim Antippen
+// gar nichts (Forum hbraun 144636/127). Knopf mit aktuellem Wert, Antippen klappt die Werte als Knöpfe auf.
+var offenWahl = '', wahlAktion = {};
+function wahlKnopf(key, wert, optionen, aktion) {
+  wahlAktion[key] = aktion;
+  var akt = optionen.filter(function (o) { return o[0] === wert; })[0];
+  return '<button class="wahl' + (offenWahl === key ? ' offen' : '') + '"' + (befehlLaeuft ? ' disabled' : '')
+    + ' onclick="offenWahl=offenWahl===\'' + key + '\'?\'\':\'' + key + '\';zeichnen()">' + esc(akt ? akt[1] : String(wert)) + ' ▾</button>';
+}
+function wahlListe(key, wert, optionen) {
+  if (offenWahl !== key) { return ''; }
+  return '<div class="chips wahlliste">' + optionen.map(function (o) {
+    return '<button class="chip' + (o[0] === wert ? ' an' : '') + '" onclick="waehle(\'' + key + '\',' + Number(o[0]) + ')">' + esc(o[1]) + '</button>';
+  }).join('') + '</div>';
+}
+function waehle(key, v) {
+  offenWahl = '';
+  if (wahlAktion[key]) { wahlAktion[key](v); }
+  zeichnen();
+}
+// Startwerte des Raumstarts (globale Variablen startModus/startSaug/startDurch).
 function auswahl(name, wert, optionen) {
-  return '<select class="startwahl" onchange="' + name + '=Number(this.value)">' + optionen.map(function (o) {
-    return '<option value="' + o[0] + '"' + (o[0] === wert ? ' selected' : '') + '>' + o[1] + '</option>';
-  }).join('') + '</select>';
+  return wahlKnopf(name, wert, optionen, function (v) { window[name] = v; });
 }
 
 // Texte: englischer Schlüssel, Übersetzung liefert das Modul in daten.texte (locale.json); %s = Wert.
@@ -282,10 +303,12 @@ function zeichnen() {
       var wert = gewaehlt.join(',');
       if (d.klasse !== 'maeher') {
         var wahl = d.startWahl || {};
+        var oModus = [[-1, T('Mode as set')]].concat(wahl.modus || []), oSaug = [[-1, T('Suction level as set')]].concat(wahl.saug || []), oDurch = [[-1, '1×'], [2, '2×'], [3, '3×']];
         startTeil += '<div class="startzeile">'
-          + ((wahl.modus || []).length ? auswahl('startModus', startModus, [[-1, T('Mode as set')]].concat(wahl.modus)) : '')
-          + ((wahl.saug || []).length ? auswahl('startSaug', startSaug, [[-1, T('Suction level as set')]].concat(wahl.saug)) : '')
-          + auswahl('startDurch', startDurch, [[-1, '1×'], [2, '2×'], [3, '3×']]) + '</div>';
+          + ((wahl.modus || []).length ? auswahl('startModus', startModus, oModus) : '')
+          + ((wahl.saug || []).length ? auswahl('startSaug', startSaug, oSaug) : '')
+          + auswahl('startDurch', startDurch, oDurch) + '</div>'
+          + wahlListe('startModus', startModus, oModus) + wahlListe('startSaug', startSaug, oSaug) + wahlListe('startDurch', startDurch, oDurch);
         wert += '|' + startModus + '|' + startSaug + '|' + startDurch;
       }
       startTeil += '<button class="start los" onclick="senden(\'Raeume\',\'' + wert + '\',\'' + T(d.klasse === 'maeher' ? 'Mowing %s' : 'Cleaning %s', esc(namen).replace(/'/g, '')) + '\');gewaehlt=[];">' + sym('play', '▶️') + ' ' + T(d.klasse === 'maeher' ? 'Mow %s' : 'Clean %s', esc(namen)) + '</button>';
@@ -305,14 +328,14 @@ function zeichnen() {
   }
   var einst = d.einstellungen || [];
   if (einst.length) {
-    // Schaltbare Einstellungen (Forum hbraun 144636/121): mit Bedienung als Auswahlfeld, sonst als Text.
+    // Schaltbare Einstellungen (Forum hbraun 144636/121): mit Bedienung als Auswahl, sonst als Text.
     r += '<div class="block"><p class="abschnitt">' + T('Settings') + '</p>';
     if (bedienbar) {
       einst.forEach(function (e) {
-        r += '<div class="teil ok"><span>' + esc(e.name) + '</span><span><select class="startwahl"' + (befehlLaeuft ? ' disabled' : '')
-          + ' onchange="einstellen(\'' + esc(e.id) + '\',Number(this.value),\'' + esc(e.name).replace(/'/g, '') + '\')">'
-          + (e.optionen || []).map(function (o) { return '<option value="' + Number(o[0]) + '"' + (o[0] === e.wert ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('')
-          + '</select></span></div>';
+        var key = 'e_' + e.id, opt = e.optionen || [];
+        r += '<div class="teil ok"><span>' + esc(e.name) + '</span><span>'
+          + wahlKnopf(key, e.wert, opt, function (v) { if (v !== e.wert) { einstellen(e.id, v, e.name); } })
+          + '</span></div>' + wahlListe(key, e.wert, opt);
       });
     } else {
       r += '<div class="info">' + einst.map(function (e) { return '<span>' + esc(e.name) + ': ' + esc(e.text) + '</span>'; }).join('') + '</div>';

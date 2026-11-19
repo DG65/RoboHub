@@ -866,6 +866,9 @@ function hook(RoboHubGeraet $g, array $get): string
     return (string)ob_get_clean();
 }
 check('Instanz ist eine Kachel (SetVisualizationType 1)', $geraet->visuTyp === 1);
+// Forum hbraun 144636/127: IPSViews WebView öffnet native Aufklapplisten nicht → eigene Auswahl aus Knöpfen.
+check('Kachel ohne <select> (IPSView-WebView), Auswahl über wahlKnopf/wahlListe', strpos((string)file_get_contents(__DIR__ . '/../RoboHubGeraet/module.html'), '<select') === false
+    && strpos((string)file_get_contents(__DIR__ . '/../RoboHubGeraet/module.html'), 'function wahlListe') !== false);
 $k = kachelJson($geraet->GetVisualizationTile());
 check('Kachel liefert Daten an handleMessage()', is_array($k));
 check('Kachel: Zustand im Klartext', ($k['zustandText'] ?? '') !== '' && $k['eigen'] === false);
