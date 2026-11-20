@@ -33,6 +33,18 @@ class RoboHubRoborock implements RoboHubTreiber
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
 
+    /**
+     * Dauerhafte Verbindung des Kontos (0.50.0, Forum alsk1 144636/140): steht sie, setzt das Konto hier
+     * fn(string $abo, string $ziel, array $rahmen, callable $verarbeite, float $frist): void — dann laufen alle
+     * Anfragen über diese eine Verbindung statt über je eine kurze Sitzung (Roborock sperrte nach ~700/h).
+     * @var callable|null
+     */
+    public $transport = null;
+
+    // Unaufgeforderte Meldungen (python-roborock RoborockDataProtocol) → Schlüssel wie in get_status/get_consumable.
+    private const PUSH_FELDER = [120 => 'error_code', 121 => 'state', 122 => 'battery', 123 => 'fan_power', 124 => 'water_box_mode',
+        125 => 'main_brush_work_time', 126 => 'side_brush_work_time', 127 => 'filter_work_time'];
+
     // Einstiegs-Server; welcher das Konto kennt, sagt getUrlByEmail.
     private const BASIS = [
         'https://euiot.roborock.com',
@@ -725,7 +737,7 @@ PEM;
             }
             return false;
         };
-        $this->mqttAustausch($host, $port, $benutzer, $passwort,
+        $this->austausch($host, $port, $benutzer, $passwort,
             'rr/m/o/' . $r['u'] . '/' . $benutzer . '/' . $duid,
             'rr/m/i/' . $r['u'] . '/' . $benutzer . '/' . $duid,
             $rahmen, $verarbeite, 15.0);
@@ -968,29 +980,91 @@ PEM;
     // Echtzeit über die Konto-Verbindung: noch nicht gebaut
     // =================================================================
 
+    // -----------------------------------------------------------------
+    // Dauerhafte Verbindung über den Client Socket des Kontos (0.50.0) — wie python-roborock
+    // (eine MQTT-Sitzung je Konto, rr/m/o/… je Gerät abonniert).
+    // -----------------------------------------------------------------
+
     public function echtzeitMoeglich(): bool
     {
-        return false;
+        return true;
     }
 
+    /** Server aus rriot.r.m; ohne Anmeldung leer. */
     public function mqttZiel(array $geraete, array $buendel): array
     {
-        return ['', 0];
+        if (!isset($buendel['rriot'])) {
+            return ['', 0];
+        }
+        return self::mqttServer((array)$buendel['rriot']);
     }
 
     public function mqttTopic(array $geraet, array $buendel): string
     {
-        return '';
+        [$benutzer] = self::mqttAnmeldung((array)($buendel['rriot'] ?? []));
+        return 'rr/m/o/' . ($buendel['rriot']['u'] ?? '') . '/' . $benutzer . '/' . (string)$geraet['id'];
     }
 
     public function mqttZugang(array $buendel): array
     {
-        return ['', ''];
+        return self::mqttAnmeldung((array)($buendel['rriot'] ?? []));
+    }
+
+    /** Benutzer md5(u:k)[2:10], Passwort md5(s:k)[16:] (python-roborock mqtt/session). */
+    public static function mqttAnmeldung(array $r): array
+    {
+        return [substr(md5(($r['u'] ?? '') . ':' . ($r['k'] ?? '')), 2, 8), substr(md5(($r['s'] ?? '') . ':' . ($r['k'] ?? '')), 16)];
+    }
+
+    /** Wurzelzertifikat für den Client Socket des Kontos (statt Dreames eigener Wurzel). */
+    public function mqttWurzel(): string
+    {
+        return self::MQTT_WURZEL;
+    }
+
+    /** Abgewiesene Daueranmeldung (CONNACK 4/5) = Drosselung: so lange pausiert das Konto (wie connackFehler). */
+    public function echtzeitDrosselSekunden(int $code): int
+    {
+        return in_array($code, [4, 5], true) ? self::MQTT_DROSSEL_S : 0;
     }
 
     public function pushLesen(string $payload): array
     {
         return [];
+    }
+
+    /**
+     * Unaufgeforderte Meldung eines Geräts (Thema rr/m/o/…/<duid>) → [duid => [Feld => Wert]].
+     * Antworten auf Anfragen (dps 102) holt sich die wartende Anfrage selbst — hier übergangen.
+     */
+    public function pushLesenThema(string $thema, string $payload, array $buendel, array $geraete): array
+    {
+        $duid = (string)substr($thema, (int)strrpos($thema, '/') + 1);
+        $schluessel = '';
+        foreach ($geraete as $g) {
+            if ((string)($g['id'] ?? '') === $duid) {
+                $schluessel = (string)($g['schluessel'] ?? '');
+            }
+        }
+        if ($duid === '' || $schluessel === '') {
+            return [];
+        }
+        $delta = [];
+        foreach (self::rahmenLesen($payload, $schluessel) as $n) {
+            if ($n['protokoll'] !== self::PROTOKOLL_ANTWORT) {
+                continue;
+            }
+            $dps = json_decode($n['nutzlast'], true)['dps'] ?? null;
+            if (!is_array($dps)) {
+                continue;
+            }
+            foreach (self::PUSH_FELDER as $nr => $feld) {
+                if (isset($dps[(string)$nr]) && is_numeric($dps[(string)$nr])) {
+                    $delta[$feld] = (int)$dps[(string)$nr];
+                }
+            }
+        }
+        return $delta === [] ? [] : [$duid => $delta];
     }
 
     // =================================================================
@@ -1066,7 +1140,7 @@ PEM;
             }
             return $offen <= 0;
         };
-        $this->mqttAustausch($host, $port, $benutzer, $passwort,
+        $this->austausch($host, $port, $benutzer, $passwort,
             'rr/m/o/' . $r['u'] . '/' . $benutzer . '/' . $duid,
             'rr/m/i/' . $r['u'] . '/' . $benutzer . '/' . $duid,
             $rahmen, $verarbeite, 10.0);
@@ -1199,6 +1273,18 @@ PEM;
      * empfangenen Inhalt an $verarbeite, bis dieser true liefert oder $frist
      * Sekunden um sind.
      */
+    /** Weiche: über die dauerhafte Verbindung des Kontos, sonst eine eigene kurze Sitzung. */
+    private function austausch(string $host, int $port, string $benutzer, string $passwort, string $abo, string $ziel, array $rahmen, callable $verarbeite, float $frist): void
+    {
+        if (is_callable($this->transport)) {
+            // Über die dauerhafte Verbindung des Kontos — keine neue Anmeldung beim Roborock-Server.
+            $this->dbg('Roborock', 'über die dauerhafte Verbindung des Kontos');
+            ($this->transport)($abo, $ziel, $rahmen, $verarbeite, $frist);
+            return;
+        }
+        $this->mqttAustausch($host, $port, $benutzer, $passwort, $abo, $ziel, $rahmen, $verarbeite, $frist);
+    }
+
     protected function mqttAustausch(string $host, int $port, string $benutzer, string $passwort, string $abo, string $ziel, array $rahmen, callable $verarbeite, float $frist): void
     {
         $ende = microtime(true) + $frist;

@@ -577,7 +577,11 @@
   ob Saros/Qrevo immer pv 1.0 melden. B01 (Q7/Q10) hat ein anderes Kartenformat — nicht gebaut. Sperrzonen/virtuelle Wände (Blöcke 9/10)
   nicht gezeichnet. Live-Karte = ein MQTT- bzw. miIO+Cloud-Abruf je Live-Takt.
 - **CONNACK 4/5 nie als Abmeldung werten** (0.45.0, `connackFehler`): Roborock drosselt so (python-roborock). Viele kurze
-  MQTT-Sitzungen (Abruf + Live-Takt je Roboter) lösen das aus — eine dauerhafte Konto-Sitzung wäre die bessere Lösung (offen).
+  MQTT-Sitzungen (Abruf + Live-Takt je Roboter) lösen das aus.
+- **Dauerhafte Konto-Verbindung (0.50.0):** Client Socket des Kontos → Roborock-MQTT, alle Anfragen über `transport`
+  (`RoboHubKonto::ueberDauerverbindung`, Postfach-Ring in Puffern), Einzelsitzung nur ohne stehende Verbindung. Annahme: Symcon führt
+  `ReceiveData` parallel zur wartenden `ForwardData`-Kette aus — **live unbestätigt**. Falls nicht: Anfragen laufen 10 s in den Timeout
+  („antwortet nicht"), dann umbauen (z. B. Antwort per Puffer + späterer Abruf). CONNACK 4/5 der Daueranmeldung → 15 min Pause.
 - 0.43.0: Block 17 = Unterkarte (ein Byte je Bildpunkt, gleicher Index wie Block 2): Bit 1 Teppich, Bit 8/16 in der App
   ausgeblendet (vacuum-map-parser-roborock `_parse_submap`, image_parser `removed_map` → außen). `unterkarteAnwenden()` per
   strtr + String-AND (schnell auch bei 1 Mio. Punkten). Teppich nur mit Eigenschaft `KarteTeppich`, Option reist als

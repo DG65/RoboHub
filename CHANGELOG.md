@@ -2,6 +2,24 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.50.0 (20.11.2026)
+
+- **Roborock: dauerhafte MQTT-Verbindung je Konto** (Forum alsk1 144636/125+140: trotz 0.45.0 stundenlang „Cloud bremst";
+  Ursache je Abfrage eine eigene MQTT-Sitzung — aktiv 30 s Zustand + 30 s Live-Karte je Roboter, bei 3 Robotern ~720/h;
+  python-roborock/HA halten EINE Verbindung). Roborock meldet jetzt `echtzeitMoeglich()`: das Konto verbindet seinen
+  Client Socket mit `mqtt-eu-N.roborock.com` (Wurzel `RoboHubRoborock::MQTT_WURZEL` statt Dreames, `mqttWurzel()`), Zugang
+  md5(u:k)/md5(s:k) wie bisher, abonniert `rr/m/o/…/<duid>` je Gerät.
+  - Anfragen: Weiche `austausch()` im Treiber → `transport` des Kontos (`ueberDauerverbindung`): PUBLISH `rr/m/i/…`, Antworten aus
+    dem Postfach (Ring aus 256 Puffern, `ReceiveData` legt unter Semaphore ab, die Anfrage liest ab ihrem Startzähler). Ohne
+    stehende Verbindung wie bisher die kurze Einzelsitzung.
+  - Push: `pushLesenThema()` (dps 120–127 nach python-roborock `RoborockDataProtocol` → error_code/state/battery/fan_power/
+    water_box_mode/Verschleiß) in den Schnappschuss — Änderungen sofort im Roboter.
+  - Daueranmeldung abgewiesen (CONNACK 4/5): `EchtzeitPauseBis` + `WarteBis` 15 min, Socket zu, keine Einzelsitzungen; danach
+    selbst neu. Socket mit fremder Wurzel (z. B. Dreames) wird beim ersten Mal umkonfiguriert (`ElternWurzel`).
+  - Mi Home (Xiaomi) bleibt ohne Konto-Verbindung (`echtzeitMoeglich` false, Befehle lokal per miIO).
+  - Prüfstand: 10 neue Prüfungen mit nachgebautem Roborock-Server hinter dem Client Socket; Gegenprobe (ohne Übergabeweg) gefangen.
+    **Live offen**: ob Symcon `ReceiveData` parallel zur wartenden Anfrage ausführt (davon hängt der Antwortweg ab) — erster Test bei alsk1.
+
 ## 0.49.1 (20.11.2026)
 
 - **Dreame 27.1 = 3** ist laut Tasshack `CHECKING` (Station prüft), keine Warnung — bis 0.49.0 als „Prüfen" und gelber Hinweis

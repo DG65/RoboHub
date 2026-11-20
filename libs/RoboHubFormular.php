@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.50.0' => [
+            '• Roborock: one permanent connection per account instead of a new connection for every query — like Home Assistant. Roborock blocked the access after many short connections (especially with several robots and the live map). Changes reported by the robot now arrive immediately.',
+        ],
         '0.49.1' => [
             '• Fix: Dreame – "Clean water: check" no longer appears permanently; the station only reports it is checking (seen on the L20 Ultra).',
         ],

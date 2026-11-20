@@ -263,7 +263,7 @@ $rk->Create();
 $rk->ApplyChanges();
 $f = json_encode(json_decode(konsole($rk->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular: Code-Knopf und Code-Feld bei Roborock', strpos($f, 'ROBOHUB_CodeAnfordern') !== false && strpos($f, 'Code aus der E-Mail') !== false);
-check('Formular: Echtzeit ehrlich als „noch nicht" beschrieben', strpos($f, 'Für Roborock gibt es noch keine Echtzeit-Meldungen') !== false);
+check('Formular: seit 0.50.0 nicht mehr „keine Echtzeit für Roborock"', strpos($f, 'Für Roborock gibt es noch keine Echtzeit-Meldungen') === false);
 check('Code anfordern ohne E-Mail: klare Meldung', strpos($rk->CodeAnfordern(), '⛔') === 0);
 $rk->props['Konto'] = 'nutzer@example.org';
 $t = $rk->CodeAnfordern();
@@ -503,9 +503,12 @@ $alt->config = ['Open' => true, 'Host' => 'app.mt.eu.iot.dreame.tech', 'Port' =>
 IPS_SetName(4900, 'Client Socket');
 $rk->parent = $alt;
 $GLOBALS['GELOESCHT'] = [];
+$GLOBALS['SKRIPTE'] = [];
 $rk->VerbindungPruefen();
-check('Roborock-Konto: von der Konsole angelegter Dreame-Socket wird gegen Virtual IO getauscht', in_array(4900, $GLOBALS['GELOESCHT'], true)
-    && $rk->parent instanceof FakeSocket && $rk->parent->modul === '{6179ED6A-FC31-413C-BB8E-1204150CF376}', json_encode($GLOBALS['GELOESCHT']));
+// Seit 0.50.0 braucht Roborock einen Client Socket (dauerhafte Verbindung): er bleibt, bekommt aber Roborocks Wurzel.
+check('Roborock-Konto: von der Konsole angelegter Socket mit Dreames Wurzel bleibt, bekommt aber Roborocks Wurzel und Server', $GLOBALS['GELOESCHT'] === []
+    && $rk->parent === $alt && strpos(implode("\n", $GLOBALS['SKRIPTE']), base64_encode((new RoboHubRoborock())->mqttWurzel())) !== false
+    && strpos(implode("\n", $GLOBALS['SKRIPTE']), 'mqtt-eu-3.roborock.com') !== false, json_encode([$GLOBALS['GELOESCHT'], $GLOBALS['SKRIPTE']]));
 $geteilt = new FakeSocket(4901);
 $geteilt->config = $alt->config;
 IPS_SetName(4901, 'Client Socket');
@@ -542,7 +545,105 @@ $n = $rrt->normalisiere('roborock.vacuum.a27', ['water_box_mode' => 202]);
 check('alte Wasserstufen unverändert', (($n['optionen']['Wassermenge'] ?? [])[202] ?? '') === 'Medium' && isset($n['optionen']['Wassermenge'][201]));
 
 // Konsole: passende Verbindungsart je Hersteller (SUITE.md Stolperstein 28), sonst „inkompatible übergeordnete Instanz“.
-check('Roborock-Konto nennt der Konsole das Virtual IO als passende Verbindung', json_decode($rk->GetCompatibleParents(), true) === ['type' => 'require', 'moduleIDs' => ['{6179ED6A-FC31-413C-BB8E-1204150CF376}']]);
+check('Roborock-Konto nennt der Konsole den Client Socket als passende Verbindung (dauerhafte Verbindung)', json_decode($rk->GetCompatibleParents(), true) === ['type' => 'require', 'moduleIDs' => ['{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}']]);
 $dk = new RoboHubKonto(4950);
 $dk->Create();
 check('Dreame-Konto nennt den Client Socket', json_decode($dk->GetCompatibleParents(), true)['moduleIDs'] === ['{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}']);
+
+// ===========================================================================
+abschnitt('Roborock: dauerhafte Verbindung des Kontos (0.50.0)');
+
+/** Nachgebauter Roborock-MQTT-Server hinter dem Client Socket: beantwortet Anfragen sofort (über FakeRoborock). */
+class FakeRoborockServer extends FakeSocket
+{
+    public $konto;
+    public $veroeffentlicht = [];   // Themen der PUBLISH vom Konto
+    public $connack = 0;
+    public $anmeldungen = 0;
+    public function ForwardData(string $json): string
+    {
+        parent::ForwardData($json);
+        $bytes = end($this->gesendet);
+        foreach (RoboHubMqtt::zerlegen($bytes) as $p) {
+            if ($p['typ'] === RoboHubMqtt::CONNECT) {
+                $this->anmeldungen++;
+                mqttVomServer($this->konto, "\x20\x02\x00" . chr($this->connack));
+            } elseif ($p['typ'] === RoboHubMqtt::PUBLISH) {
+                $pub = RoboHubMqtt::publishLesen($p['flags'], $p['body']);
+                $this->veroeffentlicht[] = $pub['topic'];
+                $aus = str_replace('rr/m/i/', 'rr/m/o/', $pub['topic']);
+                $fake = new FakeRoborock();
+                $m = new ReflectionMethod('FakeRoborock', 'mqttAustausch');
+                $konto = $this->konto;
+                $m->invoke($fake, '', 0, '', '', $aus, $pub['topic'], [$pub['payload']], function (string $daten) use ($konto, $aus): bool {
+                    mqttVomServer($konto, RoboHubMqtt::publish($aus, $daten));
+                    return false;
+                }, 1.0);
+                array_pop(FakeRoborock::$sitzungen);   // das war der Server, keine Sitzung des Treibers
+            }
+        }
+        return '';
+    }
+}
+
+$srv = new FakeRoborockServer(4990);
+$srv->konto = $rk;
+$rk->parent = $srv;
+$rk->WriteAttributeInteger('MqttEltern', 4990);
+$rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
+$rk->WriteAttributeInteger('WarteBis', 0);
+$rkCfg = json_decode($rk->GetConfigurationForParent(), true);
+check('Client Socket: Roborock-Server, TLS mit Roborocks Wurzel (nicht Dreames), voll geprüft', $rkCfg['Host'] === 'mqtt-eu-3.roborock.com' && $rkCfg['Port'] === 8883
+    && $rkCfg['CertificateAuthority'] === base64_encode((new RoboHubRoborock())->mqttWurzel()) && $rkCfg['VerifyPeer'] === true && $rkCfg['VerifyHost'] === true && $rkCfg['Open'] === true, json_encode($rkCfg));
+$srv->gesendet = [];
+$rk->MessageSink(0, 4990, IM_CHANGESTATUS, [IS_ACTIVE]);
+$conPuffer = $srv->gesendet[0] ?? '';
+$con = RoboHubMqtt::zerlegen($conPuffer)[0]['body'] ?? '';
+$sub = $srv->gesendet[1] ?? '';
+check('verbunden: CONNECT mit md5-Zugang wie die Einzelsitzung, danach SUBSCRIBE rr/m/o je Gerät', strpos($con, pack('n', 8) . '19648f94' . pack('n', 16) . '234678ea854f199e') !== false
+    && ord($sub[0] ?? "\0") === 0x82 && strpos($sub, 'rr/m/o/user123/19648f94/abc123') !== false
+    && (json_decode($rk->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden', bin2hex(substr($con, 0, 40)));
+
+FakeRoborock::$antworten = $alle;
+FakeRoborock::$sitzungen = [];
+FakeRoborock::$rpc = [];
+$srv->veroeffentlicht = [];
+$t = $rr->Aktualisieren();
+check('Abruf über die dauerhafte Verbindung: keine eigene Sitzung, Anfragen per PUBLISH rr/m/i, Antworten verarbeitet',
+    FakeRoborock::$sitzungen === [] && in_array('rr/m/i/user123/19648f94/abc123', $srv->veroeffentlicht, true)
+    && array_slice(array_column(FakeRoborock::$rpc, 0), 0, 5) === ['get_status', 'get_consumable', 'get_clean_summary', 'get_dnd_timer', 'get_sound_volume']
+    && variable(4100, 'Akku')['value'] === 100, $t . ' ' . json_encode(FakeRoborock::$sitzungen));
+$vorher = count($srv->veroeffentlicht);
+$rr->Starten();
+check('Befehl über dieselbe Verbindung', FakeRoborock::$sitzungen === [] && count($srv->veroeffentlicht) > $vorher && in_array('app_start', array_column(FakeRoborock::$rpc, 0), true)
+    || in_array('app_segment_clean', array_column(FakeRoborock::$rpc, 0), true), json_encode(array_column(FakeRoborock::$rpc, 0)));
+$anmeldungenVorher = $srv->anmeldungen;
+for ($i = 0; $i < 5; $i++) {
+    $rr->Aktualisieren();
+}
+check('fünf weitere Abrufe: keine neue Anmeldung beim Server (vorher je Abruf eine)', $srv->anmeldungen === $anmeldungenVorher && FakeRoborock::$sitzungen === []);
+
+// Unaufgeforderte Meldung (python-roborock RoborockDataProtocol 121/122) → sofort im Roboter.
+$push = RoboHubRoborock::rahmenBauen(json_encode(['t' => time(), 'dps' => ['121' => 5, '122' => 77]]), 'key123key123key1', 9, 9, time(), 102);
+mqttVomServer($rk, RoboHubMqtt::publish('rr/m/o/user123/19648f94/abc123', $push));
+check('Push: Akku 77 und Zustand 5 (reinigt) sofort übernommen', variable(4100, 'Akku')['value'] === 77 && variable(4100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT);
+check('Push mit falschem Schlüssel/fremdem Gerät übergangen', (new RoboHubRoborock())->pushLesenThema('rr/m/o/user123/19648f94/fremd', $push, [], json_decode($rk->ReadAttributeString('Geraete'), true)) === []);
+
+// Ohne stehende Verbindung: Rückfall auf die Einzelsitzung.
+$mq = json_decode($rk->ReadAttributeString('Mqtt'), true);
+$rk->WriteAttributeString('Mqtt', json_encode(['zustand' => 'getrennt'] + $mq));
+FakeRoborock::$sitzungen = [];
+$rr->Aktualisieren();
+check('Verbindung weg → Rückfall auf kurze Einzelsitzungen (Zustand, hier auch Live-Karte, weil er reinigt)', count(FakeRoborock::$sitzungen) >= 1, json_encode(FakeRoborock::$sitzungen));
+
+// Daueranmeldung abgewiesen (Drosselung): Pause, Socket zu, auch keine Einzelsitzungen.
+$srv->connack = 5;
+$rk->MessageSink(0, 4990, IM_CHANGESTATUS, [IS_ACTIVE]);
+FakeRoborock::$sitzungen = [];
+$tPause = $rr->Aktualisieren();
+check('CONNACK 5 → 15 min Pause: Socket geschlossen, keine Einzelsitzung, Hinweis', $rk->ReadAttributeInteger('EchtzeitPauseBis') > time() + 800
+    && json_decode($rk->GetConfigurationForParent(), true)['Open'] === false && FakeRoborock::$sitzungen === [] && $rk->ReadAttributeString('Buendel') !== '', $tPause);
+$rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
+$rk->WriteAttributeInteger('WarteBis', 0);
+$srv->connack = 0;
+check('Mi-Home-Roborock bleibt ohne Konto-Verbindung (Befehle lokal per miIO)', (new RoboHubXiaomi())->echtzeitMoeglich() === false);

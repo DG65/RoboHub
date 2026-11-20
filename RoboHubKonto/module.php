@@ -137,6 +137,9 @@ class RoboHubKonto extends IPSModule
         // Scheitert der Socket, ohne je verbunden gewesen zu sein, wird er 24 h geschlossen.
         $this->RegisterAttributeBoolean('EchtzeitJeVerbunden', false);
         $this->RegisterAttributeInteger('EchtzeitGesperrtBis', 0);
+        // Roborock: Daueranmeldung abgewiesen (Drosselung) → bis dahin weder Dauer- noch Einzelverbindungen (0.50.0).
+        $this->RegisterAttributeInteger('EchtzeitPauseBis', 0);
+        $this->RegisterAttributeString('ElternWurzel', '');   // md5 der eingetragenen Wurzel (Hersteller-Wechsel)
         $this->RegisterAttributeInteger('WsFehler', 0);
         $this->RegisterPropertyBoolean('Echtzeit', true);
         $this->RegisterTimer('MqttPing', 0, 'ROBOHUB_MqttPing($_IPS[\'TARGET\']);');
@@ -644,18 +647,25 @@ class RoboHubKonto extends IPSModule
             ]);
         }
         $an = $this->ReadPropertyBoolean('Echtzeit') && $this->ReadAttributeString('Buendel') !== ''
-            && $this->ReadAttributeInteger('EchtzeitGesperrtBis') <= time();
+            && $this->ReadAttributeInteger('EchtzeitGesperrtBis') <= time() && $this->ReadAttributeInteger('EchtzeitPauseBis') <= time();
         [$host, $port] = $this->mqttZiel();
         return (string)json_encode([
             'Host'                 => $host,
             'Port'                 => $port,
             'Open'                 => $an && $host !== '',
             'UseSSL'               => true,
-            // Volle Prüfung gegen Dreames eigene Wurzel (siehe RoboHubDreame::MQTT_WURZEL).
+            // Volle Prüfung gegen die Wurzel des Herstellers (Dreame: eigene, RoboHubDreame::MQTT_WURZEL;
+            // Roborock: DigiCert Global Root G2, RoboHubRoborock::MQTT_WURZEL).
             'VerifyPeer'           => true,
             'VerifyHost'           => true,
-            'CertificateAuthority' => base64_encode(RoboHubDreame::MQTT_WURZEL),
+            'CertificateAuthority' => base64_encode($this->mqttWurzel()),
         ]);
+    }
+
+    private function mqttWurzel(): string
+    {
+        $t = $this->treiber();
+        return method_exists($t, 'mqttWurzel') ? (string)$t->mqttWurzel() : RoboHubDreame::MQTT_WURZEL;
     }
 
     private function mqttZiel(): array
@@ -691,7 +701,9 @@ class RoboHubKonto extends IPSModule
         $ist = json_decode((string)IPS_GetConfiguration($eltern), true) ?: [];
         // Store-Review 2026: Feste Einstellungen (TLS, Zertifikat) kommen über GetConfigurationForParent und werden nur beim
         // ersten Einrichten dieser Verbindungsinstanz gesetzt; danach schreibt RoboHub nur noch die veränderlichen Werte.
-        $erstmals = $this->ReadAttributeInteger('ElternEingerichtet') !== $eltern;
+        // Auch bei anderer Wurzel (Konto auf anderen Hersteller umgestellt, z. B. Roborock an einem Socket mit Dreames Wurzel).
+        $wurzel = $ws ? '' : md5((string)($soll['CertificateAuthority'] ?? ''));
+        $erstmals = $this->ReadAttributeInteger('ElternEingerichtet') !== $eltern || (!$ws && $this->ReadAttributeString('ElternWurzel') !== $wurzel);
         $veraenderlich = $ws ? ['Active', 'URL', 'Headers'] : ['Open', 'Host', 'Port'];
         $schreiben = [];
         foreach ($soll as $k => $v) {
@@ -717,6 +729,7 @@ class RoboHubKonto extends IPSModule
         if ($erstmals) {
             $skript .= 'IPS_SetConfiguration(' . $eltern . ', ' . var_export((string)json_encode($schreiben), true) . ');';
             $this->WriteAttributeInteger('ElternEingerichtet', $eltern);
+            $this->WriteAttributeString('ElternWurzel', $wurzel);
         } else {
             foreach ($schreiben as $k => $v) {
                 $skript .= 'IPS_SetProperty(' . $eltern . ', ' . var_export((string)$k, true) . ', ' . var_export($v, true) . ');';
@@ -789,7 +802,8 @@ class RoboHubKonto extends IPSModule
     /** Nach einem Verbindungsabbruch den nächsten Neuversuch planen; nur der erste wird protokolliert. */
     private function neuVerbindenPlanen(): void
     {
-        if (!$this->ReadPropertyBoolean('Echtzeit') || $this->ReadAttributeString('Buendel') === '' || $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time()) {
+        if (!$this->ReadPropertyBoolean('Echtzeit') || $this->ReadAttributeString('Buendel') === '' || $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time()
+            || $this->ReadAttributeInteger('EchtzeitPauseBis') > time()) {
             return;
         }
         $n = $this->ReadAttributeInteger('WsFehler') + 1;
@@ -1020,10 +1034,23 @@ class RoboHubKonto extends IPSModule
                 $code = RoboHubMqtt::connackCode($p['body']);
                 if ($code !== 0) {
                     $text = RoboHubText::t('Real-time sign-in rejected: %s', RoboHubMqtt::connackText($code));
+                    $t = $this->treiber();
+                    $pause = method_exists($t, 'echtzeitDrosselSekunden') ? (int)$t->echtzeitDrosselSekunden($code) : 0;
+                    if ($pause > 0) {
+                        // Roborock drosselt so: Verbindung schließen und für die Pause auch keine Einzelverbindungen —
+                        // jeder weitere Versuch verlängert die Sperre nur (python-roborock: lange Wartezeit).
+                        $bis = time() + $pause;
+                        $this->WriteAttributeInteger('EchtzeitPauseBis', $bis);
+                        $this->WriteAttributeInteger('WarteBis', max($this->ReadAttributeInteger('WarteBis'), $bis));
+                        $text = RoboHubText::t('The vendor server refuses the connection right now (%s) — RoboHub pauses until %s, no new sign-in needed.', RoboHubMqtt::connackText($code), date('H:i', $bis));
+                        $this->SetTimerInterval('Verbindung', ($pause + 5) * 1000);
+                        $this->echtzeitKonfigurieren(false);
+                    }
                     $this->mqttStand(['zustand' => 'fehler', 'text' => $text]);
                     $this->protokolliere($text, KL_WARNING);
                     return;
                 }
+                $this->WriteAttributeInteger('EchtzeitPauseBis', 0);
                 $topics = [];
                 $buendel = json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [];
                 foreach (json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [] as $g) {
@@ -1032,6 +1059,7 @@ class RoboHubKonto extends IPSModule
                 if (count($topics) > 0) {
                     $this->mqttSenden(RoboHubMqtt::subscribe(1, $topics, 0));
                 }
+                $this->SetBuffer('MqttAbos', (string)json_encode($topics));
                 $this->WriteAttributeBoolean('EchtzeitJeVerbunden', true);
                 $this->mqttStand(['zustand' => 'verbunden', 'seit' => time(), 'text' => '', 'topics' => count($topics)]);
                 return;
@@ -1040,19 +1068,82 @@ class RoboHubKonto extends IPSModule
                 if ($pub['qos'] > 0) {
                     $this->mqttSenden(RoboHubMqtt::puback($pub['id']));
                 }
-                $this->SendDebug('Echtzeit', $pub['topic'] . ' ' . substr($pub['payload'], 0, 600), 0);
-                $this->pushVerarbeiten($pub['payload']);
+                if (method_exists($this->treiber(), 'pushLesenThema')) {
+                    // Roborock: verschlüsselte Rahmen — Antworten für wartende Anfragen ins Postfach, Rest als Push.
+                    $this->SendDebug('Echtzeit', $pub['topic'] . ' (' . strlen($pub['payload']) . ' Byte)', 0);
+                    $this->postfachAblegen($pub['topic'], $pub['payload']);
+                } else {
+                    $this->SendDebug('Echtzeit', $pub['topic'] . ' ' . substr($pub['payload'], 0, 600), 0);
+                }
+                $this->pushVerarbeiten($pub['payload'], $pub['topic']);
                 return;
         }
     }
 
+    // Postfach der dauerhaften Verbindung: ReceiveData legt jede Nachricht ab (Ring aus POSTFACH Plätzen),
+    // eine wartende Anfrage liest ab ihrem Startzähler mit. Symcon führt ReceiveData in einem eigenen Faden aus.
+    private const POSTFACH = 256;
+
+    private function postfachAblegen(string $thema, string $payload): void
+    {
+        $sem = 'RoboHubPostfach_' . $this->InstanceID;
+        $gesperrt = IPS_SemaphoreEnter($sem, 2000);
+        try {
+            $n = (int)$this->GetBuffer('PostfachZaehler') + 1;
+            $this->SetBuffer('Postfach' . ($n % self::POSTFACH), (string)json_encode(['n' => $n, 't' => $thema, 'p' => base64_encode($payload)]));
+            $this->SetBuffer('PostfachZaehler', (string)$n);
+        } finally {
+            if ($gesperrt) {
+                IPS_SemaphoreLeave($sem);
+            }
+        }
+    }
+
+    /** Anfrage über die stehende Verbindung: abonnieren (falls neu), senden, Antworten aus dem Postfach lesen. */
+    private function ueberDauerverbindung(string $abo, string $ziel, array $rahmen, callable $verarbeite, float $frist): void
+    {
+        $abos = json_decode((string)$this->GetBuffer('MqttAbos'), true) ?: [];
+        if (!in_array($abo, $abos, true)) {
+            $this->mqttSenden(RoboHubMqtt::subscribe(random_int(2, 65000), [$abo], 0));
+            $abos[] = $abo;
+            $this->SetBuffer('MqttAbos', (string)json_encode($abos));
+        }
+        $gelesen = (int)$this->GetBuffer('PostfachZaehler');
+        foreach ($rahmen as $r) {
+            $this->mqttSenden(RoboHubMqtt::publish($ziel, $r));
+        }
+        $ende = microtime(true) + $frist;
+        do {
+            $stand = (int)$this->GetBuffer('PostfachZaehler');
+            for ($i = $gelesen + 1; $i <= $stand; $i++) {
+                $m = json_decode((string)$this->GetBuffer('Postfach' . ($i % self::POSTFACH)), true);
+                if (!is_array($m) || (int)($m['n'] ?? 0) !== $i || ($m['t'] ?? '') !== $abo) {
+                    continue;
+                }
+                if ($verarbeite((string)base64_decode((string)$m['p']))) {
+                    return;
+                }
+            }
+            $gelesen = $stand;
+            if (microtime(true) >= $ende) {
+                return;
+            }
+            IPS_Sleep(50);
+        } while (true);
+    }
+
     /** Änderungen in den letzten vollständigen Stand mischen, übersetzen, an den Roboter geben. */
-    private function pushVerarbeiten(string $payload): void
+    private function pushVerarbeiten(string $payload, string $thema = ''): void
     {
         $t = $this->treiber();
-        $aenderungen = method_exists($t, 'pushLesenMit')
-            ? $t->pushLesenMit($payload, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [])
-            : $t->pushLesen($payload);
+        if (method_exists($t, 'pushLesenThema')) {
+            $aenderungen = $t->pushLesenThema($thema, $payload, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [],
+                json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: []);
+        } else {
+            $aenderungen = method_exists($t, 'pushLesenMit')
+                ? $t->pushLesenMit($payload, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [])
+                : $t->pushLesen($payload);
+        }
         if (count($aenderungen) === 0) {
             return;
         }
@@ -1151,6 +1242,13 @@ class RoboHubKonto extends IPSModule
     protected function treiber(): RoboHubTreiber
     {
         $treiber = $this->treiberNeu();
+        if (property_exists($treiber, 'transport') && method_exists($treiber, 'echtzeitMoeglich') && $treiber->echtzeitMoeglich()
+            && (json_decode((string)$this->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden') {
+            // Roborock: Anfragen über die stehende Verbindung des Kontos statt je eine eigene Sitzung (0.50.0).
+            $treiber->transport = function (string $abo, string $ziel, array $rahmen, callable $verarbeite, float $frist): void {
+                $this->ueberDauerverbindung($abo, $ziel, $rahmen, $verarbeite, $frist);
+            };
+        }
         if (property_exists($treiber, 'echtzeitVerbunden')) {
             // Mit laufender Echtzeit reicht ein seltener Vollabruf (Anfragelimit der Hersteller).
             $treiber->echtzeitVerbunden = (json_decode((string)$this->ReadAttributeString('Mqtt'), true)['zustand'] ?? '') === 'verbunden';

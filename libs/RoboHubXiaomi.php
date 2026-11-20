@@ -33,6 +33,12 @@ declare(strict_types=1);
 
 class RoboHubXiaomi extends RoboHubRoborock
 {
+    /** Mi Home: Befehle lokal per miIO, keine Konto-MQTT-Verbindung (anders als das Roborock-Konto). */
+    public function echtzeitMoeglich(): bool
+    {
+        return false;
+    }
+
     public const SERVER = ['de', 'cn', 'us', 'ru', 'sg', 'in', 'i2', 'tw'];
     private const KONTO = 'https://account.xiaomi.com';
     private const STS = 'https://sts.api.io.mi.com/sts';
