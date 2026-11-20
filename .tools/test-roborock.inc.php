@@ -665,7 +665,21 @@ FakeRoborock::$sitzungen = [];
 $tPause = $rr->Aktualisieren();
 check('CONNACK 5 → 15 min Pause: Socket geschlossen, keine Einzelsitzung, Hinweis', $rk->ReadAttributeInteger('EchtzeitPauseBis') > time() + 800
     && json_decode($rk->GetConfigurationForParent(), true)['Open'] === false && FakeRoborock::$sitzungen === [] && $rk->ReadAttributeString('Buendel') !== '', $tPause);
+$ersteBis = $rk->ReadAttributeInteger('EchtzeitPauseBis');
+$rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
+$rk->WriteAttributeInteger('WarteBis', 0);
+$rk->MessageSink(0, 4990, IM_CHANGESTATUS, [IS_ACTIVE]);
+$zweiteDauer = $rk->ReadAttributeInteger('EchtzeitPauseBis') - time();
+check('erneut abgewiesen → Pause verdoppelt (30 min), wächst bis höchstens 6 h', $zweiteDauer > 1700 && $zweiteDauer <= 1800 + 5, (string)$zweiteDauer);
+for ($i = 0; $i < 8; $i++) {
+    $rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
+    $rk->WriteAttributeInteger('WarteBis', 0);
+    $rk->MessageSink(0, 4990, IM_CHANGESTATUS, [IS_ACTIVE]);
+}
+check('… höchstens 6 h', $rk->ReadAttributeInteger('EchtzeitPauseBis') - time() <= 6 * 3600 + 5 && $rk->ReadAttributeInteger('EchtzeitPauseBis') - time() > 6 * 3600 - 60);
 $rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
 $rk->WriteAttributeInteger('WarteBis', 0);
 $srv->connack = 0;
+$rk->MessageSink(0, 4990, IM_CHANGESTATUS, [IS_ACTIVE]);
+check('angenommen → Pausenstufe zurück auf 0', $rk->ReadAttributeInteger('EchtzeitPauseStufe') === 0);
 check('Mi-Home-Roborock bleibt ohne Konto-Verbindung (Befehle lokal per miIO)', (new RoboHubXiaomi())->echtzeitMoeglich() === false);

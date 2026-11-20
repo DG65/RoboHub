@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.50.2' => [
+            '• Roborock: if the Roborock server keeps refusing the connection, RoboHub now waits longer each time (15, 30, 60 minutes … at most 6 hours) instead of trying again every 15 minutes — every attempt could extend the block.',
+        ],
         '0.50.1' => [
             '• Fix: Roborock account – after the update to 0.50.0 some accounts stayed on their "Virtual IO" and reported an incompatible parent instance. RoboHub now replaces it with the Client Socket by itself.',
         ],

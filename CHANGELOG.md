@@ -2,6 +2,12 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.50.2 (20.11.2026)
+
+- **Wachsende Pause bei abgewiesener Daueranmeldung** (Forum alsk1 144636/150: Konto nach dem Umstieg in „Cloud bremst"): statt fest
+  15 min jetzt 15 · 2^n min (Attribut `EchtzeitPauseStufe`), höchstens 6 h wie python-roborock; zurück auf 0 bei angenommener Anmeldung.
+  Prüfstand: Verdopplung, Obergrenze, Rücksetzen.
+
 ## 0.50.1 (20.11.2026)
 
 - **Roborock-Konto am Virtual IO der Konsole** (Forum alsk1 144636/146): Mit 0.50.0 verlangt Roborock einen Client Socket. Hatte die

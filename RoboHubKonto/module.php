@@ -139,6 +139,7 @@ class RoboHubKonto extends IPSModule
         $this->RegisterAttributeInteger('EchtzeitGesperrtBis', 0);
         // Roborock: Daueranmeldung abgewiesen (Drosselung) → bis dahin weder Dauer- noch Einzelverbindungen (0.50.0).
         $this->RegisterAttributeInteger('EchtzeitPauseBis', 0);
+        $this->RegisterAttributeInteger('EchtzeitPauseStufe', 0);   // wie oft hintereinander abgewiesen (Pause wächst)
         $this->RegisterAttributeString('ElternWurzel', '');   // md5 der eingetragenen Wurzel (Hersteller-Wechsel)
         $this->RegisterAttributeInteger('WsFehler', 0);
         $this->RegisterPropertyBoolean('Echtzeit', true);
@@ -1043,6 +1044,11 @@ class RoboHubKonto extends IPSModule
                     $t = $this->treiber();
                     $pause = method_exists($t, 'echtzeitDrosselSekunden') ? (int)$t->echtzeitDrosselSekunden($code) : 0;
                     if ($pause > 0) {
+                        // Mit jeder weiteren Abweisung länger warten (15, 30, 60 … höchstens 360 min) — python-roborock wartet
+                        // nach „unauthorized/rate-limit" gleich 6 h; jeder Versuch kann die Sperre verlängern (Forum alsk1 144636/150).
+                        $stufe = $this->ReadAttributeInteger('EchtzeitPauseStufe');
+                        $pause = (int)min(6 * 3600, $pause * (2 ** min($stufe, 5)));
+                        $this->WriteAttributeInteger('EchtzeitPauseStufe', $stufe + 1);
                         // Roborock drosselt so: Verbindung schließen und für die Pause auch keine Einzelverbindungen —
                         // jeder weitere Versuch verlängert die Sperre nur (python-roborock: lange Wartezeit).
                         $bis = time() + $pause;
@@ -1057,6 +1063,7 @@ class RoboHubKonto extends IPSModule
                     return;
                 }
                 $this->WriteAttributeInteger('EchtzeitPauseBis', 0);
+                $this->WriteAttributeInteger('EchtzeitPauseStufe', 0);
                 $topics = [];
                 $buendel = json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [];
                 foreach (json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [] as $g) {
