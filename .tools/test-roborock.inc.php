@@ -497,6 +497,28 @@ check('Saros 20 dss 2216 (Felder = 2) → alles OK', ($st['Frischwasser'] ?? '')
 $st = $rrt->normalisiere('roborock.vacuum.a307', ['dss' => (1 << 2) | (1 << 4) | (1 << 6) | 2])['werte'] ?? $rrt->normalisiere('roborock.vacuum.a307', ['dss' => (1 << 2) | (1 << 4) | (1 << 6) | 2]);
 check('Wert 1 meldet leer/voll', ($st['Frischwasser'] ?? '') === RoboHubText::t('Empty or missing') && ($st['Schmutzwasser'] ?? '') === RoboHubText::t('Full or missing') && ($st['Staubbeutel'] ?? '') === RoboHubText::t('Full or missing'), json_encode($st, JSON_UNESCAPED_UNICODE));
 
+// Forum alsk1 144636/146: von der Konsole angelegter Virtual IO („Virtual IO") unter einem Roborock-Konto → seit 0.50.0
+// braucht Roborock einen Client Socket; der leere Virtual IO wird ausgetauscht (vorher: „inkompatible übergeordnete Instanz").
+$vio = new FakeSocket(4895);
+$vio->modul = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
+IPS_SetName(4895, 'Virtual IO');
+$rkVorher = $rk->parent;
+$rk->parent = $vio;
+$GLOBALS['GELOESCHT'] = [];
+$rk->VerbindungPruefen();
+check('Roborock-Konto: von der Konsole angelegter Virtual IO wird gegen einen Client Socket getauscht', in_array(4895, $GLOBALS['GELOESCHT'], true)
+    && $rk->parent instanceof FakeSocket && $rk->parent->modul === '{3CFF0FD9-E306-41DB-9B5A-9D06D38576C3}', json_encode($GLOBALS['GELOESCHT']));
+$vio2 = new FakeSocket(4896);
+$vio2->modul = '{6179ED6A-FC31-413C-BB8E-1204150CF376}';
+IPS_SetName(4896, 'Virtual IO');
+$nachbarVio = new FakeSocket(4897);
+$nachbarVio->parent = $vio2;
+$rk->parent = $vio2;
+$GLOBALS['GELOESCHT'] = [];
+$rk->VerbindungPruefen();
+check('… aber nie, wenn noch eine andere Instanz an diesem Virtual IO hängt', $GLOBALS['GELOESCHT'] === [] && $rk->parent === $vio2);
+$rk->parent = $rkVorher;
+
 // Konsole hat beim Neuanlegen (noch „Dreame" voreingestellt) einen Client Socket mit Dreames Wurzel angelegt.
 $alt = new FakeSocket(4900);
 $alt->config = ['Open' => true, 'Host' => 'app.mt.eu.iot.dreame.tech', 'Port' => 19973, 'CertificateAuthority' => base64_encode(RoboHubDreame::MQTT_WURZEL)];

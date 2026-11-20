@@ -929,6 +929,12 @@ class RoboHubKonto extends IPSModule
         if (strpos(IPS_GetName($eltern), 'RoboHub ') === 0) {
             return true;
         }
+        // Ein Virtual IO trägt nichts (keine Einstellungen, keine Daten) — hängt nur dieses Konto daran, ist er
+        // gefahrlos austauschbar, auch wenn die Konsole ihn beim Anlegen selbst erzeugt hat („Virtual IO").
+        // Forum alsk1 144636/146: Roborock-Konto blieb mit 0.50.0 am Virtual IO hängen („inkompatibel").
+        if (IPS_GetInstance($eltern)['ModuleInfo']['ModuleID'] === self::VIRTUAL_IO) {
+            return true;
+        }
         $ca = (string)(json_decode((string)IPS_GetConfiguration($eltern), true)['CertificateAuthority'] ?? '');
         return $ca !== '' && $ca === base64_encode(RoboHubDreame::MQTT_WURZEL);
     }

@@ -2,6 +2,13 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.50.1 (20.11.2026)
+
+- **Roborock-Konto am Virtual IO der Konsole** (Forum alsk1 144636/146): Mit 0.50.0 verlangt Roborock einen Client Socket. Hatte die
+  Konsole beim Anlegen selbst einen „Virtual IO" erzeugt (nicht „RoboHub …" benannt), tauschte `verbindungSicherstellen()` ihn nicht
+  aus → „inkompatible übergeordnete Instanz". `elternVonRoboHub()` nimmt jetzt jeden Virtual IO, an dem nur dieses Konto hängt
+  (trägt weder Einstellungen noch Daten). Prüfstand: Tausch + Gegenfall „anderer Nutzer am selben Virtual IO".
+
 ## 0.50.0 (20.11.2026)
 
 - **Roborock: dauerhafte MQTT-Verbindung je Konto** (Forum alsk1 144636/125+140: trotz 0.45.0 stundenlang „Cloud bremst";
