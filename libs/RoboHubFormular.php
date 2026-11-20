@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.49.1' => [
+            '• Fix: Dreame – "Clean water: check" no longer appears permanently; the station only reports it is checking (seen on the L20 Ultra).',
+        ],
         '0.49.0' => [
             '• New vendor Valetudo: robot vacuums with the free firmware Valetudo, locally in your home network without cloud and without MQTT broker — state, settings, consumables, rooms, map with live path.',
         ],

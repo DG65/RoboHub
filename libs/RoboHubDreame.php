@@ -668,7 +668,9 @@ PEM;
             $w['Station'] = [0 => 'Ready', 1 => RoboHubText::t('Washing'), 2 => 'Drying', 3 => RoboHubText::t('Robot returning'), 4 => 'Paused', 5 => RoboHubText::t('Filling water'), 6 => RoboHubText::t('Filling water'), 7 => RoboHubText::t('Returning to dry')][(int)$p['4.25']] ?? RoboHubText::t('State %s', (int)$p['4.25']);
         }
         if (isset($p['27.1'])) {
-            $w['Frischwasser'] = [0 => RoboHubText::t('OK'), 1 => RoboHubText::t('Tank missing'), 2 => RoboHubText::t('Low water'), 3 => RoboHubText::t('Check')][(int)$p['27.1']] ?? RoboHubText::t('State %s', (int)$p['27.1']);
+            // 3 = CHECKING (Tasshack DreameVacuumCleanWaterTankStatus): Station prüft gerade — kein Hinweis.
+            // Bis 0.49.0 als „Prüfen" gezeigt; L20 Ultra meldet das dauerhaft (Tester mik, 20.11.2026).
+            $w['Frischwasser'] = [0 => RoboHubText::t('OK'), 1 => RoboHubText::t('Tank missing'), 2 => RoboHubText::t('Low water'), 3 => RoboHubText::t('OK')][(int)$p['27.1']] ?? RoboHubText::t('State %s', (int)$p['27.1']);
         }
         if (isset($p['27.2'])) {
             $w['Schmutzwasser'] = (int)$p['27.2'] === 0 ? RoboHubText::t('OK') : RoboHubText::t('Missing or full');
@@ -1600,7 +1602,9 @@ PEM;
         foreach (array_values($raeume) as $i => $seg) {
             $selects[] = [$seg, $wiederholungen, $saug, $wasser, $mitReihenfolge ? $i + 1 : 1];
         }
-        $this->dbg('Befehl', 'Raumreinigung selects ' . json_encode($selects) . ' (4.26 ' . ($mitReihenfolge ? 'nicht beantwortet → Reihenfolge' : 'beantwortet → fest 1') . ')');
+        // 4.26 = 1 heißt: „benutzerdefinierte Reinigung" ist in der App an — dann nimmt der Roboter die Raumeinstellungen
+        // der App und übergeht Saugstufe/Durchgänge aus den selects (Tester mik, 20.11.2026). Wert im Debug zeigen.
+        $this->dbg('Befehl', 'Raumreinigung selects ' . json_encode($selects) . ' (4.26 ' . ($mitReihenfolge ? 'nicht beantwortet → Reihenfolge' : '= ' . json_encode($p['4.26']) . ' → fest 1') . ')');
         $this->aktion($buendel, $did, 4, 1, [['piid' => 1, 'value' => 18], ['piid' => 10, 'value' => json_encode(['selects' => $selects])]]);
         return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));
     }

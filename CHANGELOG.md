@@ -2,6 +2,13 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.49.1 (20.11.2026)
+
+- **Dreame 27.1 = 3** ist laut Tasshack `CHECKING` (Station prüft), keine Warnung — bis 0.49.0 als „Prüfen" und gelber Hinweis
+  (Tester mik, L20 Ultra, dauerhaft). Jetzt „In Ordnung". 27.3 = 2 (Staubbeutel „Prüfen") bleibt, dort ist es `CHECK`.
+- Debug „Befehl" beim Raumstart zeigt den Wert von 4.26 (1 = benutzerdefinierte Reinigung in der App an — dann nimmt der
+  Roboter die Raumeinstellungen der App statt Saugstufe/Durchgänge aus dem Startbefehl).
+
 ## 0.49.0 (20.11.2026)
 
 - **Neu: Valetudo-Treiber** (`libs/RoboHubValetudo.php`, Dietmars Auftrag 19.11.2026; Forum: Valetudo-Nutzer bisher nur mit
