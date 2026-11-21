@@ -133,6 +133,8 @@ function textSym(t) {
 var TEIL_ROT = 5, TEIL_GELB = 35;
 // Befehle: [Wert, Symcon-Symbol, Emoji, Text]
 var BEFEHLE = [[1, 'play', '▶️', 'Start'], [2, 'pause', '⏸️', 'Pause'], [4, 'house', '🏠', 'Station'], [5, 'location-dot', '📍', 'Locate']];
+// Stationsaufgaben (0.52.0): nur, wenn der Treiber sie im Befehlsumfang meldet (heute Valetudo).
+var STATIONSBEFEHLE = [[6, 'trash-can', '🗑️', 'Empty dustbin'], [7, 'faucet', '🚿', 'Wash mop'], [8, 'sun', '☀️', 'Dry mop'], [9, 'circle-xmark', '✖️', 'Stop station task']];
 var daten = null, gewaehlt = [], alleTeile = false, rueck = '', bildFehlt = false, rueckfrage = '', detailsOffen = false;
 // Karte groß: antippen vergrößert sie auf die ganze Kachel (Forum kronos 144636/101).
 var grossKarte = false;
@@ -315,6 +317,14 @@ function zeichnen() {
       r += startTeil;
     }
     r += '</div>';
+  }
+  var stationsKnoepfe = bedienbar && d.befehle ? STATIONSBEFEHLE.filter(function (b) { return d.befehle.indexOf(b[0]) >= 0; }) : [];
+  if (stationsKnoepfe.length) {
+    r += '<div class="block"><p class="abschnitt">' + T('Station') + '</p><div class="chips">';
+    stationsKnoepfe.forEach(function (b) {
+      r += '<button class="chip"' + (befehlLaeuft ? ' disabled' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + T(b[3]) + '\')">' + sym(b[1], b[2]) + ' ' + T(b[3]) + '</button>';
+    });
+    r += '</div></div>';
   }
   if (bedienbar && (d.programme || []).length) {
     // App-Programme (Roborock-Routinen): Ein Druck startet, was in der App hinterlegt ist.

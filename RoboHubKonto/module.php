@@ -1400,7 +1400,7 @@ class RoboHubKonto extends IPSModule
         $treiber = $this->treiber();
         $daten = $treiber->zustand($buendel, $geraet);
         // Welche Grundbefehle das Gerät kennt (Befehl-Variable und Kachel zeigen nur diese).
-        $daten['befehle'] = $treiber instanceof RoboHubBefehlsumfang ? array_values($treiber->befehlsumfang($buendel, $geraet)) : array_values(RoboHubModell::BEFEHLSNAMEN);
+        $daten['befehle'] = $treiber instanceof RoboHubBefehlsumfang ? array_values($treiber->befehlsumfang($buendel, $geraet)) : RoboHubModell::BEFEHLE_GRUND;
         $this->schnappschussMerken($did, (string)($geraet['modell'] ?? ''), (array)($daten['roh']['properties'] ?? []));
 
         $ok = (array)($daten['bloecke']['ok'] ?? []);

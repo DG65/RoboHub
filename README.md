@@ -172,16 +172,29 @@ ROBO_Anhalten($id);
 ROBO_Stoppen($id);
 ROBO_ZurStation($id);
 ROBO_Orten($id);
+ROBO_Absaugen($id);             // Station: nur, wenn der Roboter es kann (bisher Valetudo)
+ROBO_MoppWaschen($id);
+ROBO_MoppTrocknen($id);
+ROBO_StationsaufgabeBeenden($id); // laufendes Waschen bzw. Trocknen beenden
+ROBO_MeldungTesten($id);        // Probemeldung an die eingetragenen Meldeziele
 ROBO_RaeumeReinigen($id, "3,5"); // Raum-IDs zeigt das Formular
 ROBO_RaeumeReinigenMit($id, "3", 0, 0, 1); // Modus, Saugstufe, Durchgänge nur für diesen Start, -1 = wie eingestellt
 ROBO_LiveKarteLaden($id);
 ROBO_VerbrauchsteilZuruecksetzen($id, "Filter"); // nach Wechsel/Reinigung, Ident der %-Variable
 ROBO_Aktualisieren($id);
-IPS_RequestAction($id, 'Befehl', 1); // 1 Start, 2 Pause, 3 Stopp, 4 Station, 5 Orten
+IPS_RequestAction($id, 'Befehl', 1); // 1 Start, 2 Pause, 3 Stopp, 4 Station, 5 Orten, 6 Absaugen, 7 Mopp waschen, 8 Mopp trocknen, 9 Stationsaufgabe beenden
 ```
 
 Ein Befehl heißt zunächst nur „gesendet" — ob der Roboter ihn ausführt, zeigt die
 Variable „Zustand" wenige Sekunden später.
+
+### Fehlermeldungen
+
+Im Roboter unter „🔔 Fehlermeldungen" trägst du eine oder mehrere Kachel-Visualisierungen, WebFronts oder
+E-Mail-Instanzen (SMTP) ein und wählst einen Ton. Meldet der Roboter einen neuen Fehler, schickt RoboHub eine Meldung
+mit Roboternamen und Fehlertext dorthin — einmal je Fehler, nicht bei jeder Aktualisierung. Erst wenn der Fehler
+behoben war und wieder auftritt (oder ein anderer kommt), gibt es eine neue Meldung. „🔔 Testmeldung senden“ prüft
+die Zustellung.
 
 ### Für andere Module: `ROBO_GetActivity($id)`
 
@@ -301,12 +314,15 @@ nicht offiziell dokumentiert und kann sich ändern.
   geprüft. Geht mit Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge und JX; Freo X Ultra, X Plus, J1/J4
   und T10 haben keine lokale Schnittstelle, der Freo Z Ultra braucht eine Cloud-Geräte-ID (noch nicht unterstützt).
   Ein Roboter in der Station wird für die Abfrage nicht geweckt; schläft er, zeigt RoboHub „Ruht" mit aktuellem Akku.
-- **Valetudo** (seit 0.49.0): freie Firmware für Saugroboter (Dreame, Roborock, Viomi …), lokal über Valetudos
-  HTTP-Schnittstelle. Zustand, Akku, Station, Fehler, Saugstufe/Wassermenge/Modus, Verbrauchsteile (Prozent aus der
-  Lebensdauer, die Valetudo meldet), Statistik, Räume mit Wahl, Orten, Karte mit Live-Weg und Roboter. Was ein Gerät
-  kann, fragt RoboHub bei Valetudo ab. An keinem echten Gerät geprüft. Noch ohne Echtzeit, Zonen, Nicht stören.
   „Start" reinigt alle Räume der Karte mit Saugen und Wischen (App-Vorgabe) und geht nur aus der Station; aus der Pause
   setzt er fort. Ohne Kartenbild, Saug-/Wischeinstellungen, Stationsaufgaben und Verbrauchsteile.
+- **Valetudo** (seit 0.49.0): freie Firmware für Saugroboter (Dreame, Roborock, Viomi …), lokal über Valetudos
+  HTTP-Schnittstelle. Zustand, Akku, Station, Fehler, Saugstufe/Wassermenge/Modus, Verbrauchsteile (Prozent aus der
+  Lebensdauer, die Valetudo meldet), Statistik, Räume mit Wahl, Orten, Karte mit Live-Weg und Roboter. Seit 0.52.0
+  Stationsaufgaben (Absaugen, Mopp waschen, Mopp trocknen, beenden) und Stations-Einstellungen (Absaug-Häufigkeit und
+  -Dauer, Mopp automatisch trocknen, Trockendauer, Waschtemperatur). Was ein Gerät kann, fragt RoboHub bei Valetudo ab
+  und bietet nur das an. Live bestätigt mit Roborock S5 und Dreame L10S Ultra (Valetudo 206.10.0, Forum 21.11.2026):
+  Verbrauchsteile, Karte, Start/Pause/Station/Orten; die Stationsaufgaben noch nicht. Noch ohne Echtzeit, Zonen, Nicht stören.
 - **Bosch Indego** (seit 0.23.0): nach pyIndego und der Home-Assistant-Integration gebaut, an keinem echten Mäher
   geprüft (die Bosch-Anmeldeseite nimmt die Rücksprungadresse an, live bestätigt). Zustand, Fehler, gemähter Anteil,
   Mähstunden, Akku (beim Mähen und Laden frisch, in Ruhe der letzte Wert — die Abfrage würde den Mäher wecken), Mähen,

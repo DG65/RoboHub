@@ -246,5 +246,82 @@ FakeValetudo::$erreichbar = false;
 $vtr->Aktualisieren();
 check('Roboter aus: „nicht erreichbar", Konto bleibt angemeldet', variable(9850, 'Erreichbar')['value'] === false && $vtk->ReadAttributeString('Buendel') !== '');
 FakeValetudo::$erreichbar = true;
+
+// ---- Station (0.52.0, Forum tobitobsen 144636/171) ----
+$befehlWerte = function () { return array_column(json_decode((string)variable(9850, 'Befehl')['pres']['OPTIONS'], true), 'Value'); };
+$vtr->Aktualisieren();
+check('ohne Stations-Fähigkeiten: nur die Grundbefehle (keine Stationsknöpfe)', $befehlWerte() === [1, 2, 3, 4, 5], json_encode($befehlWerte()));
+$c = '/api/v2/robot/capabilities/';
+FakeValetudo::$antworten['/api/v2/robot/capabilities'] = array_merge(FakeValetudo::$antworten['/api/v2/robot/capabilities'], [
+    'AutoEmptyDockManualTriggerCapability', 'MopDockCleanManualTriggerCapability', 'MopDockDryManualTriggerCapability',
+    'AutoEmptyDockAutoEmptyIntervalControlCapability', 'MopDockMopDryingTimeControlCapability', 'MopDockMopAutoDryingControlCapability']);
+FakeValetudo::$antworten[$c . 'AutoEmptyDockAutoEmptyIntervalControlCapability'] = ['interval' => 'normal'];
+FakeValetudo::$antworten[$c . 'AutoEmptyDockAutoEmptyIntervalControlCapability/properties'] = ['supportedIntervals' => ['off', 'normal', 'frequent']];
+FakeValetudo::$antworten[$c . 'MopDockMopDryingTimeControlCapability'] = ['duration' => '3h'];
+FakeValetudo::$antworten[$c . 'MopDockMopDryingTimeControlCapability/properties'] = ['supportedDurations' => ['2h', '3h', '4h']];
+FakeValetudo::$antworten[$c . 'MopDockMopAutoDryingControlCapability'] = ['enabled' => true];
+$vtr->Aktualisieren();
+check('mit Stations-Fähigkeiten: Absaugen, Mopp waschen, Mopp trocknen, Stationsaufgabe beenden', $befehlWerte() === [1, 2, 3, 4, 5, 6, 7, 8, 9], json_encode($befehlWerte()));
+$optWerte = function (string $ident) { return array_column(json_decode((string)variable(9850, $ident)['pres']['OPTIONS'], true), 'Caption', 'Value'); };
+check('Absaug-Häufigkeit „normal" = 2, Auswahl nur die gemeldeten Werte', variable(9850, 'AbsaugIntervall')['value'] === 2 && array_keys($optWerte('AbsaugIntervall')) === [0, 2, 3], json_encode($optWerte('AbsaugIntervall')));
+check('Trockendauer 3 h, Auswahl 2/3/4 h; automatisch trocknen an', variable(9850, 'Trockendauer')['value'] === 3 && array_keys($optWerte('Trockendauer')) === [2, 3, 4]
+    && variable(9850, 'MoppTrocknenAuto')['value'] === 1 && variable(9850, 'Waschtemperatur') === null && variable(9850, 'AbsaugDauer') === null);
+$vtr->RequestAction('Befehl', RoboHubModell::BEFEHL_ABSAUGEN);
+check('Absaugen = PUT AutoEmptyDockManualTrigger {"action":"trigger"}', FakeValetudo::letztePut() === [$c . 'AutoEmptyDockManualTriggerCapability', ['action' => 'trigger']]);
+$vtr->RequestAction('Befehl', RoboHubModell::BEFEHL_MOPP_WASCHEN);
+check('Mopp waschen = MopDockCleanManualTrigger {"action":"start"}', FakeValetudo::letztePut() === [$c . 'MopDockCleanManualTriggerCapability', ['action' => 'start']]);
+$vtr->RequestAction('Befehl', RoboHubModell::BEFEHL_MOPP_TROCKNEN);
+check('Mopp trocknen = MopDockDryManualTrigger {"action":"start"}', FakeValetudo::letztePut() === [$c . 'MopDockDryManualTriggerCapability', ['action' => 'start']]);
+$attrGrund = FakeValetudo::$antworten['/api/v2/robot/state/attributes'];
+FakeValetudo::$antworten['/api/v2/robot/state/attributes'] = array_merge(array_slice($attrGrund, 0, 5), [['__class' => 'DockStatusStateAttribute', 'value' => 'drying']]);
+$vtr->RequestAction('Befehl', RoboHubModell::BEFEHL_STATION_STOPP);
+check('Stationsaufgabe beenden beim Trocknen = MopDockDryManualTrigger {"action":"stop"}', FakeValetudo::letztePut() === [$c . 'MopDockDryManualTriggerCapability', ['action' => 'stop']]);
+FakeValetudo::$antworten['/api/v2/robot/state/attributes'] = array_merge(array_slice($attrGrund, 0, 5), [['__class' => 'DockStatusStateAttribute', 'value' => 'cleaning']]);
+$vtr->RequestAction('Befehl', RoboHubModell::BEFEHL_STATION_STOPP);
+check('… beim Waschen = MopDockCleanManualTrigger {"action":"stop"}', FakeValetudo::letztePut() === [$c . 'MopDockCleanManualTriggerCapability', ['action' => 'stop']]);
+FakeValetudo::$antworten['/api/v2/robot/state/attributes'] = $attrGrund;
+FakeValetudo::$anfragen = [];
+$t = $vtr->StationsaufgabeBeenden();
+check('… Station ruht: verständlicher Hinweis, nichts gesendet', FakeValetudo::letztePut() === null && strpos($t, 'wäscht oder trocknet gerade nicht') !== false, $t);
+$vtr->RequestAction('Trockendauer', 4);
+check('Trockendauer 4 = PUT {"duration":"4h"}', FakeValetudo::letztePut() === [$c . 'MopDockMopDryingTimeControlCapability', ['duration' => '4h']] && variable(9850, 'Trockendauer')['value'] === 4);
+$vtr->RequestAction('AbsaugIntervall', 0);
+check('Absaug-Häufigkeit aus = PUT {"interval":"off"}', FakeValetudo::letztePut() === [$c . 'AutoEmptyDockAutoEmptyIntervalControlCapability', ['interval' => 'off']]);
+$vtr->RequestAction('MoppTrocknenAuto', 0);
+check('automatisch trocknen aus = PUT {"action":"disable"}', FakeValetudo::letztePut() === [$c . 'MopDockMopAutoDryingControlCapability', ['action' => 'disable']]);
+$vk = kachelJson($vtr->GetVisualizationTile());
+check('Kachel: Stationsbefehle im Befehlsumfang, Stationseinstellungen unter „Einstellungen"', array_values(array_intersect([6, 7, 8, 9], (array)($vk['befehle'] ?? []))) === [6, 7, 8, 9]
+    && count(array_intersect(['AbsaugIntervall', 'Trockendauer', 'MoppTrocknenAuto'], array_column((array)($vk['einstellungen'] ?? []), 'id'))) === 3, json_encode([$vk['befehle'] ?? null, array_column((array)($vk['einstellungen'] ?? []), 'id')]));
+FakeValetudo::$antworten = valetudoGrundAntworten();
+
+// ---- Fehlermeldungen an Visualisierungen (0.52.0) ----
+if (!function_exists('VISU_PostNotificationEx')) {
+    function VISU_PostNotificationEx(int $id, string $titel, string $text, string $icon, string $ton, int $ziel) { $GLOBALS['VISU_MELDUNGEN'][] = [$id, $titel, $text, $icon, $ton, $ziel]; return true; }
+}
+$GLOBALS['VISU_MELDUNGEN'] = [];
+$visu = new FakeSocket(9890);
+$visu->modul = '{B5B875BB-9B76-45FD-4E67-2607E45B3AC4}';
+$vtr->Aktualisieren();
+check('ohne Ziel: keine Meldung, auch nicht bei Fehler', ($vZustand($st('error')) === RoboHubModell::ZUSTAND_FEHLER) && $GLOBALS['VISU_MELDUNGEN'] === []);
+$vZustand($st('idle'));
+$vtr->props['Meldeziele'] = json_encode([['Ziel' => 9890]]);
+$vZustand($st('error'));
+check('neuer Fehler → eine Meldung an die Kachel-Visualisierung (Name + Fehlertext, Ton, Ziel = Roboter)', count($GLOBALS['VISU_MELDUNGEN']) === 1
+    && $GLOBALS['VISU_MELDUNGEN'][0][0] === 9890 && strpos($GLOBALS['VISU_MELDUNGEN'][0][2], 'Hauptbürste blockiert') !== false
+    && $GLOBALS['VISU_MELDUNGEN'][0][4] === 'alarm' && $GLOBALS['VISU_MELDUNGEN'][0][5] === 9850, json_encode($GLOBALS['VISU_MELDUNGEN']));
+$vZustand($st('error'));
+$vZustand($st('error'));
+check('derselbe Fehler bei weiteren Abrufen: keine weitere Meldung', count($GLOBALS['VISU_MELDUNGEN']) === 1);
+$vZustand($st('idle'));
+$vZustand($st('error'));
+check('Fehler behoben und neu aufgetreten → wieder eine Meldung', count($GLOBALS['VISU_MELDUNGEN']) === 2);
+$t = $vtr->MeldungTesten();
+check('Testmeldung: zugestellt, Status mit Zielnamen', count($GLOBALS['VISU_MELDUNGEN']) === 3 && strpos($t, '✅') === 0, $t);
+$vtr->props['Meldeziele'] = json_encode([['Ziel' => 9850]]);
+$t = $vtr->MeldungTesten();
+check('Ziel ohne Visualisierung: gemeldet, nicht stillschweigend übergangen', strpos($t, '⛔') === 0 && strpos($t, 'keine Visualisierung') !== false, $t);
+$vtr->props['Meldeziele'] = '[]';
+FakeValetudo::$antworten = valetudoGrundAntworten();
+$vtr->Aktualisieren();
 FakeValetudo::$schutz = null;
 $GLOBALS['robohubTreiberFabrik'] = $fabrikVt;

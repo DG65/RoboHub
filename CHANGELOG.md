@@ -2,6 +2,34 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.52.0 (21.11.2026)
+
+Wünsche tobitobsen (Forum 144636/171, erster echter Valetudo-Test: Roborock S5 + 2× Dreame L10S Ultra, Valetudo 206.10.0 —
+Verbrauchsteile anzeigen/zurücksetzen, Karte, Start/Pause/Station/Orten live bestätigt).
+
+- **Valetudo: Stationsaufgaben.** Neue herstellerneutrale Befehle 6 Absaugen, 7 Mopp waschen, 8 Mopp trocknen, 9 Stationsaufgabe
+  beenden (`RoboHubModell::BEFEHL_*`, Namen `absaugen`/`moppWaschen`/`moppTrocknen`/`stationStopp`). Valetudo:
+  `AutoEmptyDockManualTriggerCapability` {action: trigger}, `MopDockCleanManualTriggerCapability`/`MopDockDryManualTriggerCapability`
+  {action: start|stop} (capabilityRouters). „Beenden" stoppt, was `DockStatusStateAttribute` meldet (cleaning → Waschen,
+  drying → Trocknen), sonst Hinweis ohne Anfrage. Valetudo meldet jetzt seinen Befehlsumfang (`RoboHubBefehlsumfang`) aus
+  `/api/v2/robot/capabilities`. Kachel: Abschnitt „Station" mit Knöpfen nur für gemeldete Befehle; Skript `ROBO_Absaugen`,
+  `ROBO_MoppWaschen`, `ROBO_MoppTrocknen`, `ROBO_StationsaufgabeBeenden`.
+- **Treiber ohne eigenen Befehlsumfang bekommen nur die fünf Grundbefehle** (`BEFEHLE_GRUND`, vorher alle Befehlsnamen —
+  sonst hätten Dreame, Roborock & Co. plötzlich Stationsknöpfe ohne Funktion). Vor dem ersten Abruf ebenso.
+- **Valetudo: Stations-Einstellungen** als Auswahlvariablen mit Aktion (und in der Kachel unter „Einstellungen"):
+  Absaug-Häufigkeit (`AutoEmptyDockAutoEmptyIntervalControlCapability`, interval), Absaug-Dauer (…DurationControl, duration),
+  Mopp automatisch trocknen (`MopDockMopAutoDryingControlCapability`, SimpleToggle enable/disable), Trockendauer
+  (`MopDockMopDryingTimeControlCapability`, 2h…5h/cold/quiet), Waschtemperatur (`MopDockMopWashTemperatureControlCapability`).
+  Auswahl nur aus `/properties` (supported…). Zwei bis drei zusätzliche lokale Anfragen je Abruf und Fähigkeit.
+- **Fehlermeldungen an Visualisierungen (alle Hersteller).** Formularpanel „🔔 Fehlermeldungen" (neuer Fachpanel-Schlüssel
+  `meldung`): Liste `Meldeziele` (Kachel-Visualisierung, WebFront, SMTP), Ton `MeldeTon`, Testknopf `ROBO_MeldungTesten`.
+  Muster aus FrigateHub (SUITE.md Stolperstein 22: `VISU_PostNotificationEx` mit TargetID = Roboter, Rückfall 0;
+  `WFC_PushNotification`; Byte-Kürzung 32/256). Ein Fehler meldet sich einmal (Attribut `GemeldeterFehler`), erneut erst nach
+  Behebung oder bei anderem Text. Fehlererkennung wie die rote Kachelzeile (`istFehler`). **Nie live zugestellt.**
+- README: zwei Narwal-Zeilen standen seit 0.49.0 versehentlich unter Valetudo.
+- Prüfstand: 21 neue Prüfungen (Station, Einstellungen, Meldungen), 3 Gegenproben gefangen (Grundbefehle, Doppelmeldung,
+  Stopp-Zuordnung).
+
 ## 0.51.2 (21.11.2026)
 
 - **Neuanmelden hebt auch die 24-h-Sperre „Echtzeit nie verbunden“ auf** (Forum alsk1 144636/168: nach Neuanmelden mit 0.51.1

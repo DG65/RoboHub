@@ -73,6 +73,11 @@ class RoboHubGeraet extends IPSModule
         // Verbrauchsteile über eine Variable zurücksetzen, z. B. aus IPSView (Forum alsk1 144636/116).
         $this->RegisterPropertyBoolean('TeilVariable', false);
         $this->RegisterPropertyInteger('Farbschema', 0);   // 0 automatisch, 1 hell, 2 dunkel
+        // Fehlermeldungen an Visualisierungen (0.52.0, Forum tobitobsen 144636/171): Liste mit Spalte „Ziel", Ton wie FrigateHub.
+        $this->RegisterPropertyString('Meldeziele', '[]');
+        $this->RegisterPropertyString('MeldeTon', 'alarm');
+        $this->RegisterAttributeString('GemeldeterFehler', '');
+        $this->RegisterAttributeString('Meldestatus', '');
         $this->RegisterPropertyInteger('Symbole', 0);      // 0 Symcon-Symbole (icons.js), 1 Emojis (Forum Thilo 26.10.2026)
         $this->RegisterPropertyBoolean('EinstellungenZeigen', true);
         $this->RegisterPropertyBoolean('Deaktiviert', false);
@@ -354,6 +359,30 @@ class RoboHubGeraet extends IPSModule
     public function Orten(): string
     {
         return $this->befehlMitKachel('orten', []);
+    }
+
+    /** ROBO_Absaugen($id): string — Station saugt den Staubbehälter ab (nur, wenn der Roboter es kann). */
+    public function Absaugen(): string
+    {
+        return $this->befehlMitKachel('absaugen', []);
+    }
+
+    /** ROBO_MoppWaschen($id): string — Station wäscht den Mopp. */
+    public function MoppWaschen(): string
+    {
+        return $this->befehlMitKachel('moppWaschen', []);
+    }
+
+    /** ROBO_MoppTrocknen($id): string — Station trocknet den Mopp. */
+    public function MoppTrocknen(): string
+    {
+        return $this->befehlMitKachel('moppTrocknen', []);
+    }
+
+    /** ROBO_StationsaufgabeBeenden($id): string — laufendes Waschen bzw. Trocknen beenden. */
+    public function StationsaufgabeBeenden(): string
+    {
+        return $this->befehlMitKachel('stationStopp', []);
     }
 
     /**
@@ -1155,6 +1184,9 @@ class RoboHubGeraet extends IPSModule
             $this->SetValue($ident, $this->typisiere($typ, $werte[$ident]));
         }
         $this->SetBuffer('Uebernommen', (string)json_encode(array_replace($vorher, $jetzt)));
+        if (array_key_exists('Fehler', $werte) && $werte['Fehler'] !== null) {
+            $this->fehlerMelden((string)$werte['Fehler']);
+        }
         $this->teilVariable();
         $this->WriteAttributeString('Optionen', (string)json_encode($optionen));
 
@@ -1387,7 +1419,9 @@ class RoboHubGeraet extends IPSModule
     private function bekannteBefehle(): array
     {
         $liste = json_decode($this->ReadAttributeString('Befehle'), true);
-        return is_array($liste) && $liste !== [] ? array_map('intval', $liste) : array_keys(RoboHubModell::BEFEHLE);
+        // Vor dem ersten Abruf nur die Grundbefehle — Stationsaufgaben erst, wenn der Treiber sie meldet.
+        return is_array($liste) && $liste !== [] ? array_map('intval', $liste)
+            : array_keys(array_intersect(RoboHubModell::BEFEHLSNAMEN, RoboHubModell::BEFEHLE_GRUND));
     }
 
     /** Übernimmt den Befehlsumfang des Treibers und passt die Befehl-Variable an, wenn er sich ändert. */
@@ -1443,9 +1477,17 @@ class RoboHubGeraet extends IPSModule
         return ['PRESENTATION' => VARIABLE_PRESENTATION_ENUMERATION, 'OPTIONS' => json_encode($options)];
     }
 
+    // Meldeziele (SUITE.md Stolperstein 22: WebFront und Kachel-Visualisierung haben verschiedene Funktionen; Muster aus FrigateHub).
+    private const WEBFRONT_GUID = '{3565B1F2-8F7B-4311-A4B6-1BF1D868F39E}';
+    private const KACHEL_GUID   = '{B5B875BB-9B76-45FD-4E67-2607E45B3AC4}';
+    private const SMTP_GUID     = '{375EAF21-35EF-4BC4-83B3-C780FD8BD88A}';
+    private const MELDE_TOENE   = ['alarm', 'bell', 'boom', 'buzzer', 'connected', 'dark', 'digital', 'drums', 'duck', 'full',
+        'happy', 'horn', 'inception', 'kazoo', 'roll', 'siren', 'space', 'trickling', 'turn'];
+
     /** Einstellungen, die die Kachel zeigt (Reihenfolge = Anzeige); schaltbar nur mit Auswahlliste + Aktion. */
     private const KACHEL_EINSTELLUNGEN = ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll',
-        'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag'];
+        'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag',
+        'AbsaugIntervall', 'AbsaugDauer', 'MoppTrocknenAuto', 'Trockendauer', 'Waschtemperatur'];
 
     /** Messwerte und Statistik für den aufklappbaren Kachel-Abschnitt „Details" (Forum hbraun 144636/121). */
     private const KACHEL_DETAILS = ['AkkuTemperatur', 'AkkuSpannung', 'Ladezyklen', 'WlanSignal', 'GesamtFlaeche', 'GesamtDauer',
@@ -1633,7 +1675,7 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Texte der Kachel (module.html schlägt sie per T() nach; Deutsch aus locale.json). */
-    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close', 'Settings', 'Details', 'Routines', 'Routine %s'];
+    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close', 'Settings', 'Details', 'Routines', 'Routine %s', 'Empty dustbin', 'Wash mop', 'Dry mop', 'Stop station task'];
 
     /** Daten für Kachel und eigenständige Seite (JSON). */
     private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = '', bool $mitTexten = true): string
@@ -1732,7 +1774,7 @@ class RoboHubGeraet extends IPSModule
             'akku'        => $this->wert('Akku') === null ? null : (int)$this->wert('Akku'),
             'laedt'       => (bool)$this->wert('Laedt'),
             'erreichbar'  => $this->wert('Erreichbar') !== false,
-            'fehler'      => ($fehler === '' || $fehler === 'kein Fehler' || $fehler === RoboHubText::t('no error')) ? '' : $fehler,
+            'fehler'      => self::istFehler($fehler) ? $fehler : '',
             'hinweise'    => $hinweise,
             'info'        => $info,
             'einstellungen' => $einstellungen,
@@ -2098,11 +2140,153 @@ class RoboHubGeraet extends IPSModule
         ];
     }
 
+    // -----------------------------------------------------------------
+    // Fehlermeldungen an Visualisierungen
+    // -----------------------------------------------------------------
+
+    /** Steht im Fehlerfeld ein echter Fehler? (Logik wie die rote Zeile der Kachel.) */
+    private static function istFehler(string $text): bool
+    {
+        return $text !== '' && $text !== 'kein Fehler' && $text !== RoboHubText::t('no error');
+    }
+
+    /**
+     * Neuer Fehler → einmal an alle Meldeziele. Derselbe Fehler meldet sich nicht bei jedem Abruf erneut;
+     * erst wenn er weg war (oder ein anderer kommt), gibt es wieder eine Meldung.
+     */
+    private function fehlerMelden(string $fehler): void
+    {
+        if (!self::istFehler($fehler)) {
+            if ($this->ReadAttributeString('GemeldeterFehler') !== '') {
+                $this->WriteAttributeString('GemeldeterFehler', '');
+            }
+            return;
+        }
+        if ($fehler === $this->ReadAttributeString('GemeldeterFehler')) {
+            return;
+        }
+        $this->WriteAttributeString('GemeldeterFehler', $fehler);
+        if ($this->meldeziele() !== []) {
+            $this->meldungSenden(IPS_GetName($this->InstanceID), RoboHubText::t('Error: %s', $fehler));
+        }
+    }
+
+    /** @return int[] eingetragene Ziel-Instanzen */
+    private function meldeziele(): array
+    {
+        $ziele = [];
+        foreach ((array)json_decode($this->ReadPropertyString('Meldeziele'), true) as $zeile) {
+            $id = (int)($zeile['Ziel'] ?? 0);
+            if ($id > 0 && !in_array($id, $ziele, true)) {
+                $ziele[] = $id;
+            }
+        }
+        return $ziele;
+    }
+
+    /** An alle Meldeziele senden (Kachel-Visualisierung, WebFront, E-Mail); Ergebnis ins Attribut Meldestatus. */
+    private function meldungSenden(string $titel, string $text): string
+    {
+        $ziele = $this->meldeziele();
+        if ($ziele === []) {
+            $status = RoboHubText::t('⚠️ No target entered — please add a visualization under "Targets" and apply.');
+            $this->WriteAttributeString('Meldestatus', $status);
+            return $status;
+        }
+        $titel = self::kuerzenBytes($titel, 32);
+        $text = self::kuerzenBytes($text, 256);
+        $ton = (string)$this->ReadPropertyString('MeldeTon');
+        $ok = [];
+        $fehler = [];
+        foreach ($ziele as $ziel) {
+            $name = IPS_InstanceExists($ziel) ? IPS_GetName($ziel) : ('#' . $ziel);
+            $modul = IPS_InstanceExists($ziel) ? (string)(IPS_GetInstance($ziel)['ModuleInfo']['ModuleID'] ?? '') : '';
+            if ($modul === self::KACHEL_GUID && function_exists('VISU_PostNotificationEx')) {
+                // Ex-Fassung (Stolperstein 22); TargetID = dieser Roboter, sonst 0.
+                $gesendet = @VISU_PostNotificationEx($ziel, $titel, $text, 'Alert', $ton, $this->InstanceID);
+                if ($gesendet === false) {
+                    $gesendet = @VISU_PostNotificationEx($ziel, $titel, $text, 'Alert', $ton, 0);
+                }
+            } elseif ($modul === self::WEBFRONT_GUID && function_exists('WFC_PushNotification')) {
+                $gesendet = @WFC_PushNotification($ziel, $titel, $text, $ton, $this->InstanceID);
+            } elseif ($modul === self::SMTP_GUID && function_exists('SMTP_SendMail')) {
+                $gesendet = @SMTP_SendMail($ziel, $titel, $text);
+            } else {
+                $fehler[] = RoboHubText::t('%s (no visualization)', $name);
+                continue;
+            }
+            if ($gesendet !== false) {
+                $ok[] = $name;
+            } else {
+                $fehler[] = $name;
+            }
+        }
+        $zeit = date('d.m.Y H:i:s');
+        if ($fehler === []) {
+            $status = RoboHubText::t('✅ %s sent to %s.', $zeit, implode(', ', $ok));
+        } else {
+            $status = $ok === [] ? RoboHubText::t('⛔ %s not delivered to %s.', $zeit, implode(', ', $fehler))
+                : RoboHubText::t('⚠️ %s not delivered to %s, sent to %s.', $zeit, implode(', ', $fehler), implode(', ', $ok));
+            $this->LogMessage(RoboHubText::t('Notification not delivered to %s', implode(', ', $fehler)), KL_WARNING);
+        }
+        $this->WriteAttributeString('Meldestatus', $status);
+        $this->UpdateFormField('Meldestatus', 'caption', $status);
+        return $status;
+    }
+
+    /** ROBO_MeldungTesten($id): Probemeldung an alle Ziele. */
+    public function MeldungTesten(): string
+    {
+        return $this->meldungSenden(IPS_GetName($this->InstanceID), RoboHubText::t('Test: error notifications from RoboHub arrive here.'));
+    }
+
+    /** UTF-8-sicher auf Bytes kürzen (Symcon prüft die Längen womöglich in Bytes, Stolperstein 22). */
+    private static function kuerzenBytes(string $text, int $max): string
+    {
+        if (strlen($text) <= $max) {
+            return $text;
+        }
+        $ergebnis = '';
+        foreach (mb_str_split($text) as $zeichen) {
+            if (strlen($ergebnis) + strlen($zeichen) > $max) {
+                break;
+            }
+            $ergebnis .= $zeichen;
+        }
+        return $ergebnis;
+    }
+
+    private function meldungPanel(): array
+    {
+        $toene = [];
+        foreach (self::MELDE_TOENE as $ton) {
+            $toene[] = ['caption' => $ton, 'value' => $ton];
+        }
+        $status = $this->ReadAttributeString('Meldestatus');
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '🔔  Error notifications',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'When the robot reports a new error, RoboHub sends a notification with the robot name and error text to the targets below — once per error, not on every update.'],
+                ['type' => 'List', 'name' => 'Meldeziele', 'caption' => 'Targets (tile visualization, WebFront or email/SMTP)', 'add' => true, 'delete' => true, 'rowCount' => 3,
+                    'columns' => [[
+                        'caption' => 'Target', 'name' => 'Ziel', 'width' => 'auto', 'add' => 0,
+                        'edit' => ['type' => 'SelectInstance', 'validModules' => [self::KACHEL_GUID, self::WEBFRONT_GUID, self::SMTP_GUID]],
+                    ]],
+                ],
+                ['type' => 'Select', 'name' => 'MeldeTon', 'caption' => 'Sound', 'options' => $toene],
+                ['type' => 'Button', 'caption' => '🔔 Send test notification', 'onClick' => 'echo ROBO_MeldungTesten($id);'],
+                ['type' => 'Label', 'name' => 'Meldestatus', 'caption' => $status !== '' ? $status
+                    : ($this->meldeziele() === [] ? 'Notifications are off (no target entered).' : 'No notification sent yet.')],
+            ],
+        ];
+    }
+
     protected function robohubFachpanels(): array
     {
         return [
             'geraet' => $this->geraetPanel(), 'zeitplan' => $this->zeitplanPanel(), 'raum' => $this->raumPanel(),
-            'verbrauch' => $this->verbrauchPanel(), 'kachel' => $this->kachelPanel(), 'technik' => $this->technikPanel(),
+            'verbrauch' => $this->verbrauchPanel(), 'meldung' => $this->meldungPanel(), 'kachel' => $this->kachelPanel(), 'technik' => $this->technikPanel(),
         ];
     }
 

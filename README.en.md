@@ -174,16 +174,28 @@ ROBO_Anhalten($id);
 ROBO_Stoppen($id);
 ROBO_ZurStation($id);
 ROBO_Orten($id);
+ROBO_Absaugen($id);             // station: only if the robot can do it (so far Valetudo)
+ROBO_MoppWaschen($id);
+ROBO_MoppTrocknen($id);
+ROBO_StationsaufgabeBeenden($id); // stop washing or drying
+ROBO_MeldungTesten($id);        // test notification to the entered targets
 ROBO_RaeumeReinigen($id, "3,5"); // room IDs are shown in the form
 ROBO_RaeumeReinigenMit($id, "3", 0, 0, 1); // mode, suction level, passes for this start only, -1 = as set
 ROBO_LiveKarteLaden($id);
 ROBO_VerbrauchsteilZuruecksetzen($id, "Filter"); // after replacing/cleaning, ident of the % variable
 ROBO_Aktualisieren($id);
-IPS_RequestAction($id, 'Befehl', 1); // 1 Start, 2 Pause, 3 Stop, 4 Return to base, 5 Locate
+IPS_RequestAction($id, 'Befehl', 1); // 1 Start, 2 Pause, 3 Stop, 4 Return to base, 5 Locate, 6 Empty dustbin, 7 Wash mop, 8 Dry mop, 9 Stop station task
 ```
 
 A command at first only means "sent" — whether the robot carries it out is shown by the
 variable "State" a few seconds later.
+
+### Error notifications
+
+In the robot under "🔔 Error notifications" you enter one or more tile visualizations, WebFronts or email instances
+(SMTP) and choose a sound. When the robot reports a new error, RoboHub sends a notification with the robot name and the
+error text there — once per error, not on every update. Only when the error was cleared and comes back (or another one
+appears) is there a new notification. "🔔 Send test notification" checks the delivery.
 
 ### For other modules: `ROBO_GetActivity($id)`
 
@@ -302,12 +314,15 @@ not officially documented and may change.
   device. Works with Flow, Flow 2, Freo Z10 Ultra/Pro, Freo X10 Pro, Freo 20/20 Edge and JX; Freo X Ultra, X Plus, J1/J4
   and T10 have no local interface, the Freo Z Ultra needs a cloud device ID (not supported yet).
   A robot in the station is not woken up for polling; if it is asleep, RoboHub shows "Sleeping" with the current battery level.
-- **Valetudo** (since 0.49.0): free firmware for robot vacuums (Dreame, Roborock, Viomi …), locally via Valetudo's HTTP
-  interface. State, battery, dock, errors, suction level/water/mode, consumables (percent from the lifetime Valetudo
-  reports), statistics, rooms with options, locate, map with live path and robot. RoboHub asks Valetudo what a device
-  can do. Not tested on a real device. No real-time, zones or do-not-disturb yet.
   "Start" cleans all rooms of the map with vacuuming and mopping (app default) and only works from the station; from a pause
   it resumes. No map image, vacuum/mop settings, station tasks or consumables.
+- **Valetudo** (since 0.49.0): free firmware for robot vacuums (Dreame, Roborock, Viomi …), locally via Valetudo's HTTP
+  interface. State, battery, dock, errors, suction level/water/mode, consumables (percent from the lifetime Valetudo
+  reports), statistics, rooms with options, locate, map with live path and robot. Since 0.52.0 station tasks (empty
+  dustbin, wash mop, dry mop, stop) and station settings (auto-empty interval and duration, dry mop automatically, drying
+  time, wash temperature). RoboHub asks Valetudo what a device can do and offers only that. Confirmed live with Roborock S5
+  and Dreame L10S Ultra (Valetudo 206.10.0, forum 21.11.2026): consumables, map, start/pause/dock/locate; station tasks
+  not yet. No real-time, zones or do-not-disturb yet.
 - **Bosch Indego** (since 0.23.0): built following pyIndego and the Home Assistant integration, not tested on a real mower
   (the Bosch sign-in page accepts the redirect address, confirmed live). State, error, mowed share,
   mowing hours, battery (fresh while mowing and charging, at rest the last value — polling would wake the mower), Mow,

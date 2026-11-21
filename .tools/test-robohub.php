@@ -621,6 +621,8 @@ check('fehlender Block im Rohauszug gezählt', strpos($geraet->Rohdaten(), '"feh
 FakeCloud::$ausfall = [];
 
 abschnitt('Sauger: Befehle');
+check('Treiber ohne eigenen Befehlsumfang (Dreame): nur die fünf Grundbefehle, keine Stationsaufgaben (0.52.0)',
+    array_column(json_decode((string)variable($geraet->InstanceID, 'Befehl')['pres']['OPTIONS'], true), 'Value') === [1, 2, 3, 4, 5]);
 FakeCloud::$anfragen = [];
 $geraet->RequestAction('Befehl', RoboHubModell::BEFEHL_STATION);
 $cmd = FakeCloud::befehle()[0] ?? [];

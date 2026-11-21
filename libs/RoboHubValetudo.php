@@ -25,10 +25,12 @@ require_once __DIR__ . '/RoboHubKartenbild.php';
 // [xStart, y, Anzahl], entities in cm; y zeigt nach unten wie im Bild; Winkel
 // 0° = Norden, im Uhrzeigersinn — Frontend RobotPositionMapStructure). Übersetzt
 // in die Kodierung „rahmen" von RoboHubKartenbild (Raum n → n << 2).
-// Nicht gebaut: Echtzeit (SSE), Zonen, Nicht stören, Stationsaufgaben, Timer.
+// Station (0.52.0, Forum tobitobsen 144636/171): Absaugen/Mopp waschen/trocknen (…ManualTriggerCapability) und die
+// Einstellungen Absaugintervall/-dauer, Trockendauer, Waschtemperatur, automatisch trocknen — nur, was der Roboter meldet.
+// Nicht gebaut: Echtzeit (SSE), Zonen, Nicht stören, Timer.
 // ===========================================================================
 
-class RoboHubValetudo implements RoboHubTreiber
+class RoboHubValetudo implements RoboHubTreiber, RoboHubBefehlsumfang
 {
     /** @var callable|null fn(string $thema, string $text) */
     public $debug = null;
@@ -54,6 +56,30 @@ class RoboHubValetudo implements RoboHubTreiber
         'brush/main' => 'Hauptbuerste', 'brush/side_right' => 'Seitenbuerste', 'brush/side_left' => 'Seitenbuerste',
         'filter/main' => 'Filter', 'cleaning/sensor' => 'Sensoren', 'mop/main' => 'Mopp', 'mop/all' => 'Mopp',
     ];
+
+    // Stations-Einstellungen: RoboHub-Feld → [Capability, JSON-Schlüssel, Schlüssel der unterstützten Werte in /properties,
+    // Valetudo-Wert → Zahl, Zahl → Anzeigetext]. Wertelisten aus den Capability-Klassen (Valetudo core/capabilities/*).
+    private const DOCK = [
+        'AbsaugIntervall' => ['AutoEmptyDockAutoEmptyIntervalControlCapability', 'interval', 'supportedIntervals',
+            ['off' => 0, 'infrequent' => 1, 'normal' => 2, 'frequent' => 3], [0 => 'Off', 1 => 'Infrequent', 2 => 'Normal', 3 => 'Frequent']],
+        'AbsaugDauer' => ['AutoEmptyDockAutoEmptyDurationControlCapability', 'duration', 'supportedDurations',
+            ['auto' => 0, 'short' => 1, 'medium' => 2, 'long' => 3], [0 => 'Auto', 1 => 'Short', 2 => 'Medium', 3 => 'Long']],
+        'Trockendauer' => ['MopDockMopDryingTimeControlCapability', 'duration', 'supportedDurations',
+            ['2h' => 2, '3h' => 3, '4h' => 4, '5h' => 5, 'cold' => 10, 'quiet' => 11], [2 => '2 h', 3 => '3 h', 4 => '4 h', 5 => '5 h', 10 => 'Cold air', 11 => 'Quiet']],
+        'Waschtemperatur' => ['MopDockMopWashTemperatureControlCapability', 'temperature', 'supportedTemperatures',
+            ['cold' => 0, 'warm' => 1, 'hot' => 2, 'scalding' => 3, 'boiling' => 4], [0 => 'Cold', 1 => 'Warm', 2 => 'Hot', 3 => 'Very hot', 4 => 'Boiling']],
+    ];
+    private const AUTO_TROCKNEN = 'MopDockMopAutoDryingControlCapability';   // SimpleToggle: {enabled} / {action: enable|disable}
+
+    // Stationsbefehle → Capability + Aktion (…ManualTriggerCapabilityRouter).
+    private const STATIONSBEFEHLE = [
+        'absaugen'     => ['AutoEmptyDockManualTriggerCapability', 'trigger', 'Empty dustbin'],
+        'moppWaschen'  => ['MopDockCleanManualTriggerCapability', 'start', 'Wash mop'],
+        'moppTrocknen' => ['MopDockDryManualTriggerCapability', 'start', 'Dry mop'],
+    ];
+
+    /** Zuletzt gelesene Fähigkeiten je Host (spart in befehlsumfang() eine zweite Abfrage nach zustand()). */
+    private $kannZuletzt = [];
 
     private const STATION_TEXT = ['idle' => 'Ready', 'emptying' => 'Emptying', 'cleaning' => 'Washing', 'drying' => 'Drying', 'pause' => 'Paused', 'error' => 'Error'];
 
@@ -144,6 +170,7 @@ class RoboHubValetudo implements RoboHubTreiber
     {
         $r = $this->roboter($buendel, $geraet);
         $kann = array_flip((array)$this->hole($r, '/api/v2/robot/capabilities'));
+        $this->kannZuletzt[$r['host']] = $kann;
         $p = ['attribute' => (array)$this->hole($r, '/api/v2/robot/state/attributes'), 'presets' => [], 'teile' => [], 'teileMax' => [], 'gesamt' => [], 'aktuell' => []];
         foreach (self::PRESETS as $art => [, $cap]) {
             if (isset($kann[$cap])) {
@@ -161,6 +188,18 @@ class RoboHubValetudo implements RoboHubTreiber
             $p['aktuell'] = (array)$this->hole($r, '/api/v2/robot/capabilities/CurrentStatisticsCapability');
         }
         $p['locate'] = isset($kann['LocateCapability']);
+        $p['dock'] = [];
+        foreach (self::DOCK as $feld => [$cap, $schluessel, $liste]) {
+            if (isset($kann[$cap])) {
+                $p['dock'][$feld] = [
+                    'wert'  => (string)($this->hole($r, '/api/v2/robot/capabilities/' . $cap)[$schluessel] ?? ''),
+                    'werte' => (array)($this->hole($r, '/api/v2/robot/capabilities/' . $cap . '/properties')[$liste] ?? []),
+                ];
+            }
+        }
+        if (isset($kann[self::AUTO_TROCKNEN])) {
+            $p['dock']['MoppTrocknenAuto'] = ['an' => (bool)($this->hole($r, '/api/v2/robot/capabilities/' . self::AUTO_TROCKNEN)['enabled'] ?? false)];
+        }
         $daten = $this->normalisiere((string)($geraet['modell'] ?? ''), $p);
         $daten['online'] = true;
         $daten['bloecke'] = ['ok' => [0], 'fehl' => []];
@@ -246,6 +285,30 @@ class RoboHubValetudo implements RoboHubTreiber
                     $w[$ident] = (int)max(0, min(100, round($v * 100 / $max[$schluessel])));
                 }
             }
+        }
+
+        // Station: Auswahl nur aus den Werten, die der Roboter laut /properties unterstützt.
+        foreach (self::DOCK as $feld => [, , , $tabelle, $texte]) {
+            $d = $p['dock'][$feld] ?? null;
+            if (!is_array($d)) {
+                continue;
+            }
+            $opt = [];
+            foreach ((array)($d['werte'] ?? []) as $name) {
+                if (isset($tabelle[$name])) {
+                    $opt[$tabelle[$name]] = $texte[$tabelle[$name]];
+                }
+            }
+            if ($opt === [] || !isset($tabelle[$d['wert'] ?? ''])) {
+                continue;
+            }
+            ksort($opt);
+            $optionen[$feld] = $opt;
+            $w[$feld] = $tabelle[$d['wert']];
+        }
+        if (is_array($p['dock']['MoppTrocknenAuto'] ?? null)) {
+            $optionen['MoppTrocknenAuto'] = [0 => 'Off', 1 => 'On'];
+            $w['MoppTrocknenAuto'] = $p['dock']['MoppTrocknenAuto']['an'] ? 1 : 0;
         }
 
         // Statistik (ValetudoDataPoint: time in s, area in cm², count).
@@ -441,8 +504,41 @@ class RoboHubValetudo implements RoboHubTreiber
             $this->sende($r, '/api/v2/robot/capabilities/LocateCapability', ['action' => 'locate']);
             return RoboHubText::t('Command "%s" sent.', RoboHubText::wert('Locate'));
         }
+        if (isset(self::STATIONSBEFEHLE[$befehl])) {
+            [$cap, $aktion, $text] = self::STATIONSBEFEHLE[$befehl];
+            $this->sende($r, '/api/v2/robot/capabilities/' . $cap, ['action' => $aktion]);
+            return RoboHubText::t('Command "%s" sent.', RoboHubText::wert($text));
+        }
+        if ($befehl === 'stationStopp') {
+            // Valetudo stoppt Waschen und Trocknen getrennt — was gerade läuft, sagt DockStatusStateAttribute.
+            $dock = '';
+            foreach ((array)$this->hole($r, '/api/v2/robot/state/attributes') as $a) {
+                if ((string)($a['__class'] ?? '') === 'DockStatusStateAttribute') {
+                    $dock = (string)($a['value'] ?? '');
+                }
+            }
+            $cap = ['cleaning' => 'MopDockCleanManualTriggerCapability', 'drying' => 'MopDockDryManualTriggerCapability'][$dock] ?? null;
+            if ($cap === null) {
+                throw new RoboHubFehler(RoboHubText::t('The station is not washing or drying right now.'));
+            }
+            $this->sende($r, '/api/v2/robot/capabilities/' . $cap, ['action' => 'stop']);
+            return RoboHubText::t('Command "%s" sent.', RoboHubText::wert('Stop station task'));
+        }
         if ($befehl === 'setze') {
-            $this->presetSetzen($r, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? -1));
+            $feld = (string)($parameter['feld'] ?? '');
+            $wert = (int)($parameter['wert'] ?? -1);
+            if (isset(self::DOCK[$feld])) {
+                [$cap, $schluessel, , $tabelle] = self::DOCK[$feld];
+                $name = array_search($wert, $tabelle, true);
+                if ($name === false) {
+                    throw new RoboHubFehler(RoboHubText::t('Invalid value for %s: %s', RoboHubText::wert(RoboHubModell::FELDER[$feld][0]), $wert));
+                }
+                $this->sende($r, '/api/v2/robot/capabilities/' . $cap, [$schluessel => $name]);
+            } elseif ($feld === 'MoppTrocknenAuto') {
+                $this->sende($r, '/api/v2/robot/capabilities/' . self::AUTO_TROCKNEN, ['action' => $wert === 1 ? 'enable' : 'disable']);
+            } else {
+                $this->presetSetzen($r, $feld, $wert);
+            }
             return RoboHubText::t('Setting sent.');
         }
         if ($befehl === 'raum') {
@@ -465,6 +561,26 @@ class RoboHubValetudo implements RoboHubTreiber
             return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));
         }
         throw new RoboHubFehler(RoboHubText::t('RoboHub does not know this command for Valetudo (yet): %s', $befehl));
+    }
+
+    /** Befehle laut /api/v2/robot/capabilities: Grundsteuerung, Orten, Stationsaufgaben. */
+    public function befehlsumfang(array $buendel, array $geraet): array
+    {
+        $r = $this->roboter($buendel, $geraet);
+        $kann = $this->kannZuletzt[$r['host']] ?? array_flip((array)$this->hole($r, '/api/v2/robot/capabilities'));
+        $liste = isset($kann['BasicControlCapability']) ? ['start', 'pause', 'stopp', 'station'] : [];
+        if (isset($kann['LocateCapability'])) {
+            $liste[] = 'orten';
+        }
+        foreach (self::STATIONSBEFEHLE as $befehl => [$cap]) {
+            if (isset($kann[$cap])) {
+                $liste[] = $befehl;
+            }
+        }
+        if (isset($kann['MopDockCleanManualTriggerCapability']) || isset($kann['MopDockDryManualTriggerCapability'])) {
+            $liste[] = 'stationStopp';
+        }
+        return $liste;
     }
 
     /** Saugstufe/Wassermenge/Reinigungsmodus: Zahl → Preset-Name → PUT …/preset {"name"}. */

@@ -72,6 +72,15 @@ final class RoboHubModell
     public const BEFEHL_STOPP   = 3;
     public const BEFEHL_STATION = 4;
     public const BEFEHL_ORTEN   = 5;
+    // Stationsaufgaben (0.52.0, Forum tobitobsen 144636/171). Nur Treiber, die sie in befehlsumfang() melden, bekommen sie
+    // angeboten — Treiber ohne RoboHubBefehlsumfang kennen nur BEFEHLE_GRUND.
+    public const BEFEHL_ABSAUGEN       = 6;
+    public const BEFEHL_MOPP_WASCHEN   = 7;
+    public const BEFEHL_MOPP_TROCKNEN  = 8;
+    public const BEFEHL_STATION_STOPP  = 9;
+
+    /** Die fünf Grundbefehle (vor 0.52.0 die ganze Liste) — Vorgabe für Treiber ohne eigenen Befehlsumfang. */
+    public const BEFEHLE_GRUND = ['start', 'pause', 'stopp', 'station', 'orten'];
 
     public const BEFEHLE = [
         self::BEFEHL_START   => ['Start / resume', 'play'],
@@ -79,6 +88,10 @@ final class RoboHubModell
         self::BEFEHL_STOPP   => ['Stop', 'stop'],
         self::BEFEHL_STATION => ['Return to base', 'house'],
         self::BEFEHL_ORTEN   => ['Locate', 'location-dot'],
+        self::BEFEHL_ABSAUGEN      => ['Empty dustbin', 'trash-can'],
+        self::BEFEHL_MOPP_WASCHEN  => ['Wash mop', 'faucet'],
+        self::BEFEHL_MOPP_TROCKNEN => ['Dry mop', 'sun'],
+        self::BEFEHL_STATION_STOPP => ['Stop station task', 'circle-xmark'],
     ];
 
     /** Befehlswert → Befehlsname, wie ihn die Treiber in befehl() erwarten. */
@@ -88,6 +101,10 @@ final class RoboHubModell
         self::BEFEHL_STOPP   => 'stopp',
         self::BEFEHL_STATION => 'station',
         self::BEFEHL_ORTEN   => 'orten',
+        self::BEFEHL_ABSAUGEN      => 'absaugen',
+        self::BEFEHL_MOPP_WASCHEN  => 'moppWaschen',
+        self::BEFEHL_MOPP_TROCKNEN => 'moppTrocknen',
+        self::BEFEHL_STATION_STOPP => 'stationStopp',
     ];
 
     /**
@@ -161,6 +178,12 @@ final class RoboHubModell
         'NichtStoerenVon'    => ['Do not disturb from', 3, '', 0, 91],
         'NichtStoerenBis'    => ['Do not disturb until', 3, '', 0, 92],
         'Lautstaerke'        => ['Volume', 1, ' %', 0, 93],
+        // Station (0.52.0, Valetudo): Auswahl mit Aktion, sobald der Treiber Optionen liefert.
+        'AbsaugIntervall'    => ['Auto-empty interval', 3, '', 0, 94],
+        'AbsaugDauer'        => ['Auto-empty duration', 3, '', 0, 95],
+        'MoppTrocknenAuto'   => ['Dry mop automatically', 3, '', 0, 96],
+        'Trockendauer'       => ['Mop drying time', 3, '', 0, 97],
+        'Waschtemperatur'    => ['Mop wash temperature', 3, '', 0, 98],
     ];
 
     /** Zeitangabe „HH:MM" (00:00–23:59) für Nicht-stören-Zeiten. */
