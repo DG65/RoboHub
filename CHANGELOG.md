@@ -2,6 +2,16 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.51.2 (21.11.2026)
+
+- **Neuanmelden hebt auch die 24-h-Sperre „Echtzeit nie verbunden“ auf** (Forum alsk1 144636/168: nach Neuanmelden mit 0.51.1
+  Roboter wieder aktiv, Echtzeit-Instanz blieb inaktiv). `echtzeitSperren()` greift bei jedem Socket-Fehler vor der ersten
+  Verbindung (gedacht für Symcon 9.1/Rust-TLS bei Dreame), also auch, wenn Roborock ein gesperrtes Konto schon auf
+  Verbindungsebene abweist. `anmeldungAbschliessen()` setzt jetzt `EchtzeitGesperrtBis` zurück; liegt es wirklich am
+  Zertifikat, sperrt der nächste Fehlversuch wieder 24 h. Vermutete Ursache, an alsk1s Konto noch nicht belegt.
+  Prüfstand: Rücksetzen beim Neuanmelden (Gegenprobe gefangen).
+- Live (alsk1, 21.11.2026): Neuanmelden mit neuem E-Mail-Code hob die über 28 h lange Roborock-Sperre auf (python-roborock-Beobachtung bestätigt).
+
 ## 0.51.1 (21.11.2026)
 
 - **Roborock: Neuanmelden beendet die Verbindungspause** (Forum alsk1 144636/159: seit über 28 h ausgesperrt). python-roborock

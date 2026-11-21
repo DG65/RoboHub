@@ -299,6 +299,10 @@ class RoboHubKonto extends IPSModule
         // nach dem Neuanmelden bis zum Pausenende (bis 6 h) zu (Forum alsk1 144636/159, 28 h ausgesperrt).
         $this->WriteAttributeInteger('EchtzeitPauseBis', 0);
         $this->WriteAttributeInteger('EchtzeitPauseStufe', 0);
+        // Auch die 24-h-Sperre „Echtzeit nie verbunden“ (echtzeitSperren): Sie greift bei jedem Socket-Fehler vor der ersten
+        // Verbindung, also auch, wenn Roborock ein gesperrtes Konto abweist (Forum alsk1 144636/168: nach Neuanmelden mit
+        // 0.51.1 blieb die Echtzeit inaktiv). Liegt es wirklich am Zertifikat, sperrt der nächste Fehlversuch wieder 24 h.
+        $this->WriteAttributeInteger('EchtzeitGesperrtBis', 0);
 
         $hersteller = $this->ReadPropertyString('Hersteller');
         if ($hersteller === 'ecovacs') {

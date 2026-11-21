@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.51.2' => [
+            '• Roborock: signing in again also lifts the 24-hour real-time block that RoboHub sets when the connection fails before it ever worked — after a lockout by Roborock the real-time connection now starts right after the new sign-in.',
+        ],
         '0.51.1' => [
             '• Roborock: water codes reported during app routines (e.g. 210 "Smart water" on the Saros 20) now show their name instead of "Level 210".',
             '• Roborock: signing in again now ends a running connection pause immediately. After the third refusal in a row the account suggests signing in again with a new e-mail code — according to the library behind Home Assistant, new credentials usually lift the block.',

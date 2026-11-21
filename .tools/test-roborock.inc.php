@@ -727,9 +727,11 @@ check('ab der dritten Abweisung in Folge: Hinweis auf Neuanmelden mit neuem Code
 $buendelJetzt = json_decode($rk->ReadAttributeString('Buendel'), true);
 $treiberM = new ReflectionMethod($rk, 'treiber');
 $abschluss = new ReflectionMethod($rk, 'anmeldungAbschliessen');
+$rk->WriteAttributeInteger('EchtzeitGesperrtBis', time() + 86400);   // 24-h-Sperre „nie verbunden“ (Forum alsk1 144636/168)
 $abschluss->invoke($rk, $buendelJetzt, $treiberM->invoke($rk));
 check('Neuanmeldung setzt Echtzeit-Pause und Pausenstufe zurück', $rk->ReadAttributeInteger('EchtzeitPauseBis') === 0
-    && $rk->ReadAttributeInteger('EchtzeitPauseStufe') === 0 && $rk->ReadAttributeInteger('WarteBis') === 0);
+    && $rk->ReadAttributeInteger('EchtzeitPauseStufe') === 0 && $rk->ReadAttributeInteger('WarteBis') === 0
+    && $rk->ReadAttributeInteger('EchtzeitGesperrtBis') === 0);
 $rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
 $rk->WriteAttributeInteger('WarteBis', 0);
 $srv->connack = 0;
