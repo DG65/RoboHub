@@ -207,6 +207,9 @@ PEM;
     // Wasserfluss-Regler (python-roborock clean_modes.py, „water slide“, z. B. Saros 20): Gerät meldet 220 + Reglerstellung
     // 1–30, die App fasst Bereiche zu Namen zusammen (letzte Stellung => Name). Forum lugge 14.11.2026: 235 = App „Mittel“, Regler 15.
     private const WASSERREGLER = [3 => 'Slight', 7 => 'Low', 12 => 'Gentle', 17 => 'Medium', 22 => 'Moderate', 27 => 'High', 30 => 'Extreme'];
+    // Weitere Wasser-Codes (python-roborock WaterModes), die ein Gerät melden kann, z. B. während einer App-Routine
+    // (Forum lugge 144636/160, Saros 20: 210 während „Flur Test“). Nur zur Anzeige des aktuellen Werts, nicht als Wahl angeboten.
+    private const WASSER_WEITERE = [205 => 'Minimum', 206 => 'Maximum', 208 => 'Extreme', 209 => 'Smart mode', 210 => 'Smart water'];
     private const WASSERREGLER_WAHL = [200 => 'Off', 221 => 'Slight', 225 => 'Low', 230 => 'Gentle', 235 => 'Medium', 240 => 'Moderate', 245 => 'High', 250 => 'Extreme'];
 
     /** Name des App-Bereichs für einen Reglerwert (221–250), sonst null. */
@@ -560,6 +563,8 @@ PEM;
             }
             if (!isset($liste[$menge]) && $regler !== null) {
                 $liste[$menge] = $regler;
+            } elseif (!isset($liste[$menge]) && isset(self::WASSER_WEITERE[$menge])) {
+                $liste[$menge] = self::WASSER_WEITERE[$menge];
             } elseif (!isset($liste[$menge])) {
                 $liste[$menge] = RoboHubText::t('Level %s', $menge);
             }

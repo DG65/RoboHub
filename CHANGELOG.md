@@ -2,6 +2,20 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.51.1 (21.11.2026)
+
+- **Roborock: Neuanmelden beendet die Verbindungspause** (Forum alsk1 144636/159: seit über 28 h ausgesperrt). python-roborock
+  (`mqtt/session.py`, `MqttSessionUnauthorized`) beobachtet, dass neue Zugangsdaten eine Abweisung „nicht berechtigt“ sowohl bei
+  Drosselung als auch bei ungültigen Zugangsdaten beheben; HA meldet dafür neu an. Bisher setzte eine neue Anmeldung nur `WarteBis`
+  zurück, die Echtzeit blieb bis zum Ende von `EchtzeitPauseBis` (bis 6 h) zu. Jetzt setzt `anmeldungAbschliessen()` Pause und
+  Pausenstufe zurück. Ab der dritten Abweisung in Folge empfiehlt der Hinweis ein Neuanmelden mit neuem E-Mail-Code (empfohlen,
+  nicht erzwungen — das Bündel bleibt). Prüfstand: Hinweistext, Rücksetzen beim Neuanmelden.
+- **Roborock: Wasser-Codes 205/206/208/209/210 mit Namen** (Forum lugge 144636/160: Saros 20 meldet während der Routine
+  „Flur Test“ `water_box_mode` 210, Kachel zeigte „Stufe 210“). Namen aus python-roborock `WaterModes` (210 = SMART_WATER), nur
+  als Anzeige des aktuellen Werts, nicht als Wahl angeboten.
+- **Live bestätigt (lugge, Saros 20, 21.11.2026):** Programme aus 0.51.0 mit richtigen Namen, Start „Flur Test“ ausgeführt;
+  Wiederverbinden nach „End of file“ des Client Sockets (11:55:27) selbst geklappt, Echtzeit-Meldungen ab 11:58 wieder da.
+
 ## 0.51.0 (21.11.2026)
 
 - **Roborock: Programme aus der App starten** (Forum lugge 144636/155: „Programme aus der App aufrufen“, z. B. erst saugen, dann

@@ -134,6 +134,7 @@
             "Max": "Maximal",
             "Turbo": "Turbo",
             "This instance connects Symcon with your vendor account for robot vacuums, mops and lawn mowers (currently Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, Eufy, Eufy mower E15, iRobot, Narwal, Valetudo as well as Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW and AL-KO Robolinho). You sign in once — after that RoboHub fetches state, battery and consumables of your robots and can start, stop or send them back to base.": "Diese Instanz verbindet Symcon mit deinem Hersteller-Konto für Saug-, Wisch- und Mähroboter (heute Dreame, MOVA, Roborock, Ecovacs, Vorwerk Kobold, Miele Scout, Kärcher, Eufy, Eufy-Mäher E15, iRobot, Narwal, Valetudo sowie Husqvarna, GARDENA, Worx, Kress, LandXcape, Ferrex, Segway Navimow, Bosch Indego, STIHL iMOW und AL-KO Robolinho). Du meldest dich einmal an — danach holt RoboHub Zustand, Akku und Verbrauchsteile deiner Roboter und kann sie starten, anhalten oder zur Station schicken.",
+            "The vendor server keeps refusing the connection (%s, %d times in a row) — RoboHub pauses until %s. If this persists, sign in again with a new e-mail code: new credentials usually end the block.": "Der Server des Herstellers lehnt die Verbindung weiter ab (%s, %d-mal in Folge) – RoboHub pausiert bis %s. Hält das an, melde das Konto mit einem neuen E-Mail-Code neu an: neue Zugangsdaten beenden die Sperre meist.",
             "The vendor server refuses the connection right now (%s) — RoboHub pauses until %s, no new sign-in needed.": "Der Server des Herstellers lehnt die Verbindung gerade ab (%s) – RoboHub pausiert bis %s, eine neue Anmeldung ist nicht nötig.",
             "Allow control via the standalone page (only with key in the address)": "Bedienung über die eigenständige Seite erlauben (nur mit Schlüssel in der Adresse)",
             "Always off": "Immer aus",
@@ -1281,6 +1282,8 @@
             "Sleeping": "Schläft",
             "Sleeping (not sending right now)": "Ruht (sendet gerade nichts)",
             "Slight": "Sehr niedrig",
+            "Smart mode": "Smart-Modus",
+            "Smart water": "Smart-Wasser",
             "Slope too steep": "Zu starke Neigung",
             "Smart charging": "Intelligentes Laden",
             "SmartPlan (set in the app)": "SmartPlan (in der App eingestellt)",
@@ -1916,6 +1919,8 @@
             "⛔ Unknown routine %s — reload the rooms to refresh the list.": "⛔ Unbekanntes Programm %s — bitte „Räume neu laden\", damit die Liste aktuell ist.",
             "Routines": "Programme",
             "Routine %s": "Programm %s",
+            "• Roborock: water codes reported during app routines (e.g. 210 \"Smart water\" on the Saros 20) now show their name instead of \"Level 210\".": "• Roborock: Wasser-Werte, die ein Roboter während eines App-Programms meldet (z. B. 210 „Smart-Wasser“ beim Saros 20), erscheinen jetzt mit Namen statt „Stufe 210“.",
+            "• Roborock: signing in again now ends a running connection pause immediately. After the third refusal in a row the account suggests signing in again with a new e-mail code — according to the library behind Home Assistant, new credentials usually lift the block.": "• Roborock: eine neue Anmeldung beendet eine laufende Verbindungspause jetzt sofort. Ab der dritten Absage in Folge empfiehlt das Konto, sich mit einem neuen E-Mail-Code neu anzumelden – laut der Bibliothek hinter Home Assistant heben neue Zugangsdaten die Sperre meist auf.",
             "• Roborock: routines created in the Roborock app can now be started from Symcon — via the variable \"Start routine\", the tile (section \"Routines\") or ROBO_ProgrammStarten. What a routine does (rooms, order, vacuum then mop …) stays set in the app.": "• Roborock: in der Roborock-App angelegte Programme (Routinen) lassen sich jetzt aus Symcon starten — über die Variable „Programm starten“, die Kachel (Abschnitt „Programme“) oder ROBO_ProgrammStarten. Was ein Programm tut (Räume, Reihenfolge, erst saugen, dann wischen …), legst du weiter in der App fest."
         }
     }

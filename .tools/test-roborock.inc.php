@@ -604,6 +604,9 @@ check('Bereichsgrenzen wie python-roborock (3/7/12/17/22/27/30)', RoboHubRoboroc
     && RoboHubRoborock::wasserreglerName(237) === 'Medium' && RoboHubRoborock::wasserreglerName(238) === 'Moderate' && RoboHubRoborock::wasserreglerName(250) === 'Extreme'
     && RoboHubRoborock::wasserreglerName(251) === null && RoboHubRoborock::wasserreglerName(220) === null);
 $n = $rrt->normalisiere('roborock.vacuum.a27', ['water_box_mode' => 202]);
+$n = $rrt->normalisiere('roborock.vacuum.a307', ['water_box_mode' => 210]);
+check('Smart-Wasser 210 (Forum lugge 144636/160, während einer Routine) mit Namen statt „Stufe 210“', (($n['optionen']['Wassermenge'] ?? [])[210] ?? '') === 'Smart water'
+    && ($n['werte']['Wassermenge'] ?? null) === 210, json_encode($n['optionen']['Wassermenge'] ?? null));
 check('alte Wasserstufen unverändert', (($n['optionen']['Wassermenge'] ?? [])[202] ?? '') === 'Medium' && isset($n['optionen']['Wassermenge'][201]));
 
 // Konsole: passende Verbindungsart je Hersteller (SUITE.md Stolperstein 28), sonst „inkompatible übergeordnete Instanz“.
@@ -717,6 +720,16 @@ for ($i = 0; $i < 8; $i++) {
     $rk->MessageSink(0, 4990, IM_CHANGESTATUS, [IS_ACTIVE]);
 }
 check('… höchstens 6 h', $rk->ReadAttributeInteger('EchtzeitPauseBis') - time() <= 6 * 3600 + 5 && $rk->ReadAttributeInteger('EchtzeitPauseBis') - time() > 6 * 3600 - 60);
+$mqText = (string)(json_decode($rk->ReadAttributeString('Mqtt'), true)['text'] ?? '');
+check('ab der dritten Abweisung in Folge: Hinweis auf Neuanmelden mit neuem Code (python-roborock: neue Zugangsdaten lösen die Sperre)',
+    strpos($mqText, 'sign in again') !== false || strpos($mqText, 'neu an') !== false, $mqText);
+// Neuanmelden = neue Zugangsdaten → Pause und Stufe sofort zurück (Forum alsk1 144636/159: 28 h ausgesperrt).
+$buendelJetzt = json_decode($rk->ReadAttributeString('Buendel'), true);
+$treiberM = new ReflectionMethod($rk, 'treiber');
+$abschluss = new ReflectionMethod($rk, 'anmeldungAbschliessen');
+$abschluss->invoke($rk, $buendelJetzt, $treiberM->invoke($rk));
+check('Neuanmeldung setzt Echtzeit-Pause und Pausenstufe zurück', $rk->ReadAttributeInteger('EchtzeitPauseBis') === 0
+    && $rk->ReadAttributeInteger('EchtzeitPauseStufe') === 0 && $rk->ReadAttributeInteger('WarteBis') === 0);
 $rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
 $rk->WriteAttributeInteger('WarteBis', 0);
 $srv->connack = 0;

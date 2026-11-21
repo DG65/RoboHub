@@ -294,6 +294,11 @@ class RoboHubKonto extends IPSModule
         $this->WriteAttributeString('Buendel', (string)json_encode($buendel));
         $this->WriteAttributeString('LetzterFehler', '');
         $this->WriteAttributeInteger('WarteBis', 0);
+        // Neue Zugangsdaten = Neuanfang für die Echtzeit: python-roborock (mqtt/session.py, MqttSessionUnauthorized) beobachtet,
+        // dass neue Anmeldedaten eine Abweisung „nicht berechtigt“ auch bei Drosselung beheben. Sonst bliebe die Echtzeit
+        // nach dem Neuanmelden bis zum Pausenende (bis 6 h) zu (Forum alsk1 144636/159, 28 h ausgesperrt).
+        $this->WriteAttributeInteger('EchtzeitPauseBis', 0);
+        $this->WriteAttributeInteger('EchtzeitPauseStufe', 0);
 
         $hersteller = $this->ReadPropertyString('Hersteller');
         if ($hersteller === 'ecovacs') {
@@ -1055,6 +1060,11 @@ class RoboHubKonto extends IPSModule
                         $this->WriteAttributeInteger('EchtzeitPauseBis', $bis);
                         $this->WriteAttributeInteger('WarteBis', max($this->ReadAttributeInteger('WarteBis'), $bis));
                         $text = RoboHubText::t('The vendor server refuses the connection right now (%s) — RoboHub pauses until %s, no new sign-in needed.', RoboHubMqtt::connackText($code), date('H:i', $bis));
+                        if ($stufe >= 2) {
+                            // Dritte Abweisung in Folge: python-roborock beobachtet, dass neue Zugangsdaten das in beiden Fällen
+                            // (Drosselung oder ungültige Zugangsdaten) beheben → Neuanmelden empfehlen, nicht erzwingen.
+                            $text = RoboHubText::t('The vendor server keeps refusing the connection (%s, %d times in a row) — RoboHub pauses until %s. If this persists, sign in again with a new e-mail code: new credentials usually end the block.', RoboHubMqtt::connackText($code), $stufe + 1, date('H:i', $bis));
+                        }
                         $this->SetTimerInterval('Verbindung', ($pause + 5) * 1000);
                         $this->echtzeitKonfigurieren(false);
                     }
