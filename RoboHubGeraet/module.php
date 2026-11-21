@@ -57,6 +57,7 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('WebSchluessel', '');
 
         $this->RegisterAttributeString('Raeume', '{}');
+        $this->RegisterAttributeString('Programme', '{}');   // App-Routinen (ID => Name), bisher nur Roborock
         // Kartenbild für Kachel/Seite: {"bild": data-URI, "marken": [...], "station": {...}|null, "format": b/h}.
         $this->RegisterAttributeString('Karte', '{}');
         $this->RegisterPropertyBoolean('KarteZeigen', true);
@@ -194,6 +195,10 @@ class RoboHubGeraet extends IPSModule
                 return;
             case 'Raum':
                 $this->fuehreAus('raum', ['raeume' => [(int)$Value]]);
+                return;
+            case 'Programm':
+                // Taster wie „Raum reinigen": Wert bleibt nicht stehen.
+                $this->ProgrammStarten((int)$Value);   // zeigt die Rückmeldung selbst in der Kachel
                 return;
             case 'Zuruecksetzen':
                 $this->kachelAktualisieren($this->VerbrauchsteilZuruecksetzen((string)$Value));
@@ -349,6 +354,20 @@ class RoboHubGeraet extends IPSModule
     public function Orten(): string
     {
         return $this->befehlMitKachel('orten', []);
+    }
+
+    /**
+     * ROBO_ProgrammStarten($id, int $programmID): string — ein in der Hersteller-App
+     * angelegtes Programm (Roborock: „Routine") starten. IDs zeigt die Variable
+     * „Programm starten"; was das Programm tut, legt die App fest.
+     */
+    public function ProgrammStarten(int $programmID): string
+    {
+        $programme = json_decode((string)$this->ReadAttributeString('Programme'), true) ?: [];
+        if (!isset($programme[$programmID])) {
+            return RoboHubText::t('⛔ Unknown routine %s — reload the rooms to refresh the list.', $programmID);
+        }
+        return $this->befehlMitKachel('programm', ['id' => $programmID, 'name' => (string)$programme[$programmID]]);
     }
 
     /**
@@ -1247,6 +1266,9 @@ class RoboHubGeraet extends IPSModule
             $q['kartenobjektInfo'] = date('d.m.Y H:i:s') . ' ' . $daten['kartenobjektInfo'];
             $this->WriteAttributeString('RaumEinstellungenQuellen', (string)json_encode($q));
         }
+        if (isset($daten['programme']) && is_array($daten['programme'])) {
+            $this->programmeUebernehmen($daten['programme']);
+        }
         $raeume = [];
         foreach ((array)($daten['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;
@@ -1278,6 +1300,38 @@ class RoboHubGeraet extends IPSModule
         $this->raumEinstellungenVariable();
         $this->kachelAktualisieren();
         return RoboHubText::t('✅ %s rooms/zones: %s.', count($raeume), implode(', ', $raeume));
+    }
+
+    /**
+     * Programmliste merken; Variable „Programm starten" erst, wenn es Programme gibt.
+     * Ohne Programme bleibt eine vorhandene Variable stehen (Verknüpfungen des Nutzers).
+     */
+    private function programmeUebernehmen(array $liste): void
+    {
+        $programme = [];
+        foreach ($liste as $id => $name) {
+            if ((int)$id > 0) {
+                $programme[(int)$id] = (string)$name;
+            }
+        }
+        $alt = json_decode((string)$this->ReadAttributeString('Programme'), true) ?: [];
+        if ($alt == $programme && ($programme === [] || $this->hatVariable('Programm'))) {
+            return;
+        }
+        $this->WriteAttributeString('Programme', (string)json_encode($programme));
+        if ($programme !== [] || $this->hatVariable('Programm')) {
+            $this->MaintainVariable('Programm', RoboHubText::t('Start routine'), VARIABLETYPE_INTEGER, $this->presEnum($programme), 6, true);
+            $this->EnableAction('Programm');
+        }
+    }
+
+    private function kachelProgramme(): array
+    {
+        $aus = [];
+        foreach (json_decode((string)$this->ReadAttributeString('Programme'), true) ?: [] as $id => $name) {
+            $aus[] = ['id' => (int)$id, 'name' => (string)$name];
+        }
+        return $aus;
     }
 
     private function typisiere(int $typ, $wert)
@@ -1521,13 +1575,16 @@ class RoboHubGeraet extends IPSModule
             }
             $cmd = (string)$_GET['cmd'];
             $wert = (string)($_GET['wert'] ?? '');
-            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen', 'Zeitplan', 'Einstellung'], true)) {
+            if (!in_array($cmd, ['Befehl', 'Raum', 'Raeume', 'Zuruecksetzen', 'Zeitplan', 'Einstellung', 'Programm'], true)) {
                 echo json_encode(['ok' => false, 'text' => RoboHubText::t('⛔ Unknown command.')]);
                 return;
             }
             try {
                 if ($cmd === 'Befehl') {
                     $text = $this->befehlText($this->befehlsName((int)$wert), []);
+                } elseif ($cmd === 'Programm') {
+                    // ProgrammStarten nimmt nur IDs aus der gemerkten Liste.
+                    $text = ctype_digit($wert) ? $this->ProgrammStarten((int)$wert) : RoboHubText::t('⛔ Unknown command.');
                 } elseif ($cmd === 'Zuruecksetzen') {
                     $text = $this->VerbrauchsteilZuruecksetzen($wert);
                 } elseif ($cmd === 'Zeitplan') {
@@ -1576,7 +1633,7 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Texte der Kachel (module.html schlägt sie per T() nach; Deutsch aus locale.json). */
-    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close', 'Settings', 'Details'];
+    private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close', 'Settings', 'Details', 'Routines', 'Routine %s'];
 
     /** Daten für Kachel und eigenständige Seite (JSON). */
     private function kachelDaten(bool $eigen, string $key, string $rueckmeldung = '', bool $mitTexten = true): string
@@ -1681,6 +1738,7 @@ class RoboHubGeraet extends IPSModule
             'einstellungen' => $einstellungen,
             'details'     => $this->kachelDetails($klasse),
             'raeume'      => $raeume,
+            'programme'   => $this->kachelProgramme(),
             'karte'       => $this->kachelKarte(),
             // Auswahl für „Raum reinigen mit Wahl" aus den Treiber-Optionen (herstellerneutral).
             'startWahl'   => $this->startWahl(),
@@ -1875,7 +1933,7 @@ class RoboHubGeraet extends IPSModule
         return [
             'This instance is normally created by the RoboHub configurator; it fills in device ID, model and device class itself.',
             'Control: variable "Command" (Start/resume, Pause, Stop, Return to base, Locate), "Clean room" or "Mow zone" as well as suction level, water level etc. — as soon as the vendor provides a selection list, they can be switched directly.',
-            'Scripts: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, "3,5"), ROBO_Aktualisieren($id). All return a plain text.',
+            'Scripts: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, "3,5"), ROBO_ProgrammStarten($id, 123), ROBO_Aktualisieren($id). All return a plain text.',
             'A command at first only means "sent": whether the robot carries it out is shown by the variable "State" a few seconds later.',
             'Variables are only created when your model actually delivers the value. If something the vendor app shows is missing: click "📋 Show raw data" and send the excerpt as a GitHub issue.',
         ];

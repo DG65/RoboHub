@@ -316,6 +316,12 @@ function zeichnen() {
     }
     r += '</div>';
   }
+  if (bedienbar && (d.programme || []).length) {
+    // App-Programme (Roborock-Routinen): Ein Druck startet, was in der App hinterlegt ist.
+    r += '<div class="block"><p class="abschnitt">' + T('Routines') + '</p><div class="chips">';
+    d.programme.forEach(function (x) { r += '<button class="chip" onclick="senden(\'Programm\',\'' + Number(x.id) + '\',\'' + T('Routine %s', esc(x.name).replace(/'/g, '')) + '\')">' + sym('play', '▶️') + ' ' + esc(x.name) + '</button>'; });
+    r += '</div></div>';
+  }
   if ((d.zeitplaene || []).length) {
     r += '<div class="block"><p class="abschnitt">' + T('Schedules') + '</p>';
     d.zeitplaene.forEach(function (t) {

@@ -21,6 +21,8 @@ class FakeRoborock extends RoboHubRoborock
     public static $raeume = [];
     public static $karte = null;      // „rr"-Datei für get_map_v1 (null = keine Antwort)
     public static $karteTeile = 1;    // in so vielen Teilen schicken
+    public static $programme = null;  // App-Routinen (result von /user/scene/device/…); null = Endpunkt fehlt
+    public static $gestartet = [];    // ausgeführte Routinen-IDs
 
     public static function kartenNutzlast(string $endpunkt, string $nonce, int $id, string $rr): string
     {
@@ -67,6 +69,22 @@ class FakeRoborock extends RoboHubRoborock
         }
         if (strpos($url, '/api/v1/getHomeDetail') !== false) {
             return $ok(['rrHomeId' => 4711]);
+        }
+        if (preg_match('#/user/scene/(device/(\w+)|(\d+)/execute)$#', $url, $sm) && self::$programme !== null) {
+            $pfad = (string)parse_url($url, PHP_URL_PATH);
+            $kopf = implode("\n", $headers);
+            if (!preg_match('/Authorization: Hawk id="user123",s="pass123",ts="(\d+)",nonce="([^"]+)"/', $kopf, $m)
+                || RoboHubRoborock::hawkKopf(self::RRIOT, $pfad, (int)$m[1], $m[2]) !== substr($kopf, strpos($kopf, 'Hawk '))) {
+                return [401, '{"success":false}'];
+            }
+            if (($sm[3] ?? '') !== '') {
+                if ($methode !== 'POST') {
+                    return [405, '{}'];
+                }
+                self::$gestartet[] = (int)$sm[3];
+                return [200, json_encode(['success' => true, 'result' => null])];
+            }
+            return [200, json_encode(['success' => true, 'result' => $sm[2] === 'abc123' ? self::$programme : []])];
         }
         if (strpos($url, '/v3/user/homes/4711') !== false) {
             $kopf = implode("\n", $headers);
@@ -361,6 +379,28 @@ $t = $rr->RaeumeLaden();
 $rv = variable(4100, 'Raum');
 $rOpt = $rv === null ? [] : array_column(json_decode($rv['pres']['OPTIONS'], true), 'Caption', 'Value');
 check('Räume: Segmente mit Namen aus der Roborock-App', $rOpt === [16 => 'Küche', 17 => 'Flur', 18 => 'Bad'], $t);
+check('ohne Routinen-Endpunkt: keine Variable „Programm starten", Räume trotzdem da', variable(4100, 'Programm') === null && $rr->ReadAttributeString('Programme') === '{}');
+
+// Forum lugge 144636/155: Programme (App-Routinen) aus der Cloud, Start per Hawk-POST.
+FakeRoborock::$programme = [['id' => 9001, 'name' => 'Erst saugen, dann wischen', 'enabled' => true], ['id' => 9002, 'name' => ''], ['id' => 0, 'name' => 'kaputt']];
+$t = $rr->RaeumeLaden();
+$pv = variable(4100, 'Programm');
+$pOpt = $pv === null ? [] : array_column(json_decode($pv['pres']['OPTIONS'], true), 'Caption', 'Value');
+check('Programme: Variable mit Namen, leerer Name → „Routine n", ID 0 übergangen', $pOpt === [9001 => 'Erst saugen, dann wischen', 9002 => 'Routine 9002'] && $pv['action'], json_encode($pOpt) . ' ' . $t);
+$kp = kachelJson($rr->GetVisualizationTile())['programme'] ?? [];
+check('Kachel: Programme als Liste', array_column($kp, 'id') === [9001, 9002]);
+FakeRoborock::$rpc = [];
+$t = $rr->ProgrammStarten(9001);
+check('Programm starten: Hawk-POST auf die Routine, kein MQTT', FakeRoborock::$gestartet === [9001] && FakeRoborock::$rpc === [] && strpos($t, 'Erst saugen, dann wischen') !== false, $t);
+$t = $rr->ProgrammStarten(4242);
+check('unbekannte Programm-ID: nichts gesendet', FakeRoborock::$gestartet === [9001] && strpos($t, '⛔') === 0, $t);
+$rr->RequestAction('Programm', 9002);
+check('Variable „Programm starten" startet', FakeRoborock::$gestartet === [9001, 9002]);
+FakeRoborock::$programme = [];
+$rr->RaeumeLaden();
+check('Programme in der App gelöscht: Variable bleibt (Verknüpfungen), Liste leer', variable(4100, 'Programm') !== null && $rr->ReadAttributeString('Programme') === '[]'
+    && strpos($rr->ProgrammStarten(9001), '⛔') === 0 && FakeRoborock::$gestartet === [9001, 9002]);
+FakeRoborock::$programme = null;
 FakeRoborock::$rpc = [];
 $rr->RaeumeReinigenMit('16,17', -1, 102, 2);
 $m = array_column(FakeRoborock::$rpc, 0);

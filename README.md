@@ -227,7 +227,11 @@ nicht offiziell dokumentiert und kann sich ändern.
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als
   „noch nicht unterstützt". Kartenbild mit Räumen, Station und während der Reinigung mit Weg und Roboter
   seit 0.39.0, im Forum an einem Saros 20 und einem S5 bestätigt (November 2026). Reinigungsmodus (Saugen, Wischen, Saugen und Wischen) seit 0.40.0
-  als Variable und beim Raumstart; „Saugen, dann Wischen“ noch nicht. Noch ohne Echtzeit-Meldungen und Zeitpläne.
+  als Variable und beim Raumstart; „Saugen, dann Wischen“ als eigene Einstellung noch nicht — dafür in der App ein Programm anlegen
+  (siehe unten). Echtzeit-Meldungen über eine dauerhafte Verbindung je Konto seit 0.50.0, im Forum an einem Saros 20 bestätigt
+  (November 2026). **Programme** (in der App „Routinen“) seit 0.51.0: RoboHub holt sie beim Laden der Räume, Start über die
+  Variable „Programm starten“, die Kachel (Abschnitt „Programme“) oder `ROBO_ProgrammStarten($id, $programmID)`; was ein Programm
+  tut, legt die App fest. Noch ohne Zeitpläne.
 - **Roborock in Mi Home** (seit 0.38.0): Xiaomi-Konto (QR-Code oder Passwort), Steuerung lokal per miIO
   mit denselben Befehlen wie bei Roborock, im Forum an einem Qrevo bestätigt (November 2026). Kartenbild seit 0.39.0
   über die Xiaomi-Cloud (Kartenname vom Roboter, Datei aus der Cloud). Xiaomis eigene Sauger mit dem

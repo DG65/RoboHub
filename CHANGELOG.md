@@ -2,6 +2,17 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.51.0 (21.11.2026)
+
+- **Roborock: Programme aus der App starten** (Forum lugge 144636/155: „Programme aus der App aufrufen“, z. B. erst saugen, dann
+  wischen). Die Roborock-App nennt sie „Routinen“; sie liegen in der Cloud. Quelle python-roborock `web_api/scenes.py`: Liste per
+  Hawk-GET `/user/scene/device/{duid}`, Start per Hawk-POST `/user/scene/{id}/execute` (kein MQTT). RoboHub holt die Liste beim
+  Laden der Räume (Attribut `Programme`), legt die Variable „Programm starten“ an, sobald es Programme gibt, und zeigt sie in der
+  Kachel als Abschnitt „Programme“. Skript: `ROBO_ProgrammStarten($id, $programmID)`, nur IDs aus der gemerkten Liste (auch über
+  die IPSView-Seite, dort zusätzlich mit Freigabe + Schlüssel). Mi-Home-Konten haben keine Routinen. Schlägt die Liste fehl, bleiben
+  Räume und Karte unberührt. Prüfstand: Hawk-Signatur, Namen, ID-Prüfung, Variable bleibt bei leerer Liste; 3 Gegenproben (2 gefangen, ID-Filter doppelt in Treiber und Gerät = gleichwertig).
+  **Nie an einem echten Gerät** — Tester lugge.
+
 ## 0.50.2 (20.11.2026)
 
 - **Wachsende Pause bei abgewiesener Daueranmeldung** (Forum alsk1 144636/150: Konto nach dem Umstieg in „Cloud bremst"): statt fest
@@ -227,7 +238,7 @@
   lugges App zeigte bei 235 „Mittel“, Regler 15. Anzeige mit den App-Bereichen (≤3 Sehr niedrig, ≤7 Niedrig, ≤12 Sanft, ≤17 Mittel, ≤22 Erhöht,
   ≤27 Hoch, ≤30 Extrem), Auswahl Aus + je Bereich ein Wert (221/225/…/250), Schreiben wie bisher über `set_water_box_custom_mode`.
   Die deutschen Bereichsnamen außer „Mittel“ sind nicht gegen die App geprüft.
-- Prüfstand: 6 neue Prüfungen, 3/3 Gegenproben gefangen.
+- Prüfstand: 6 neue Prüfungen, 3 Gegenproben (2 gefangen, ID-Filter doppelt in Treiber und Gerät = gleichwertig).
 
 ## 0.37.8 (13.11.2026)
 
@@ -253,7 +264,7 @@
   - Konto: Formularzeile „Echtzeit“ nur bei Zustandswechsel oder alle 15 s.
   Live auf einem Raspberry Pi noch nicht gemessen — Bestätigung durch Stefan offen.
 - **Kachel: Raumnamen über Fahrweg und Roboterpunkt** (`.ort{z-index:2}`, Forum 144636/74).
-- Prüfstand: 4 neue Prüfungen, 3/3 Gegenproben gefangen.
+- Prüfstand: 4 neue Prüfungen, 3 Gegenproben (2 gefangen, ID-Filter doppelt in Treiber und Gerät = gleichwertig).
 
 ## 0.37.6 (13.11.2026)
 
@@ -326,7 +337,7 @@
   (0/1/2/3/7/9/11), since, updatedAt (max. Variablen-Aktualisierung/Abruf/Echtzeit), validUntil (Echtzeit verbunden: jetzt + 300 s,
   sonst updatedAt + 3 × Abfrageabstand, deaktiviert: 0), realtime, pollIntervalS. Discovery über die Modul-GUID von RoboHubGeraet.
   Konto-Aktion `info` liefert dafür zusätzlich `echtzeit` (lokal).
-- Prüfstand: 6 neue Prüfungen, 3/3 Gegenproben gefangen.
+- Prüfstand: 6 neue Prüfungen, 3 Gegenproben (2 gefangen, ID-Filter doppelt in Treiber und Gerät = gleichwertig).
 
 ## 0.36.1 (10.11.2026)
 

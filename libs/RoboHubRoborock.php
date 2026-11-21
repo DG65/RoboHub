@@ -23,8 +23,8 @@ require_once __DIR__ . '/RoboHubRoborockKarte.php';
 //     DigiCert-Wurzel geprüft), schickt alle Anfragen und wartet auf die
 //     Antworten mit passender ID.
 //
-// Noch nicht gebaut: Kartenbild, Echtzeit über die Konto-Verbindung,
-// Zeitpläne, Geräte mit den Protokollen A01/B01 (werden als „noch nicht
+// Programme (App-Routinen) seit 0.51.0 über die Web-API.
+// Noch nicht gebaut: Zeitpläne, Geräte mit den Protokollen A01/B01 (werden als „noch nicht
 // unterstützt" gemeldet).
 // ===========================================================================
 
@@ -633,7 +633,64 @@ PEM;
             $raeume[$segment] = ($namen[$iot] ?? '') !== '' ? $namen[$iot] : 'Room ' . $segment;
         }
         ksort($raeume);
-        return ['raeume' => $raeume] + $this->kartenBild($buendel, $geraet, $raeume, false);
+        $daten = ['raeume' => $raeume] + $this->kartenBild($buendel, $geraet, $raeume, false);
+        $programme = $this->programmeLesen($buendel, $geraet);
+        if ($programme !== null) {
+            $daten['programme'] = $programme;
+        }
+        return $daten;
+    }
+
+    // =================================================================
+    // Programme (in der App „Routinen", Cloud-Szenen)
+    // Quelle: python-roborock web_api/scenes.py — GET /user/scene/device/{duid}
+    // liefert [{id, name, …}], POST /user/scene/{id}/execute startet (Hawk).
+    // =================================================================
+
+    /** Programme dieses Roboters (ID => Name); null, wenn die Cloud sie nicht liefert. */
+    public function programmeLesen(array $buendel, array $geraet): ?array
+    {
+        if (!isset($buendel['rriot'])) {
+            return null;   // Mi-Home-Konto: keine Roborock-Routinen
+        }
+        try {
+            $antwort = $this->hawk($buendel, 'GET', '/user/scene/device/' . (string)$geraet['id']);
+        } catch (RoboHubFehler $e) {
+            if ($e->anmeldungNoetig) {
+                throw $e;
+            }
+            $this->dbg('Programme', 'Nicht abrufbar: ' . $e->getMessage());
+            return null;
+        }
+        return self::programmListe($antwort['result'] ?? null);
+    }
+
+    /** Antwort result → [ID => Name], nur Einträge mit ID > 0; leerer Name → „Routine n". */
+    public static function programmListe($liste): array
+    {
+        $aus = [];
+        foreach (is_array($liste) ? $liste : [] as $p) {
+            $id = (int)($p['id'] ?? 0);
+            if ($id > 0) {
+                $name = trim((string)($p['name'] ?? ''));
+                $aus[$id] = $name !== '' ? $name : 'Routine ' . $id;
+            }
+        }
+        return $aus;
+    }
+
+    private function programmStarten(array $buendel, array $parameter): string
+    {
+        if (!isset($buendel['rriot'])) {
+            throw new RoboHubFehler(RoboHubText::t('Routines are only available with a Roborock account (not Mi Home).'));
+        }
+        $id = (int)($parameter['id'] ?? 0);
+        if ($id <= 0) {
+            throw new RoboHubFehler(RoboHubText::t('No routine given.'));
+        }
+        $this->hawk($buendel, 'POST', '/user/scene/' . $id . '/execute');
+        $name = (string)($parameter['name'] ?? '');
+        return RoboHubText::t('Routine "%s" started.', $name !== '' ? $name : (string)$id);
     }
 
     /** get_room_mapping: [[Segment, IoT-Raum-ID, …], …] oder ein einzelnes Paar. */
@@ -751,6 +808,10 @@ PEM;
 
     public function befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
     {
+        if ($befehl === 'programm') {
+            // Läuft über die Cloud, nicht über das Gerätprotokoll.
+            return $this->programmStarten($buendel, $parameter);
+        }
         $this->pruefeProtokoll($geraet);
         $stand = (array)($geraet['stand'] ?? []);
         switch ($befehl) {

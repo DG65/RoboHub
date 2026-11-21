@@ -229,7 +229,10 @@ not officially documented and may change.
   protocol "1.0" (S, Q, Qrevo, Saros series); RoboHub reports newer devices with "A01"/"B01" as
   "not supported yet". Map image with rooms, dock and, while cleaning, path and robot since 0.39.0, confirmed in the forum
   on a Saros 20 and an S5 (November 2026). Cleaning mode (vacuum, mop, vacuum and mop) since 0.40.0 as a variable and when starting
-  a room; "vacuum, then mop" not yet. No real-time messages or schedules yet.
+  a room; "vacuum, then mop" as its own setting not yet — create a routine in the app instead (see below). Real-time messages
+  over a persistent connection per account since 0.50.0, confirmed in the forum on a Saros 20 (November 2026). **Routines** since
+  0.51.0: RoboHub fetches them when loading the rooms, start via the variable "Start routine", the tile (section "Routines") or
+  `ROBO_ProgrammStarten($id, $programmID)`; what a routine does is set in the app. No schedules yet.
 - **Roborock in Mi Home** (since 0.38.0): Xiaomi account (QR code or password), control locally via miIO
   with the same commands as Roborock, confirmed in the forum on a Qrevo (November 2026). Map image since 0.39.0
   via the Xiaomi cloud (map name from the robot, file from the cloud). Xiaomi's own vacuums with the MIoT

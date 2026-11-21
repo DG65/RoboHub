@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.51.0' => [
+            '• Roborock: routines created in the Roborock app can now be started from Symcon — via the variable "Start routine", the tile (section "Routines") or ROBO_ProgrammStarten. What a routine does (rooms, order, vacuum then mop …) stays set in the app.',
+        ],
         '0.50.2' => [
             '• Roborock: if the Roborock server keeps refusing the connection, RoboHub now waits longer each time (15, 30, 60 minutes … at most 6 hours) instead of trying again every 15 minutes — every attempt could extend the block.',
         ],

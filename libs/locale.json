@@ -1218,7 +1218,7 @@
             "Scheduled start failed (battery)": "Geplanter Start fehlgeschlagen (Akku)",
             "Schedules": "Zeitpläne",
             "Schedules from the vendor app. Creating and changing is only possible there, here they can be switched on and off.": "Zeitpläne aus der Hersteller-App. Anlegen und ändern geht nur dort, hier lassen sie sich ein- und ausschalten.",
-            "Scripts: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, \"3,5\"), ROBO_Aktualisieren($id). All return a plain text.": "Skripte: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, \"3,5\"), ROBO_Aktualisieren($id). Alle liefern einen Klartext zurück.",
+            "Scripts: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, \"3,5\"), ROBO_ProgrammStarten($id, 123), ROBO_Aktualisieren($id). All return a plain text.": "Skripte: ROBO_Starten($id), ROBO_Anhalten($id), ROBO_Stoppen($id), ROBO_ZurStation($id), ROBO_Orten($id), ROBO_RaeumeReinigen($id, \"3,5\"), ROBO_ProgrammStarten($id, 123), ROBO_Aktualisieren($id). Alle liefern einen Klartext zurück.",
             "Searching for its position": "Sucht seine Position",
             "Searching for satellites": "Sucht Satelliten",
             "Searching for the boundary wire": "Sucht den Begrenzungsdraht",
@@ -1908,7 +1908,15 @@
             "🧡  About this module": "🧡  Über dieses Modul",
             "🧪 RoboHub is new. Does your robot work? Is a value missing, or do you have a model that is not supported yet? Feel free to post in the RoboHub thread in the Symcon forum — with the model name and, if available, the content of \"Raw data\".": "🧪 RoboHub ist neu. Läuft dein Roboter? Fehlt ein Wert, oder hast du ein Modell, das noch nicht dabei ist? Schreib es gern in den RoboHub-Thread im Symcon-Forum — mit Modellname und, falls vorhanden, dem Inhalt von „Rohdaten\".",
             "🧹 so far %s%s min": "🧹 bisher %s%s min",
-            "🪟  Form: layout%s": "🪟  Formular: Aufbau%s"
+            "🪟  Form: layout%s": "🪟  Formular: Aufbau%s",
+            "Start routine": "Programm starten",
+            "Routine \"%s\" started.": "Programm „%s\" gestartet.",
+            "No routine given.": "Kein Programm angegeben.",
+            "Routines are only available with a Roborock account (not Mi Home).": "Programme gibt es nur mit einem Roborock-Konto (nicht über Mi Home).",
+            "⛔ Unknown routine %s — reload the rooms to refresh the list.": "⛔ Unbekanntes Programm %s — bitte „Räume neu laden\", damit die Liste aktuell ist.",
+            "Routines": "Programme",
+            "Routine %s": "Programm %s",
+            "• Roborock: routines created in the Roborock app can now be started from Symcon — via the variable \"Start routine\", the tile (section \"Routines\") or ROBO_ProgrammStarten. What a routine does (rooms, order, vacuum then mop …) stays set in the app.": "• Roborock: in der Roborock-App angelegte Programme (Routinen) lassen sich jetzt aus Symcon starten — über die Variable „Programm starten“, die Kachel (Abschnitt „Programme“) oder ROBO_ProgrammStarten. Was ein Programm tut (Räume, Reihenfolge, erst saugen, dann wischen …), legst du weiter in der App fest."
         }
     }
 }
