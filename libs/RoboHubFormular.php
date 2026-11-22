@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.52.1' => [
+            '• Dreame: when starting rooms with a chosen suction level, RoboHub now also sets it as the robot\'s suction level first — some models (e.g. L20 Ultra) ignored the level from the room start and cleaned with the previous one.',
+        ],
         '0.52.0' => [
             '• Valetudo: station tasks — empty dustbin, wash mop, dry mop and stop — as buttons in the tile (section "Station"), in the variable "Command" and as ROBO_Absaugen/ROBO_MoppWaschen/ROBO_MoppTrocknen/ROBO_StationsaufgabeBeenden. Station settings (auto-empty interval and duration, dry mop automatically, drying time, wash temperature) as selectable variables. Only what the robot reports.',
             '• All robots: error notifications — enter tile visualizations, WebFronts or email instances under "🔔 Error notifications"; a new error is reported once with robot name and error text.',

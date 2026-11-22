@@ -1590,6 +1590,14 @@ PEM;
         }
         // Sonst aktuelle Saugstufe/Wassermenge übernehmen (wie ioBroker). 4.26 nur als Fähigkeitsprobe.
         $p = $this->leseProperties($buendel, $did, [[4, 4], [4, 5], [4, 26]]);
+        // Gewählte Saugstufe zusätzlich vorher als Saugstufe des Roboters setzen (4.4): Der L20 Ultra (r2253w) übergeht die
+        // Saugstufe aus den selects und saugt mit 4.4, obwohl 4.26 = 0 (Tester mik, 22.11.2026: selects [[1,1,0,2,1]] →
+        // „Standard" statt „Leise"). Barny (r9547a) übernimmt die selects und stellt 4.4 danach selbst auf denselben Wert —
+        // der Endstand ist also bei beiden gleich, wie beim Modus (4.23) vorher.
+        if ($saugstufe >= 0 && (!isset($p['4.4']) || (int)$p['4.4'] !== $saugstufe)) {
+            $this->setzeProperty($buendel, $did, 4, 4, $saugstufe);
+            $this->dbg('Befehl', 'Saugstufe vor dem Raumstart gesetzt: 4.4 = ' . $saugstufe);
+        }
         $saug = $saugstufe >= 0 ? $saugstufe : (isset($p['4.4']) ? (int)$p['4.4'] : 1);
         $wasser = isset($p['4.5']) ? (int)$p['4.5'] : 2;
         $wiederholungen = $durchgaenge >= 1 ? $durchgaenge : 1;
@@ -1602,8 +1610,8 @@ PEM;
         foreach (array_values($raeume) as $i => $seg) {
             $selects[] = [$seg, $wiederholungen, $saug, $wasser, $mitReihenfolge ? $i + 1 : 1];
         }
-        // 4.26 = 1 heißt: „benutzerdefinierte Reinigung" ist in der App an — dann nimmt der Roboter die Raumeinstellungen
-        // der App und übergeht Saugstufe/Durchgänge aus den selects (Tester mik, 20.11.2026). Wert im Debug zeigen.
+        // 4.26 im Debug zeigen. Vermutung vom 20.11. („4.26 = 1 → Roboter übergeht die selects") bei mik widerlegt: L20 mit
+        // 4.26 = 0 übergeht die Saugstufe trotzdem (22.11.2026) → seit 0.52.1 vorher 4.4 setzen (oben).
         $this->dbg('Befehl', 'Raumreinigung selects ' . json_encode($selects) . ' (4.26 ' . ($mitReihenfolge ? 'nicht beantwortet → Reihenfolge' : '= ' . json_encode($p['4.26']) . ' → fest 1') . ')');
         $this->aktion($buendel, $did, 4, 1, [['piid' => 1, 'value' => 18], ['piid' => 10, 'value' => json_encode(['selects' => $selects])]]);
         return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));

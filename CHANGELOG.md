@@ -2,6 +2,16 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.52.1 (22.11.2026)
+
+- **Dreame: gewählte Saugstufe beim Raumstart vorher als 4.4 setzen** (Tester mik per PN, L20 Ultra `dreame.vacuum.r2253w`:
+  Debug „Raumreinigung selects [[1,1,0,2,1]] (4.26 = 0 → fest 1)“, gewählt Saugen/Leise/1×, gesaugt mit „Standard“).
+  Die Vermutung vom 20.11. („4.26 = 1 → Roboter übergeht die selects“) ist damit widerlegt. Tasshack `clean_segment` schickt
+  dieselben selects ohne vorheriges 4.4 — der L20 übergeht sie trotzdem. Jetzt: weicht 4.4 von der gewählten Stufe ab, erst
+  `set_properties 4.4`, dann der Start (wie der Modus über 4.23). Barny (r9547a) übernahm die selects und stellte 4.4 danach
+  selbst auf denselben Wert → gleicher Endstand. Durchgänge haben keine globale Eigenschaft und bleiben nur in den selects.
+  Prüfstand: Reihenfolge 4.4 vor Start, „wie eingestellt“ fasst 4.4 nicht an (Gegenprobe gefangen). **Am L20 noch nicht bestätigt.**
+
 ## 0.52.0 (21.11.2026)
 
 Wünsche tobitobsen (Forum 144636/171, erster echter Valetudo-Test: Roborock S5 + 2× Dreame L10S Ultra, Valetudo 206.10.0 —

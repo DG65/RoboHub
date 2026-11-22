@@ -1984,10 +1984,16 @@ FakeCloud::$props['4.23'] = (5 << 16) | 0;
 FakeCloud::$anfragen = [];
 $t = $geraet->RaeumeReinigenMit('3,5', 0, 3, 2);
 check('Start mit Wahl: Saugstufe Turbo, 2 Durchgänge in den selects', startSelects() === [[3, 2, 3, 2, 1], [5, 2, 3, 2, 2]] && strpos($t, '📤') === 0, json_encode(startSelects()) . ' ' . $t);
+$reihe = array_values(array_filter(array_map(function ($b) {
+    if ($b['method'] === 'set_properties' && (int)($b['params'][0]['siid'] ?? 0) === 4 && (int)($b['params'][0]['piid'] ?? 0) === 4) { return 'saug'; }
+    if ($b['method'] === 'action' && $b['params']['siid'] === 4 && $b['params']['aiid'] === 1) { return 'start'; }
+    return null;
+}, FakeCloud::befehle())));
+check('… Saugstufe Turbo VOR dem Start auch als 4.4 gesetzt (L20 übergeht die selects, Tester mik 22.11.2026)', (gesetzt()['4.4'] ?? null) === 3 && $reihe === ['saug', 'start'], json_encode($reihe));
 check('… Modus „Saugen" vorher gesetzt (4.23, mit Mopp-Tausch → Bits 0–1 = 2)', ((gesetzt()['4.23'] ?? 0) & 3) === 2 && ((gesetzt()['4.23'] ?? 0) >> 16) === 5, (string)(gesetzt()['4.23'] ?? 'nichts'));
 FakeCloud::$anfragen = [];
 $geraet->RaeumeReinigenMit('3', -1, -1, -1);
-check('Start „wie eingestellt": aktuelle Saugstufe, 1 Durchgang, Modus unverändert', startSelects() === [[3, 1, 1, 2, 1]] && !isset(gesetzt()['4.23']), json_encode(startSelects()));
+check('Start „wie eingestellt": aktuelle Saugstufe, 1 Durchgang, Modus unverändert, 4.4 nicht angefasst', startSelects() === [[3, 1, 1, 2, 1]] && !isset(gesetzt()['4.23']) && !isset(gesetzt()['4.4']), json_encode(startSelects()));
 FakeCloud::$anfragen = [];
 $geraet->RequestAction('Raeume', '5|-1|2|3');
 check('Kachel „5|-1|2|3": Stark, 3 Durchgänge, Modus unverändert', startSelects() === [[5, 3, 2, 2, 1]] && !isset(gesetzt()['4.23']), json_encode(startSelects()));
