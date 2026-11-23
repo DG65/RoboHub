@@ -262,7 +262,8 @@ not officially documented and may change.
 - **Ecovacs** (since 0.15.0): Deebot vacuums and GOAT mowers with JSON protocol, not tested on a real device
   (the signed request to the Ecovacs sign-in is confirmed live). RoboHub reports older models with
   XML protocol as "not supported yet". Room names only on models with an
-  uncompressed room list; no map image, real-time or schedules yet.
+  uncompressed room list; no map image, real-time or schedules yet. Since 0.52.3 RoboHub shows WINBOT
+  window-cleaning robots but does not create them: the app controls them only via Bluetooth.
 - **iRobot** (since 0.16.0): built locally following roombapy; polling and commands confirmed in the forum on two Roomba 980
   (October 2026). Since 0.19.0 cleaning settings as in the iRobot app (suction power,
   passes, edge cleaning, behavior with a full bin) and a position map with the path of the

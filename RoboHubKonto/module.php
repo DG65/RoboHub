@@ -1512,8 +1512,10 @@ class RoboHubKonto extends IPSModule
         $zeilen = [RoboHubText::t('✅ %s device(s) in the account:', count($geraete))];
         foreach ($geraete as $g) {
             $zeilen[] = '• ' . ($g['name'] ?? '?') . ' (' . ($g['modell'] ?? '?') . ', '
-                . (($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robot mower') : RoboHubText::t('robot vacuum/mop')) . ', '
-                . (!empty($g['online']) ? 'online' : 'offline') . ')';
+                . (($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubText::t('robot mower')
+                    : (($g['klasse'] ?? '') === RoboHubModell::KLASSE_FENSTER ? RoboHubText::t('window-cleaning robot') : RoboHubText::t('robot vacuum/mop'))) . ', '
+                . (!empty($g['online']) ? 'online' : 'offline')
+                . (!empty($g['nichtSteuerbar']) ? ', ' . RoboHubModell::nichtSteuerbarText((string)$g['nichtSteuerbar']) : '') . ')';
         }
         $zeilen[] = RoboHubText::t('Create them with the RoboHub configurator.');
         return implode("\n", $zeilen);

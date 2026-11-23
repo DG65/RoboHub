@@ -262,7 +262,8 @@ nicht offiziell dokumentiert und kann sich ändern.
 - **Ecovacs** (seit 0.15.0): Deebot-Sauger und GOAT-Mäher mit JSON-Protokoll, an keinem echten Gerät
   geprüft (die signierte Anfrage an die Ecovacs-Anmeldung ist live bestätigt). Ältere Modelle mit
   XML-Protokoll meldet RoboHub als „noch nicht unterstützt". Raumnamen nur bei Modellen mit
-  unkomprimierter Raumliste; noch ohne Kartenbild, Echtzeit und Zeitpläne.
+  unkomprimierter Raumliste; noch ohne Kartenbild, Echtzeit und Zeitpläne. WINBOT-Fensterputzroboter
+  zeigt RoboHub seit 0.52.3 an, legt sie aber nicht an: Die App steuert sie nur per Bluetooth.
 - **iRobot** (seit 0.16.0): lokal nach roombapy gebaut; Abruf und Befehle an zwei Roomba 980 im Forum
   bestätigt (Oktober 2026). Seit 0.19.0 Reinigungseinstellungen wie in der iRobot-App (Saugleistung,
   Durchgänge, Kanten-Reinigung, Verhalten bei vollem Behälter) und eine Positionskarte mit dem Weg der

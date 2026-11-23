@@ -22,6 +22,27 @@ final class RoboHubModell
     // legt nur die Variablen an, die zur Klasse passen.
     public const KLASSE_SAUGER = 'sauger';   // Saug-/Wischroboter
     public const KLASSE_MAEHER = 'maeher';   // Rasenmähroboter
+    public const KLASSE_FENSTER = 'fenster'; // Fensterputzroboter — nur angezeigt, nicht anlegbar (0.52.3)
+
+    // Grund, warum ein Gerät aus der Kontoliste nicht angelegt werden kann (Feld „nichtSteuerbar“).
+    public const NICHT_STEUERBAR_BLUETOOTH = 'bluetooth';   // App steuert es nur per Bluetooth, die Cloud kennt keinen Weg
+    public const NICHT_STEUERBAR_FEHLT = 'fehlt';           // Geräteart noch nicht unterstützt
+
+    /** Text für die Anzeige (Konto-Zusammenfassung, Konfigurator). */
+    public static function nichtSteuerbarText(string $grund): string
+    {
+        return $grund === self::NICHT_STEUERBAR_BLUETOOTH
+            ? RoboHubText::t('only Bluetooth — not controllable via the cloud')
+            : RoboHubText::t('not supported yet');
+    }
+
+    public static function klasseText(string $klasse): string
+    {
+        if ($klasse === self::KLASSE_MAEHER) {
+            return RoboHubText::t('robotic lawn mower');
+        }
+        return $klasse === self::KLASSE_FENSTER ? RoboHubText::t('window-cleaning robot') : RoboHubText::t('robot vacuum/mop');
+    }
 
     // Normalisierter Betriebszustand (Variable „Zustand").
     // „Reinigt" heißt beim Mäher „Mäht" (Beschriftung je Klasse, siehe

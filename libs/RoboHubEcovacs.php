@@ -316,6 +316,21 @@ class RoboHubEcovacs implements RoboHubTreiber
         foreach ($roh as $did => $g) {
             $klasse = (string)($g['class'] ?? '');
             $name = (string)($g['nick'] ?? '') !== '' ? (string)$g['nick'] : (string)($g['deviceName'] ?? 'Ecovacs');
+            if (self::istWinbot($g)) {
+                // Fensterputzroboter (Forum brdiver677 144636/183, W2 Omni ind025): nur anzeigen, nicht anlegbar.
+                $liste[] = [
+                    'id'             => $did,
+                    'name'           => $name,
+                    'modell'         => 'ecovacs.winbot.' . $klasse,
+                    'klasse'         => RoboHubModell::KLASSE_FENSTER,
+                    'nichtSteuerbar' => (string)($g['company'] ?? '') === 'winbot-bt' || (string)($g['resource'] ?? '') === ''
+                        ? RoboHubModell::NICHT_STEUERBAR_BLUETOOTH : RoboHubModell::NICHT_STEUERBAR_FEHLT,
+                    'online'         => !isset($g['status']) || (int)$g['status'] === 1,
+                    'firma'          => (string)($g['company'] ?? ''),
+                    'roh'            => ['class' => $klasse, 'company' => $g['company'] ?? null, 'deviceName' => $g['deviceName'] ?? null],
+                ];
+                continue;
+            }
             $liste[] = [
                 'id'        => $did,
                 'name'      => $name,
@@ -330,6 +345,17 @@ class RoboHubEcovacs implements RoboHubTreiber
             ];
         }
         return $liste;
+    }
+
+    /**
+     * Winbot-Fensterputzroboter. Ecovacs' Gerätetabelle (productIotMap, smartType „BT“) und echte Geräteeinträge
+     * (home-assistant/core#165821: company „winbot-bt“, ohne resource und MQTT-Dienst) zeigen: Die App steuert sie per
+     * Bluetooth, über die Cloud gibt es keinen Weg. Kein Open-Source-Projekt steuert sie (Recherche 23.11.2026).
+     */
+    public static function istWinbot(array $g): bool
+    {
+        return stripos((string)($g['company'] ?? ''), 'winbot') === 0 || stripos((string)($g['deviceName'] ?? ''), 'WINBOT') !== false
+            || stripos((string)($g['product_category'] ?? ''), 'WINBOT') !== false;
     }
 
     public static function istMaeher(string $klasse, string $geraetName): bool

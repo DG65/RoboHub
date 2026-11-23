@@ -95,6 +95,8 @@ class FakeEcovacs extends RoboHubEcovacs
         if (($j['todo'] ?? '') === 'GetGlobalDeviceList') {
             return [200, json_encode(['result' => 'ok', 'devices' => [
                 ['did' => 'D-GOAT', 'class' => '5xu9h3', 'resource' => 'r4', 'company' => 'eco-ng', 'deviceName' => 'GOAT G1', 'status' => 1],
+                // Winbot wie im echten Eintrag (home-assistant/core#165821): winbot-bt, ohne resource/service.
+                ['did' => 'D-WIN', 'class' => 'ind025', 'company' => 'winbot-bt', 'deviceName' => 'WINBOT W2 OMNI', 'nick' => 'Fenster', 'product_category' => 'WINBOT', 'status' => 0],
             ]])];
         }
         if (strpos($url, 'iot/devmanager.do') !== false) {
@@ -158,9 +160,21 @@ check('Bündel: Hash, kein Klartext, Gültigkeit ~7 Tage, gleiche Geräte-ID', (
     && $eb['expires_at'] > time() + 6 * 86400 && $eb['expires_at'] < time() + 7 * 86400 && $eb['geraetId'] === $vs['geraetId'] && $eb['token'] !== '');
 check('Protokoll ohne Passwort und ohne Hash', strpos(implode("\n", $GLOBALS['LOG']), 'geheim') === false && strpos(implode("\n", $GLOBALS['LOG']), md5('geheim')) === false);
 $eg = json_decode($ek->ReadAttributeString('Geraete'), true);
-check('Geräte aus beiden Listen (Deebot + GOAT)', count($eg) === 4 && in_array('D-GOAT', array_column($eg, 'id'), true));
+check('Geräte aus beiden Listen (Deebot + GOAT + Winbot)', count($eg) === 5 && in_array('D-GOAT', array_column($eg, 'id'), true));
 $goat = array_values(array_filter($eg, function ($g) { return $g['id'] === 'D-GOAT'; }))[0];
 check('GOAT als Mäher, Spitzname als Name', $goat['klasse'] === 'maeher' && $eg[0]['name'] === 'Wuseline');
+// 0.52.3 (Forum brdiver677 144636/183): Winbot = Fensterputzroboter, nur Bluetooth, nicht anlegbar.
+$win = array_values(array_filter($eg, function ($g) { return $g['id'] === 'D-WIN'; }))[0];
+check('Winbot als Fensterputzroboter, nicht steuerbar (nur Bluetooth)', $win['klasse'] === RoboHubModell::KLASSE_FENSTER
+    && $win['nichtSteuerbar'] === RoboHubModell::NICHT_STEUERBAR_BLUETOOTH && $win['modell'] === 'ecovacs.winbot.ind025', json_encode($win));
+$zus = (new ReflectionMethod($ek, 'geraeteZusammenfassung'))->invoke($ek, $eg);
+check('Konto-Zusammenfassung nennt den Winbot als Fensterputzroboter mit Grund', strpos($zus, 'Fenster (ecovacs.winbot.ind025, Fensterputzroboter, offline, nur Bluetooth — über die Cloud nicht steuerbar)') !== false, $zus);
+$cfgWin = new RoboHubKonfigurator(6990);
+$zeilenWin = (new ReflectionMethod($cfgWin, 'listenWerte'))->invoke($cfgWin, [$ek->InstanceID => ['anzeige' => 'Ecovacs', 'geraete' => $eg]]);
+$zWin = array_values(array_filter($zeilenWin, function ($z) { return $z['id'] === 'D-WIN'; }))[0];
+$zGoat = array_values(array_filter($zeilenWin, function ($z) { return $z['id'] === 'D-GOAT'; }))[0];
+check('Konfigurator: Winbot ohne Erstellen, Grund in der Spalte; GOAT weiter anlegbar', !isset($zWin['create']) && $zWin['klasse'] === 'Fensterputzroboter'
+    && $zWin['online'] === 'nur Bluetooth — über die Cloud nicht steuerbar' && isset($zGoat['create']), json_encode($zWin, JSON_UNESCAPED_UNICODE));
 $vorher = FakeEcovacs::$loginAnzahl;
 $eb['expires_at'] = time() + 60;
 $ek->WriteAttributeString('Buendel', json_encode($eb));

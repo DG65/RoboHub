@@ -10,6 +10,13 @@
   immer, solange die Echtzeit eingeschaltet ist und der Hersteller sie hat. Er trennt und verbindet neu, setzt den
   Ausfallzähler aus 0.52.2 zurück und holt bei WebSocket-Konten (GARDENA, Husqvarna) vorher ein frisches Ziel. Eine
   Drosselpause des Herstellers hebt er bewusst nicht auf (jeder Versuch verlängert sie, Neuanmelden hebt sie auf).
+- **Ecovacs: WINBOT-Fensterputzroboter erkannt, aber nicht anlegbar** (Forum brdiver677 144636/183, W2 Omni `ind025`
+  erschien als „Saug-/Wischroboter“). Recherche 23.11.: Ecovacs' Gerätetabelle (productIotMap in ecovacs-deebot.js) führt
+  alle 34 Winbot-Klassen mit smartType „BT“, echte Einträge (home-assistant/core#165821, W2 Omni `81gpyd`) haben
+  company „winbot-bt“ ohne resource und ohne MQTT-Dienst — die App steuert sie per Bluetooth. Kein Open-Source-Projekt
+  steuert Winbots (deebot_client überspringt sie, ioBroker #763 offen). Jetzt: Klasse „Fensterputzroboter“, im
+  Konfigurator ohne Erstellen, Grund „nur Bluetooth — über die Cloud nicht steuerbar“ (Winbot mit resource: „noch nicht
+  unterstützt“). Konfigurator-Meldung nach der Suche ohne abschließenden Doppelpunkt.
 
 ## 0.52.2 (23.11.2026)
 

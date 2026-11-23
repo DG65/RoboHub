@@ -80,7 +80,7 @@ class RoboHubKonfigurator extends IPSModule
             } catch (Throwable $e) {
                 $text = '⛔ ' . $e->getMessage();
             }
-            $zeilen[] = $this->kontoName($kid) . ': ' . strtok($text, "\n");
+            $zeilen[] = $this->kontoName($kid) . ': ' . rtrim((string)strtok($text, "\n"), ':');
         }
         $this->WriteAttributeInteger('LetzteSuche', time());
         $konten = $this->sammle();
@@ -126,6 +126,19 @@ class RoboHubKonfigurator extends IPSModule
                     continue;
                 }
                 $bekannt[$id] = true;
+                if (!empty($g['nichtSteuerbar'])) {
+                    // Nur anzeigen, ohne „create“: Symcon bietet dann kein Erstellen an (0.52.3, Winbot).
+                    $werte[] = [
+                        'id'         => $id,
+                        'name'       => (string)($g['name'] ?? $id),
+                        'modell'     => (string)($g['modell'] ?? ''),
+                        'klasse'     => RoboHubModell::klasseText((string)($g['klasse'] ?? '')),
+                        'konto'      => (string)($info['anzeige'] ?? ('#' . $kid)),
+                        'online'     => RoboHubModell::nichtSteuerbarText((string)$g['nichtSteuerbar']),
+                        'instanceID' => $vorhanden[$id] ?? 0,
+                    ];
+                    continue;
+                }
                 $klasse = ($g['klasse'] ?? '') === RoboHubModell::KLASSE_MAEHER ? RoboHubModell::KLASSE_MAEHER : RoboHubModell::KLASSE_SAUGER;
                 $werte[] = [
                     'id'         => $id,
