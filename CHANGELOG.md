@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.52.3 (23.11.2026)
+
+- **Konto: Knopf „Echtzeit jetzt neu verbinden“ immer sichtbar** (Forum alsk1 144636/184). Mein Notbehelf aus #181/#182
+  („im Client Socket Geöffnet aus/an“) geht nicht: Symcon sperrt im Socket die Felder, die RoboHub über
+  GetConfigurationForParent vorgibt. Der vorhandene Knopf (bisher nur bei 24-h-Zertifikatssperre sichtbar) erscheint jetzt
+  immer, solange die Echtzeit eingeschaltet ist und der Hersteller sie hat. Er trennt und verbindet neu, setzt den
+  Ausfallzähler aus 0.52.2 zurück und holt bei WebSocket-Konten (GARDENA, Husqvarna) vorher ein frisches Ziel. Eine
+  Drosselpause des Herstellers hebt er bewusst nicht auf (jeder Versuch verlängert sie, Neuanmelden hebt sie auf).
+
 ## 0.52.2 (23.11.2026)
 
 - **Roborock: stumme Dauerverbindung selbst neu aufbauen** (Forum lugge 144636/179, Saros 20; alsk1 #177 mit drei Robotern

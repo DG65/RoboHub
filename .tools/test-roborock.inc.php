@@ -700,8 +700,10 @@ check('Push mit falschem Schlüssel/fremdem Gerät übergangen', (new RoboHubRob
 
 // Stumme Dauerverbindung (Forum lugge 144636/179): Server hält die Verbindung, liefert aber nichts aus → nach 3 Ausfällen neu.
 $ueber = new ReflectionMethod($rk, 'ueberDauerverbindung');
-$stummFrage = function () use ($ueber, $rk, $push): void {
-    $ueber->invoke($rk, 'rr/m/o/user123/19648f94/abc123', 'rr/m/i/user123/19648f94/abc123', [$push], function (string $d): bool { return true; }, 0.01);
+// Echte Anfrage (get_status) statt Push-Rahmen — sonst kann der nicht stumme Server sie nicht lesen (PHP-Warnungen in 0.52.2).
+$anfrage = RoboHubRoborock::rahmenBauen(RoboHubRoborock::anfrageNutzlast(4711, 'get_status', [], time(), 'abc', '00'), 'key123key123key1', 9, 9, time(), 101);
+$stummFrage = function () use ($ueber, $rk, $anfrage): void {
+    $ueber->invoke($rk, 'rr/m/o/user123/19648f94/abc123', 'rr/m/i/user123/19648f94/abc123', [$anfrage], function (string $d): bool { return true; }, 0.01);
 };
 $neuAufbau = function (): int {
     return count(array_filter($GLOBALS['SKRIPTE'] ?? [], function ($s) { return strpos($s, 'IPS_SetProperty(4990, "Open", false)') !== false; }));
@@ -730,6 +732,21 @@ $stummFrage();
 $stummFrage();
 check('Antwort setzt den Zähler zurück (2 Ausfälle nach einer Antwort → kein Neuaufbau)', $neuAufbau() === $vorherNeu + 1);
 $srv->stumm = false;
+
+// 0.52.3 (Forum alsk1 144636/184): Socket-Felder sind gesperrt → Knopf im Konto immer sichtbar, trennt und verbindet neu.
+$rkForm = json_encode(json_decode(konsole($rk->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
+check('Knopf „Echtzeit jetzt neu verbinden“ sichtbar, auch ohne Zertifikatssperre', $rk->ReadAttributeInteger('EchtzeitGesperrtBis') <= time()
+    && strpos($rkForm, '"caption":"🔁 Echtzeit jetzt neu verbinden","visible":true') !== false);
+$rk->SetBuffer('DauerAusfaelle', '2');
+$vorherKnopf = $neuAufbau();
+$rk->EchtzeitNeuVersuchen();
+check('Knopf: Socket aus/an, Ausfallzähler zurückgesetzt', $neuAufbau() === $vorherKnopf + 1 && $rk->GetBuffer('DauerAusfaelle') === '0');
+$rk->WriteAttributeInteger('EchtzeitPauseBis', time() + 600);
+$vorherKnopf = $neuAufbau();
+$rk->EchtzeitNeuVersuchen();
+check('Knopf hebt eine Drosselpause des Herstellers nicht auf (jeder Versuch verlängert sie)', $neuAufbau() === $vorherKnopf && $rk->ReadAttributeInteger('EchtzeitPauseBis') > time());
+$rk->WriteAttributeInteger('EchtzeitPauseBis', 0);
+$srv->config = json_decode($rk->GetConfigurationForParent(), true);
 
 // Ohne stehende Verbindung: Rückfall auf die Einzelsitzung.
 $mq = json_decode($rk->ReadAttributeString('Mqtt'), true);

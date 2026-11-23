@@ -524,10 +524,18 @@ class RoboHubKonto extends IPSModule
         }
     }
 
-    /** ROBOHUB_EchtzeitNeuVersuchen($id): geschlossene Echtzeit-Verbindung erneut öffnen. */
+    /**
+     * ROBOHUB_EchtzeitNeuVersuchen($id): Echtzeit-Verbindung trennen und neu aufbauen (Knopf im Formular, immer sichtbar
+     * seit 0.52.3). Hebt die 24-h-Zertifikatssperre auf, nicht aber eine Drosselpause des Herstellers (EchtzeitPauseBis):
+     * Jeder Versuch darin verlängert die Sperre nur — Neuanmelden hebt sie auf.
+     */
     public function EchtzeitNeuVersuchen(): void
     {
         $this->WriteAttributeInteger('EchtzeitGesperrtBis', 0);
+        $this->SetBuffer('DauerAusfaelle', '0');
+        if ($this->echtzeitArt() === 'websocket') {
+            $this->wsZielAktualisieren();   // frische Adresse/Anmeldekopf (GARDENA, Husqvarna)
+        }
         $this->echtzeitKonfigurieren(true);
         $this->UpdateFormField('EchtzeitZeile', 'caption', $this->echtzeitZeile());
     }
@@ -1682,7 +1690,7 @@ class RoboHubKonto extends IPSModule
             'items' => [
                 ['type' => 'CheckBox', 'name' => 'Echtzeit', 'caption' => 'Receive changes immediately from the vendor cloud (instead of only polling every few minutes)'],
                 ['type' => 'Label', 'name' => 'EchtzeitZeile', 'caption' => $this->echtzeitZeile()],
-                ['type' => 'Button', 'caption' => '🔁 Retry real-time now', 'visible' => $this->ReadAttributeInteger('EchtzeitGesperrtBis') > time(), 'onClick' => 'ROBOHUB_EchtzeitNeuVersuchen($id);'],
+                ['type' => 'Button', 'caption' => '🔁 Reconnect real-time now', 'visible' => $this->ReadPropertyBoolean('Echtzeit') && $this->echtzeitArt() !== '', 'onClick' => 'ROBOHUB_EchtzeitNeuVersuchen($id);'],
                 ['type' => 'Label', 'caption' => 'Technology: encrypted MQTT connection to the vendor\'s server via a separate Client Socket instance. The server certificate is checked against the vendor\'s certificate authority (certificate and server name) — foreign servers are rejected.'],
                 ['type' => 'Label', 'caption' => 'Regular polling continues in addition (safety net). Map and position data are not processed.'],
             ],

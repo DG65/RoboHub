@@ -586,6 +586,9 @@
   stundenlang KEIN PUBLISH (weder Antworten noch Pushes). Ping-Wächter greift nicht. Wie python-roborock HealthManager: 3 Anfragen in
   Folge ohne Nachricht auf ihrem Thema → `echtzeitKonfigurieren(true)`, höchstens alle 30 min (`dauerGesund`, Puffer je Konto).
   Bei lugge (1 Roboter) liefen Antworten bis dahin → die 0.50.0-Annahme „ReceiveData parallel zu ForwardData“ trägt. Live offen.
+- **Client Socket ist für Nutzer gesperrt** (GetConfigurationForParent): Notbehelf NIE „im Socket Geöffnet aus/an“ empfehlen
+  (Fehler in Forum #181/#182, alsk1 #184). Seit 0.52.3 Knopf „🔁 Echtzeit jetzt neu verbinden“ (`EchtzeitNeuVersuchen`) immer
+  sichtbar bei eingeschalteter Echtzeit; hebt Zertifikatssperre auf, Drosselpause (`EchtzeitPauseBis`) bewusst nicht.
 - 0.43.0: Block 17 = Unterkarte (ein Byte je Bildpunkt, gleicher Index wie Block 2): Bit 1 Teppich, Bit 8/16 in der App
   ausgeblendet (vacuum-map-parser-roborock `_parse_submap`, image_parser `removed_map` → außen). `unterkarteAnwenden()` per
   strtr + String-AND (schnell auch bei 1 Mio. Punkten). Teppich nur mit Eigenschaft `KarteTeppich`, Option reist als

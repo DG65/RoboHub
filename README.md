@@ -144,6 +144,10 @@ schließt die Verbindung dann selbst und fragt nur ab; einmal am Tag versucht es
 Die regelmäßige Abfrage bleibt als Sicherheitsnetz, die schnelle
 30-Sekunden-Abfrage während der Arbeit entfällt, solange Meldungen ankommen.
 
+Die Client-Socket-Instanz stellt RoboHub selbst ein; ihre Felder sind deshalb gesperrt. Kommt über die
+Echtzeit nichts mehr an, im Panel „⚡ Echtzeit-Meldungen" auf **🔁 Echtzeit jetzt neu verbinden** klicken —
+RoboHub trennt die Verbindung und baut sie neu auf (Roborock macht das seit 0.52.2 auch selbst).
+
 ## Kachel und IPSView
 
 **Kachel-Visualisierung:** Jede Roboter-Instanz ist selbst eine Kachel — Zustand mit

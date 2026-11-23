@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.52.3' => [
+            '• Account: the button "Reconnect real-time now" is now always visible — it disconnects the real-time connection to the vendor and rebuilds it (previously only shown after a certificate error).',
+        ],
         '0.52.2' => [
             '• Roborock: if the permanent real-time connection stays open but Roborock no longer delivers answers (robots "not reachable" although they are working), RoboHub now rebuilds the connection by itself after three unanswered requests in a row — at most every 30 minutes.',
         ],

@@ -146,6 +146,10 @@ then closes the connection itself and only polls; once a day it tries real-time 
 Regular polling remains as a safety net; the fast
 30-second polling during work is skipped as long as messages arrive.
 
+RoboHub configures the Client Socket instance itself, so its fields are locked. If nothing arrives via
+real-time any more, click **🔁 Reconnect real-time now** in the panel "⚡ Real-time messages" —
+RoboHub disconnects and rebuilds the connection (Roborock has done this by itself since 0.52.2).
+
 ## Tile and IPSView
 
 **Tile visualization:** Every robot instance is a tile itself — state with

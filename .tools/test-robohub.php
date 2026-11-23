@@ -1406,7 +1406,7 @@ check('Socket scheitert vor erster Verbindung → Echtzeit 24 h geschlossen', $k
     && json_decode($konto->GetConfigurationForParent(), true)['Open'] === false);
 $fz = json_encode(json_decode(konsole($konto->GetConfigurationForm()), true), JSON_UNESCAPED_UNICODE);
 check('Formular erklärt den Grund (Symcon 9.1, Zertifikat vor 1970) und bietet erneuten Versuch', strpos($fz, 'Symcon 9.1') !== false && strpos($fz, 'vor 1970') !== false
-    && strpos($fz, '"caption":"🔁 Echtzeit jetzt erneut versuchen","visible":true') !== false);
+    && strpos($fz, '"caption":"🔁 Echtzeit jetzt neu verbinden","visible":true') !== false);
 $konto->WriteAttributeInteger('EchtzeitGesperrtBis', time() - 1);
 $konto->Erneuern();
 check('nach Ablauf der Sperre öffnet Erneuern die Echtzeit wieder', $konto->ReadAttributeInteger('EchtzeitGesperrtBis') === 0 && json_decode($konto->GetConfigurationForParent(), true)['Open'] === true);
