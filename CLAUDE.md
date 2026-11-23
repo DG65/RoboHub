@@ -582,6 +582,10 @@
   (`RoboHubKonto::ueberDauerverbindung`, Postfach-Ring in Puffern), Einzelsitzung nur ohne stehende Verbindung. Annahme: Symcon führt
   `ReceiveData` parallel zur wartenden `ForwardData`-Kette aus — **live unbestätigt**. Falls nicht: Anfragen laufen 10 s in den Timeout
   („antwortet nicht"), dann umbauen (z. B. Antwort per Puffer + späterer Abruf). CONNACK 4/5 der Daueranmeldung → 15 min Pause.
+- **Stumme Dauerverbindung (0.52.2, Forum lugge 144636/179):** Roborock hält die Verbindung offen und beantwortet Pings, liefert aber
+  stundenlang KEIN PUBLISH (weder Antworten noch Pushes). Ping-Wächter greift nicht. Wie python-roborock HealthManager: 3 Anfragen in
+  Folge ohne Nachricht auf ihrem Thema → `echtzeitKonfigurieren(true)`, höchstens alle 30 min (`dauerGesund`, Puffer je Konto).
+  Bei lugge (1 Roboter) liefen Antworten bis dahin → die 0.50.0-Annahme „ReceiveData parallel zu ForwardData“ trägt. Live offen.
 - 0.43.0: Block 17 = Unterkarte (ein Byte je Bildpunkt, gleicher Index wie Block 2): Bit 1 Teppich, Bit 8/16 in der App
   ausgeblendet (vacuum-map-parser-roborock `_parse_submap`, image_parser `removed_map` → außen). `unterkarteAnwenden()` per
   strtr + String-AND (schnell auch bei 1 Mio. Punkten). Teppich nur mit Eigenschaft `KarteTeppich`, Option reist als

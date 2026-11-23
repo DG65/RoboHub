@@ -1058,6 +1058,8 @@
             "Real-time %s: %s": "Echtzeit %s: %s",
             "Real-time connection fails (under Symcon 9.1 the certificate of the vendor server is rejected) — connection closed for 24 h, polling continues.": "Echtzeit-Verbindung schlägt fehl (unter Symcon 9.1 wird das Zertifikat des Herstellerservers abgelehnt) — Verbindung für 24 h geschlossen, die Abfrage läuft weiter.",
             "Real-time connection lost — RoboHub reconnects automatically (further attempts are not logged).": "Echtzeit-Verbindung verloren — RoboHub verbindet selbst neu (weitere Versuche werden nicht protokolliert).",
+            "• Roborock: if the permanent real-time connection stays open but Roborock no longer delivers answers (robots \"not reachable\" although they are working), RoboHub now rebuilds the connection by itself after three unanswered requests in a row — at most every 30 minutes.": "• Roborock: Bleibt die dauerhafte Echtzeit-Verbindung offen, liefert Roborock aber keine Antworten mehr (Roboter „nicht erreichbar“, obwohl sie arbeiten), baut RoboHub die Verbindung nach drei unbeantworteten Anfragen in Folge selbst neu auf — höchstens alle 30 Minuten.",
+            "The real-time connection is open but no longer delivers answers — RoboHub reconnects.": "Die Echtzeit-Verbindung steht, liefert aber keine Antworten mehr — RoboHub verbindet neu.",
             "Real-time connection no longer responds — reconnecting.": "Echtzeit-Verbindung antwortet nicht mehr — verbinde neu.",
             "Real-time connection restored after %s attempt(s).": "Echtzeit-Verbindung nach %s Versuch(en) wiederhergestellt.",
             "Real-time sign-in rejected: %s": "Echtzeit-Anmeldung abgelehnt: %s",

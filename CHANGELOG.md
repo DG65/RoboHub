@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.52.2 (23.11.2026)
+
+- **Roborock: stumme Dauerverbindung selbst neu aufbauen** (Forum lugge 144636/179, Saros 20; alsk1 #177 mit drei Robotern
+  zeigt dasselbe Bild). Lugges Debug: Konto schickt Anfragen (PUBLISH rr/m/i), der Server beantwortet jeden Ping (PINGRESP),
+  liefert aber über 10 min **keine einzige** Nachricht aus — weder Antworten noch Pushes („0 von 5 Anfragen beantwortet“,
+  letzte Echtzeit-Meldung 21.11. 23:36, „Erreichbar“ seit 22.11. 23:01 false). Der Ping-Wächter greift dabei nicht, weil
+  die Verbindung lebt. python-roborock kennt genau das (HealthManager, v3.8.3 „restarting unhealthy mqtt connections“,
+  seit v3.16.1 kontoweit; v6.3.0 auch für A01): nach 3 Zeitüberschreitungen in Folge Sitzung neu aufbauen, höchstens alle
+  30 min. RoboHub jetzt genauso: Anfrage über die Dauerverbindung ohne jede Nachricht auf ihrem Thema = Ausfall, jede
+  Antwort setzt zurück; beim dritten Ausfall Socket aus/an (neue Anmeldung, neues Abo), Protokolleintrag. Zählung je Konto.
+  Die Ursache auf Roborocks Seite ist unbekannt. Prüfstand: stummer Server → Neuaufbau beim dritten Ausfall, nicht vorher,
+  nicht erneut innerhalb 30 min, Antwort setzt den Zähler zurück. **Live noch nicht bestätigt.**
+
 ## 0.52.1 (22.11.2026)
 
 - **Dreame: gewählte Saugstufe beim Raumstart vorher als 4.4 setzen** (Tester mik per PN, L20 Ultra `dreame.vacuum.r2253w`:

@@ -625,6 +625,7 @@ class FakeRoborockServer extends FakeSocket
     public $veroeffentlicht = [];   // Themen der PUBLISH vom Konto
     public $connack = 0;
     public $anmeldungen = 0;
+    public $stumm = false;   // Roborock hält die Verbindung, liefert aber nichts aus (Forum lugge 144636/179)
     public function ForwardData(string $json): string
     {
         parent::ForwardData($json);
@@ -636,6 +637,9 @@ class FakeRoborockServer extends FakeSocket
             } elseif ($p['typ'] === RoboHubMqtt::PUBLISH) {
                 $pub = RoboHubMqtt::publishLesen($p['flags'], $p['body']);
                 $this->veroeffentlicht[] = $pub['topic'];
+                if ($this->stumm) {
+                    continue;
+                }
                 $aus = str_replace('rr/m/i/', 'rr/m/o/', $pub['topic']);
                 $fake = new FakeRoborock();
                 $m = new ReflectionMethod('FakeRoborock', 'mqttAustausch');
@@ -693,6 +697,39 @@ $push = RoboHubRoborock::rahmenBauen(json_encode(['t' => time(), 'dps' => ['121'
 mqttVomServer($rk, RoboHubMqtt::publish('rr/m/o/user123/19648f94/abc123', $push));
 check('Push: Akku 77 und Zustand 5 (reinigt) sofort übernommen', variable(4100, 'Akku')['value'] === 77 && variable(4100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT);
 check('Push mit falschem Schlüssel/fremdem Gerät übergangen', (new RoboHubRoborock())->pushLesenThema('rr/m/o/user123/19648f94/fremd', $push, [], json_decode($rk->ReadAttributeString('Geraete'), true)) === []);
+
+// Stumme Dauerverbindung (Forum lugge 144636/179): Server hält die Verbindung, liefert aber nichts aus → nach 3 Ausfällen neu.
+$ueber = new ReflectionMethod($rk, 'ueberDauerverbindung');
+$stummFrage = function () use ($ueber, $rk, $push): void {
+    $ueber->invoke($rk, 'rr/m/o/user123/19648f94/abc123', 'rr/m/i/user123/19648f94/abc123', [$push], function (string $d): bool { return true; }, 0.01);
+};
+$neuAufbau = function (): int {
+    return count(array_filter($GLOBALS['SKRIPTE'] ?? [], function ($s) { return strpos($s, 'IPS_SetProperty(4990, "Open", false)') !== false; }));
+};
+$srv->config = json_decode($rk->GetConfigurationForParent(), true);   // Socket offen wie verlangt
+$srv->stumm = true;
+$rk->SetBuffer('DauerNeustart', '0');
+$rk->SetBuffer('DauerAusfaelle', '0');
+$vorherNeu = $neuAufbau();
+$stummFrage();
+$stummFrage();
+check('stumme Verbindung: zwei Ausfälle → noch kein Neuaufbau', $neuAufbau() === $vorherNeu);
+$stummFrage();
+check('dritter Ausfall in Folge → Socket aus/an (neue Anmeldung + Abo, python-roborock HealthManager)', $neuAufbau() === $vorherNeu + 1);
+for ($i = 0; $i < 6; $i++) {
+    $stummFrage();
+}
+check('innerhalb 30 min kein weiterer Neuaufbau', $neuAufbau() === $vorherNeu + 1);
+$rk->SetBuffer('DauerNeustart', (string)(time() - 1801));
+$rk->SetBuffer('DauerAusfaelle', '0');
+$srv->stumm = false;
+$stummFrage();
+$stummFrage();
+$srv->stumm = true;
+$stummFrage();
+$stummFrage();
+check('Antwort setzt den Zähler zurück (2 Ausfälle nach einer Antwort → kein Neuaufbau)', $neuAufbau() === $vorherNeu + 1);
+$srv->stumm = false;
 
 // Ohne stehende Verbindung: Rückfall auf die Einzelsitzung.
 $mq = json_decode($rk->ReadAttributeString('Mqtt'), true);

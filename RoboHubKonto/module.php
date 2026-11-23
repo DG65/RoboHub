@@ -1140,6 +1140,7 @@ class RoboHubKonto extends IPSModule
             $this->mqttSenden(RoboHubMqtt::publish($ziel, $r));
         }
         $ende = microtime(true) + $frist;
+        $angekommen = false;
         do {
             $stand = (int)$this->GetBuffer('PostfachZaehler');
             for ($i = $gelesen + 1; $i <= $stand; $i++) {
@@ -1147,16 +1148,44 @@ class RoboHubKonto extends IPSModule
                 if (!is_array($m) || (int)($m['n'] ?? 0) !== $i || ($m['t'] ?? '') !== $abo) {
                     continue;
                 }
+                $angekommen = true;
                 if ($verarbeite((string)base64_decode((string)$m['p']))) {
+                    $this->dauerGesund(true);
                     return;
                 }
             }
             $gelesen = $stand;
             if (microtime(true) >= $ende) {
+                $this->dauerGesund($angekommen);
                 return;
             }
             IPS_Sleep(50);
         } while (true);
+    }
+
+    // python-roborock HealthManager (v3.8.3, kontoweit seit v3.16.1): Roborocks Server hält die Verbindung offen und beantwortet
+    // Pings, liefert aber zeitweise keine Nachrichten mehr aus. Nach 3 Anfragen in Folge ohne jede Antwort die Sitzung neu
+    // aufbauen (neue Anmeldung + neues Abo), höchstens alle 30 min (Forum lugge 144636/179: 0 von 5 Anfragen, kein PUBLISH).
+    private const DAUER_AUSFAELLE = 3;
+    private const DAUER_NEUSTART_ABSTAND = 1800;
+
+    private function dauerGesund(bool $gesund): void
+    {
+        if ($gesund) {
+            $this->SetBuffer('DauerAusfaelle', '0');
+            return;
+        }
+        $n = (int)$this->GetBuffer('DauerAusfaelle') + 1;
+        $this->SetBuffer('DauerAusfaelle', (string)$n);
+        $letzter = (int)$this->GetBuffer('DauerNeustart');
+        if ($n < self::DAUER_AUSFAELLE || time() - $letzter < self::DAUER_NEUSTART_ABSTAND) {
+            return;
+        }
+        $this->SetBuffer('DauerAusfaelle', '0');
+        $this->SetBuffer('DauerNeustart', (string)time());
+        $this->SendDebug('Echtzeit', $n . ' Anfragen in Folge ohne Antwort — Verbindung wird neu aufgebaut', 0);
+        $this->protokolliere(RoboHubText::t('The real-time connection is open but no longer delivers answers — RoboHub reconnects.'), KL_WARNING);
+        $this->echtzeitKonfigurieren(true);
     }
 
     /** Änderungen in den letzten vollständigen Stand mischen, übersetzen, an den Roboter geben. */

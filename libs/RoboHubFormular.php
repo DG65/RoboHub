@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.52.2' => [
+            '• Roborock: if the permanent real-time connection stays open but Roborock no longer delivers answers (robots "not reachable" although they are working), RoboHub now rebuilds the connection by itself after three unanswered requests in a row — at most every 30 minutes.',
+        ],
         '0.52.1' => [
             '• Dreame: when starting rooms with a chosen suction level, RoboHub now also sets it as the robot\'s suction level first — some models (e.g. L20 Ultra) ignored the level from the room start and cleaned with the previous one.',
         ],
