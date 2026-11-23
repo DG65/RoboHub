@@ -238,7 +238,8 @@ nicht offiziell dokumentiert und kann sich ändern.
 
 - Live geprüft mit Dreame Aqua10 Ultra Roller Complete und MOVA LiDAX Ultra 1000. Andere
   Dreame-/MOVA-Modelle derselben Apps sollten funktionieren, sind aber ungeprüft —
-  Rückmeldungen sind willkommen.
+  Rückmeldungen sind willkommen. Seit 0.53.0 gibt es die **Reinigungsroute** (Standard, Intensiv, Tief, Schnell)
+  als Variable, wenn der Roboter sie meldet; beim Saugen bietet Dreame nur Standard und Schnell an.
 - **Roborock** (seit 0.13.0): nach dem Protokoll von python-roborock gebaut und gegen dessen
   Testdaten geprüft; im Forum an einem Saros 20 bestätigt (November 2026). Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen); neuere Geräte mit „A01"/„B01" meldet RoboHub als

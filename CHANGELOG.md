@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.53.0 (23.11.2026)
+
+- **Dreame/MOVA: Reinigungsroute** (Wunsch Tester mik per PN, L20 Ultra: „Route auf schnell ändern“). Quelle Tasshack
+  dreame-vacuum (MIT): Schalter-Einstellungen 4.50 (AUTO_SWITCH_SETTINGS) sind eine JSON-Liste `[{"k","v"}]`, die Route
+  ist `CleanRoute` mit 1 Standard, 2 Intensiv, 3 Tief, 4 Schnell (0 = nicht gesetzt); geschrieben wird
+  `set_properties 4.50 = '{"k":"CleanRoute","v":n}'` (set_auto_switch_property). Neuer Abfrageblock [[4, 50]] am Ende
+  (Blocksperre). Variable „Reinigungsroute“ nur, wenn der Roboter CleanRoute > 0 meldet. Beim Saugen und bei
+  Saugen+Wischen bietet die App (Geräte ohne cleaning_route_v2) nur Standard und Schnell — RoboHub bietet dann auch nur
+  diese an, ein anderer aktueller Wert bleibt sichtbar. Tasshack stellt bei solchen Geräten nach einem Moduswechsel die
+  Route selbst auf Standard zurück; das macht RoboHub nicht (cleaning_route_v2 kennt RoboHub nicht). Prüfstand: Lesen,
+  Optionen je Modus, ohne CleanRoute keine Variable, Schreibformat. **Live noch nicht bestätigt.**
+
 ## 0.52.3 (23.11.2026)
 
 - **Konto: Knopf „Echtzeit jetzt neu verbinden“ immer sichtbar** (Forum alsk1 144636/184). Mein Notbehelf aus #181/#182

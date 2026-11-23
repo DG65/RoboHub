@@ -1089,7 +1089,7 @@ class RoboHubGeraet extends IPSModule
 
     /** Übernimmt einen normalisierten Treiber-Zustand in die Variablen. */
     /** Roboter-Einstellungen (Saugstufe, Durchgänge, Nicht stören …) — die Variablen, die man umstellen kann. */
-    private const EINSTELLUNGEN = ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll',
+    private const EINSTELLUNGEN = ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Reinigungsroute', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll',
         'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag',
         'NichtStoeren', 'NichtStoerenVon', 'NichtStoerenBis', 'Lautstaerke'];
 
@@ -1485,7 +1485,7 @@ class RoboHubGeraet extends IPSModule
         'happy', 'horn', 'inception', 'kazoo', 'roll', 'siren', 'space', 'trickling', 'turn'];
 
     /** Einstellungen, die die Kachel zeigt (Reihenfolge = Anzeige); schaltbar nur mit Auswahlliste + Aktion. */
-    private const KACHEL_EINSTELLUNGEN = ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll',
+    private const KACHEL_EINSTELLUNGEN = ['Reinigungsmodus', 'Saugstufe', 'Wassermenge', 'Reinigungsroute', 'Durchgaenge', 'Kantenreinigung', 'BehaelterVoll',
         'Schnitthoehe', 'Scheinwerfer', 'Maehzeiten', 'Regenverzoegerung', 'Zeitzuschlag',
         'AbsaugIntervall', 'AbsaugDauer', 'MoppTrocknenAuto', 'Trockendauer', 'Waschtemperatur'];
 

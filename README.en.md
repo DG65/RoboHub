@@ -240,6 +240,8 @@ not officially documented and may change.
 - Tested live with Dreame Aqua10 Ultra Roller Complete and MOVA LiDAX Ultra 1000. Other
   Dreame/MOVA models of the same apps should work but are untested —
   feedback is welcome.
+  Since 0.53.0 the **cleaning route** (Standard, Intensive, Deep, Quick) is available as a variable if the robot
+  reports it; when vacuuming, Dreame only offers Standard and Quick.
 - **Roborock** (since 0.13.0): built following the protocol of python-roborock and checked against its
   test data; confirmed in the forum on a Saros 20 (November 2026). Supported are devices with the
   protocol "1.0" (S, Q, Qrevo, Saros series); RoboHub reports newer devices with "A01"/"B01" as

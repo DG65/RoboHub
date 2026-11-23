@@ -594,7 +594,7 @@ check('Reststunden Sauger (Haupt/Seite/Filter/Sensoren/Mopp)', variable(2000, 'H
 check('Sensoren 0 h bleibt 0 (kein Ausblenden echter Nullwerte)', variable(2000, 'SensorenRest') !== null);
 check('Abwasserauslassfilter: 35.2 = %, 35.1 = h', variable(2000, 'Abwasserfilter')['value'] === 40 && variable(2000, 'AbwasserfilterRest')['value'] === 120.0);
 check('Schmutzwasserbehälter: 26.1 = %, 26.2 = h', variable(2000, 'Schmutzwasserbehaelter')['value'] === 75 && variable(2000, 'SchmutzwasserbehaelterRest')['value'] === 300.0);
-check('neuer Block hängt am Ende (Blocksperre-Indizes stabil)', (function () { $r = new ReflectionClass('RoboHubDreame'); $b = $r->getConstant('BLOECKE_SAUGER'); return $b[7] === [[26, 1], [26, 2], [35, 1]] && $b[8] === [[5, 1], [5, 2], [5, 3], [5, 4]] && $b[9] === [[7, 1]] && end($b) === [[8, 2]] && $b[2][5] === [35, 2]; })());
+check('neuer Block hängt am Ende (Blocksperre-Indizes stabil)', (function () { $r = new ReflectionClass('RoboHubDreame'); $b = $r->getConstant('BLOECKE_SAUGER'); return $b[7] === [[26, 1], [26, 2], [35, 1]] && $b[8] === [[5, 1], [5, 2], [5, 3], [5, 4]] && $b[9] === [[7, 1]] && $b[10] === [[8, 2]] && end($b) === [[4, 50]] && $b[2][5] === [35, 2]; })());
 check('Saugstufe als schaltbare Auswahl', variable(2000, 'Saugstufe')['action'] === true && variable(2000, 'Saugstufe')['value'] === 1);
 check('Wassermenge entfällt bei Feuchte-Modell (28.1)', variable(2000, 'Wassermenge') === null);
 check('Reinigungsmodus mit Mopp-Anhebung: Leitung 0 → Saugen und Wischen (2)', variable(2000, 'Reinigungsmodus')['value'] === 2);
@@ -655,6 +655,36 @@ $set = null;
 foreach (FakeCloud::befehle() as $c) { if ($c['method'] === 'set_properties') { $set = $c['params'][0]; } }
 check('Reinigungsmodus: Read-Modify-Write, Feuchte-Bits erhalten, Tausch 0→2', $set !== null && $set['siid'] === 4 && $set['piid'] === 23 && $set['value'] === ((5 << 16) | 2), json_encode($set));
 check('Variable zeigt neue Auswahl', variable(2000, 'Reinigungsmodus')['value'] === 0);
+
+// 0.53.0 (Tester mik, L20 Ultra): Reinigungsroute aus den Schalter-Einstellungen 4.50 (Tasshack CleanRoute 1–4).
+$rtD = new RoboHubDreame('dreame');
+$rtModus = function (int $modus) use ($rtD): array {
+    for ($roh = 0; $roh < 4; $roh++) {
+        $n = $rtD->normalisiere('dreame.vacuum.r95475', ['4.23' => $roh, '4.50' => '[{"k":"AutoDry","v":1},{"k":"CleanRoute","v":4}]']);
+        if (($n['werte']['Reinigungsmodus'] ?? null) === $modus) {
+            return $n;
+        }
+    }
+    return [];
+};
+$nWisch = $rtModus(1);
+$nSaug = $rtModus(0);
+check('Route: Wert aus 4.50, beim Wischen alle vier Routen', ($nWisch['werte']['Reinigungsroute'] ?? null) === 4
+    && array_keys($nWisch['optionen']['Reinigungsroute'] ?? []) === [1, 2, 3, 4], json_encode($nWisch['optionen']['Reinigungsroute'] ?? null));
+check('Route: beim Saugen nur Standard und Schnell (Tasshack)', array_keys($nSaug['optionen']['Reinigungsroute'] ?? []) === [1, 4], json_encode($nSaug['optionen']['Reinigungsroute'] ?? null));
+$nOhne = $rtD->normalisiere('dreame.vacuum.r95475', ['4.23' => 0, '4.50' => '[{"k":"AutoDry","v":1}]']);
+$nNull = $rtD->normalisiere('dreame.vacuum.r95475', ['4.23' => 0, '4.50' => '{"k":"CleanRoute","v":0}']);
+check('Route: ohne CleanRoute oder mit 0 (nicht gesetzt) keine Variable', !isset($nOhne['werte']['Reinigungsroute']) && !isset($nNull['werte']['Reinigungsroute'])
+    && !isset($nOhne['optionen']['Reinigungsroute']));
+FakeCloud::$props['4.50'] = '[{"k":"CleanRoute","v":1}]';
+$geraet->Aktualisieren();
+FakeCloud::$anfragen = [];
+$geraet->RequestAction('Reinigungsroute', 4);
+$set = null;
+foreach (FakeCloud::befehle() as $c) { if ($c['method'] === 'set_properties') { $set = $c['params'][0]; } }
+check('Route „Schnell“ → set_properties 4.50 = {"k":"CleanRoute","v":4}', $set !== null && $set['siid'] === 4 && $set['piid'] === 50
+    && $set['value'] === '{"k":"CleanRoute","v":4}' && variable(2000, 'Reinigungsroute')['value'] === 4, json_encode($set));
+unset(FakeCloud::$props['4.50']);
 
 abschnitt('Karte → Räume');
 $segs = ['3' => ['type' => 4, 'index' => 0], '5' => ['type' => 0, 'name' => base64_encode('Hobbykeller')], '7' => ['type' => 2, 'index' => 1]];

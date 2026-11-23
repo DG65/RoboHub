@@ -63,6 +63,10 @@
 - Nicht gebaut, bewusst: MQTT-Push (Ausbaustufe; TLS, user=uid, pass=access_token),
   Tasshacks Body-Signatur/TLS-Fingerprint (ioBroker funktioniert ohne).
 
+- **Reinigungsroute (0.53.0, mik):** 4.50 = Schalter-JSON `[{"k","v"}]` (Tasshack AUTO_SWITCH_SETTINGS), `CleanRoute` 1–4
+  (Standard/Intensiv/Tief/Schnell). Schreiben `set_properties 4.50 = '{"k":"CleanRoute","v":n}'`. Beim Saugen nur 1/4
+  (Tasshack ohne cleaning_route_v2). Weitere Schalter in 4.50 (AutoDry, CleanGenius …) wären derselbe Weg. Live offen.
+
 ## Live-Stand (Dietmars Anlage, 11.10.2026)
 
 - Konten: Dreame #42970, MOVA #50686 (Symcon „Privat"), beide angemeldet, Login + listV2 live ok.

@@ -172,6 +172,7 @@ final class RoboHubModell
         'Maehzeiten'         => ['Mowing times (schedule)', 3, '', 0, 38],
         'Regenverzoegerung'  => ['Rain delay', 3, '', 0, 39],
         'Zeitzuschlag'       => ['Zeitzuschlag', 3, '', 0, 46],
+        'Reinigungsroute'    => ['Cleaning route', 3, '', 0, 47],
         'Flaeche'            => ['Cleaned area', 1, ' m²', 0, 40],
         'Dauer'              => ['Cleaning time', 1, ' min', 0, 41],
         'Fortschritt'        => ['Progress', 1, ' %', 0, 42],

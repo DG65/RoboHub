@@ -278,6 +278,9 @@ class RoboHubDreame implements RoboHubTreiber
         [[7, 1]],
         // Zeitpläne 8.2 (Tasshack SCHEDULE, ioBroker lib/schedule.js). Am Ende (Blocksperre).
         [[8, 2]],
+        // Schalter-Einstellungen 4.50 (Tasshack AUTO_SWITCH_SETTINGS: JSON-Liste [{"k","v"}]), daraus die
+        // Reinigungsroute „CleanRoute“ (0.53.0, Tester mik). Eigener Block am Ende (Blocksperre).
+        [[4, 50]],
     ];
     private const BLOECKE_MAEHER = [
         [[2, 1], [2, 2], [3, 1], [3, 2]],
@@ -645,6 +648,18 @@ PEM;
         if (isset($p['4.23'])) {
             $w['Reinigungsmodus'] = $this->reinigungsmodusLesen((int)$p['4.23'], $p);
             $optionen['Reinigungsmodus'] = [0 => 'Vacuum', 1 => 'Mop', 2 => RoboHubText::t('Vacuum and mop'), 3 => RoboHubText::t('Vacuum first, then mop')];
+        }
+        $route = self::schalterLesen($p['4.50'] ?? null)['CleanRoute'] ?? null;
+        if (is_numeric($route) && (int)$route > 0) {
+            // Tasshack DreameVacuumCleaningRoute 1–4; beim Saugen und bei Saugen+Wischen bietet die App (Geräte ohne
+            // cleaning_route_v2) nur Standard und Schnell an. Ein anderer aktueller Wert bleibt sichtbar statt falsch benannt.
+            $w['Reinigungsroute'] = (int)$route;
+            $alle = [1 => 'Standard', 2 => 'Intensive', 3 => 'Deep', 4 => 'Quick'];
+            $nurSaugen = in_array($w['Reinigungsmodus'] ?? null, [0, 2], true);
+            $optionen['Reinigungsroute'] = $nurSaugen ? array_intersect_key($alle, [1 => 1, 4 => 1, (int)$route => 1]) : $alle;
+            if (!isset($optionen['Reinigungsroute'][(int)$route])) {
+                $optionen['Reinigungsroute'][(int)$route] = RoboHubText::t('Route %s', (int)$route);
+            }
         }
 
         $w['Hauptbuerste']  = isset($p['9.2']) ? (int)$p['9.2'] : null;
@@ -1617,8 +1632,32 @@ PEM;
         return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));
     }
 
+    /** Schalter-Einstellungen 4.50 (JSON-Liste [{"k","v"}] oder ein Einzelobjekt) → [k => v]. */
+    public static function schalterLesen($roh): array
+    {
+        $j = is_string($roh) ? json_decode($roh, true) : null;
+        if (!is_array($j)) {
+            return [];
+        }
+        $aus = [];
+        foreach (isset($j['k']) ? [$j] : $j as $e) {
+            if (is_array($e) && isset($e['k']) && array_key_exists('v', $e)) {
+                $aus[(string)$e['k']] = $e['v'];
+            }
+        }
+        return $aus;
+    }
+
     private function setze(array $buendel, string $did, string $feld, int $wert): string
     {
+        if ($feld === 'Reinigungsroute') {
+            if ($wert < 1 || $wert > 4) {
+                throw new RoboHubFehler(RoboHubText::t('Setting "%s" is not writable.', $feld));
+            }
+            // Tasshack set_auto_switch_property: set_properties 4.50 = '{"k":"CleanRoute","v":n}' (ohne Leerzeichen).
+            $this->setzeProperty($buendel, $did, 4, 50, (string)json_encode(['k' => 'CleanRoute', 'v' => $wert]));
+            return RoboHubText::t('Cleaning route sent.');
+        }
         if ($feld === 'Saugstufe') {
             $this->setzeProperty($buendel, $did, 4, 4, $wert);
             return RoboHubText::t('Suction level sent.');
