@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/RoboHubRoborockKarte.php';
 require_once __DIR__ . '/RoboHubRoborockQ7.php';
+require_once __DIR__ . '/RoboHubRoborockQ7Karte.php';
 
 // ===========================================================================
 // RoboHub-Treiber für Roborock (App „Roborock") — Saug-/Wischroboter mit
@@ -399,6 +400,7 @@ PEM;
                 'online'     => !empty($g['online']),
                 'schluessel' => (string)($g['localKey'] ?? ''),
                 'protokoll'  => (string)($g['pv'] ?? ''),
+                'sn'         => (string)($g['sn'] ?? ''),   // Q7: Kartenschlüssel (python-roborock create_map_key)
                 'heimRaeume' => $raeume,
                 'bild'       => self::bildVon($p, $g),
                 'roh'        => ['fv' => $g['fv'] ?? null, 'pv' => $g['pv'] ?? null, 'produkt' => $p['name'] ?? null, 'kategorie' => $p['category'] ?? null],
@@ -632,7 +634,7 @@ PEM;
     {
         $this->pruefeProtokoll($geraet);
         if (RoboHubRoborockQ7::istQ7($geraet)) {
-            return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];   // Q7: Räume/Karte (SCMap) noch nicht gebaut
+            return $this->q7Karte($buendel, $geraet, false);
         }
         $zuordnung = $this->rpc($buendel, $geraet, 'get_room_mapping', []);
         try {
@@ -724,7 +726,7 @@ PEM;
     {
         $this->pruefeProtokoll($geraet);
         if (RoboHubRoborockQ7::istQ7($geraet)) {
-            return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+            return ['raeume' => []] + array_diff_key($this->q7Karte($buendel, $geraet, true), ['raeume' => 1]);
         }
         $raeume = [];
         foreach ((array)($geraet['raeume'] ?? []) as $id => $name) {
@@ -1187,6 +1189,17 @@ PEM;
             $this->q7Rpc($buendel, $geraet, $a[0], $a[1]);
             return RoboHubText::t('Setting sent.');
         }
+        if ($befehl === 'raum') {
+            // devices/traits/b01/q7 clean_segments: set_room_clean clean_type 1 (Raum), ctrl 1 (Start), room_ids.
+            $raeume = array_values(array_unique(array_filter(array_map('intval', (array)($parameter['raeume'] ?? [])), function (int $r): bool {
+                return $r > 0;
+            })));
+            if ($raeume === []) {
+                throw new RoboHubFehler(RoboHubText::t('No room ID given.'));
+            }
+            $this->q7Rpc($buendel, $geraet, 'service.set_room_clean', ['clean_type' => 1, 'ctrl_value' => 1, 'room_ids' => $raeume]);
+            return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));
+        }
         $a = RoboHubRoborockQ7::befehl($befehl);
         if ($a === null) {
             throw new RoboHubFehler(RoboHubText::t('This command is not supported for the Roborock Q7 series yet: %s', $befehl));
@@ -1198,6 +1211,66 @@ PEM;
             'orten' => RoboHubText::t('Command "Locate" sent.'),
         ];
         return $texte[$befehl];
+    }
+
+    /** Räume und Karte (service.get_map_list → service.upload_by_mapid, SCMap); ohne Karte leer. */
+    private function q7Karte(array $buendel, array $geraet, bool $live): array
+    {
+        $leer = ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+        if ((string)($geraet['sn'] ?? '') === '') {
+            $this->dbg('Karte', 'Q7: Seriennummer fehlt — im Konto „Geräte jetzt suchen“, dann neu laden.');
+            return $leer;
+        }
+        $liste = $this->q7Rpc($buendel, $geraet, 'service.get_map_list', new stdClass());
+        $karten = is_array($liste) ? (array)($liste['map_list'] ?? []) : [];
+        usort($karten, function ($a, $b): int {
+            return (int)!empty($b['cur']) <=> (int)!empty($a['cur']);
+        });
+        $id = $karten[0]['id'] ?? null;
+        if (!is_int($id)) {
+            $this->dbg('Karte', 'Q7: keine Karte in der Kartenliste ' . json_encode($liste));
+            return $leer;
+        }
+        $roh = $this->q7KarteAbrufen($buendel, $geraet, $id);
+        $scmap = $roh === null ? null : RoboHubRoborockQ7Karte::entschluesseln($roh, RoboHubRoborockQ7Karte::schluessel((string)$geraet['sn'], (string)$geraet['modell']));
+        $k = $scmap === null ? null : RoboHubRoborockQ7Karte::lesen($scmap);
+        if ($k === null) {
+            $this->dbg('Karte', 'Q7: Karte ' . $id . ($roh === null ? ' nicht erhalten.' : ' nicht lesbar (' . strlen($roh) . ' Zeichen).'));
+            return $leer;
+        }
+        $this->dbg('Karte', 'Q7: Karte ' . $id . ', ' . $k['roh']['breite'] . '×' . $k['roh']['hoehe'] . ' Punkte, Räume ' . json_encode($k['raeume'], JSON_UNESCAPED_UNICODE)
+            . ', Station ' . json_encode($k['roh']['station']) . ', Roboter ' . json_encode($k['roh']['roboter']) . ', Weg ' . count($k['roh']['weg'][0] ?? []) . ' Punkte');
+        return ['raeume' => $k['raeume']] + RoboHubRoborockKarte::bild($k['roh'], $k['raeume'], $live);
+    }
+
+    /** Kartenanfrage senden, Teile 300/301 sammeln (create_map_response_assembler); Rohtext (Base64) oder null. */
+    protected function q7KarteAbrufen(array $buendel, array $geraet, int $kartenId): ?string
+    {
+        $r = (array)$buendel['rriot'];
+        $schluessel = (string)$geraet['schluessel'];
+        [$host, $port] = self::mqttServer($r);
+        $benutzer = substr(md5($r['u'] . ':' . $r['k']), 2, 8);
+        $passwort = substr(md5($r['s'] . ':' . $r['k']), 16);
+        $duid = (string)$geraet['id'];
+        $rahmen = [self::rahmenBauen(RoboHubRoborockQ7::anfrageNutzlast((string)random_int(100000000000, 999999999999), 'service.upload_by_mapid', ['map_id' => $kartenId]),
+            $schluessel, random_int(100000, 999999), random_int(10000, 99999), time(), self::PROTOKOLL_ANFRAGE, 'B01')];
+        $offen = [];
+        $ergebnis = null;
+        $verarbeite = function (string $daten) use ($schluessel, &$offen, &$ergebnis): bool {
+            foreach (self::rahmenLesen($daten, $schluessel) as $nachricht) {
+                $ganz = RoboHubRoborockQ7Karte::teilAufnehmen($offen, $nachricht);
+                if ($ganz !== null) {
+                    $ergebnis = $ganz;
+                    return true;
+                }
+            }
+            return false;
+        };
+        $this->austausch($host, $port, $benutzer, $passwort,
+            'rr/m/o/' . $r['u'] . '/' . $benutzer . '/' . $duid,
+            'rr/m/i/' . $r['u'] . '/' . $benutzer . '/' . $duid,
+            $rahmen, $verarbeite, 15.0);
+        return $ergebnis;
     }
 
     private function q7Rpc(array $buendel, array $geraet, string $methode, $params)

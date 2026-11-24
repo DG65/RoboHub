@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.55.0 (24.11.2026)
+
+- **Roborock Q7: Räume und Karte** (Fortsetzung 0.54.0). Quelle python-roborock (Apache-2.0, 93f0d98):
+  `service.get_map_list` → aktuelle Karte (`cur`), `service.upload_by_mapid {map_id}` → Antwort als Kartenteile
+  (Protokoll 300 … 301, gleiche random/timestamp, seq ab 1, Reihenfolge beliebig; create_map_response_assembler) →
+  Base64 → AES-128-ECB mit dem Kartenschlüssel (create_map_key: Seriennummer + Modellkürzel) → Hex → zlib → SCMap
+  (Protobuf, map/proto/b01_scmap.proto). Neu `libs/RoboHubRoborockQ7Karte.php` mit kleinem Protobuf-Leser; Räume per
+  Flutfüllung ab der Namensposition, begrenzt durch die Raumumrisse (b01_map_parser.py), Ausgabe im Rohformat der
+  Roborock-Karte → Kachel, Medienobjekt und Positionsvariablen wie bei den übrigen Roborocks. Raumreinigung
+  `service.set_room_clean` clean_type 1 mit `room_ids`. Geräteliste merkt sich dafür die Seriennummer (`sn`) — bestehende
+  Konten brauchen einmal „Geräte jetzt suchen“. Prüfstand mit der **echten Q7-Aufnahme** aus python-roborock
+  (`.tools/roborock/q7-karte-sc05.bin.gz`): 340 × 300, Räume 10–19 wie dort erwartet; Kartenschlüssel unabhängig mit der
+  openssl-Kommandozeile nachgerechnet; Teile in falscher Reihenfolge; 4/4 Gegenproben gefangen. Live-Karte nur durch
+  erneuten Abruf (Kartenpushes während der Reinigung noch nicht ausgewertet). **Nie an einem echten Q7.**
+
 ## 0.54.1 (24.11.2026)
 
 - **Ecovacs: alt angelegter Winbot meldet sich klar; gleiche Fehler nicht bei jedem Abruf** (Forum brdiver677 144636/189).

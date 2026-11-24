@@ -25,6 +25,8 @@ class FakeRoborock extends RoboHubRoborock
     public static $gestartet = [];    // ausgeführte Routinen-IDs
     public static $q7 = [];           // Q7 (B01): gesendete [methode, params, rohe Nutzlast]
     public static $q7Antworten = [];  // Q7: methode => data (oder ['__code' => n], oder '__still')
+    public static $q7Karte = null;    // Q7: entpackte SCMap für service.upload_by_mapid (null = keine Antwort)
+    public static $q7KarteTeile = 3;
 
     public static function kartenNutzlast(string $endpunkt, string $nonce, int $id, string $rr): string
     {
@@ -119,6 +121,19 @@ class FakeRoborock extends RoboHubRoborock
                     $j = json_decode(RoboHubRoborockQ7::entpolstern($n['nutzlast']), true);
                     $a = $j['dps']['10000'] ?? [];
                     self::$q7[] = [$a['method'] ?? null, $a['params'] ?? null, $n['nutzlast']];
+                    if (($a['method'] ?? '') === 'service.upload_by_mapid' && self::$q7Karte !== null) {
+                        // python-roborock: Base64(AES-ECB(Kartenschlüssel, Hex(zlib(SCMap)))), Teile 300 … 301 mit gleichem random/timestamp.
+                        $schl = RoboHubRoborockQ7Karte::schluessel('testsn012345', 'roborock.vacuum.sc01');
+                        $text = base64_encode(openssl_encrypt(bin2hex(gzcompress(self::$q7Karte)), 'aes-128-ecb', $schl, OPENSSL_RAW_DATA));
+                        $teile = str_split($text, (int)ceil(strlen($text) / self::$q7KarteTeile));
+                        foreach (array_reverse(array_keys($teile)) as $i) {   // absichtlich in falscher Reihenfolge
+                            $prot = $i === count($teile) - 1 ? 301 : 300;
+                            if ($verarbeite(RoboHubRoborock::rahmenBauen($teile[$i], 'xyzxyzxyzxyzxyz1', $i + 1, 5555, 1700000000, $prot, 'B01'))) {
+                                return;
+                            }
+                        }
+                        continue;
+                    }
                     $antwort = self::$q7Antworten[$a['method'] ?? ''] ?? 0;
                     if ($antwort === '__still') {
                         continue;
@@ -295,7 +310,7 @@ abschnitt('Roborock: Anmeldung per E-Mail-Code');
 $GLOBALS['robohubTreiberFabrik'] = function (string $marke) { return $marke === 'roborock' ? new FakeRoborock() : new FakeCloud($marke); };
 FakeRoborock::$geraete = [
     ['duid' => 'abc123', 'name' => 'Roborock S7 MaxV', 'localKey' => 'key123key123key1', 'productId' => 'p-a27', 'online' => true, 'pv' => '1.0', 'fv' => '02.56.02'],
-    ['duid' => 'q7neu', 'name' => 'Q7', 'localKey' => 'xyzxyzxyzxyzxyz1', 'productId' => 'p-q7', 'online' => true, 'pv' => 'B01'],
+    ['duid' => 'q7neu', 'name' => 'Q7', 'localKey' => 'xyzxyzxyzxyzxyz1', 'productId' => 'p-q7', 'online' => true, 'pv' => 'B01', 'sn' => 'testsn012345'],
 ];
 FakeRoborock::$raeume = [['id' => 3031886, 'name' => 'Küche'], ['id' => 3031880, 'name' => 'Flur'], ['id' => 3031883, 'name' => 'Bad']];
 $rk = new RoboHubKonto(4000);
@@ -555,7 +570,7 @@ FakeRoborock::$q7Antworten = ['prop.get' => ['status' => 5, 'fault' => 0, 'wind'
     'main_brush' => 4088, 'side_brush' => 12000, 'hypa' => 900, 'mop_life' => 0, 'main_sensor' => 1800]];
 $t = $rq->Aktualisieren();
 $q7a = FakeRoborock::$q7[0] ?? [null, null, ''];
-check('Q7: eine Sitzung, Anfrage prop.get mit Feldliste (B01-Rahmen, dps 10000)', count(FakeRoborock::$sitzungen) === 1 && $q7a[0] === 'prop.get'
+check('Q7: Abruf beginnt mit prop.get und Feldliste (B01-Rahmen, dps 10000); danach lädt der Roboter einmal die Räume', count(FakeRoborock::$sitzungen) >= 1 && $q7a[0] === 'prop.get'
     && ($q7a[1]['property'] ?? null) === RoboHubRoborockQ7::ABFRAGE, $t . ' ' . json_encode($q7a[1]));
 check('Q7: Inhalt doppelt gepolstert wie python-roborock (encode_mqtt_payload + _encode)', strlen($q7a[2]) % 16 === 0
     && RoboHubRoborockQ7::entpolstern($q7a[2]) !== $q7a[2] && json_decode(RoboHubRoborockQ7::entpolstern($q7a[2]), true) !== null, bin2hex(substr($q7a[2], -20)));
@@ -594,6 +609,45 @@ FakeRoborock::$q7Antworten['prop.get'] = ['status' => 1, 'fault' => 522, 'quanti
 $rq->Aktualisieren();
 check('Q7: Fehler 522 „Mopp nicht eingesetzt“ → Zustand Fehler', variable(4200, 'Zustand')['value'] === RoboHubModell::ZUSTAND_FEHLER
     && strpos(variable(4200, 'Fehler')['value'], 'Mopp nicht eingesetzt (522)') === 0, variable(4200, 'Fehler')['value']);
+FakeRoborock::$q7Antworten = [];
+
+// 0.55.0: Q7-Räume und Karte — echte Aufnahme aus python-roborock (tests/map/testdata, Apache-2.0, siehe .tools/roborock/HERKUNFT.md).
+check('Q7-Kartenschlüssel wie python-roborock create_map_key (unabhängig mit openssl-CLI nachgerechnet)',
+    RoboHubRoborockQ7Karte::schluessel('testsn012345', 'roborock.vacuum.sc05') === 'ca9c6c9e6ba63f6e');
+$q7scmap = gzdecode((string)file_get_contents(__DIR__ . '/roborock/q7-karte-sc05.bin.gz'));
+$q7k = RoboHubRoborockQ7Karte::lesen($q7scmap);
+$erwartet = [];
+for ($i = 10; $i <= 19; $i++) {
+    $erwartet[$i] = 'room' . ($i - 9);
+}
+check('Q7-Karte (echte Aufnahme): 340 × 300, Räume 10–19 „room1“…„room10“ wie test_b01_map_parser.py', ($q7k['raeume'] ?? null) === $erwartet
+    && $q7k['roh']['breite'] === 340 && $q7k['roh']['hoehe'] === 300 && $q7k['roh']['raster'] === 50, json_encode($q7k['raeume'] ?? null));
+check('Q7-Karte: alle zehn Räume per Flutfüllung im Bild, Station und Weg gelesen', $q7k['roh']['raeume'] === range(10, 19)
+    && $q7k['roh']['station'] !== null && count($q7k['roh']['weg'][0] ?? []) > 100);
+check('Q7-Protobuf: kaputte Daten → null statt Absturz', RoboHubRoborockQ7Karte::lesen("\xff\xff\xff") === null && RoboHubRoborockQ7Karte::protobuf("\x0a\x05ab") === null);
+FakeRoborock::$q7 = [];
+FakeRoborock::$q7Karte = $q7scmap;
+FakeRoborock::$q7Antworten['service.get_map_list'] = ['map_list' => [['id' => 7, 'cur' => false], ['id' => 1234, 'cur' => true]]];
+$t = $rq->RaeumeLaden();
+$q7Methoden = array_column(FakeRoborock::$q7, 0);
+check('Q7: Räume laden = get_map_list, dann upload_by_mapid mit der aktuellen Karte (cur)', $q7Methoden === ['service.get_map_list', 'service.upload_by_mapid']
+    && (FakeRoborock::$q7[1][1]['map_id'] ?? null) === 1234, $t . ' ' . json_encode(array_map(function ($a) { return [$a[0], $a[1]]; }, FakeRoborock::$q7)));
+$rqRaeume = json_decode($rq->ReadAttributeString('Raeume'), true) ?: [];
+check('Q7: Raumnamen aus der Karte im Roboter (Teile in falscher Reihenfolge zusammengesetzt)', count($rqRaeume) === 10 && ($rqRaeume['10'] ?? '') === 'room1', json_encode($rqRaeume));
+$rqKarte = json_decode($rq->ReadAttributeString('Karte'), true) ?: [];
+check('Q7: Kartenbild (PNG) mit Raummarken und Station', strpos((string)($rqKarte['bild'] ?? ''), 'data:image/png;base64,') === 0 && count($rqKarte['marken'] ?? []) === 10
+    && ($rqKarte['station'] ?? null) !== null, substr(json_encode($rqKarte), 0, 200));
+FakeRoborock::$q7 = [];
+$rq->RaeumeReinigen('12,15');
+check('Q7: Raumreinigung = set_room_clean clean_type 1, ctrl 1, room_ids (clean_segments)', array_map(function ($a) { return [$a[0], $a[1]]; }, FakeRoborock::$q7) === [
+    ['service.set_room_clean', ['clean_type' => 1, 'ctrl_value' => 1, 'room_ids' => [12, 15]]],
+], json_encode(FakeRoborock::$q7));
+FakeRoborock::$q7KarteTeile = 1;
+$offenTest = [];
+$einzeln = RoboHubRoborockQ7Karte::teilAufnehmen($offenTest, ['version' => 'B01', 'protokoll' => 301, 'zufall' => 1, 'zeit' => 2, 'seq' => 12750, 'nutzlast' => base64_encode(str_repeat('x', 32))]);
+$bruch = RoboHubRoborockQ7Karte::teilAufnehmen($offenTest, ['version' => 'B01', 'protokoll' => 301, 'zufall' => 3, 'zeit' => 4, 'seq' => 2, 'nutzlast' => base64_encode(str_repeat('y', 7))]);
+check('Q7-Kartenteile: einzelnes 301 ganz durchgereicht, Bruchstück (nicht 16er-Block) wartet auf den Rest', $einzeln !== null && $bruch === null && isset($offenTest['3-4']));
+FakeRoborock::$q7Karte = null;
 FakeRoborock::$q7Antworten = [];
 check('Q10 (B01, Modell ss…): ehrlich „nur Q7“', !RoboHubRoborockQ7::istQ7(['protokoll' => 'B01', 'modell' => 'roborock.vacuum.ss07'])
     && RoboHubRoborockQ7::istQ7(['protokoll' => 'B01', 'modell' => 'roborock.vacuum.sc05']) && !RoboHubRoborockQ7::istQ7(['protokoll' => '1.0', 'modell' => 'roborock.vacuum.sc05']));

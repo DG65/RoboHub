@@ -609,8 +609,11 @@
 - Rahmen „B01“: AES-128-CBC, Schlüssel = localKey, IV = md5hex(%08x(random) + B01_HASH)[9:25] als Text. Inhalt doppelt
   gepolstert (encode_mqtt_payload polstert, _encode polstert erneut) — bewusst nachgebaut. Antwort dps 10001 = JSON-Text.
 - Teile = verbrauchte Minuten (Lebensdauer 300/200/150/180/30 h). Dauer/Fläche: Einheit unbelegt → nicht angezeigt.
-- Offen: Räume/Karte (SCMap-Protobuf, Kartenschlüssel aus Seriennummer + Modell), Zonen, Pushes, Teile zurücksetzen.
-  **Nie an einem echten Q7.**
+- **Karte/Räume (0.55.0):** get_map_list → upload_by_mapid → Teile 300/301 → Base64 → ECB(Kartenschlüssel aus `sn` + Modellkürzel)
+  → Hex → zlib → SCMap-Protobuf (`RoboHubRoborockQ7Karte`, eigener Protobuf-Leser). Raster 0/127/128, Räume per Flutfüllung
+  ab Namensposition (Umrisse als Grenze). Prüfstand mit echter Aufnahme `.tools/roborock/q7-karte-sc05.bin.gz` (Apache-2.0).
+  Raum-IDs > 61 bleiben ungefärbt (Kodierung „rahmen“). `sn` erst ab 0.55.0 in der Geräteliste.
+- Offen: Zonen, Kartenpushes (Live-Karte), Echtzeit-Pushes, Teile zurücksetzen. **Nie an einem echten Q7.**
 
 ## Roborock-Reinigungsmodus (0.40.0)
 
