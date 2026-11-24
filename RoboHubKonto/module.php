@@ -1181,6 +1181,7 @@ class RoboHubKonto extends IPSModule
     {
         if ($gesund) {
             $this->SetBuffer('DauerAusfaelle', '0');
+            $this->SetBuffer('DauerUngeheilt', '0');   // Neuaufbau hat geholfen
             return;
         }
         $n = (int)$this->GetBuffer('DauerAusfaelle') + 1;
@@ -1192,7 +1193,12 @@ class RoboHubKonto extends IPSModule
         $this->SetBuffer('DauerAusfaelle', '0');
         $this->SetBuffer('DauerNeustart', (string)time());
         $this->SendDebug('Echtzeit', $n . ' Anfragen in Folge ohne Antwort — Verbindung wird neu aufgebaut', 0);
-        $this->protokolliere(RoboHubText::t('The real-time connection is open but no longer delivers answers — RoboHub reconnects.'), KL_WARNING);
+        // 0.53.1 (Forum lugge 144636/187): Roborock verstummt bei ihm etwa alle 3 h, der Neuaufbau heilt das jedes Mal.
+        // Ins Meldungsfenster nur, wenn der vorige Neuaufbau nichts gebracht hat (seither keine einzige Antwort).
+        if ($this->GetBuffer('DauerUngeheilt') === '1') {
+            $this->protokolliere(RoboHubText::t('The real-time connection still delivers no answers, even after reconnecting — RoboHub tries again.'), KL_WARNING);
+        }
+        $this->SetBuffer('DauerUngeheilt', '1');
         $this->echtzeitKonfigurieren(true);
     }
 

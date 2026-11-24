@@ -712,12 +712,18 @@ $srv->config = json_decode($rk->GetConfigurationForParent(), true);   // Socket 
 $srv->stumm = true;
 $rk->SetBuffer('DauerNeustart', '0');
 $rk->SetBuffer('DauerAusfaelle', '0');
+$rk->SetBuffer('DauerUngeheilt', '0');
+$stummLog = function (): int {
+    return count(array_filter($GLOBALS['LOG'] ?? [], function ($z) { return strpos((string)$z, 'auch nach dem Neuaufbau') !== false; }));
+};
+$vorherLog = $stummLog();
 $vorherNeu = $neuAufbau();
 $stummFrage();
 $stummFrage();
 check('stumme Verbindung: zwei Ausfälle → noch kein Neuaufbau', $neuAufbau() === $vorherNeu);
 $stummFrage();
 check('dritter Ausfall in Folge → Socket aus/an (neue Anmeldung + Abo, python-roborock HealthManager)', $neuAufbau() === $vorherNeu + 1);
+check('erster Neuaufbau nur im Debug, nicht im Meldungsfenster (Forum lugge 144636/187)', $stummLog() === $vorherLog);
 for ($i = 0; $i < 6; $i++) {
     $stummFrage();
 }
@@ -731,6 +737,14 @@ $srv->stumm = true;
 $stummFrage();
 $stummFrage();
 check('Antwort setzt den Zähler zurück (2 Ausfälle nach einer Antwort → kein Neuaufbau)', $neuAufbau() === $vorherNeu + 1);
+// Neuaufbau mit Antwort danach = geheilt → nächster Neuaufbau wieder still; ohne Antwort dazwischen → Warnung.
+$stummFrage();
+check('Neuaufbau nach geheiltem Neuaufbau: wieder still', $neuAufbau() === $vorherNeu + 2 && $stummLog() === $vorherLog);
+$rk->SetBuffer('DauerNeustart', (string)(time() - 1801));
+$stummFrage();
+$stummFrage();
+$stummFrage();
+check('Neuaufbau hat nichts gebracht (keine Antwort dazwischen) → Warnung im Meldungsfenster', $neuAufbau() === $vorherNeu + 3 && $stummLog() === $vorherLog + 1);
 $srv->stumm = false;
 
 // 0.52.3 (Forum alsk1 144636/184): Socket-Felder sind gesperrt → Knopf im Konto immer sichtbar, trennt und verbindet neu.

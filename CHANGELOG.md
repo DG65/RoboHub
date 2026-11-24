@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.53.1 (24.11.2026)
+
+- **Roborock: erfolgreicher Neuaufbau der stummen Verbindung nicht mehr als Warnung** (Forum lugge 144636/187). Lugges
+  Archiv „Erreichbar“ nach 0.52.2: Roborock verstummt etwa alle 3 h 07 min (23.11. 21:37, 24.11. 00:44, 03:51, 06:59),
+  RoboHub baut nach drei Abrufen (~6 min bei 120 s) neu auf, danach kommen wieder Daten — vorher Ausfälle über Stunden.
+  Er wünscht, dass das Meldungsfenster nur noch meldet, wenn wirklich nichts mehr kommt. Jetzt: Neuaufbau nur im Debug;
+  eine Warnung („liefert auch nach dem Neuaufbau keine Antworten“) erst, wenn seit dem vorigen Neuaufbau keine einzige
+  Antwort kam. Prüfstand: erster Neuaufbau still, geheilter Neuaufbau setzt zurück, ungeheilter warnt.
+
 ## 0.53.0 (23.11.2026)
 
 - **Dreame/MOVA: Reinigungsroute** (Wunsch Tester mik per PN, L20 Ultra: „Route auf schnell ändern“). Quelle Tasshack
