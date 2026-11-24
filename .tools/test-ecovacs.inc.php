@@ -265,6 +265,21 @@ FakeEcovacs::$befehle = [];
 $t = $ex->Aktualisieren();
 check('XML-Gerät: ehrlich „noch nicht unterstützt", nichts gesendet', strpos($t, 'XML') !== false && FakeEcovacs::$befehle === [], $t);
 
+// 0.54.1 (Forum brdiver677 144636/189): vor 0.52.3 als Saugroboter angelegter Winbot → klare Meldung, nur einmal im Protokoll.
+$ew = new RoboHubGeraet(6450);
+$ew->props = ['GeraetID' => 'D-WIN', 'Modell' => 'ecovacs.vacuum.ind025', 'Klasse' => 'sauger', 'Intervall' => 120];
+$ew->Create();
+$ew->parent = $ek;
+$ew->ApplyChanges();
+FakeEcovacs::$befehle = [];
+$winLog = function (): int { return count(array_filter($GLOBALS['LOG'], function ($z) { return strpos((string)$z, 'WINBOT-Fensterputzroboter steuert die App nur per Bluetooth') !== false; })); };
+$vorWin = $winLog();
+$t = $ew->Aktualisieren();
+$ew->Aktualisieren();
+$ew->Aktualisieren();
+check('Alt angelegter Winbot: klare Meldung „nur Bluetooth, Instanz löschen“, nichts gesendet', strpos($t, 'Roboter-Instanz löschen') !== false && FakeEcovacs::$befehle === [], $t);
+check('Gleicher Fehler bei drei Abrufen nur einmal im Meldungsfenster (6 h)', $winLog() === $vorWin + 1, (string)($winLog() - $vorWin));
+
 $eg2 = new RoboHubGeraet(6400);
 $eg2->props = ['GeraetID' => 'D-GOAT', 'Modell' => 'ecovacs.mower.5xu9h3', 'Klasse' => 'maeher', 'Intervall' => 120];
 $eg2->Create();

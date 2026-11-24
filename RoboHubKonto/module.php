@@ -1476,9 +1476,21 @@ class RoboHubKonto extends IPSModule
         if ($e->anmeldungNoetig) {
             $this->WriteAttributeString('Buendel', '');
         }
-        $this->protokolliere($e->getMessage(), KL_WARNING);
+        // Dieselbe Meldung höchstens alle 6 h ins Meldungsfenster (Forum brdiver677 144636/189: bei jedem Abruf).
+        $gemeldet = json_decode((string)$this->GetBuffer('FehlerGemeldet'), true) ?: [];
+        $schluessel = md5($e->getMessage());
+        if (time() - (int)($gemeldet[$schluessel] ?? 0) >= self::FEHLER_WIEDERHOLUNG) {
+            $gemeldet = array_filter($gemeldet, function ($t) { return time() - (int)$t < self::FEHLER_WIEDERHOLUNG; });
+            $gemeldet[$schluessel] = time();
+            $this->SetBuffer('FehlerGemeldet', (string)json_encode($gemeldet));
+            $this->protokolliere($e->getMessage(), KL_WARNING);
+        } else {
+            $this->SendDebug('Fehler', $e->getMessage() . ' (wiederholt, nicht erneut protokolliert)', 0);
+        }
         $this->aktualisiereStatus();
     }
+
+    private const FEHLER_WIEDERHOLUNG = 21600;
 
     private function ladeGeraete(array $buendel): array
     {

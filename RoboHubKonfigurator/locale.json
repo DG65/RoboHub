@@ -1058,6 +1058,8 @@
             "This command is not supported for the Roborock Q7 series yet: %s": "Dieser Befehl geht bei der Roborock-Q7-Reihe noch nicht: %s",
             "code %s": "Code %s",
             "• Roborock: first support for the Q7 series (protocol \"B01\"): state, battery, errors, suction level, water level, cleaning mode, consumables and volume; start, pause, stop, return to base and locate. Rooms and map not yet.": "• Roborock: erste Unterstützung für die Q7-Reihe (Protokoll „B01“): Zustand, Akku, Fehler, Saugstufe, Wassermenge, Reinigungsmodus, Verbrauchsteile und Lautstärke; Start, Pause, Stopp, Zur Station und Orten. Räume und Karte noch nicht.",
+            "This WINBOT window-cleaning robot is controlled by the app only via Bluetooth — RoboHub cannot reach it. Please delete this robot instance.": "Diesen WINBOT-Fensterputzroboter steuert die App nur per Bluetooth — RoboHub erreicht ihn nicht. Bitte diese Roboter-Instanz löschen.",
+            "• Ecovacs: a WINBOT created as a robot vacuum before 0.52.3 now reports clearly that it cannot be reached (Bluetooth only). All vendors: the same error appears in the message log at most every 6 hours instead of on every poll.": "• Ecovacs: Ein vor 0.52.3 als Saugroboter angelegter WINBOT meldet jetzt klar, dass er nicht erreichbar ist (nur Bluetooth). Alle Hersteller: Derselbe Fehler steht höchstens alle 6 Stunden im Meldungsfenster statt bei jedem Abruf.",
             "Quiet": "Leise",
             "Cleaning route": "Reinigungsroute",
             "Cleaning route sent.": "Reinigungsroute gesendet.",

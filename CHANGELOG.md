@@ -2,6 +2,14 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.54.1 (24.11.2026)
+
+- **Ecovacs: alt angelegter Winbot meldet sich klar; gleiche Fehler nicht bei jedem Abruf** (Forum brdiver677 144636/189).
+  Björn hatte den W2 Omni vor 0.52.3 als Saugroboter angelegt; jeder Abruf (alle 2 min) schrieb „Gerätedaten unvollständig“
+  ins Meldungsfenster (Winbot-Einträge haben keine resource). Jetzt: Treiber erkennt Winbot (nichtSteuerbar, Klasse Fenster
+  oder Firma winbot*) und meldet „nur Bluetooth — bitte diese Roboter-Instanz löschen“. Allgemein: `verarbeiteFehler` im Konto
+  protokolliert dieselbe Meldung höchstens alle 6 h (Puffer `FehlerGemeldet`), sonst nur Debug.
+
 ## 0.54.0 (24.11.2026)
 
 - **Roborock Q7 (Protokoll „B01“), Stufe 1** (Dietmars Auftrag nach der Bedarfsrecherche 23.11.: A01 sind keine Roboter, B01 =

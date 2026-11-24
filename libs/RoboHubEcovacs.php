@@ -699,6 +699,11 @@ class RoboHubEcovacs implements RoboHubTreiber
 
     private function pruefeGeraet(array $geraet): void
     {
+        // Winbot (Fensterputzer, nur Bluetooth): vor 0.52.3 als Saugroboter anlegbar (Forum brdiver677 144636/189).
+        if (!empty($geraet['nichtSteuerbar']) || ($geraet['klasse'] ?? '') === RoboHubModell::KLASSE_FENSTER
+            || stripos((string)($geraet['firma'] ?? ''), 'winbot') === 0) {
+            throw new RoboHubFehler(RoboHubText::t('This WINBOT window-cleaning robot is controlled by the app only via Bluetooth — RoboHub cannot reach it. Please delete this robot instance.'));
+        }
         if (in_array((string)($geraet['geraetKlasse'] ?? ''), self::KLASSEN_XML, true) || ($geraet['firma'] ?? 'eco-ng') === 'eco-legacy') {
             throw new RoboHubFehler(RoboHubText::t('This Ecovacs model speaks the older XML protocol, which RoboHub does not support yet.'));
         }

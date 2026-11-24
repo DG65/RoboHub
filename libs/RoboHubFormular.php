@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.54.1' => [
+            '• Ecovacs: a WINBOT created as a robot vacuum before 0.52.3 now reports clearly that it cannot be reached (Bluetooth only). All vendors: the same error appears in the message log at most every 6 hours instead of on every poll.',
+        ],
         '0.54.0' => [
             '• Roborock: first support for the Q7 series (protocol "B01"): state, battery, errors, suction level, water level, cleaning mode, consumables and volume; start, pause, stop, return to base and locate. Rooms and map not yet.',
         ],
