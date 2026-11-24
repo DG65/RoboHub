@@ -22,6 +22,11 @@
   der Cloud — ein Schlüssel je Konto, Erneuerung unter Semaphore.
 - Klassen/Präfixe/GUIDs sind eingefroren, sobald eine Instanz existiert (TOOLKIT.md-Faustregel,
   gilt hier genauso).
+- **Offen fürs nächste reguläre Release — Typ-Spalte** (Verbund-Regel 24.11.2026, SUITE.md „Typ-Spalte: lesbarer
+  Modulname über locale.json", EMS-Commit 5bccc74): module.json `name` NICHT ändern; in `libs/locale.json` unter
+  translations.de je Modul `"<name>": "<lesbarer Name>"` eintragen (eigenständig → ohne Marke), Vorschlag
+  „RoboHubKonto" → „RoboHub Konto", „RoboHubGeraet" → „RoboHub Roboter", „RoboHubKonfigurator" → „RoboHub
+  Konfigurator"; danach `php .tools/locale-bauen.php`. Kein eigenes Release nur dafür.
 
 ## Dreame/MOVA-Cloud — belegte Fakten (Quellcode ioBroker.dreame 0.4.12 + Tasshack 2.0.1, 11.10.2026)
 
