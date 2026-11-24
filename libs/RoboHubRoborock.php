@@ -1147,13 +1147,15 @@ PEM;
      * Unaufgeforderte Meldung eines Geräts (Thema rr/m/o/…/<duid>) → [duid => [Feld => Wert]].
      * Antworten auf Anfragen (dps 102) holt sich die wartende Anfrage selbst — hier übergangen.
      */
-    public function pushLesenThema(string $thema, string $payload, array $buendel, array $geraete): array
+    public function pushLesenThema(string $thema, string $payload, array $buendel, array $geraete, array &$zustand = []): array
     {
         $duid = (string)substr($thema, (int)strrpos($thema, '/') + 1);
         $schluessel = '';
+        $geraet = null;
         foreach ($geraete as $g) {
             if ((string)($g['id'] ?? '') === $duid) {
                 $schluessel = (string)($g['schluessel'] ?? '');
+                $geraet = $g;
             }
         }
         if ($duid === '' || $schluessel === '') {
@@ -1161,7 +1163,14 @@ PEM;
         }
         $delta = [];
         foreach (self::rahmenLesen($payload, $schluessel) as $n) {
-            if ($n['protokoll'] !== self::PROTOKOLL_ANTWORT || $n['version'] !== '1.0') {   // B01-Pushes: noch nicht ausgewertet
+            if ($n['version'] === 'B01' && is_array($geraet) && RoboHubRoborockQ7::istQ7($geraet)) {
+                $karte = $this->q7KartenPush($geraet, $n, $zustand);
+                if ($karte !== null) {
+                    $delta['_karte'] = $karte;
+                }
+                continue;
+            }
+            if ($n['protokoll'] !== self::PROTOKOLL_ANTWORT || $n['version'] !== '1.0') {   // übrige B01-Pushes: noch nicht ausgewertet
                 continue;
             }
             $dps = json_decode($n['nutzlast'], true)['dps'] ?? null;
@@ -1284,6 +1293,38 @@ PEM;
         $this->dbg('Karte', 'Q7: Karte ' . $id . ', ' . $k['roh']['breite'] . '×' . $k['roh']['hoehe'] . ' Punkte, Räume ' . json_encode($k['raeume'], JSON_UNESCAPED_UNICODE)
             . ', Station ' . json_encode($k['roh']['station']) . ', Roboter ' . json_encode($k['roh']['roboter']) . ', Weg ' . count($k['roh']['weg'][0] ?? []) . ' Punkte');
         return ['raeume' => $k['raeume']] + RoboHubRoborockKarte::bild($k['roh'], $k['raeume'], $live);
+    }
+
+    /** Höchstens alle so viele Sekunden eine gepushte Q7-Karte zeichnen (der Q7 schickt beim Reinigen laufend). */
+    public const Q7_PUSH_KARTE_S = 5;
+
+    /**
+     * Ungefragte Kartenrahmen des Q7 während der Reinigung (python-roborock subscribe_map_pushes / update_from_push):
+     * Teile 300/301 wie beim Abruf zusammensetzen, entschlüsseln, nur Typ 0 (Live-Karte) übernehmen. $zustand trägt die
+     * offenen Teile und die Drossel über Aufrufe hinweg (Puffer im Konto). Rückgabe: Kachel-Karte mit Weg und Roboter, sonst null.
+     */
+    private function q7KartenPush(array $geraet, array $nachricht, array &$zustand): ?array
+    {
+        $duid = (string)$geraet['id'];
+        $offen = (array)($zustand['q7teile'][$duid] ?? []);
+        $roh = RoboHubRoborockQ7Karte::teilAufnehmen($offen, $nachricht);
+        // Nicht ewig sammeln: höchstens vier offene Karten je Gerät (wie _MAX_PENDING_MAP_RESPONSES).
+        $zustand['q7teile'][$duid] = array_slice($offen, -4, null, true);
+        if ($roh === null || (string)($geraet['sn'] ?? '') === '') {
+            return null;
+        }
+        $jetzt = time();
+        if ($jetzt - (int)($zustand['q7zeit'][$duid] ?? 0) < self::Q7_PUSH_KARTE_S) {
+            return null;
+        }
+        $scmap = RoboHubRoborockQ7Karte::entschluesseln($roh, RoboHubRoborockQ7Karte::schluessel((string)$geraet['sn'], (string)$geraet['modell']));
+        $k = $scmap === null ? null : RoboHubRoborockQ7Karte::lesen($scmap);
+        if ($k === null || $k['typ'] !== 0) {
+            $this->dbg('Karte', 'Q7-Push: ' . ($k === null ? 'nicht lesbar' : 'Kartentyp ' . $k['typ'] . ' übergangen (nur 0 = Live)'));
+            return null;
+        }
+        $zustand['q7zeit'][$duid] = $jetzt;
+        return ['raeume' => $k['raeume']] + RoboHubRoborockKarte::bild($k['roh'], $k['raeume'], true);
     }
 
     /** Kartenanfrage senden, Teile 300/301 sammeln (create_map_response_assembler); Rohtext (Base64) oder null. */

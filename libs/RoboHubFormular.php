@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.57.0' => [
+            '• Roborock Q7: live map while cleaning — RoboHub now uses the maps the Q7 sends by itself and shows the robot and the driven path on the tile about every 5 seconds (needs the real-time connection of the account).',
+        ],
         '0.56.0' => [
             '• New: clean a rectangular area — ROBO_BereichReinigen($id, x1, y1, x2, y2, passes) with two corners in metres like the variables "Position X/Y". So far for Roborock (also from Mi Home) and the Roborock Q7.',
             '• The column "Type" in the object tree shows readable module names when Symcon runs in German.',

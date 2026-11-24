@@ -618,7 +618,11 @@
 - **Bereiche (0.56.0):** `ROBO_BereichReinigen` allgemein (Meter wie „Position X/Y“ → `RoboHubKartenbild::mmPunkt`),
   Roborock 1.0 `app_zoned_clean` (Valetudo), Q7 prefer_type 4 → set_zone_points (Weltmeter) → set_zone_clean. Q7-Karten-mm
   = Weltmeter × 1000 (ohne den 25500-Versatz der python-roborock-„common“-Koordinaten). Q7 nur 1 Durchgang.
-- Offen: Kartenpushes (Live-Karte), Echtzeit-Pushes, Teile zurücksetzen, Bereiche in der Kachel aufziehen, Bereiche für
+- **Live-Karte per Push (0.57.0):** Q7 pusht SCMap-Rahmen 300/301 ungefragt beim Reinigen (python-roborock 7.32.0
+  update_from_push, nur Typ 0). `pushLesenThema(..., array &$zustand)` — Zwischenstand im Konto-Puffer `PushZustand`;
+  Drossel 5 s; Roboter-Daten `['karte' => …]` allein → `pushKarteUebernehmen`, 30-s-Abruf ruht 45 s (Puffer `PushKarte`).
+  Auch die Antwort auf upload_by_mapid läuft bei Dauerverbindung durch pushVerarbeiten (Typ 0 → harmlos dieselbe Karte).
+- Offen: Echtzeit-Pushes der Zustandswerte, Teile zurücksetzen, Bereiche in der Kachel aufziehen, Bereiche für
   Dreame/Ecovacs & Co. **Nie an einem echten Q7.**
 
 ## Roborock-Reinigungsmodus (0.40.0)

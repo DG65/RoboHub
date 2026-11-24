@@ -257,6 +257,11 @@ class RoboHubGeraet extends IPSModule
         if ($this->ReadPropertyBoolean('Deaktiviert') || !is_array($d) || (string)($d['Geraet'] ?? '') !== $this->ReadPropertyString('GeraetID') || !is_array($d['Daten'] ?? null)) {
             return '';
         }
+        if (is_array($d['Daten']['karte'] ?? null) && count($d['Daten']) === 1) {
+            // Vom Roboter selbst geschickte Live-Karte (Roborock Q7 beim Reinigen) — kein Gerätestand.
+            $this->pushKarteUebernehmen($d['Daten']['karte']);
+            return '';
+        }
         $this->uebernimm($d['Daten']);
         $this->WriteAttributeInteger('LetzteEchtzeit', time());
         // Verlauf der letzten 20 Meldungen (Rohwerte) — zur Fehlersuche in „📋 Rohdaten".
@@ -1242,6 +1247,11 @@ class RoboHubGeraet extends IPSModule
      */
     public function LiveKarteLaden(): string
     {
+        // Schickt der Roboter die Live-Karte gerade selbst (Roborock Q7), ersetzt das den Abruf im Takt.
+        $push = (int)$this->GetBuffer('PushKarte');
+        if ($push > 0 && time() - $push < self::PUSH_KARTE_GUELTIG_S && $this->ReadAttributeBoolean('LiveAktiv')) {
+            return RoboHubText::t('ℹ️ The robot sends its live map by itself right now (last %s) — no request needed.', date('H:i:s', $push));
+        }
         $antwort = $this->frageKonto(['Aktion' => 'livekarte', 'Geraet' => $this->ReadPropertyString('GeraetID'), 'Teppich' => $this->ReadPropertyBoolean('KarteTeppich'),
             'Raeume' => json_decode((string)$this->ReadAttributeString('Raeume'), true) ?: []]);
         if (!$antwort['ok']) {
@@ -1254,6 +1264,26 @@ class RoboHubGeraet extends IPSModule
         if ((string)($d['bild'] ?? '') === '') {
             return RoboHubText::t('ℹ️ No current map delivered.');
         }
+        return $this->liveKarteSpeichern($d);
+    }
+
+    /** Sekunden, die eine vom Roboter gepushte Live-Karte den regelmäßigen Abruf ersetzt. */
+    private const PUSH_KARTE_GUELTIG_S = 45;
+
+    /** Live-Karte, die der Roboter selbst geschickt hat (Roborock Q7): wie ein Abruf übernehmen, wenn die Live-Karte an ist. */
+    private function pushKarteUebernehmen(array $d): void
+    {
+        if (!$this->ReadPropertyBoolean('LiveKarte') || !$this->ReadPropertyBoolean('KarteZeigen') || (string)($d['bild'] ?? '') === '') {
+            return;
+        }
+        $this->SetBuffer('PushKarte', (string)time());
+        $this->WriteAttributeInteger('LetzteEchtzeit', time());
+        $this->SendDebug('Live-Karte', $this->liveKarteSpeichern($d) . ' (vom Roboter geschickt)', 0);
+    }
+
+    /** Geladene oder gepushte Live-Karte speichern, Bild und Kachel nachziehen. */
+    private function liveKarteSpeichern(array $d): string
+    {
         $weg = array_values((array)($d['weg'] ?? []));
         if ($weg === [] && !$this->ReadAttributeBoolean('LiveAktiv')) {
             // Nach Auftragsende löscht der Roboter den Weg im Kartenrahmen (Live-Befund Barny

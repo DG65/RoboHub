@@ -245,7 +245,7 @@ nicht offiziell dokumentiert und kann sich ändern.
   Testdaten geprüft; im Forum an einem Saros 20 bestätigt (November 2026). Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen). Seit 0.54.0 auch die **Q7-Reihe** (Protokoll „B01“): Zustand, Akku,
   Fehler, Saugstufe, Wassermenge, Reinigungsmodus, Verbrauchsteile, Lautstärke und die Grundbefehle, seit 0.55.0 auch
-  Räume, Karte und Raumreinigung, seit 0.56.0 Bereiche — an keinem echten Q7 geprüft (Tester willkommen). Die Q10-Reihe meldet RoboHub als „noch nicht unterstützt". Kartenbild mit Räumen, Station und während der Reinigung mit Weg und Roboter
+  Räume, Karte und Raumreinigung, seit 0.56.0 Bereiche, seit 0.57.0 die Live-Karte direkt vom Roboter — an keinem echten Q7 geprüft (Tester willkommen). Die Q10-Reihe meldet RoboHub als „noch nicht unterstützt". Kartenbild mit Räumen, Station und während der Reinigung mit Weg und Roboter
   seit 0.39.0, im Forum an einem Saros 20 und einem S5 bestätigt (November 2026). Reinigungsmodus (Saugen, Wischen, Saugen und Wischen) seit 0.40.0
   als Variable und beim Raumstart; „Saugen, dann Wischen“ als eigene Einstellung noch nicht — dafür in der App ein Programm anlegen
   (siehe unten). Echtzeit-Meldungen über eine dauerhafte Verbindung je Konto seit 0.50.0, im Forum an einem Saros 20 bestätigt

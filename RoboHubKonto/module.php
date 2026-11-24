@@ -1207,8 +1207,11 @@ class RoboHubKonto extends IPSModule
     {
         $t = $this->treiber();
         if (method_exists($t, 'pushLesenThema')) {
+            // Zwischenstand über Meldungen hinweg (Roborock Q7: Kartenteile 300/301, Drossel) — nur im Puffer.
+            $zustand = json_decode((string)$this->GetBuffer('PushZustand'), true) ?: [];
             $aenderungen = $t->pushLesenThema($thema, $payload, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [],
-                json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: []);
+                json_decode((string)$this->ReadAttributeString('Geraete'), true) ?: [], $zustand);
+            $this->SetBuffer('PushZustand', (string)json_encode($zustand));
         } else {
             $aenderungen = method_exists($t, 'pushLesenMit')
                 ? $t->pushLesenMit($payload, json_decode((string)$this->ReadAttributeString('Buendel'), true) ?: [])
@@ -1222,7 +1225,15 @@ class RoboHubKonto extends IPSModule
             // Roboterposition ist kein Gerätewert: nicht in den Schnappschuss.
             $position = $delta['_position'] ?? null;
             $objekt = $delta['_objekt'] ?? null;
-            unset($delta['_position'], $delta['_objekt']);
+            $karte = $delta['_karte'] ?? null;
+            unset($delta['_position'], $delta['_objekt'], $delta['_karte']);
+            if ($karte !== null) {
+                // Fertig gezeichnete Live-Karte (Roborock Q7): ohne Gerätewerte, also ohne Schnappschuss durchreichen.
+                $this->SendDataToChildren((string)json_encode(['DataID' => self::DATA_ZUM_KIND, 'Geraet' => (string)$did, 'Daten' => ['karte' => $karte]]));
+                if ($delta === []) {
+                    continue;
+                }
+            }
             if (!isset($schnapp[$did])) {
                 // Noch kein vollständiger Stand (z. B. direkt nach dem Start) —
                 // ohne ihn ließen sich abgeleitete Werte nicht korrekt bilden;

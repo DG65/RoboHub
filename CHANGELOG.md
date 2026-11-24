@@ -2,6 +2,18 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.57.0 (24.11.2026)
+
+- **Roborock Q7: Live-Karte per Push** (Dietmars Auftrag). Quelle python-roborock 7.32.0 (49a32be, Apache-2.0):
+  `subscribe_map_pushes` / `MapContentTrait.update_from_push` — der Q7 schickt beim Reinigen ungefragt vollständige
+  SCMap-Rahmen (Teile 300/301 wie die Antwort auf upload_by_mapid) über rr/m/o; nur Kartentyp 0 (Live) gilt.
+  `RoboHubRoborock::pushLesenThema` setzt die Teile zusammen (Zwischenstand im Konto-Puffer `PushZustand`, höchstens vier
+  offene Karten je Gerät), zeichnet höchstens alle 5 s (`Q7_PUSH_KARTE_S`) und reicht die fertige Karte als `_karte` an
+  den Roboter; der übernimmt sie wie eine geladene Live-Karte (`liveKarteSpeichern`). Kommt die Karte so, entfällt der
+  30-s-Abruf (45 s Gültigkeit). Nur mit Live-Karte und Kartenanzeige an. Prüfstand: echte Q7-Aufnahme als Push in drei
+  Teilen (falsche Reihenfolge), Drossel, Kartentyp ≠ 0, Abruf entfällt, Live-Karte aus; 4/4 Gegenproben gefangen.
+  **Nie an einem echten Q7.**
+
 ## 0.56.0 (24.11.2026)
 
 - **Bereichsreinigung** (Dietmars Auftrag „Q7-Zonen“, Entscheidung: allgemein, Roborock zuerst). Neue Funktion

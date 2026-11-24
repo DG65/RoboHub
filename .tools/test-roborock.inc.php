@@ -877,6 +877,51 @@ mqttVomServer($rk, RoboHubMqtt::publish('rr/m/o/user123/19648f94/abc123', $push)
 check('Push: Akku 77 und Zustand 5 (reinigt) sofort übernommen', variable(4100, 'Akku')['value'] === 77 && variable(4100, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT);
 check('Push mit falschem Schlüssel/fremdem Gerät übergangen', (new RoboHubRoborock())->pushLesenThema('rr/m/o/user123/19648f94/fremd', $push, [], json_decode($rk->ReadAttributeString('Geraete'), true)) === []);
 
+// 0.57.0: Q7-Live-Karte per Push (python-roborock subscribe_map_pushes / update_from_push): ungefragte Kartenteile
+// 300/301 auf rr/m/o, gleiches Format wie die Antwort auf upload_by_mapid; nur Kartentyp 0 (Live).
+$q7PushSenden = function (string $scmap, int $teile, int $zufall) use ($rk): void {
+    $schl = RoboHubRoborockQ7Karte::schluessel('testsn012345', 'roborock.vacuum.sc01');
+    $text = base64_encode(openssl_encrypt(bin2hex(gzcompress($scmap)), 'aes-128-ecb', $schl, OPENSSL_RAW_DATA));
+    $stuecke = str_split($text, (int)ceil(strlen($text) / $teile));
+    foreach (array_reverse(array_keys($stuecke)) as $i) {   // falsche Reihenfolge wie beim Abruf
+        mqttVomServer($rk, RoboHubMqtt::publish('rr/m/o/user123/19648f94/q7neu',
+            RoboHubRoborock::rahmenBauen($stuecke[$i], 'xyzxyzxyzxyzxyz1', $i + 1, $zufall, 1700000100, $i === count($stuecke) - 1 ? 301 : 300, 'B01')));
+    }
+};
+$q7Live = gzdecode((string)file_get_contents(__DIR__ . '/roborock/q7-karte-sc05.bin.gz'));
+$rq->WriteAttributeString('Karte', '{}');
+$rk->SetBuffer('PushZustand', '');
+$q7PushSenden($q7Live, 3, 6001);
+$rqLive = json_decode($rq->ReadAttributeString('Karte'), true) ?: [];
+check('Q7-Push: Live-Karte in drei Teilen (falsche Reihenfolge) → Kartenbild mit Roboter und Weg im Roboter', strpos((string)($rqLive['bild'] ?? ''), 'data:image/png;base64,') === 0
+    && isset($rqLive['roboter']['x']) && count($rqLive['weg'][0] ?? []) > 100 && (int)($rqLive['live'] ?? 0) > 0, substr(json_encode($rqLive), 0, 200));
+$rq->WriteAttributeString('Karte', '{}');
+$q7PushSenden($q7Live, 1, 6002);
+check('Q7-Push: zweite Karte innerhalb von 5 s gedrosselt (nicht neu gezeichnet)', $rq->ReadAttributeString('Karte') === '{}');
+$pz = json_decode($rk->GetBuffer('PushZustand'), true);
+$pz['q7zeit']['q7neu'] = time() - 10;
+$rk->SetBuffer('PushZustand', json_encode($pz));
+$q7PushSenden("\x08\x01" . $q7Live, 1, 6003);   // Feld 1 (Kartentyp) = 1 vorangestellt: keine Live-Karte
+check('Q7-Push: Kartentyp ≠ 0 übergangen (wie update_from_push)', $rq->ReadAttributeString('Karte') === '{}');
+$q7PushSenden($q7Live, 1, 6004);
+$rqLive = json_decode($rq->ReadAttributeString('Karte'), true) ?: [];
+check('Q7-Push: nach der Drossel wieder übernommen; offene Teile aufgeräumt', isset($rqLive['roboter']['x'])
+    && (json_decode($rk->GetBuffer('PushZustand'), true)['q7teile']['q7neu'] ?? null) === []);
+$rq->WriteAttributeBoolean('LiveAktiv', true);
+FakeRoborock::$q7 = [];
+$t = $rq->LiveKarteLaden();
+check('Q7-Push frisch: Abruf im Takt entfällt (keine Anfrage an den Roboter)', FakeRoborock::$q7 === [] && strpos($t, 'ℹ️') === 0, $t);
+$rq->WriteAttributeBoolean('LiveAktiv', false);
+$rq->SetBuffer('PushKarte', '0');
+$rq->props['LiveKarte'] = false;
+$rq->WriteAttributeString('Karte', '{}');
+$pz = json_decode($rk->GetBuffer('PushZustand'), true);
+$pz['q7zeit']['q7neu'] = 0;
+$rk->SetBuffer('PushZustand', json_encode($pz));
+$q7PushSenden($q7Live, 1, 6005);
+check('Q7-Push bei ausgeschalteter Live-Karte übergangen', $rq->ReadAttributeString('Karte') === '{}');
+$rq->props['LiveKarte'] = true;
+
 // Stumme Dauerverbindung (Forum lugge 144636/179): Server hält die Verbindung, liefert aber nichts aus → nach 3 Ausfällen neu.
 $ueber = new ReflectionMethod($rk, 'ueberDauerverbindung');
 // Echte Anfrage (get_status) statt Push-Rahmen — sonst kann der nicht stumme Server sie nicht lesen (PHP-Warnungen in 0.52.2).

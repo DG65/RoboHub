@@ -2015,7 +2015,9 @@
             "RoboHubGeraet": "RoboHub Roboter",
             "RoboHubKonfigurator": "RoboHub Konfigurator",
             "• New: clean a rectangular area — ROBO_BereichReinigen($id, x1, y1, x2, y2, passes) with two corners in metres like the variables \"Position X/Y\". So far for Roborock (also from Mi Home) and the Roborock Q7.": "• Neu: rechteckigen Bereich reinigen — ROBO_BereichReinigen($id, x1, y1, x2, y2, Durchgänge) mit zwei Ecken in Metern wie die Variablen „Position X/Y“. Bisher für Roborock (auch aus Mi Home) und den Roborock Q7.",
-            "• The column \"Type\" in the object tree shows readable module names when Symcon runs in German.": "• Die Spalte „Typ“ im Objektbaum zeigt jetzt lesbare Namen (RoboHub Konto, RoboHub Roboter, RoboHub Konfigurator)."
+            "• The column \"Type\" in the object tree shows readable module names when Symcon runs in German.": "• Die Spalte „Typ“ im Objektbaum zeigt jetzt lesbare Namen (RoboHub Konto, RoboHub Roboter, RoboHub Konfigurator).",
+            "ℹ️ The robot sends its live map by itself right now (last %s) — no request needed.": "ℹ️ Der Roboter schickt seine Live-Karte gerade selbst (zuletzt %s) — kein Abruf nötig.",
+            "• Roborock Q7: live map while cleaning — RoboHub now uses the maps the Q7 sends by itself and shows the robot and the driven path on the tile about every 5 seconds (needs the real-time connection of the account).": "• Roborock Q7: Live-Karte beim Reinigen — RoboHub nutzt jetzt die Karten, die der Q7 selbst schickt, und zeigt Roboter und gefahrenen Weg etwa alle 5 Sekunden auf der Kachel (braucht die Echtzeit-Verbindung des Kontos)."
         }
     }
 }
