@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.54.0' => [
+            '• Roborock: first support for the Q7 series (protocol "B01"): state, battery, errors, suction level, water level, cleaning mode, consumables and volume; start, pause, stop, return to base and locate. Rooms and map not yet.',
+        ],
         '0.53.1' => [
             '• Roborock: rebuilding a silent real-time connection is now only noted in the message log if the previous rebuild did not help — a successful rebuild no longer appears as a warning.',
         ],

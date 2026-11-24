@@ -23,6 +23,8 @@ class FakeRoborock extends RoboHubRoborock
     public static $karteTeile = 1;    // in so vielen Teilen schicken
     public static $programme = null;  // App-Routinen (result von /user/scene/device/…); null = Endpunkt fehlt
     public static $gestartet = [];    // ausgeführte Routinen-IDs
+    public static $q7 = [];           // Q7 (B01): gesendete [methode, params, rohe Nutzlast]
+    public static $q7Antworten = [];  // Q7: methode => data (oder ['__code' => n], oder '__still')
 
     public static function kartenNutzlast(string $endpunkt, string $nonce, int $id, string $rr): string
     {
@@ -110,6 +112,27 @@ class FakeRoborock extends RoboHubRoborock
     {
         self::$sitzungen[] = [$host, $port, $benutzer, $passwort, $abo, $ziel];
         foreach ($rahmen as $r) {
+            if (substr($r, 0, 3) === 'B01') {
+                // Q7 (python-roborock b01_q7_protocol.py / b01_q7_channel.py): Anfrage dps 10000 als Objekt,
+                // Antwort dps 10001 als JSON-Text {msgId, code, method, data}.
+                foreach (RoboHubRoborock::rahmenLesen($r, 'xyzxyzxyzxyzxyz1') as $n) {
+                    $j = json_decode(RoboHubRoborockQ7::entpolstern($n['nutzlast']), true);
+                    $a = $j['dps']['10000'] ?? [];
+                    self::$q7[] = [$a['method'] ?? null, $a['params'] ?? null, $n['nutzlast']];
+                    $antwort = self::$q7Antworten[$a['method'] ?? ''] ?? 0;
+                    if ($antwort === '__still') {
+                        continue;
+                    }
+                    $innen = ['msgId' => $a['msgId'], 'code' => is_array($antwort) && isset($antwort['__code']) ? $antwort['__code'] : 0,
+                        'method' => $a['method'], 'data' => is_array($antwort) && isset($antwort['__code']) ? null : $antwort];
+                    // Fremde Antwort vorweg (andere msgId) — muss übergangen werden.
+                    $verarbeite(RoboHubRoborock::rahmenBauen(RoboHubRoborockQ7::polstern(json_encode(['t' => time(), 'dps' => ['10001' => json_encode(['msgId' => '1', 'code' => 0, 'data' => ['status' => 99]])]])), 'xyzxyzxyzxyzxyz1', 3, 77, time(), 102, 'B01'));
+                    if ($verarbeite(RoboHubRoborock::rahmenBauen(RoboHubRoborockQ7::polstern(json_encode(['t' => time(), 'dps' => ['10001' => json_encode($innen)]])), 'xyzxyzxyzxyzxyz1', 4, 4321, time(), 102, 'B01'))) {
+                        return;
+                    }
+                }
+                continue;
+            }
             foreach (RoboHubRoborock::rahmenLesen($r, 'key123key123key1') as $n) {
                 $j = json_decode($n['nutzlast'], true);
                 $a = json_decode((string)$j['dps']['101'], true);
@@ -526,8 +549,61 @@ $rq->Create();
 $rq->parent = $rk;
 $rq->ApplyChanges();
 FakeRoborock::$sitzungen = [];
+// 0.54.0: Q7 (B01, Modell sc…) — python-roborock (Apache-2.0) b01_q7_*; Felder wie testdata/b01_q7_protocol/get_prop.json.
+FakeRoborock::$q7 = [];
+FakeRoborock::$q7Antworten = ['prop.get' => ['status' => 5, 'fault' => 0, 'wind' => 3, 'water' => 2, 'mode' => 1, 'quantity' => 81, 'volume' => 60,
+    'main_brush' => 4088, 'side_brush' => 12000, 'hypa' => 900, 'mop_life' => 0, 'main_sensor' => 1800]];
 $t = $rq->Aktualisieren();
-check('Gerät mit Protokoll B01: ehrlich „noch nicht unterstützt", keine Sitzung', strpos($t, 'B01') !== false && FakeRoborock::$sitzungen === [], $t);
+$q7a = FakeRoborock::$q7[0] ?? [null, null, ''];
+check('Q7: eine Sitzung, Anfrage prop.get mit Feldliste (B01-Rahmen, dps 10000)', count(FakeRoborock::$sitzungen) === 1 && $q7a[0] === 'prop.get'
+    && ($q7a[1]['property'] ?? null) === RoboHubRoborockQ7::ABFRAGE, $t . ' ' . json_encode($q7a[1]));
+check('Q7: Inhalt doppelt gepolstert wie python-roborock (encode_mqtt_payload + _encode)', strlen($q7a[2]) % 16 === 0
+    && RoboHubRoborockQ7::entpolstern($q7a[2]) !== $q7a[2] && json_decode(RoboHubRoborockQ7::entpolstern($q7a[2]), true) !== null, bin2hex(substr($q7a[2], -20)));
+check('Q7: Zustand 5 = reinigt, Akku aus quantity, Fehler 0', variable(4200, 'Zustand')['value'] === RoboHubModell::ZUSTAND_REINIGT
+    && variable(4200, 'Akku')['value'] === 81 && variable(4200, 'Fehler')['value'] === 'kein Fehler' && strpos(variable(4200, 'ZustandRoh')['value'], '(5)') !== false);
+check('Q7: Saugstufe 3 Turbo, Wassermenge 2, Modus vac_and_mop (1) = Saugen und Wischen (2)', variable(4200, 'Saugstufe')['value'] === 3
+    && variable(4200, 'Wassermenge')['value'] === 2 && variable(4200, 'Reinigungsmodus')['value'] === 2);
+check('Q7: Verbrauchsteile aus verbrauchten Minuten (Hauptbürste 300 h, Seitenbürste 200 h, Filter 150 h, Mopp 180 h, Sensoren 30 h)',
+    variable(4200, 'Hauptbuerste')['value'] === 77 && variable(4200, 'HauptbuersteRest')['value'] === 232.0 && variable(4200, 'Seitenbuerste')['value'] === 0
+    && variable(4200, 'Filter')['value'] === 90 && variable(4200, 'Mopp')['value'] === 100 && variable(4200, 'Sensoren')['value'] === 0, json_encode([variable(4200, 'Hauptbuerste'), variable(4200, 'HauptbuersteRest')]));
+FakeRoborock::$q7 = [];
+$rq->Anhalten();
+$rq->ZurStation();
+$rq->Orten();
+$rq->Starten();
+$rq->Stoppen();
+check('Q7: Befehle wie python-roborock (set_room_clean ctrl 2/1/0, start_recharge, find_device)', array_map(function ($a) { return [$a[0], $a[1]]; }, FakeRoborock::$q7) === [
+    ['service.set_room_clean', ['clean_type' => 0, 'ctrl_value' => 2, 'room_ids' => []]],
+    ['service.start_recharge', []],
+    ['service.find_device', []],
+    ['service.set_room_clean', ['clean_type' => 0, 'ctrl_value' => 1, 'room_ids' => []]],
+    ['service.set_room_clean', ['clean_type' => 0, 'ctrl_value' => 0, 'room_ids' => []]],
+], json_encode(FakeRoborock::$q7));
+check('Q7: leere Parameter als Objekt {} (wie params={} in python-roborock)', strpos(RoboHubRoborockQ7::anfrageNutzlast('1', 'service.find_device', new stdClass()), '"params":{}') !== false);
+FakeRoborock::$q7 = [];
+$rq->RequestAction('Saugstufe', 4);
+$rq->RequestAction('Reinigungsmodus', 1);
+$rq->RequestAction('Lautstaerke', 40);
+check('Q7: Einstellungen per prop.set (wind 4, mode 2 = Wischen, volume 40)', array_map(function ($a) { return [$a[0], $a[1]]; }, FakeRoborock::$q7) === [
+    ['prop.set', ['wind' => 4]], ['prop.set', ['mode' => 2]], ['prop.set', ['volume' => 40]],
+], json_encode(FakeRoborock::$q7));
+FakeRoborock::$q7Antworten['service.find_device'] = ['__code' => 1];
+$t = $rq->Orten();
+check('Q7: Ablehnung (code ≠ 0) wird gemeldet', strpos($t, 'Code 1') !== false, $t);
+FakeRoborock::$q7Antworten['prop.get'] = ['status' => 1, 'fault' => 522, 'quantity' => 50];
+$rq->Aktualisieren();
+check('Q7: Fehler 522 „Mopp nicht eingesetzt“ → Zustand Fehler', variable(4200, 'Zustand')['value'] === RoboHubModell::ZUSTAND_FEHLER
+    && strpos(variable(4200, 'Fehler')['value'], 'Mopp nicht eingesetzt (522)') === 0, variable(4200, 'Fehler')['value']);
+FakeRoborock::$q7Antworten = [];
+check('Q10 (B01, Modell ss…): ehrlich „nur Q7“', !RoboHubRoborockQ7::istQ7(['protokoll' => 'B01', 'modell' => 'roborock.vacuum.ss07'])
+    && RoboHubRoborockQ7::istQ7(['protokoll' => 'B01', 'modell' => 'roborock.vacuum.sc05']) && !RoboHubRoborockQ7::istQ7(['protokoll' => '1.0', 'modell' => 'roborock.vacuum.sc05']));
+// B01-Rahmen unabhängig nachgerechnet: AES-128-CBC, Schlüssel = localKey, IV = md5hex(%08x(random) + B01_HASH)[9:25].
+$b01 = RoboHubRoborock::rahmenBauen('{"x":1}', 'xyzxyzxyzxyzxyz1', 7, 97431, 1652547161, 101, 'B01');
+$ivTest = substr(md5('00017c97' . '5wwh9ikChRjASpMU8cxg7o1d2E'), 9, 16);
+$klar = openssl_decrypt(substr($b01, 19, unpack('n', substr($b01, 17, 2))[1]), 'aes-128-cbc', 'xyzxyzxyzxyzxyz1', OPENSSL_RAW_DATA, $ivTest);
+check('B01-Rahmen: Kopf „B01“, CBC mit IV aus random, Prüfsumme stimmt, rahmenLesen liest zurück', substr($b01, 0, 3) === 'B01' && $klar === '{"x":1}'
+    && unpack('N', substr($b01, -4))[1] === crc32(substr($b01, 0, -4)) && (RoboHubRoborock::rahmenLesen($b01, 'xyzxyzxyzxyzxyz1')[0]['nutzlast'] ?? '') === '{"x":1}');
+check('1.0-Rahmen unverändert (ECB, Version 1.0)', substr(RoboHubRoborock::rahmenBauen('{"x":1}', 'key123key123key1', 1, 2, 3, 101), 0, 3) === '1.0');
 
 // ===========================================================================
 abschnitt('Roborock: Station (dss) und Verbindung (Forum lugge 13.11.2026)');

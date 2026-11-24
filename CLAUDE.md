@@ -602,6 +602,16 @@
 - Stationsteile `strainer_work_times`/`cleaning_brush_work_times` sind Zähler (150/300), keine Sekunden → nur Prozent.
   `TEILE` im Gerätemodul: Position = Wert der Variable „Verbrauchsteil zurücksetzen“ → nur hinten anfügen.
 
+## Roborock Q7 / B01 (0.54.0)
+
+- Quelle python-roborock 93f0d98 (Apache-2.0). A01 = Dyad/Zeo (keine Roboter). B01: Modellkennung „sc“ = Q7 (gebaut,
+  `libs/RoboHubRoborockQ7.php`), „ss“ = Q10 (eigenes DP-Protokoll, nicht gebaut). Nur MQTT, gleiche Themen wie 1.0.
+- Rahmen „B01“: AES-128-CBC, Schlüssel = localKey, IV = md5hex(%08x(random) + B01_HASH)[9:25] als Text. Inhalt doppelt
+  gepolstert (encode_mqtt_payload polstert, _encode polstert erneut) — bewusst nachgebaut. Antwort dps 10001 = JSON-Text.
+- Teile = verbrauchte Minuten (Lebensdauer 300/200/150/180/30 h). Dauer/Fläche: Einheit unbelegt → nicht angezeigt.
+- Offen: Räume/Karte (SCMap-Protobuf, Kartenschlüssel aus Seriennummer + Modell), Zonen, Pushes, Teile zurücksetzen.
+  **Nie an einem echten Q7.**
+
 ## Roborock-Reinigungsmodus (0.40.0)
 
 - `set_clean_motor_mode` nach python-roborock `v1_clean_modes.py`. Fähigkeitsbits (`DeviceFeatures`) liest RoboHub nicht; „Wischen“

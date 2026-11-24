@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.54.0 (24.11.2026)
+
+- **Roborock Q7 (Protokoll „B01“), Stufe 1** (Dietmars Auftrag nach der Bedarfsrecherche 23.11.: A01 sind keine Roboter, B01 =
+  Q7 und Q10). Quelle python-roborock (Apache-2.0, Stand 93f0d98 vom 22.11.2026): protocol.py (B01-Rahmen: AES-128-CBC mit
+  dem Geräteschlüssel, IV = md5hex(%08x(random) + B01_HASH)[9:25]), protocols/b01_q7_protocol.py (Anfrage
+  `{"dps":{"10000":{method,msgId,params}}}`, wie dort doppelt gepolstert), devices/rpc/b01_q7_channel.py (Antwort als JSON-Text
+  in dps 10001, Zuordnung über msgId), devices/traits/b01/q7 und data/b01_q7 (Befehle, Felder, Codes, Teile-Lebensdauer).
+  Neu `libs/RoboHubRoborockQ7.php`; Weiche in RoboHubRoborock (`istQ7`: pv B01 und Modellkennung „sc“). Zustand per
+  `prop.get`, Saugstufe/Wassermenge/Modus/Lautstärke per `prop.set`, Start/Pause/Stopp `service.set_room_clean` (ctrl 1/2/0),
+  Station `service.start_recharge`, Orten `service.find_device`. Verbrauchsteile aus verbrauchten Minuten (300/200/150/180/30 h).
+  Läuft über die Dauerverbindung des Kontos wie die übrigen Roborocks. Nicht gebaut: Räume/Karte (SCMap-Protobuf), Zonen,
+  Echtzeit-Pushes, Verbrauchsteile zurücksetzen, Dauer/Fläche (Einheiten unbelegt). Q10 (Modell „ss“, eigenes Datenpunkt-
+  Protokoll) meldet weiter ehrlich „nur Q7“. Prüfstand: Rahmen unabhängig nachgerechnet, Anfrageform, Auswertung, Befehle,
+  Einstellungen, Ablehnung, Fehlerzustand. **Noch nie an einem echten Q7** — kein Tester.
+
 ## 0.53.1 (24.11.2026)
 
 - **Roborock: erfolgreicher Neuaufbau der stummen Verbindung nicht mehr als Warnung** (Forum lugge 144636/187). Lugges

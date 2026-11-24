@@ -244,8 +244,9 @@ not officially documented and may change.
   reports it; when vacuuming, Dreame only offers Standard and Quick.
 - **Roborock** (since 0.13.0): built following the protocol of python-roborock and checked against its
   test data; confirmed in the forum on a Saros 20 (November 2026). Supported are devices with the
-  protocol "1.0" (S, Q, Qrevo, Saros series); RoboHub reports newer devices with "A01"/"B01" as
-  "not supported yet". Map image with rooms, dock and, while cleaning, path and robot since 0.39.0, confirmed in the forum
+  protocol "1.0" (S, Q, Qrevo, Saros series). Since 0.54.0 also the **Q7 series** (protocol "B01"): state, battery, errors,
+  suction level, water level, cleaning mode, consumables, volume and the basic commands — no rooms and map yet, not tested
+  on a real Q7 (testers welcome). RoboHub reports the Q10 series as "not supported yet". Map image with rooms, dock and, while cleaning, path and robot since 0.39.0, confirmed in the forum
   on a Saros 20 and an S5 (November 2026). Cleaning mode (vacuum, mop, vacuum and mop) since 0.40.0 as a variable and when starting
   a room; "vacuum, then mop" as its own setting not yet — create a routine in the app instead (see below). Real-time messages
   over a persistent connection per account since 0.50.0, confirmed in the forum on a Saros 20 (November 2026). **Routines** since

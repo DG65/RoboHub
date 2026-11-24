@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/RoboHubRoborockKarte.php';
+require_once __DIR__ . '/RoboHubRoborockQ7.php';
 
 // ===========================================================================
 // RoboHub-Treiber für Roborock (App „Roborock") — Saug-/Wischroboter mit
@@ -458,6 +459,9 @@ PEM;
     public function zustand(array $buendel, array $geraet): array
     {
         $this->pruefeProtokoll($geraet);
+        if (RoboHubRoborockQ7::istQ7($geraet)) {
+            return $this->q7Zustand($buendel, $geraet);
+        }
         $antworten = $this->rpcMehrere($buendel, $geraet, [
             ['get_status', []],
             ['get_consumable', []],
@@ -627,6 +631,9 @@ PEM;
     public function karte(array $buendel, array $geraet): array
     {
         $this->pruefeProtokoll($geraet);
+        if (RoboHubRoborockQ7::istQ7($geraet)) {
+            return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];   // Q7: Räume/Karte (SCMap) noch nicht gebaut
+        }
         $zuordnung = $this->rpc($buendel, $geraet, 'get_room_mapping', []);
         try {
             $namen = $this->heimRaeume($buendel);
@@ -716,6 +723,9 @@ PEM;
     public function liveKarte(array $buendel, array $geraet): array
     {
         $this->pruefeProtokoll($geraet);
+        if (RoboHubRoborockQ7::istQ7($geraet)) {
+            return ['raeume' => [], 'bild' => '', 'marken' => [], 'station' => null];
+        }
         $raeume = [];
         foreach ((array)($geraet['raeume'] ?? []) as $id => $name) {
             $raeume[(int)$id] = (string)$name;
@@ -818,6 +828,9 @@ PEM;
             return $this->programmStarten($buendel, $parameter);
         }
         $this->pruefeProtokoll($geraet);
+        if (RoboHubRoborockQ7::istQ7($geraet)) {
+            return $this->q7Befehl($buendel, $geraet, $befehl, $parameter);
+        }
         $stand = (array)($geraet['stand'] ?? []);
         switch ($befehl) {
             case 'start':
@@ -1035,6 +1048,9 @@ PEM;
     public function zuruecksetzen(array $buendel, array $geraet, string $teil): string
     {
         $this->pruefeProtokoll($geraet);
+        if (RoboHubRoborockQ7::istQ7($geraet)) {
+            throw new RoboHubFehler(RoboHubText::t('Resetting parts is not supported for the Roborock Q7 series yet — please reset in the app.'));
+        }
         if (!isset(self::RUECKSETZEN[$teil])) {
             throw new RoboHubFehler(RoboHubText::t('This part cannot be reset on Roborock: %s', $teil));
         }
@@ -1117,7 +1133,7 @@ PEM;
         }
         $delta = [];
         foreach (self::rahmenLesen($payload, $schluessel) as $n) {
-            if ($n['protokoll'] !== self::PROTOKOLL_ANTWORT) {
+            if ($n['protokoll'] !== self::PROTOKOLL_ANTWORT || $n['version'] !== '1.0') {   // B01-Pushes: noch nicht ausgewertet
                 continue;
             }
             $dps = json_decode($n['nutzlast'], true)['dps'] ?? null;
@@ -1137,10 +1153,117 @@ PEM;
     // Gerät-RPC über den Roborock-MQTT-Server
     // =================================================================
 
+    // =================================================================
+    // Roborock Q7 (Protokoll B01) — RoboHubRoborockQ7
+    // =================================================================
+
+    private function q7Zustand(array $buendel, array $geraet): array
+    {
+        $r = $this->q7Anfragen($buendel, $geraet, [['prop.get', ['property' => RoboHubRoborockQ7::ABFRAGE]]])[0] ?? null;
+        if ($r === null) {
+            throw RoboHubFehler::offline(RoboHubText::t('The Roborock does not respond (offline or sleeping?).'));
+        }
+        if (isset($r['fehler'])) {
+            throw new RoboHubFehler(RoboHubText::t('The Roborock rejects "%s": %s', 'prop.get', $r['fehler']));
+        }
+        $p = is_array($r['ergebnis']) ? $r['ergebnis'] : [];
+        $daten = RoboHubRoborockQ7::normalisiere($p);
+        $daten['online'] = true;
+        if (($geraet['bild'] ?? '') !== '') {
+            $daten['bild'] = (string)$geraet['bild'];
+        }
+        $daten['roh'] = ['modell' => $geraet['modell'] ?? null, 'protokoll' => 'B01', 'properties' => $p];
+        return $daten;
+    }
+
+    private function q7Befehl(array $buendel, array $geraet, string $befehl, array $parameter): string
+    {
+        if ($befehl === 'setze' || ($befehl === 'einstellung' && (string)($parameter['feld'] ?? '') === 'Lautstaerke')) {
+            $feld = (string)($parameter['feld'] ?? '');
+            $a = RoboHubRoborockQ7::setze($feld, (int)($parameter['wert'] ?? -1));
+            if ($a === null) {
+                throw new RoboHubFehler(RoboHubText::t('"%s" cannot be set on Roborock (yet).', $feld));
+            }
+            $this->q7Rpc($buendel, $geraet, $a[0], $a[1]);
+            return RoboHubText::t('Setting sent.');
+        }
+        $a = RoboHubRoborockQ7::befehl($befehl);
+        if ($a === null) {
+            throw new RoboHubFehler(RoboHubText::t('This command is not supported for the Roborock Q7 series yet: %s', $befehl));
+        }
+        $this->q7Rpc($buendel, $geraet, $a[0], $a[1]);
+        $texte = [
+            'start' => RoboHubText::t('Command "Start" sent.'), 'pause' => RoboHubText::t('Command "Pause" sent.'),
+            'stopp' => RoboHubText::t('Command "Stop" sent.'), 'station' => RoboHubText::t('Command "Return to base" sent.'),
+            'orten' => RoboHubText::t('Command "Locate" sent.'),
+        ];
+        return $texte[$befehl];
+    }
+
+    private function q7Rpc(array $buendel, array $geraet, string $methode, $params)
+    {
+        $r = $this->q7Anfragen($buendel, $geraet, [[$methode, $params]])[0] ?? null;
+        if ($r === null) {
+            throw new RoboHubFehler(RoboHubText::t('The Roborock did not respond to "%s" (offline?).', $methode));
+        }
+        if (isset($r['fehler'])) {
+            throw new RoboHubFehler(RoboHubText::t('The Roborock rejects "%s": %s', $methode, $r['fehler']));
+        }
+        return $r['ergebnis'];
+    }
+
+    /** Wie rpcMehrere, aber B01-Rahmen und Zuordnung über msgId (b01_q7_channel.py). */
+    protected function q7Anfragen(array $buendel, array $geraet, array $anfragen): array
+    {
+        $r = (array)$buendel['rriot'];
+        $schluessel = (string)$geraet['schluessel'];
+        [$host, $port] = self::mqttServer($r);
+        $benutzer = substr(md5($r['u'] . ':' . $r['k']), 2, 8);
+        $passwort = substr(md5($r['s'] . ':' . $r['k']), 16);
+        $duid = (string)$geraet['id'];
+        $rahmen = [];
+        $idZuIndex = [];
+        foreach (array_values($anfragen) as $i => [$methode, $params]) {
+            $id = (string)random_int(100000000000, 999999999999);
+            $idZuIndex[$id] = $i;
+            $this->dbg('Roborock', 'Q7 ' . $methode . ' ' . json_encode($params));
+            $rahmen[] = self::rahmenBauen(RoboHubRoborockQ7::anfrageNutzlast($id, (string)$methode, $params), $schluessel,
+                random_int(100000, 999999), random_int(10000, 99999), time(), self::PROTOKOLL_ANFRAGE, 'B01');
+        }
+        $ergebnisse = array_fill(0, count($anfragen), null);
+        $offen = count($anfragen);
+        $verarbeite = function (string $daten) use ($schluessel, &$idZuIndex, &$ergebnisse, &$offen): bool {
+            foreach (self::rahmenLesen($daten, $schluessel) as $nachricht) {
+                if ($nachricht['version'] !== 'B01') {
+                    continue;
+                }
+                foreach (RoboHubRoborockQ7::antworten($nachricht['nutzlast']) as $a) {
+                    if (!isset($idZuIndex[$a['msgId']])) {
+                        continue;
+                    }
+                    $i = $idZuIndex[$a['msgId']];
+                    unset($idZuIndex[$a['msgId']]);
+                    $ergebnisse[$i] = $a['code'] !== 0 ? ['fehler' => RoboHubText::t('code %s', $a['code'])] : ['ergebnis' => $a['data']];
+                    $offen--;
+                }
+            }
+            return $offen <= 0;
+        };
+        $this->austausch($host, $port, $benutzer, $passwort,
+            'rr/m/o/' . $r['u'] . '/' . $benutzer . '/' . $duid,
+            'rr/m/i/' . $r['u'] . '/' . $benutzer . '/' . $duid,
+            $rahmen, $verarbeite, 10.0);
+        $this->dbg('Roborock', 'Q7: ' . (count($anfragen) - $offen) . ' von ' . count($anfragen) . ' Anfragen beantwortet.');
+        return $ergebnisse;
+    }
+
     protected function pruefeProtokoll(array $geraet): void
     {
         $pv = (string)($geraet['protokoll'] ?? '1.0');
-        if ($pv !== '' && $pv !== '1.0') {
+        if ($pv === 'B01' && !RoboHubRoborockQ7::istQ7($geraet)) {
+            throw new RoboHubFehler(RoboHubText::t('RoboHub supports the protocol "B01" only for the Q7 series so far (model %s).', (string)($geraet['modell'] ?? '?')));
+        }
+        if ($pv !== '' && $pv !== '1.0' && $pv !== 'B01') {
             throw new RoboHubFehler(RoboHubText::t('This Roborock device speaks the protocol "%s", which RoboHub does not support yet.', $pv));
         }
         if ((string)($geraet['schluessel'] ?? '') === '') {
@@ -1281,10 +1404,21 @@ PEM;
         return md5(self::zeitKodiert($zeit) . $lokalSchluessel . self::SALZ, true);
     }
 
-    public static function rahmenBauen(string $nutzlast, string $lokalSchluessel, int $seq, int $zufall, int $zeit, int $protokoll): string
+    /** IV der B01-Rahmen (python-roborock protocol.py: md5hex(%08x(random) + B01_HASH)[9:25], als Text). */
+    public static function b01Iv(int $zufall): string
     {
-        $kopf = '1.0' . pack('NNNn', $seq, $zufall, $zeit, $protokoll);
-        $verschluesselt = $nutzlast === '' ? '' : (string)openssl_encrypt($nutzlast, 'aes-128-ecb', self::rahmenSchluessel($zeit, $lokalSchluessel), OPENSSL_RAW_DATA);
+        return substr(md5(sprintf('%08x', $zufall) . RoboHubRoborockQ7::B01_HASH), 9, 16);
+    }
+
+    public static function rahmenBauen(string $nutzlast, string $lokalSchluessel, int $seq, int $zufall, int $zeit, int $protokoll, string $version = '1.0'): string
+    {
+        $kopf = $version . pack('NNNn', $seq, $zufall, $zeit, $protokoll);
+        if ($version === 'B01') {
+            // AES-128-CBC mit dem Geräteschlüssel; openssl polstert (PKCS#7) — wie python-roborock _encode (pad).
+            $verschluesselt = $nutzlast === '' ? '' : (string)openssl_encrypt($nutzlast, 'aes-128-cbc', $lokalSchluessel, OPENSSL_RAW_DATA, self::b01Iv($zufall));
+        } else {
+            $verschluesselt = $nutzlast === '' ? '' : (string)openssl_encrypt($nutzlast, 'aes-128-ecb', self::rahmenSchluessel($zeit, $lokalSchluessel), OPENSSL_RAW_DATA);
+        }
         $nachricht = $kopf . pack('n', strlen($verschluesselt)) . $verschluesselt;
         return $nachricht . pack('N', crc32($nachricht));
     }
@@ -1296,8 +1430,11 @@ PEM;
         $pos = 0;
         $n = strlen($daten);
         while ($n - $pos >= 19) {
-            if (substr($daten, $pos, 3) !== '1.0') {
-                $naechste = strpos($daten, '1.0', $pos + 1);
+            $version = substr($daten, $pos, 3);
+            if ($version !== '1.0' && $version !== 'B01') {
+                $a = strpos($daten, '1.0', $pos + 1);
+                $b = strpos($daten, 'B01', $pos + 1);
+                $naechste = $a === false ? $b : ($b === false ? $a : min($a, $b));
                 if ($naechste === false) {
                     break;
                 }
@@ -1317,13 +1454,15 @@ PEM;
             }
             $inhalt = '';
             if ($k['laenge'] > 0) {
-                $inhalt = openssl_decrypt(substr($nachricht, 19), 'aes-128-ecb', self::rahmenSchluessel($k['zeit'], $lokalSchluessel), OPENSSL_RAW_DATA);
+                $inhalt = $version === 'B01'
+                    ? openssl_decrypt(substr($nachricht, 19), 'aes-128-cbc', $lokalSchluessel, OPENSSL_RAW_DATA, self::b01Iv($k['zufall']))
+                    : openssl_decrypt(substr($nachricht, 19), 'aes-128-ecb', self::rahmenSchluessel($k['zeit'], $lokalSchluessel), OPENSSL_RAW_DATA);
                 if ($inhalt === false) {
                     $pos = $ende + 4;
                     continue;
                 }
             }
-            $aus[] = ['seq' => $k['seq'], 'zufall' => $k['zufall'], 'zeit' => $k['zeit'], 'protokoll' => $k['protokoll'], 'nutzlast' => (string)$inhalt];
+            $aus[] = ['seq' => $k['seq'], 'zufall' => $k['zufall'], 'zeit' => $k['zeit'], 'protokoll' => $k['protokoll'], 'nutzlast' => (string)$inhalt, 'version' => $version];
             $pos = $ende + 4;
         }
         return $aus;
