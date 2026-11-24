@@ -427,6 +427,37 @@ class RoboHubGeraet extends IPSModule
         return $this->befehlMitKachel('raum', ['raeume' => $ids, 'modus' => $modus, 'saugstufe' => $saugstufe, 'durchgaenge' => $durchgaenge]);
     }
 
+    /**
+     * ROBO_BereichReinigen($id, $x1, $y1, $x2, $y2, $durchgaenge): string — rechteckigen Bereich reinigen.
+     * Ecken in Metern ab der oberen linken Ecke des Kartenbilds, also genau wie die Variablen „Position X/Y"
+     * (Roboter an eine Ecke fahren und ablesen); Durchgänge 1–3, −1 = einmal. Braucht eine geladene Karte.
+     */
+    public function BereichReinigen(float $x1, float $y1, float $x2, float $y2, int $durchgaenge): string
+    {
+        $karte = json_decode((string)$this->ReadAttributeString('Karte'), true) ?: [];
+        $g = is_array($karte['geometrie'] ?? null) ? $karte['geometrie'] : [];
+        if (($g['art'] ?? '') !== 'raster') {
+            return RoboHubText::t('⛔ No map loaded yet — the area is given in metres on the map (like "Position X/Y"). Load the map first ("Reload rooms").');
+        }
+        if (abs($x1 - $x2) < 0.1 || abs($y1 - $y2) < 0.1) {
+            return RoboHubText::t('⛔ The area must be at least 10 cm wide and high.');
+        }
+        $breite = (int)$g['b'] * (int)$g['raster'] / 1000;
+        $hoehe = (int)$g['h'] * (int)$g['raster'] / 1000;
+        foreach ([[$x1, $breite], [$x2, $breite], [$y1, $hoehe], [$y2, $hoehe]] as [$wert, $grenze]) {
+            if ($wert < 0 || $wert > $grenze) {
+                return RoboHubText::t('⛔ The area lies outside the map (%s × %s m).', round($breite, 2), round($hoehe, 2));
+            }
+        }
+        if ($durchgaenge === 0 || $durchgaenge > 3 || $durchgaenge < -1) {
+            return RoboHubText::t('⛔ Passes 1 to 3 (−1 = once).');
+        }
+        $a = RoboHubKartenbild::mmPunkt($g, $x1, $y1);
+        $b = RoboHubKartenbild::mmPunkt($g, $x2, $y2);
+        $bereich = [min($a[0], $b[0]), min($a[1], $b[1]), max($a[0], $b[0]), max($a[1], $b[1])];
+        return $this->befehlMitKachel('bereich', ['bereiche' => [$bereich], 'durchgaenge' => max(1, $durchgaenge)]);
+    }
+
     /** „3,5|0|1|2" → Befehlsparameter (Räume, Modus, Saugstufe, Durchgänge). */
     /**
      * „3,5" → [3, 5]. ID 0 ist gültig (Husqvarna-Hauptbereich, erste STIHL-Zone) — früher

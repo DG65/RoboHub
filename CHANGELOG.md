@@ -2,6 +2,21 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.56.0 (24.11.2026)
+
+- **Bereichsreinigung** (Dietmars Auftrag „Q7-Zonen“, Entscheidung: allgemein, Roborock zuerst). Neue Funktion
+  `ROBO_BereichReinigen($id, x1, y1, x2, y2, Durchgänge)`: Ecken in Metern ab der oberen linken Ecke des Kartenbilds —
+  dieselben Werte wie die Variablen „Position X/Y“. Umrechnung `RoboHubKartenbild::mmPunkt` (Umkehrung von
+  `prozentPunkt`), braucht eine geladene Rasterkarte. Roborock 1.0 (auch Mi Home): `app_zoned_clean [[x1,y1,x2,y2,n]]`
+  in Karten-mm, positives Rechteck, 1–5 Bereiche, 1–3 Durchgänge (Valetudo RoborockZoneCleaningCapability, Apache-2.0).
+  Q7: `service.set_preference_type {prefer_type 4}` → `service.set_zone_points` (Ecken in Weltmetern, Reihenfolge
+  min/min, max/min, max/max, min/max) → `service.set_zone_clean {ctrl_value 1}` (python-roborock clean_zones, Apache-2.0);
+  Durchgänge beim Q7 nur 1. Übrige Hersteller: „noch nicht unterstützt“. Prüfstand: Umkehrung gegen prozentPunkt an
+  der echten Q7-Karte, Q7-Ecken wie test_q7_api_clean_zone (0,5/−3,6 … 1,5/−2,8 m), Roborock-Sollwerte von Hand
+  gerechnet; 3/3 Gegenproben gefangen. **Nie an einem echten Roboter.**
+- **Typ-Spalte** (Verbund-Regel 24.11.2026, SUITE.md): locale.json übersetzt die Modulnamen — RoboHub Konto,
+  RoboHub Roboter, RoboHub Konfigurator. module.json unverändert.
+
 ## 0.55.0 (24.11.2026)
 
 - **Roborock Q7: Räume und Karte** (Fortsetzung 0.54.0). Quelle python-roborock (Apache-2.0, 93f0d98):

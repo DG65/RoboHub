@@ -490,6 +490,22 @@ FakeRoborock::$antworten['app_segment_clean'] = ['__fehler' => 'invalid params']
 $t = $rr->RaeumeReinigen('16');
 check('alte Firmware: zweiter Versuch mit einfacher Liste', array_column(FakeRoborock::$rpc, 1) === [[['segments' => [16], 'repeat' => 1]], [16]]);
 unset(FakeRoborock::$antworten['app_segment_clean']);
+// 0.56.0: Bereich bei klassischen Roborocks (Valetudo RoborockZoneCleaningCapability). Geometrie von Hand gewählt,
+// Sollwerte von Hand vorwärts gerechnet: X 1,0 m → Spalte 19,5 + minX 10 = 29,5 → 25000 + 29,5 × 50 = 26475;
+// Y 0,5 m → Bildzeile 9,5 + minY 20 = 29,5 → Rasterzeile 99 − 29,5 = 69,5 → 24000 + 69,5 × 50 = 27475.
+$karteVorher = $rr->ReadAttributeString('Karte');
+$rr->WriteAttributeString('Karte', json_encode(['geometrie' => ['art' => 'raster', 'links' => 25000, 'oben' => 24000, 'raster' => 50, 'hoehe' => 100, 'minX' => 10, 'minY' => 20, 'b' => 60, 'h' => 50]]));
+FakeRoborock::$rpc = [];
+$t = $rr->BereichReinigen(2.0, 0.5, 1.0, 1.5, 2);
+check('Roborock-Bereich: app_zoned_clean [[x1, y1, x2, y2, Durchgänge]] in Karten-mm, positives Rechteck', array_map(function ($a) { return [$a[0], $a[1]]; }, FakeRoborock::$rpc) === [['app_zoned_clean', [[26475, 26475, 27475, 27475, 2]]]], $t . ' ' . json_encode(FakeRoborock::$rpc));
+FakeRoborock::$rpc = [];
+$t = $rr->BereichReinigen(1.0, 0.5, 2.0, 1.5, -1);
+check('Roborock-Bereich: −1 = ein Durchgang', (FakeRoborock::$rpc[0][1][0][4] ?? null) === 1, json_encode(FakeRoborock::$rpc));
+$rr->WriteAttributeString('Karte', json_encode(['geometrie' => ['art' => 'mm', 'x1' => 0, 'y2' => 0, 'b' => 1, 'h' => 1]]));
+FakeRoborock::$rpc = [];
+$t = $rr->BereichReinigen(1.0, 0.5, 2.0, 1.5, 1);
+check('Bereich ohne Rasterkarte → Hinweis „Karte laden“, nichts gesendet', strpos($t, '⛔') === 0 && FakeRoborock::$rpc === [], $t);
+$rr->WriteAttributeString('Karte', $karteVorher);
 FakeRoborock::$rpc = [];
 $rr->ZurStation();
 $rr->Orten();
@@ -642,6 +658,39 @@ $rq->RaeumeReinigen('12,15');
 check('Q7: Raumreinigung = set_room_clean clean_type 1, ctrl 1, room_ids (clean_segments)', array_map(function ($a) { return [$a[0], $a[1]]; }, FakeRoborock::$q7) === [
     ['service.set_room_clean', ['clean_type' => 1, 'ctrl_value' => 1, 'room_ids' => [12, 15]]],
 ], json_encode(FakeRoborock::$q7));
+// 0.56.0: Bereichsreinigung (ROBO_BereichReinigen) — Ecken in Metern wie „Position X/Y".
+$gq = $rqKarte['geometrie'] ?? [];
+$abw = 0;
+$x0 = $gq['links'] + $gq['minX'] * $gq['raster'];
+$y0 = $gq['oben'] + ($gq['hoehe'] - $gq['minY'] - $gq['h']) * $gq['raster'];
+foreach ([[0.1, 0.2], [0.5, 0.5], [0.9, 0.3], [0.33, 0.87]] as [$fx, $fy]) {
+    [$mx, $my] = [(int)($x0 + $fx * $gq['b'] * $gq['raster']), (int)($y0 + $fy * $gq['h'] * $gq['raster'])];
+    $p = RoboHubKartenbild::prozentPunkt($gq, $mx, $my);
+    $zurueck = RoboHubKartenbild::mmPunkt($gq, $p['x'] / 100 * $gq['b'] * $gq['raster'] / 1000, $p['y'] / 100 * $gq['h'] * $gq['raster'] / 1000);
+    $abw = max($abw, abs($zurueck[0] - $mx), abs($zurueck[1] - $my));
+}
+check('Bereich: Meter wie „Position X/Y“ → Karten-mm ist die Umkehrung von prozentPunkt (≤ halbes Raster + 0,1 %-Rundung)', ($gq['art'] ?? '') === 'raster' && $abw <= 25 + 0.001 * max($gq['b'], $gq['h']) * 50, 'Abweichung ' . $abw . ' mm');
+// Punkt (0,5 m | −3,6 m) und (1,5 m | −2,8 m) wie im python-roborock-Test test_q7_api_clean_zone, aus dem Bild zurückgerechnet.
+$pa = RoboHubKartenbild::prozentPunkt($gq, 500, -3600);
+$pb = RoboHubKartenbild::prozentPunkt($gq, 1500, -2800);
+$m = function (array $p, string $a) use ($gq): float { return $a === 'x' ? $p['x'] / 100 * $gq['b'] * $gq['raster'] / 1000 : $p['y'] / 100 * $gq['h'] * $gq['raster'] / 1000; };
+FakeRoborock::$q7 = [];
+$t = $rq->BereichReinigen($m($pb, 'x'), $m($pb, 'y'), $m($pa, 'x'), $m($pa, 'y'), -1);
+$q7z = array_map(function ($a) { return [$a[0], $a[1]]; }, FakeRoborock::$q7);
+$zp = $q7z[1][1]['zone_points'] ?? [];
+$nahe = count($zp) === 8;
+foreach ([0.5, -3.6, 1.5, -3.6, 1.5, -2.8, 0.5, -2.8] as $i => $soll) {
+    $nahe = $nahe && abs($zp[$i] - $soll) <= 0.05;
+}
+check('Q7-Bereich wie clean_zones: prefer_type 4, Ecken in Weltmetern (min/min, max/min, max/max, min/max), set_zone_clean ctrl 1',
+    array_column($q7z, 0) === ['service.set_preference_type', 'service.set_zone_points', 'service.set_zone_clean']
+    && $q7z[0][1] === ['prefer_type' => 4] && $q7z[2][1] === ['ctrl_value' => 1] && $nahe, $t . ' ' . json_encode($q7z));
+FakeRoborock::$q7 = [];
+$t1 = $rq->BereichReinigen(1, 1, 1.05, 2, -1);
+$t2 = $rq->BereichReinigen(1, 1, 999, 2, -1);
+$t3 = $rq->BereichReinigen(1, 1, 2, 2, 2);
+check('Bereich: zu schmal, außerhalb der Karte, Q7 mit 2 Durchgängen → klare Absage, nichts gesendet', strpos($t1, '⛔') === 0 && strpos($t2, '⛔') === 0
+    && strpos($t3, '⛔') === 0 && FakeRoborock::$q7 === [], $t1 . ' | ' . $t2 . ' | ' . $t3);
 FakeRoborock::$q7KarteTeile = 1;
 $offenTest = [];
 $einzeln = RoboHubRoborockQ7Karte::teilAufnehmen($offenTest, ['version' => 'B01', 'protokoll' => 301, 'zufall' => 1, 'zeit' => 2, 'seq' => 12750, 'nutzlast' => base64_encode(str_repeat('x', 32))]);

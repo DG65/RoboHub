@@ -183,6 +183,7 @@ ROBO_StationsaufgabeBeenden($id); // laufendes Waschen bzw. Trocknen beenden
 ROBO_MeldungTesten($id);        // Probemeldung an die eingetragenen Meldeziele
 ROBO_RaeumeReinigen($id, "3,5"); // Raum-IDs zeigt das Formular
 ROBO_RaeumeReinigenMit($id, "3", 0, 0, 1); // Modus, Saugstufe, Durchgänge nur für diesen Start, -1 = wie eingestellt
+ROBO_BereichReinigen($id, 1.2, 0.8, 2.5, 2.0, 1); // Rechteck: zwei Ecken in Metern wie „Position X/Y“, Durchgänge (−1 = einmal); bisher Roborock
 ROBO_LiveKarteLaden($id);
 ROBO_VerbrauchsteilZuruecksetzen($id, "Filter"); // nach Wechsel/Reinigung, Ident der %-Variable
 ROBO_Aktualisieren($id);
@@ -244,7 +245,7 @@ nicht offiziell dokumentiert und kann sich ändern.
   Testdaten geprüft; im Forum an einem Saros 20 bestätigt (November 2026). Unterstützt sind Geräte mit dem
   Protokoll „1.0" (S-, Q-, Qrevo-, Saros-Reihen). Seit 0.54.0 auch die **Q7-Reihe** (Protokoll „B01“): Zustand, Akku,
   Fehler, Saugstufe, Wassermenge, Reinigungsmodus, Verbrauchsteile, Lautstärke und die Grundbefehle, seit 0.55.0 auch
-  Räume, Karte und Raumreinigung — an keinem echten Q7 geprüft (Tester willkommen). Die Q10-Reihe meldet RoboHub als „noch nicht unterstützt". Kartenbild mit Räumen, Station und während der Reinigung mit Weg und Roboter
+  Räume, Karte und Raumreinigung, seit 0.56.0 Bereiche — an keinem echten Q7 geprüft (Tester willkommen). Die Q10-Reihe meldet RoboHub als „noch nicht unterstützt". Kartenbild mit Räumen, Station und während der Reinigung mit Weg und Roboter
   seit 0.39.0, im Forum an einem Saros 20 und einem S5 bestätigt (November 2026). Reinigungsmodus (Saugen, Wischen, Saugen und Wischen) seit 0.40.0
   als Variable und beim Raumstart; „Saugen, dann Wischen“ als eigene Einstellung noch nicht — dafür in der App ein Programm anlegen
   (siehe unten). Echtzeit-Meldungen über eine dauerhafte Verbindung je Konto seit 0.50.0, im Forum an einem Saros 20 bestätigt

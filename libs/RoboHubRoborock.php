@@ -858,12 +858,38 @@ PEM;
                 return RoboHubText::t('Command "Locate" sent.');
             case 'raum':
                 return $this->raumReinigung($buendel, $geraet, $parameter);
+            case 'bereich':
+                // Valetudo RoborockZoneCleaningCapability (Apache-2.0): [[x1, y1, x2, y2, Durchgänge]] in Karten-mm,
+                // nur „positive Rechtecke" (x1 < x2, y1 < y2), 1–5 Bereiche, 1–3 Durchgänge.
+                $durchgaenge = min(3, max(1, (int)($parameter['durchgaenge'] ?? 1)));
+                $zonen = array_map(function (array $z) use ($durchgaenge): array {
+                    return [min($z[0], $z[2]), min($z[1], $z[3]), max($z[0], $z[2]), max($z[1], $z[3]), $durchgaenge];
+                }, self::bereiche($parameter));
+                $this->rpc($buendel, $geraet, 'app_zoned_clean', $zonen);
+                return RoboHubText::t('Area cleaning sent.');
             case 'setze':
                 return $this->setze($buendel, $geraet, (string)($parameter['feld'] ?? ''), (int)($parameter['wert'] ?? 0));
             case 'einstellung':
                 return $this->einstellung($buendel, $geraet, (string)($parameter['feld'] ?? ''), $parameter['wert'] ?? null);
         }
         throw new RoboHubFehler(RoboHubText::t('This command is not supported for Roborock yet: %s', $befehl));
+    }
+
+    /** Bereiche aus den Befehlsparametern: Liste [x1, y1, x2, y2] in Karten-mm, 1–5 Stück, keine leeren Flächen. */
+    private static function bereiche(array $parameter): array
+    {
+        $aus = [];
+        foreach ((array)($parameter['bereiche'] ?? []) as $z) {
+            $z = array_map('intval', array_values((array)$z));
+            if (count($z) !== 4 || $z[0] === $z[2] || $z[1] === $z[3]) {
+                throw new RoboHubFehler(RoboHubText::t('Invalid area — two opposite corners are needed.'));
+            }
+            $aus[] = $z;
+        }
+        if ($aus === [] || count($aus) > 5) {
+            throw new RoboHubFehler(RoboHubText::t('One to five areas are possible.'));
+        }
+        return $aus;
     }
 
     private function raumReinigung(array $buendel, array $geraet, array $parameter): string
@@ -1199,6 +1225,23 @@ PEM;
             }
             $this->q7Rpc($buendel, $geraet, 'service.set_room_clean', ['clean_type' => 1, 'ctrl_value' => 1, 'room_ids' => $raeume]);
             return RoboHubText::t('Room cleaning for %s room(s) sent.', count($raeume));
+        }
+        if ($befehl === 'bereich') {
+            // devices/traits/b01/q7 clean_zones: erst prefer_type 4 (Bereiche), dann die Ecken als flache Liste in
+            // Weltmetern [x1,y1, x2,y1, x2,y2, x1,y2, …], dann set_zone_clean ctrl 1. Karten-mm der Q7-Karte = Meter × 1000.
+            if ((int)($parameter['durchgaenge'] ?? 1) > 1) {
+                throw new RoboHubFehler(RoboHubText::t('The Roborock Q7 series cleans an area once only (passes are not supported yet).'));
+            }
+            $punkte = [];
+            foreach (self::bereiche($parameter) as $z) {
+                [$x1, $x2] = [min($z[0], $z[2]) / 1000, max($z[0], $z[2]) / 1000];
+                [$y1, $y2] = [min($z[1], $z[3]) / 1000, max($z[1], $z[3]) / 1000];
+                array_push($punkte, $x1, $y1, $x2, $y1, $x2, $y2, $x1, $y2);
+            }
+            $this->q7Rpc($buendel, $geraet, 'service.set_preference_type', ['prefer_type' => 4]);
+            $this->q7Rpc($buendel, $geraet, 'service.set_zone_points', ['zone_points' => $punkte]);
+            $this->q7Rpc($buendel, $geraet, 'service.set_zone_clean', ['ctrl_value' => 1]);
+            return RoboHubText::t('Area cleaning sent.');
         }
         $a = RoboHubRoborockQ7::befehl($befehl);
         if ($a === null) {

@@ -22,11 +22,8 @@
   der Cloud — ein Schlüssel je Konto, Erneuerung unter Semaphore.
 - Klassen/Präfixe/GUIDs sind eingefroren, sobald eine Instanz existiert (TOOLKIT.md-Faustregel,
   gilt hier genauso).
-- **Offen fürs nächste reguläre Release — Typ-Spalte** (Verbund-Regel 24.11.2026, SUITE.md „Typ-Spalte: lesbarer
-  Modulname über locale.json", EMS-Commit 5bccc74): module.json `name` NICHT ändern; in `libs/locale.json` unter
-  translations.de je Modul `"<name>": "<lesbarer Name>"` eintragen (eigenständig → ohne Marke), Vorschlag
-  „RoboHubKonto" → „RoboHub Konto", „RoboHubGeraet" → „RoboHub Roboter", „RoboHubKonfigurator" → „RoboHub
-  Konfigurator"; danach `php .tools/locale-bauen.php`. Kein eigenes Release nur dafür.
+- **Typ-Spalte** (seit 0.56.0, Verbund-Regel 24.11.2026): Modulnamen in `libs/locale.json` → translations.de
+  („RoboHub Konto/Roboter/Konfigurator“); module.json `name` nie ändern.
 
 ## Dreame/MOVA-Cloud — belegte Fakten (Quellcode ioBroker.dreame 0.4.12 + Tasshack 2.0.1, 11.10.2026)
 
@@ -618,7 +615,11 @@
   → Hex → zlib → SCMap-Protobuf (`RoboHubRoborockQ7Karte`, eigener Protobuf-Leser). Raster 0/127/128, Räume per Flutfüllung
   ab Namensposition (Umrisse als Grenze). Prüfstand mit echter Aufnahme `.tools/roborock/q7-karte-sc05.bin.gz` (Apache-2.0).
   Raum-IDs > 61 bleiben ungefärbt (Kodierung „rahmen“). `sn` erst ab 0.55.0 in der Geräteliste.
-- Offen: Zonen, Kartenpushes (Live-Karte), Echtzeit-Pushes, Teile zurücksetzen. **Nie an einem echten Q7.**
+- **Bereiche (0.56.0):** `ROBO_BereichReinigen` allgemein (Meter wie „Position X/Y“ → `RoboHubKartenbild::mmPunkt`),
+  Roborock 1.0 `app_zoned_clean` (Valetudo), Q7 prefer_type 4 → set_zone_points (Weltmeter) → set_zone_clean. Q7-Karten-mm
+  = Weltmeter × 1000 (ohne den 25500-Versatz der python-roborock-„common“-Koordinaten). Q7 nur 1 Durchgang.
+- Offen: Kartenpushes (Live-Karte), Echtzeit-Pushes, Teile zurücksetzen, Bereiche in der Kachel aufziehen, Bereiche für
+  Dreame/Ecovacs & Co. **Nie an einem echten Q7.**
 
 ## Roborock-Reinigungsmodus (0.40.0)
 

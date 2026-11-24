@@ -394,6 +394,22 @@ final class RoboHubKartenbild
         return $aus;
     }
 
+    /**
+     * Umkehrung zu prozentPunkt für Sauger-Raster: Meter ab der oberen linken Ecke des Kartenbilds (wie die Variablen
+     * „Position X/Y") → Karten-mm des Herstellers. null = keine Rasterkarte.
+     */
+    public static function mmPunkt(array $g, float $xm, float $ym): ?array
+    {
+        if (($g['art'] ?? '') !== 'raster' || (int)($g['raster'] ?? 0) <= 0) {
+            return null;
+        }
+        $r = (float)$g['raster'];
+        return [
+            (int)round($g['links'] + $xm * 1000 + ($g['minX'] - 0.5) * $r),
+            (int)round($g['oben'] + ($g['hoehe'] - 0.5 - $g['minY']) * $r - $ym * 1000),
+        ];
+    }
+
     /** Karten-mm → Bild-% nach der Geometrie eines Kartenbilds (Sauger-Raster oder Mäher-mm). */
     public static function prozentPunkt(array $g, float $x, float $y): array
     {
