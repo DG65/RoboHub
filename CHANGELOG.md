@@ -2,6 +2,19 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.58.0 (26.11.2026)
+
+- **Kachel: Kurzansicht und Abschnitte einzeln ausblendbar** (Forum mik 144636: kleine Übersichtskachel, „mir geht
+  der Platz auf der Haupt-Visu aus“; Dietmars Entscheidung). Neue Eigenschaften `KachelAnsicht` (0 automatisch nach
+  Größe, 1 immer vollständig, 2 immer kurz), `KurzBefehle` und je Abschnitt `KachelRaeume`, `KachelStation`,
+  `KachelProgramme`, `KachelZeitplaene`, `KachelUebersicht`, `KachelTeile`, `KachelDetails` (alle an); Karte und
+  Einstellungen weiter über `KarteZeigen`/`EinstellungenZeigen`. Kurzansicht automatisch unter 300 × 380 Punkten
+  (Symcon gibt der Kachel ihre Größe als Fenster; Wechsel live beim Größerziehen). Maximiert (Symcons Pfeile) ist die
+  Kachel groß → wieder vollständig — daher kein eigener Knopf zum Öffnen einer anderen Seite (VISU_OpenObject öffnet
+  laut Doku auf allen Geräten zugleich, Geräteauswahl „noch nicht unterstützt“). Ausgeblendete Räume: in der Karte
+  gewählte Räume lassen sich weiter starten. Fehler/Hinweise immer sichtbar. Sichtprüfung im Browser (220 × 220
+  kurz mit/ohne Befehle, 400 × 620 vollständig mit/ohne Abschnitte, Umschalten beim Vergrößern); 2/2 Gegenproben.
+
 ## 0.57.0 (24.11.2026)
 
 - **Roborock Q7: Live-Karte per Push** (Dietmars Auftrag). Quelle python-roborock 7.32.0 (49a32be, Apache-2.0):

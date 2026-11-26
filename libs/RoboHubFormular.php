@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.58.0' => [
+            '• Tile: short view for small tiles — only icon, state and battery, optionally with Start/Pause, Return to base and Locate. Maximized, the tile shows everything again. Under "Tile and IPSView" the view can be fixed, and every section of the complete view can be hidden individually.',
+        ],
         '0.57.0' => [
             '• Roborock Q7: live map while cleaning — RoboHub now uses the maps the Q7 sends by itself and shows the robot and the driven path on the tile about every 5 seconds (needs the real-time connection of the account).',
         ],

@@ -67,6 +67,11 @@ button:disabled{opacity:.45;cursor:default}
 .teil.aus{color:var(--fg2);opacity:.75}
 .mini.aus{background:transparent;color:var(--fg2)}
 .mehr{background:none;border:none;color:var(--blau);padding:.4em 0;font-size:.88em}
+.kurz{display:flex;flex-direction:column;gap:.55em;margin-top:.2em}
+.kurz .status{gap:.7em}.kurz .sym{width:2.6em;height:2.6em}.kurz .sym span{font-size:1.5em}
+.kurz .titel b{font-size:1.15em}.kurz .akku{margin:0}
+.kurzknoepfe{display:flex;gap:.45em}.kurzknoepfe button{flex:1;padding:.5em .2em;font-size:1.05em}
+.kurz .hinweis{margin-top:0;padding:.4em .65em;font-size:.82em}.kurz .meldung{margin-top:0;font-size:.78em}
 .fuss{margin-top:auto;padding-top:.8em;font-size:.75em;color:var(--fg2)}
 .meldung{font-size:.85em;color:var(--fg2);margin-top:.6em;min-height:1.2em}
 .karte{border-radius:.8em;background:var(--fl);padding:.5em}
@@ -215,6 +220,42 @@ function namenUmschalten() {
   zeichnen();
 }
 
+// Abschnitte der Kachel (Formular „In der Kachel zeigen", Forum mik 144636): fehlt die Angabe, wird alles gezeigt.
+function zeigt(teil) { return !(daten && daten.zeigen && daten.zeigen[teil] === false); }
+// Kurzansicht: fest gewählt oder automatisch, wenn die Kachel klein ist (Symcon gibt der Kachel ihre Größe als Fenster).
+// Maximiert (Pfeile oben rechts) ist die Kachel groß und zeigt wieder alles.
+var KURZ_BREITE = 300, KURZ_HOEHE = 380;
+function kurz() {
+  var a = daten ? Number(daten.ansicht || 0) : 0;
+  if (a === 1) { return false; }
+  if (a === 2) { return true; }
+  return window.innerWidth < KURZ_BREITE || window.innerHeight < KURZ_HOEHE;
+}
+window.addEventListener('resize', function () { if (daten) { zeichnen(); } });
+
+function kurzZeichnen(d, z, symbol, akkuFarbe, bedienbar) {
+  var h = '<div class="kurz"><div class="status"><div class="sym" style="' + farbe(z[1]) + '"><span>' + symbol + '</span></div>'
+    + '<div class="titel"><b>' + esc(d.zustandText) + '</b>' + (d.unterzeile ? '<span>' + esc(d.unterzeile) + '</span>' : '') + '</div></div>';
+  h += '<div class="akku"><div class="balken"><i style="width:' + (d.akku || 0) + '%;background:var(--' + akkuFarbe + ')"></i></div>'
+    + '<b>' + (d.akku == null ? '–' : d.akku + ' %') + '</b><span>' + (d.laedt ? sym('bolt', '⚡') : sym('battery-full', '🔋')) + '</span></div>';
+  if (d.fehler) { h += '<div class="hinweis" style="' + farbe('rot') + '">' + sym('triangle-exclamation', '⚠️') + ' ' + esc(d.fehler) + '</div>'; }
+  else if (!d.erreichbar) { h += '<div class="hinweis" style="' + farbe('grau') + '">' + sym('wifi-slash', '📡') + ' ' + T('Currently not reachable') + '</div>'; }
+  if (bedienbar && d.kurzBefehle !== false) {
+    // Start bzw. Pause (je nach Zustand), Station, Orten — nur Symbole, der Name steht im Tooltip.
+    var haupt = d.hauptknopf === 2 ? 2 : 1;
+    var knoepfe = BEFEHLE.filter(function (b) { return (b[0] === haupt || b[0] === 4 || b[0] === 5) && !(d.befehle && d.befehle.indexOf(b[0]) < 0); });
+    if (knoepfe.length) {
+      h += '<div class="kurzknoepfe">';
+      knoepfe.forEach(function (b) {
+        h += '<button' + (b[0] === haupt ? ' class="start"' : '') + (befehlLaeuft ? ' disabled' : '') + ' title="' + T(b[3]) + '" onclick="senden(\'Befehl\',' + b[0] + ',\'' + T(b[3]) + '\')">' + sym(b[1], b[2]) + '</button>';
+      });
+      h += '</div>';
+    }
+  }
+  if (rueck) { h += '<div class="meldung">' + textSym(rueck) + '</div>'; }
+  return h + '</div>';
+}
+
 function karteGross(an) { grossKarte = an; zeichnen(); }
 document.addEventListener('keydown', function (e) { if (grossKarte && e.key === 'Escape') { karteGross(false); } });
 
@@ -231,6 +272,7 @@ function zeichnen() {
   var akkuFarbe = d.akku == null ? 'grau' : (d.akku <= 15 ? 'rot' : (d.akku <= 35 ? 'gelb' : 'gruen'));
 
   var symbol = d.klasse === 'maeher' && d.zustand === 1 ? sym('seedling', '🌱') : sym(z[2], z[0]);
+  if (kurz()) { grossKarte = false; document.getElementById('app').innerHTML = kurzZeichnen(d, z, symbol, akkuFarbe, bedienbar); return; }
   // Produktbild des Herstellers mit Zustandsring + Zustandssymbol; ohne Bild
   // (oder wenn es nicht lädt) wie bisher nur das Symbol im Farbkreis.
   var l = '<div class="status">';
@@ -292,9 +334,10 @@ function zeichnen() {
   }
 
   var r = '', startTeil = '';
-  if (bedienbar && (d.raeume || []).length) {
-    r += '<div class="block"><p class="abschnitt">' + T(d.klasse === 'maeher' ? 'Mow zone' : 'Clean room') + '</p><div class="chips">';
-    d.raeume.forEach(function (x) { r += '<button class="chip' + (gewaehlt.indexOf(x.id) >= 0 ? ' an' : '') + '"' + (x.info ? ' title="' + esc(x.info) + '"' : '') + ' onclick="raumWaehlen(' + x.id + ')">' + esc(x.name) + '</button>'; });
+  // Räume ausgeblendet: keine Knöpfe, aber in der Karte gewählte Räume lassen sich weiter starten.
+  if (bedienbar && (d.raeume || []).length && (zeigt('raeume') || gewaehlt.length)) {
+    r += '<div class="block">' + (zeigt('raeume') ? '<p class="abschnitt">' + T(d.klasse === 'maeher' ? 'Mow zone' : 'Clean room') + '</p>' : '') + '<div class="chips">';
+    if (zeigt('raeume')) { d.raeume.forEach(function (x) { r += '<button class="chip' + (gewaehlt.indexOf(x.id) >= 0 ? ' an' : '') + '"' + (x.info ? ' title="' + esc(x.info) + '"' : '') + ' onclick="raumWaehlen(' + x.id + ')">' + esc(x.name) + '</button>'; }); }
     // Einstellungen der gewählten Räume (aus der App) unter den Knöpfen — so sieht man vor dem Start, was passiert.
     d.raeume.filter(function (x) { return gewaehlt.indexOf(x.id) >= 0 && x.info; }).forEach(function (x) {
       r += '<div class="raumeinst">' + esc(x.name) + ': ' + esc(x.info) + '</div>';
@@ -319,20 +362,20 @@ function zeichnen() {
     r += '</div>';
   }
   var stationsKnoepfe = bedienbar && d.befehle ? STATIONSBEFEHLE.filter(function (b) { return d.befehle.indexOf(b[0]) >= 0; }) : [];
-  if (stationsKnoepfe.length) {
+  if (stationsKnoepfe.length && zeigt('station')) {
     r += '<div class="block"><p class="abschnitt">' + T('Station') + '</p><div class="chips">';
     stationsKnoepfe.forEach(function (b) {
       r += '<button class="chip"' + (befehlLaeuft ? ' disabled' : '') + ' onclick="senden(\'Befehl\',' + b[0] + ',\'' + T(b[3]) + '\')">' + sym(b[1], b[2]) + ' ' + T(b[3]) + '</button>';
     });
     r += '</div></div>';
   }
-  if (bedienbar && (d.programme || []).length) {
+  if (bedienbar && (d.programme || []).length && zeigt('programme')) {
     // App-Programme (Roborock-Routinen): Ein Druck startet, was in der App hinterlegt ist.
     r += '<div class="block"><p class="abschnitt">' + T('Routines') + '</p><div class="chips">';
     d.programme.forEach(function (x) { r += '<button class="chip" onclick="senden(\'Programm\',\'' + Number(x.id) + '\',\'' + T('Routine %s', esc(x.name).replace(/'/g, '')) + '\')">' + sym('play', '▶️') + ' ' + esc(x.name) + '</button>'; });
     r += '</div></div>';
   }
-  if ((d.zeitplaene || []).length) {
+  if ((d.zeitplaene || []).length && zeigt('zeitplaene')) {
     r += '<div class="block"><p class="abschnitt">' + T('Schedules') + '</p>';
     d.zeitplaene.forEach(function (t) {
       var knopf = bedienbar && t.schaltbar
@@ -358,11 +401,11 @@ function zeichnen() {
     }
     r += '</div>';
   }
-  if ((d.info || []).length) {
+  if ((d.info || []).length && zeigt('uebersicht')) {
     r += '<div class="block"><p class="abschnitt">' + T('Overview') + '</p><div class="info">' + d.info.map(function (t) { return '<span>' + textSym(t) + '</span>'; }).join('') + '</div></div>';
   }
   var teile = (d.teile || []).slice().sort(function (a, b) { return a.prozent - b.prozent; });
-  if (teile.length) {
+  if (teile.length && zeigt('teile')) {
     var kritisch = teile.filter(function (t) { return t.prozent <= TEIL_GELB; });
     // Bis zu 4 Teile (z. B. Mäher) passen immer — dann nichts einklappen.
     var offen = alleTeile || teile.length <= 4;
@@ -385,7 +428,7 @@ function zeichnen() {
     r += '</div>';
   }
   var det = d.details || [];
-  if (det.length) {
+  if (det.length && zeigt('details')) {
     // Messwerte und Statistik, eingeklappt (die Kachel bleibt kurz).
     r += '<div class="block"><button class="mehr" onclick="detailsOffen=!detailsOffen;zeichnen()">' + T('Details') + (detailsOffen ? ' ‹' : ' ›') + '</button>';
     if (detailsOffen) {

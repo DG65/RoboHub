@@ -158,6 +158,13 @@ kitchen"), mode and suction level as well as the consumables that are due, first
 controls use the sign-in of the visualization. The double arrow shows all variables as
 usual.
 
+**Small tile (since 0.58.0):** If the tile is small, it only shows the icon, state and battery, optionally
+with the buttons Start/Pause, Return to base and Locate — suitable for an overview page. Maximized via the two
+arrows at the top right, it is large and shows everything again. Under "Tile and IPSView" the view can also be
+fixed to "always complete" or "always short", and every section of the complete view (map, rooms, station,
+routines, schedules, settings, overview, consumables, details) can be hidden individually. Errors and warnings
+always appear.
+
 **IPSView and browser:** IPSView cannot display Symcon tiles. Therefore
 every robot also delivers the same view as a standalone page:
 `http://<Symcon-IP>:3777/hook/robohub<InstanzID>` — embed it in IPSView as a WebView element;

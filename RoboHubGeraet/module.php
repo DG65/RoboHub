@@ -80,6 +80,12 @@ class RoboHubGeraet extends IPSModule
         $this->RegisterAttributeString('Meldestatus', '');
         $this->RegisterPropertyInteger('Symbole', 0);      // 0 Symcon-Symbole (icons.js), 1 Emojis (Forum Thilo 26.10.2026)
         $this->RegisterPropertyBoolean('EinstellungenZeigen', true);
+        // 0.58.0 (Forum mik 144636): Kurzansicht für kleine Kacheln und Abschnitte einzeln ausblendbar.
+        $this->RegisterPropertyInteger('KachelAnsicht', 0);   // 0 automatisch nach Größe, 1 immer vollständig, 2 immer kurz
+        $this->RegisterPropertyBoolean('KurzBefehle', true);
+        foreach (self::KACHEL_ABSCHNITTE as $prop => $teil) {
+            $this->RegisterPropertyBoolean($prop, true);
+        }
         $this->RegisterPropertyBoolean('Deaktiviert', false);
         // Live-Karte: während der Arbeit aktuelle Karte mit Weg und Roboter holen.
         $this->RegisterPropertyBoolean('LiveKarte', true);
@@ -1736,6 +1742,12 @@ class RoboHubGeraet extends IPSModule
     }
 
     /** Texte der Kachel (module.html schlägt sie per T() nach; Deutsch aus locale.json). */
+    /** Abschnitte der Kachel, die sich im Formular ausblenden lassen: Eigenschaft => Schlüssel in der Kachel. */
+    private const KACHEL_ABSCHNITTE = [
+        'KachelRaeume' => 'raeume', 'KachelStation' => 'station', 'KachelProgramme' => 'programme', 'KachelZeitplaene' => 'zeitplaene',
+        'KachelUebersicht' => 'uebersicht', 'KachelTeile' => 'teile', 'KachelDetails' => 'details',
+    ];
+
     private const KACHEL_TEXTE = ['language code: en', 'charging', 'Currently not reachable', 'Display only — control not enabled for this page', 'Map', 'Station', 'Live · %s', 'Mow zone', 'Clean room', 'Mode as set', 'Suction level as set', 'Mowing %s', 'Cleaning %s', 'Mow %s', 'Clean %s', 'Schedules', 'Schedule off', 'Schedule on', 'on', 'off', 'Overview', 'Consumables', 'Reset %s', 'Yes, reset', 'No', 'Reset after replacing/cleaning', '%s more OK', 'All %s OK', 'less', 'As of %s', '%s sent …', 'sent', 'rejected', 'No connection to Symcon', 'Start', 'Pause', 'Locate', 'Room names in the map', 'Hide names', 'Show names', 'Enlarge map', 'Shrink map', 'Close', 'Settings', 'Details', 'Routines', 'Routine %s', 'Empty dustbin', 'Wash mop', 'Dry mop', 'Stop station task'];
 
     /** Daten für Kachel und eigenständige Seite (JSON). */
@@ -1857,6 +1869,9 @@ class RoboHubGeraet extends IPSModule
             'kartenNamen' => $this->ReadPropertyBoolean('KarteNamen'),
             'id'          => $this->InstanceID,
             'symbole'     => $this->ReadPropertyInteger('Symbole'),
+            'ansicht'     => $this->ReadPropertyInteger('KachelAnsicht'),
+            'kurzBefehle' => $this->ReadPropertyBoolean('KurzBefehle'),
+            'zeigen'      => array_combine(array_values(self::KACHEL_ABSCHNITTE), array_map(function (string $p): bool { return $this->ReadPropertyBoolean($p); }, array_keys(self::KACHEL_ABSCHNITTE))),
             // Hervorgehobener Knopf: der, der gerade naheliegt (bei Fehlern keiner).
             'befehle'     => $this->bekannteBefehle(),
             'hauptknopf'  => $zustand === RoboHubModell::ZUSTAND_REINIGT ? 2 : ($zustand === RoboHubModell::ZUSTAND_FEHLER ? 0 : 1),
@@ -1994,8 +2009,24 @@ class RoboHubGeraet extends IPSModule
                     ['caption' => 'Emojis (colourful characters of the device)', 'value' => 1],
                 ]],
                 ['type' => 'Label', 'caption' => 'Symcon icons come from the Symcon server and look the same on every device. Emojis need an emoji font on the displaying device (missing e.g. on a Raspberry Pi). If the Symcon icons cannot be loaded, the tile shows emojis by itself.'],
-                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Show the robot\'s settings in the tile (suction level, rain delay, do not disturb …) — selectable there; the instance\'s variables always stay'],
+                ['type' => 'Select', 'name' => 'KachelAnsicht', 'caption' => 'Tile view', 'options' => [
+                    ['caption' => 'Automatic: short view when the tile is small', 'value' => 0],
+                    ['caption' => 'Always complete', 'value' => 1],
+                    ['caption' => 'Always short (symbol, state, battery)', 'value' => 2],
+                ]],
+                ['type' => 'Label', 'caption' => 'The short view shows only the symbol, state and battery — for a small tile on the main page. Maximized (the two arrows at the top right) the tile is large and shows everything again.'],
+                ['type' => 'CheckBox', 'name' => 'KurzBefehle', 'caption' => 'Short view: show the commands (Start/Pause, Station, Locate)'],
+                ['type' => 'Label', 'caption' => 'Show in the complete view:'],
                 ['type' => 'CheckBox', 'name' => 'KarteZeigen', 'caption' => 'Show map image (rooms or mowing zones to tap)'],
+                ['type' => 'CheckBox', 'name' => 'KachelRaeume', 'caption' => 'Rooms or mowing zones as buttons'],
+                ['type' => 'CheckBox', 'name' => 'KachelStation', 'caption' => 'Station tasks (empty dustbin, wash mop …)'],
+                ['type' => 'CheckBox', 'name' => 'KachelProgramme', 'caption' => 'Routines from the app'],
+                ['type' => 'CheckBox', 'name' => 'KachelZeitplaene', 'caption' => 'Schedules'],
+                ['type' => 'CheckBox', 'name' => 'EinstellungenZeigen', 'caption' => 'Show the robot\'s settings in the tile (suction level, rain delay, do not disturb …) — selectable there; the instance\'s variables always stay'],
+                ['type' => 'CheckBox', 'name' => 'KachelUebersicht', 'caption' => 'Overview (volume, rain, area so far …)'],
+                ['type' => 'CheckBox', 'name' => 'KachelTeile', 'caption' => 'Consumables'],
+                ['type' => 'CheckBox', 'name' => 'KachelDetails', 'caption' => 'Details (measured values and statistics)'],
+                ['type' => 'Label', 'caption' => 'Errors and warnings (e.g. water tank) are always shown. Hidden sections only leave the tile — variables and functions stay.'],
                 ['type' => 'CheckBox', 'name' => 'KarteNamen', 'caption' => 'Show room names in the map image (default — can also be switched per device in the tile)'],
                 ['type' => 'CheckBox', 'name' => 'KarteTeppich', 'caption' => 'Show carpets in the map'],
                 ['type' => 'Label', 'name' => 'KarteTeppichHint', 'caption' => 'Carpets marked in the app appear as a checkered pattern in the tile and in the map image. So far only Roborock provides them.'],

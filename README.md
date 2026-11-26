@@ -156,6 +156,13 @@ reinigen"), Modus und Saugstufe sowie die Verbrauchsteile, die fällig sind, zue
 Bedienung nutzt die Anmeldung der Visualisierung. Über den Doppelpfeil kommen wie
 gewohnt alle Variablen.
 
+**Kleine Kachel (seit 0.58.0):** Ist die Kachel klein, zeigt sie nur Symbol, Zustand und Akku, auf Wunsch
+mit den Knöpfen Start/Pause, Station und Orten — passend für eine Übersichtsseite. Über die zwei Pfeile oben
+rechts maximiert, ist sie groß und zeigt wieder alles. Unter „Kachel und IPSView“ lässt sich die Ansicht auch
+fest auf „immer vollständig“ oder „immer kurz“ stellen, und jeder Abschnitt der vollständigen Ansicht (Karte,
+Räume, Station, Programme, Zeitpläne, Einstellungen, Überblick, Verbrauchsteile, Details) einzeln ausblenden.
+Fehler und Hinweise erscheinen immer.
+
 **IPSView und Browser:** IPSView kann Symcon-Kacheln nicht darstellen. Deshalb liefert
 jeder Roboter dieselbe Ansicht zusätzlich als eigenständige Seite:
 `http://<Symcon-IP>:3777/hook/robohub<InstanzID>` — in IPSView als WebView-Element

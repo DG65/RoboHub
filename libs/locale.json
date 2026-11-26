@@ -2017,7 +2017,21 @@
             "• New: clean a rectangular area — ROBO_BereichReinigen($id, x1, y1, x2, y2, passes) with two corners in metres like the variables \"Position X/Y\". So far for Roborock (also from Mi Home) and the Roborock Q7.": "• Neu: rechteckigen Bereich reinigen — ROBO_BereichReinigen($id, x1, y1, x2, y2, Durchgänge) mit zwei Ecken in Metern wie die Variablen „Position X/Y“. Bisher für Roborock (auch aus Mi Home) und den Roborock Q7.",
             "• The column \"Type\" in the object tree shows readable module names when Symcon runs in German.": "• Die Spalte „Typ“ im Objektbaum zeigt jetzt lesbare Namen (RoboHub Konto, RoboHub Roboter, RoboHub Konfigurator).",
             "ℹ️ The robot sends its live map by itself right now (last %s) — no request needed.": "ℹ️ Der Roboter schickt seine Live-Karte gerade selbst (zuletzt %s) — kein Abruf nötig.",
-            "• Roborock Q7: live map while cleaning — RoboHub now uses the maps the Q7 sends by itself and shows the robot and the driven path on the tile about every 5 seconds (needs the real-time connection of the account).": "• Roborock Q7: Live-Karte beim Reinigen — RoboHub nutzt jetzt die Karten, die der Q7 selbst schickt, und zeigt Roboter und gefahrenen Weg etwa alle 5 Sekunden auf der Kachel (braucht die Echtzeit-Verbindung des Kontos)."
+            "• Roborock Q7: live map while cleaning — RoboHub now uses the maps the Q7 sends by itself and shows the robot and the driven path on the tile about every 5 seconds (needs the real-time connection of the account).": "• Roborock Q7: Live-Karte beim Reinigen — RoboHub nutzt jetzt die Karten, die der Q7 selbst schickt, und zeigt Roboter und gefahrenen Weg etwa alle 5 Sekunden auf der Kachel (braucht die Echtzeit-Verbindung des Kontos).",
+            "Tile view": "Ansicht der Kachel",
+            "Automatic: short view when the tile is small": "Automatisch: Kurzansicht, wenn die Kachel klein ist",
+            "Always complete": "Immer vollständig",
+            "Always short (symbol, state, battery)": "Immer kurz (Symbol, Zustand, Akku)",
+            "The short view shows only the symbol, state and battery — for a small tile on the main page. Maximized (the two arrows at the top right) the tile is large and shows everything again.": "Die Kurzansicht zeigt nur Symbol, Zustand und Akku — für eine kleine Kachel auf der Hauptseite. Maximiert (die zwei Pfeile oben rechts) ist die Kachel groß und zeigt wieder alles.",
+            "Short view: show the commands (Start/Pause, Station, Locate)": "Kurzansicht: Befehle zeigen (Start/Pause, Station, Orten)",
+            "Show in the complete view:": "In der vollständigen Ansicht zeigen:",
+            "Rooms or mowing zones as buttons": "Räume bzw. Mähzonen als Knöpfe",
+            "Station tasks (empty dustbin, wash mop …)": "Stationsaufgaben (Absaugen, Mopp waschen …)",
+            "Routines from the app": "Programme aus der App",
+            "Overview (volume, rain, area so far …)": "Überblick (Lautstärke, Regen, bisherige Fläche …)",
+            "Details (measured values and statistics)": "Details (Messwerte und Statistik)",
+            "Errors and warnings (e.g. water tank) are always shown. Hidden sections only leave the tile — variables and functions stay.": "Fehler und Hinweise (z. B. Wassertank) erscheinen immer. Ausgeblendete Abschnitte verschwinden nur aus der Kachel — Variablen und Funktionen bleiben.",
+            "• Tile: short view for small tiles — only icon, state and battery, optionally with Start/Pause, Return to base and Locate. Maximized, the tile shows everything again. Under \"Tile and IPSView\" the view can be fixed, and every section of the complete view can be hidden individually.": "• Kachel: Kurzansicht für kleine Kacheln — nur Symbol, Zustand und Akku, auf Wunsch mit Start/Pause, Station und Orten. Maximiert zeigt die Kachel wieder alles. Unter „Kachel und IPSView“ lässt sich die Ansicht fest einstellen und jeder Abschnitt der vollständigen Ansicht einzeln ausblenden."
         }
     }
 }

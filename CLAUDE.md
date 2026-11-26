@@ -100,6 +100,14 @@
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
   (Port 3777 zu); Attribute/Anmeldungen blieben dabei erhalten. Nicht leichtfertig wiederholen.
 
+## Kachel: Kurzansicht und Abschnitte (0.58.0)
+
+- Forum mik 144636 (26.11.2026). `KachelAnsicht` 0/1/2, `KurzBefehle`, `KACHEL_ABSCHNITTE` (Eigenschaft → Schlüssel
+  `zeigen.*` in der Kachel); JS `zeigt(teil)`, `kurz()` (Schwelle `KURZ_BREITE`/`KURZ_HOEHE` = 300/380 px, `resize`
+  zeichnet neu), `kurzZeichnen`. Ausblenden nur in der Kachel, Daten bleiben (Tests prüfen das). Große Ansicht über
+  Symcons Maximieren-Pfeile; VISU_OpenObject bewusst nicht (öffnet auf allen Geräten). Nie live in Symcon gesehen —
+  Schwellen ggf. nach Rückmeldung anpassen.
+
 ## Kachel und IPSView (0.3.0)
 
 - Kachel in `RoboHubGeraet` (`module.html`, `kachelDaten()`), Aktualisierung nach jedem Abruf,

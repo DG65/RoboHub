@@ -857,6 +857,26 @@ check('gespeicherte Karte: kein (veralteter) Roboter, kein Weg', !isset($k['kart
 $geraet->props['KarteZeigen'] = false;
 check('„Kartenbild zeigen" aus → keine Karte auf der Kachel', kachelJson($geraet->GetVisualizationTile())['karte'] === null);
 $geraet->props['KarteZeigen'] = true;
+// 0.58.0 (Forum mik 144636): Ansicht und Abschnitte der Kachel.
+check('Kachel: Ansicht automatisch, Befehle in der Kurzansicht, alle Abschnitte an (Standard)', $k['ansicht'] === 0 && $k['kurzBefehle'] === true
+    && $k['zeigen'] === ['raeume' => true, 'station' => true, 'programme' => true, 'zeitplaene' => true, 'uebersicht' => true, 'teile' => true, 'details' => true], json_encode($k['zeigen'] ?? null));
+$geraet->props['KachelTeile'] = false;
+$geraet->props['KachelAnsicht'] = 2;
+$geraet->props['KurzBefehle'] = false;
+$kz = kachelJson($geraet->GetVisualizationTile());
+check('Kachel: Verbrauchsteile aus, immer kurz, ohne Befehle → so an die Kachel; Daten (Räume) bleiben', $kz['zeigen']['teile'] === false && $kz['zeigen']['raeume'] === true
+    && $kz['ansicht'] === 2 && $kz['kurzBefehle'] === false && count($kz['raeume']) === 2);
+$geraet->props['KachelTeile'] = true;
+$geraet->props['KachelAnsicht'] = 0;
+$geraet->props['KurzBefehle'] = true;
+$kHtml = (string)file_get_contents(__DIR__ . '/../RoboHubGeraet/module.html');
+$fehltZeigt = [];
+foreach (['raeume', 'station', 'programme', 'zeitplaene', 'uebersicht', 'teile', 'details'] as $teil) {
+    if (strpos($kHtml, "zeigt('" . $teil . "')") === false) {
+        $fehltZeigt[] = $teil;
+    }
+}
+check('Kachel-HTML wertet jeden Abschnitt-Schalter aus und hat die Kurzansicht', $fehltZeigt === [] && strpos($kHtml, 'if (kurz()) {') !== false && strpos($kHtml, 'function kurzZeichnen') !== false, implode(', ', $fehltZeigt));
 FakeCloud::$karte = $klar;
 $geraet->RaeumeLaden();
 check('Karte ohne Bildpunkte → altes Bild bleibt (kein Flackern), Räume aktualisiert', strpos((string)(kachelJson($geraet->GetVisualizationTile())['karte']['bild'] ?? ''), 'data:image/png') === 0 && count(kachelJson($geraet->GetVisualizationTile())['raeume']) === 3);
