@@ -2,6 +2,16 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.59.0 (27.11.2026)
+
+- **Roborock: Dauerverbindung vorbeugend erneuern** (Forum lugge 144636/192, Archiv „Erreichbar“ 24.–27.11.2026): 19 von 27
+  Ausfällen begannen 3:00:47–3:00:51 nach dem letzten Wiederkommen und dauerten stets 6:21 (drei Abrufe bis zum Neuaufbau);
+  kurze Aussetzer dazwischen setzten die Uhr nicht zurück → Roborocks Server verstummt etwa 3 h nach dem Verbindungsaufbau.
+  `dauerGesund(true)` baut jetzt nach einer beantworteten Anfrage neu auf, wenn die Verbindung 2 h 45 min steht
+  (`DAUER_VORBEUGEND`, höchstens einmal in dieser Zeit, Puffer `DauerVorbeugend`), nur Debug, kein Meldungsfenster. Der
+  Neuaufbau bei drei Ausfällen bleibt als Netz. Prüfstand: junge Verbindung → nichts, 2 h 46 min → Neuaufbau, kein zweiter
+  gleich danach; 2/2 Gegenproben (die erste Fassung der Wiederholungsprüfung fing nicht — nachgeschärft). Nie live.
+
 ## 0.58.0 (26.11.2026)
 
 - **Kachel: Kurzansicht und Abschnitte einzeln ausblendbar** (Forum mik 144636: kleine Übersichtskachel, „mir geht

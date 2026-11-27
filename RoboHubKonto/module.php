@@ -1176,12 +1176,25 @@ class RoboHubKonto extends IPSModule
     // aufbauen (neue Anmeldung + neues Abo), höchstens alle 30 min (Forum lugge 144636/179: 0 von 5 Anfragen, kein PUBLISH).
     private const DAUER_AUSFAELLE = 3;
     private const DAUER_NEUSTART_ABSTAND = 1800;
+    // 0.59.0 (Forum lugge 144636/192, Archiv 24.–27.11.2026): Roborock verstummt fast auf die Sekunde 3 h nach jedem
+    // Neuaufbau (3:00:47–3:00:51, 19 von 27 Ausfällen; kurze Aussetzer dazwischen setzen die Uhr nicht zurück). Bis die
+    // drei Ausfälle beisammen sind, vergehen gut 6 min „nicht erreichbar“. Darum vorbeugend neu verbinden, sobald die
+    // Verbindung 2 h 45 min steht — direkt nach einer beantworteten Anfrage, damit die nächste schon die neue Verbindung trifft.
+    private const DAUER_VORBEUGEND = 9900;
 
     private function dauerGesund(bool $gesund): void
     {
         if ($gesund) {
             $this->SetBuffer('DauerAusfaelle', '0');
             $this->SetBuffer('DauerUngeheilt', '0');   // Neuaufbau hat geholfen
+            $stand = json_decode((string)$this->ReadAttributeString('Mqtt'), true) ?: [];
+            $alter = time() - (int)($stand['seit'] ?? time());
+            if (($stand['zustand'] ?? '') === 'verbunden' && $alter >= self::DAUER_VORBEUGEND
+                && time() - (int)$this->GetBuffer('DauerVorbeugend') >= self::DAUER_VORBEUGEND) {
+                $this->SetBuffer('DauerVorbeugend', (string)time());
+                $this->SendDebug('Echtzeit', 'Verbindung steht seit ' . round($alter / 60) . ' min — vorbeugend neu aufgebaut (Roborock verstummt nach etwa 3 h)', 0);
+                $this->echtzeitKonfigurieren(true);
+            }
             return;
         }
         $n = (int)$this->GetBuffer('DauerAusfaelle') + 1;

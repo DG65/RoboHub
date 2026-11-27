@@ -257,7 +257,8 @@ not officially documented and may change.
   room cleaning, since 0.56.0 areas, since 0.57.0 the live map sent by the robot itself — not tested on a real Q7 (testers welcome). RoboHub reports the Q10 series as "not supported yet". Map image with rooms, dock and, while cleaning, path and robot since 0.39.0, confirmed in the forum
   on a Saros 20 and an S5 (November 2026). Cleaning mode (vacuum, mop, vacuum and mop) since 0.40.0 as a variable and when starting
   a room; "vacuum, then mop" as its own setting not yet — create a routine in the app instead (see below). Real-time messages
-  over a persistent connection per account since 0.50.0, confirmed in the forum on a Saros 20 (November 2026). **Routines** since
+  over a persistent connection per account since 0.50.0, confirmed in the forum on a Saros 20 (November 2026); Roborock goes silent
+  about 3 hours after connecting, so since 0.59.0 RoboHub reconnects pre-emptively after 2 h 45 min. **Routines** since
   0.51.0: RoboHub fetches them when loading the rooms, start via the variable "Start routine", the tile (section "Routines") or
   `ROBO_ProgrammStarten($id, $programmID)`; what a routine does is set in the app. No schedules yet.
 - **Roborock in Mi Home** (since 0.38.0): Xiaomi account (QR code or password), control locally via miIO

@@ -26,6 +26,9 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.59.0' => [
+            '• Roborock: the real-time connection is now renewed pre-emptively after 2 h 45 min — Roborock goes silent about 3 hours after connecting, and the robots were shown as "not reachable" for about 6 minutes each time.',
+        ],
         '0.58.0' => [
             '• Tile: short view for small tiles — only icon, state and battery, optionally with Start/Pause, Return to base and Locate. Maximized, the tile shows everything again. Under "Tile and IPSView" the view can be fixed, and every section of the complete view can be hidden individually.',
         ],

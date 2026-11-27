@@ -602,6 +602,12 @@
   Bei lugge (1 Roboter) liefen Antworten bis dahin → die 0.50.0-Annahme „ReceiveData parallel zu ForwardData“ trägt.
   **Live bestätigt 24.11. (lugge #187):** Verstummen etwa alle 3 h 07 min, Neuaufbau nach ~6 min heilt jedes Mal. Seit 0.53.1
   Warnung nur, wenn der vorige Neuaufbau ohne Antwort blieb (Puffer `DauerUngeheilt`).
+- **Vorbeugender Neuaufbau (0.59.0, lugge #192):** Archiv „Erreichbar“ 24.–27.11.: 19 von 27 Ausfällen genau 3:00:47–3:00:51
+  nach dem letzten Wiederkommen, Dauer stets 6:21 (3 Abrufe à 2 min bis zum Neuaufbau); kurze Aussetzer dazwischen setzen die
+  3-h-Uhr nicht zurück → Uhr läuft ab Verbindungsaufbau (Server-Sitzung), nicht ab letzter Nachricht. `dauerGesund(true)`
+  baut neu auf, wenn `Mqtt.seit` ≥ 2 h 45 min (`DAUER_VORBEUGEND` 9900 s), höchstens einmal je 2 h 45 min (Puffer
+  `DauerVorbeugend`), direkt nach einer beantworteten Anfrage. python-roborock hat keinen solchen Takt (nur HealthManager +
+  Abo-Leerlauf 60 s). Kein eigenes Roborock-Cloudkonto auf Dietmars Privat-Symcon → Wirkung nur über lugge prüfbar.
 - **Client Socket ist für Nutzer gesperrt** (GetConfigurationForParent): Notbehelf NIE „im Socket Geöffnet aus/an“ empfehlen
   (Fehler in Forum #181/#182, alsk1 #184). Seit 0.52.3 Knopf „🔁 Echtzeit jetzt neu verbinden“ (`EchtzeitNeuVersuchen`) immer
   sichtbar bei eingeschalteter Echtzeit; hebt Zertifikatssperre auf, Drosselpause (`EchtzeitPauseBis`) bewusst nicht.

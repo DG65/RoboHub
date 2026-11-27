@@ -256,7 +256,8 @@ nicht offiziell dokumentiert und kann sich ändern.
   seit 0.39.0, im Forum an einem Saros 20 und einem S5 bestätigt (November 2026). Reinigungsmodus (Saugen, Wischen, Saugen und Wischen) seit 0.40.0
   als Variable und beim Raumstart; „Saugen, dann Wischen“ als eigene Einstellung noch nicht — dafür in der App ein Programm anlegen
   (siehe unten). Echtzeit-Meldungen über eine dauerhafte Verbindung je Konto seit 0.50.0, im Forum an einem Saros 20 bestätigt
-  (November 2026). **Programme** (in der App „Routinen“) seit 0.51.0: RoboHub holt sie beim Laden der Räume, Start über die
+  (November 2026); Roborock verstummt etwa 3 Stunden nach dem Verbinden, RoboHub verbindet deshalb seit 0.59.0 nach
+  2 h 45 min vorbeugend neu. **Programme** (in der App „Routinen“) seit 0.51.0: RoboHub holt sie beim Laden der Räume, Start über die
   Variable „Programm starten“, die Kachel (Abschnitt „Programme“) oder `ROBO_ProgrammStarten($id, $programmID)`; was ein Programm
   tut, legt die App fest. Noch ohne Zeitpläne.
 - **Roborock in Mi Home** (seit 0.38.0): Xiaomi-Konto (QR-Code oder Passwort), Steuerung lokal per miIO
