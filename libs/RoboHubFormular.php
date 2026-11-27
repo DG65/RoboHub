@@ -26,6 +26,10 @@ trait RoboHubFormular
     // „Was ist neu": Schlüssel = Version ohne Beta-/Build-Suffix.
     private static $ROBOHUB_NEWS_VERSIONS = [
         // Ältere Versionen: CHANGELOG.md / CHANGELOG-Archiv.md (gekürzt für die englische Fassung, 0.35.0).
+        '0.59.1' => [
+            '• Map: after work ends, RoboHub loads the map once more a minute later — the robot was sometimes shown next to its dock because the state changed before the robot updated its map.',
+            '• Roborock: the real-time connection is now renewed after 2 h 30 min instead of 2 h 45 min — more margin, also with a long polling interval.',
+        ],
         '0.59.0' => [
             '• Roborock: the real-time connection is now renewed pre-emptively after 2 h 45 min — Roborock goes silent about 3 hours after connecting, and the robots were shown as "not reachable" for about 6 minutes each time.',
         ],

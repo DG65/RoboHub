@@ -1179,8 +1179,9 @@ class RoboHubKonto extends IPSModule
     // 0.59.0 (Forum lugge 144636/192, Archiv 24.–27.11.2026): Roborock verstummt fast auf die Sekunde 3 h nach jedem
     // Neuaufbau (3:00:47–3:00:51, 19 von 27 Ausfällen; kurze Aussetzer dazwischen setzen die Uhr nicht zurück). Bis die
     // drei Ausfälle beisammen sind, vergehen gut 6 min „nicht erreichbar“. Darum vorbeugend neu verbinden, sobald die
-    // Verbindung 2 h 45 min steht — direkt nach einer beantworteten Anfrage, damit die nächste schon die neue Verbindung trifft.
-    private const DAUER_VORBEUGEND = 9900;
+    // Verbindung 2 h 30 min steht — direkt nach einer beantworteten Anfrage, damit die nächste schon die neue Verbindung trifft.
+    // 0.59.1 (Forum alsk1 144636/194): 2 h 30 statt 2 h 45 — mehr Spielraum, auch bei langem Abruftakt.
+    private const DAUER_VORBEUGEND = 9000;
 
     private function dauerGesund(bool $gesund): void
     {

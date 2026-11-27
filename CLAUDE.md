@@ -100,6 +100,12 @@
 - **MC_DeleteModule/CreateModule für RoboHub hat Symcon ~5 min komplett neu starten lassen**
   (Port 3777 zu); Attribute/Anmeldungen blieben dabei erhalten. Nicht leichtfertig wiederholen.
 
+## Live-Karte: Nachladen nach Arbeitsende (0.59.1)
+
+- Forum alsk1 144636/194: Zustand wechselt (Push) bevor der Roboter seine Karte mit Stationsposition nachführt → Roboter stand
+  neben der Station. `liveSteuern` lädt am Ende sofort und stellt den Takt `LiveKarte` auf einmalig 60 s (`LIVE_NACHLADEN_S`);
+  `LiveKarteLaden` setzt den Takt aus, wenn `LiveAktiv` aus ist.
+
 ## Kachel: Kurzansicht und Abschnitte (0.58.0)
 
 - Forum mik 144636 (26.11.2026). `KachelAnsicht` 0/1/2, `KurzBefehle`, `KACHEL_ABSCHNITTE` (Eigenschaft → Schlüssel
@@ -605,7 +611,7 @@
 - **Vorbeugender Neuaufbau (0.59.0, lugge #192):** Archiv „Erreichbar“ 24.–27.11.: 19 von 27 Ausfällen genau 3:00:47–3:00:51
   nach dem letzten Wiederkommen, Dauer stets 6:21 (3 Abrufe à 2 min bis zum Neuaufbau); kurze Aussetzer dazwischen setzen die
   3-h-Uhr nicht zurück → Uhr läuft ab Verbindungsaufbau (Server-Sitzung), nicht ab letzter Nachricht. `dauerGesund(true)`
-  baut neu auf, wenn `Mqtt.seit` ≥ 2 h 45 min (`DAUER_VORBEUGEND` 9900 s), höchstens einmal je 2 h 45 min (Puffer
+  baut neu auf, wenn `Mqtt.seit` ≥ 2 h 30 min (`DAUER_VORBEUGEND` 9000 s seit 0.59.1, alsk1 #194; vorher 9900), höchstens einmal je Zeitraum (Puffer
   `DauerVorbeugend`), direkt nach einer beantworteten Anfrage. python-roborock hat keinen solchen Takt (nur HealthManager +
   Abo-Leerlauf 60 s). Kein eigenes Roborock-Cloudkonto auf Dietmars Privat-Symcon → Wirkung nur über lugge prüfbar.
 - **Client Socket ist für Nutzer gesperrt** (GetConfigurationForParent): Notbehelf NIE „im Socket Geöffnet aus/an“ empfehlen

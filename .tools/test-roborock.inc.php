@@ -970,20 +970,20 @@ $stummFrage();
 $stummFrage();
 check('Neuaufbau hat nichts gebracht (keine Antwort dazwischen) → Warnung im Meldungsfenster', $neuAufbau() === $vorherNeu + 3 && $stummLog() === $vorherLog + 1);
 $srv->stumm = false;
-// 0.59.0 (Forum lugge 144636/192): Roborock verstummt 3 h nach jedem Neuaufbau → nach 2 h 45 min vorbeugend neu verbinden.
+// 0.59.0 (Forum lugge 144636/192): Roborock verstummt 3 h nach jedem Neuaufbau → vorbeugend neu verbinden (0.59.1: nach 2 h 30 min).
 $mqV = json_decode($rk->ReadAttributeString('Mqtt'), true);
-$rk->WriteAttributeString('Mqtt', json_encode(['zustand' => 'verbunden', 'seit' => time() - 600] + $mqV));
+$rk->WriteAttributeString('Mqtt', json_encode(['zustand' => 'verbunden', 'seit' => time() - 8900] + $mqV));
 $rk->SetBuffer('DauerVorbeugend', '0');
 $vorherV = $neuAufbau();
 $stummFrage();
-check('Verbindung 10 min alt, Antwort kommt → kein Neuaufbau', $neuAufbau() === $vorherV);
-$rk->WriteAttributeString('Mqtt', json_encode(['zustand' => 'verbunden', 'seit' => time() - 9950] + $mqV));
+check('Verbindung 2 h 28 min alt, Antwort kommt → noch kein Neuaufbau', $neuAufbau() === $vorherV);
+$rk->WriteAttributeString('Mqtt', json_encode(['zustand' => 'verbunden', 'seit' => time() - 9050] + $mqV));
 $stummFrage();
-check('Verbindung 2 h 46 min alt, Antwort kommt → vorbeugend neu verbunden, nichts im Meldungsfenster', $neuAufbau() === $vorherV + 1 && $stummLog() === $vorherLog + 1);
+check('Verbindung 2 h 31 min alt, Antwort kommt → vorbeugend neu verbunden, nichts im Meldungsfenster', $neuAufbau() === $vorherV + 1 && $stummLog() === $vorherLog + 1);
 // Verbindungszeit wieder alt setzen (sonst stellt der nachgebaute Server sie beim Neuverbinden selbst zurück).
-$rk->WriteAttributeString('Mqtt', json_encode(['zustand' => 'verbunden', 'seit' => time() - 9950] + $mqV));
+$rk->WriteAttributeString('Mqtt', json_encode(['zustand' => 'verbunden', 'seit' => time() - 9050] + $mqV));
 $stummFrage();
-check('vorbeugender Neuaufbau nicht bei jeder Anfrage (erst wieder nach 2 h 45 min)', $neuAufbau() === $vorherV + 1);
+check('vorbeugender Neuaufbau nicht bei jeder Anfrage (erst wieder nach 2 h 30 min)', $neuAufbau() === $vorherV + 1);
 $rk->WriteAttributeString('Mqtt', json_encode($mqV));
 
 // 0.52.3 (Forum alsk1 144636/184): Socket-Felder sind gesperrt → Knopf im Konto immer sichtbar, trennt und verbindet neu.

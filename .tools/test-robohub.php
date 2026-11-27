@@ -1642,7 +1642,9 @@ FakeCloud::$liveOut = [['piid' => 5, 'value' => '1760000000000'], ['piid' => 3, 
 // Ausgangslage: Roboter in der Station (der Echtzeit-Test oben ließ ihn „reinigen").
 FakeCloud::$props['2.1'] = 13;
 $geraet->Aktualisieren();
-check('Station → Live-Takt aus', ($geraet->timers['LiveKarte'] ?? -1) === 0 && $geraet->ReadAttributeBoolean('LiveAktiv') === false);
+check('Station → Live-Takt aus, nur noch einmal Nachladen nach 60 s (Forum alsk1 144636/194)', ($geraet->timers['LiveKarte'] ?? -1) === 60000 && $geraet->ReadAttributeBoolean('LiveAktiv') === false);
+$geraet->LiveKarteLaden();
+check('Nachladen nach Arbeitsende läuft nur einmal (Takt danach aus)', ($geraet->timers['LiveKarte'] ?? -1) === 0);
 FakeCloud::$anfragen = [];
 FakeCloud::$props['2.1'] = 1;
 $geraet->Aktualisieren();
@@ -1674,7 +1676,7 @@ FakeCloud::$anfragen = [];
 FakeCloud::$props['2.1'] = 13;
 $geraet->Aktualisieren();
 $anf = array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action' && $b['params']['siid'] === 6; });
-check('Reinigung fertig → fertiger Weg ein letztes Mal geholt, Takt aus', count($anf) === 1 && ($geraet->timers['LiveKarte'] ?? -1) === 0);
+check('Reinigung fertig → fertiger Weg ein letztes Mal geholt, Takt aus (nur einmaliges Nachladen nach 60 s)', count($anf) === 1 && ($geraet->timers['LiveKarte'] ?? -1) === 60000);
 FakeCloud::$anfragen = [];
 $geraet->Aktualisieren();
 check('… danach keine weiteren Anforderungen', count(array_filter(FakeCloud::befehle(), function ($b) { return $b['method'] === 'action'; })) === 0);

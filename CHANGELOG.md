@@ -2,6 +2,15 @@
 
 Ältere Versionen: [CHANGELOG-Archiv.md](https://github.com/DG65/RoboHub/blob/main/CHANGELOG-Archiv.md)
 
+## 0.59.1 (27.11.2026)
+
+- **Live-Karte: nach Arbeitsende eine Minute später noch einmal laden** (Forum alsk1 144636/194, Bildschirmfoto: Roboter auf
+  der Karte neben der Station). Der Zustand wechselt (oft per Echtzeit) bevor der Roboter seine Karte mit der Stationsposition
+  nachgeführt hat. `liveSteuern` lädt beim Ende wie bisher sofort und stellt den Takt einmalig auf 60 s; `LiveKarteLaden`
+  schaltet ihn danach aus. Alle Hersteller mit Live-Karte.
+- **Roborock: vorbeugender Neuaufbau nach 2 h 30 min statt 2 h 45 min** (alsk1-Vorschlag, mehr Spielraum auch bei langem
+  Abruftakt). Bezug bleibt der letzte Verbindungsaufbau (`Mqtt.seit`). 3/3 Gegenproben.
+
 ## 0.59.0 (27.11.2026)
 
 - **Roborock: Dauerverbindung vorbeugend erneuern** (Forum lugge 144636/192, Archiv „Erreichbar“ 24.–27.11.2026): 19 von 27

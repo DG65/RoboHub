@@ -1245,6 +1245,7 @@ class RoboHubGeraet extends IPSModule
 
     // Takt der Live-Karte während der Arbeit (Sauger: Kartenrahmen klein, Mäher: ganze Gerätedaten).
     private const LIVE_SAUGER_S = 30;
+    private const LIVE_NACHLADEN_S = 60;
     private const LIVE_MAEHER_S = 60;
 
     /**
@@ -1253,6 +1254,9 @@ class RoboHubGeraet extends IPSModule
      */
     public function LiveKarteLaden(): string
     {
+        if (!$this->ReadAttributeBoolean('LiveAktiv')) {
+            $this->SetTimerInterval('LiveKarte', 0);   // Nachladen nach Arbeitsende: nur einmal
+        }
         // Schickt der Roboter die Live-Karte gerade selbst (Roborock Q7), ersetzt das den Abruf im Takt.
         $push = (int)$this->GetBuffer('PushKarte');
         if ($push > 0 && time() - $push < self::PUSH_KARTE_GUELTIG_S && $this->ReadAttributeBoolean('LiveAktiv')) {
@@ -1326,6 +1330,11 @@ class RoboHubGeraet extends IPSModule
         $this->SetTimerInterval('LiveKarte', $aktiv ? $takt * 1000 : 0);
         // Beim Start sofort, am Ende ein letztes Mal (fertiger Weg bleibt bis zur nächsten Arbeit stehen).
         $this->LiveKarteLaden();
+        if (!$aktiv) {
+            // 0.59.1 (Forum alsk1 144636/194): Der Zustand wechselt oft, bevor der Roboter seine Karte mit der Position in
+            // der Station nachgeführt hat — dann stand er auf der Karte daneben. Eine Minute später noch einmal laden.
+            $this->SetTimerInterval('LiveKarte', self::LIVE_NACHLADEN_S * 1000);
+        }
     }
 
     /** Echtzeit-Position [x mm, y mm, Winkel] auf die angezeigte Karte setzen. */
